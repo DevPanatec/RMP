@@ -1,0 +1,566 @@
+/* ========================================
+   SISTEMA DE REPORTES - ESTILOS
+======================================== */
+
+.reports-container {
+  padding: 1.5rem;
+  background: var(--color-background);
+  min-height: 100vh;
+}
+
+.reports-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  gap: 2rem;
+}
+
+.reports-title h2 {
+  color: var(--color-text-primary);
+  margin: 0 0 0.5rem 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.reports-title p {
+  color: var(--color-text-secondary);
+  margin: 0;
+  font-size: 1rem;
+}
+
+.reports-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.date-range {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-surface);
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.date-range label {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.date-range input[type="date"] {
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+}
+
+.report-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ========================================
+   PESTAÑAS DE REPORTES
+======================================== */
+
+.reports-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--color-border);
+  margin-bottom: 2rem;
+  gap: 1px;
+}
+
+.tab {
+  background: var(--color-surface);
+  border: none;
+  padding: 1rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 8px 8px 0 0;
+  position: relative;
+}
+
+.tab:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.tab--active {
+  background: var(--color-primary);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--color-primary);
+}
+
+/* ========================================
+   CARGA DE REPORTES
+======================================== */
+
+.reports-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem;
+  background: var(--color-surface);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+}
+
+.loading-spinner {
+  text-align: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--color-border);
+  border-top: 4px solid var(--color-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ========================================
+   CONTENIDO DE REPORTES
+======================================== */
+
+.reports-body {
+  background: var(--color-surface);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.report-content {
+  padding: 2rem;
+}
+
+.report-summary {
+  margin-bottom: 2rem;
+}
+
+.report-summary h3 {
+  color: var(--color-text-primary);
+  margin: 0 0 1.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+  color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+}
+
+.summary-icon {
+  font-size: 2rem;
+  opacity: 0.9;
+}
+
+.summary-data {
+  flex: 1;
+}
+
+.summary-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  opacity: 0.9;
+  font-weight: 500;
+}
+
+/* ========================================
+   SECCIONES DE REPORTE
+======================================== */
+
+.report-section {
+  margin-bottom: 2rem;
+}
+
+.report-section:last-child {
+  margin-bottom: 0;
+}
+
+.report-section h3 {
+  color: var(--color-text-primary);
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--color-border);
+}
+
+/* ========================================
+   TABLAS DE REPORTES
+======================================== */
+
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.report-table thead {
+  background: var(--color-surface-alt);
+}
+
+.report-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.report-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.report-table tbody tr:hover {
+  background: var(--color-surface-hover);
+}
+
+.progress-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-success), var(--color-primary));
+  transition: width 0.3s ease;
+}
+
+.status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status--success {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.status--warning {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.status--danger {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+/* ========================================
+   RENDIMIENTO
+======================================== */
+
+.performance {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.performance--excellent {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.performance--good {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+}
+
+.performance--poor {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+/* ========================================
+   TENDENCIAS
+======================================== */
+
+.trends-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.trend-card {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  transition: transform 0.2s ease;
+}
+
+.trend-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.trend-date {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.trend-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.trend-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.trend-label {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+.trend-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+/* ========================================
+   FRECUENCIA DE SERVICIO
+======================================== */
+
+.frequency-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.frequency-card {
+  background: linear-gradient(135deg, var(--color-surface), var(--color-surface-alt));
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.frequency-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.frequency-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.frequency-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 0.5rem;
+}
+
+.frequency-label {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+/* ========================================
+   ESTADO DE REPORTE AUTOMÁTICO
+======================================== */
+
+.auto-report-status {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--color-success);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.auto-report-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-dot--active {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+======================================== */
+
+@media (max-width: 768px) {
+  .reports-container {
+    padding: 1rem;
+  }
+  
+  .reports-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .reports-controls {
+    width: 100%;
+  }
+  
+  .date-range {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .report-actions {
+    flex-wrap: wrap;
+  }
+  
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .trends-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .frequency-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .auto-report-status {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    margin-top: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .reports-tabs {
+    flex-direction: column;
+  }
+  
+  .tab {
+    border-radius: 0;
+  }
+  
+  .trends-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.quick-range {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.truck-filter {
+  display: flex;
+  flex-direction: column;
+  margin-left: 16px;
+}
+
+.truck-filter select {
+  background: #1f2937;
+  color: #fff;
+  border: 1px solid #374151;
+  padding: 6px 8px;
+  border-radius: 4px;
+}
+
+.quick-range .btn--sm {
+  padding: 4px 8px;
+  font-size: 12px;
+} 
