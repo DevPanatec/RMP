@@ -5,7 +5,7 @@ import ReportsComponent from '../../components/Reports/ReportsComponent';
 import PersonnelComponent from '../../components/Personnel/PersonnelComponent';
 import InventoryComponent from '../../components/Inventory/InventoryComponent';
 import RoutesComponent from '../../components/Routes/RoutesComponent';
-import ServicesComponent from '../../components/Services/ServicesComponent';
+
 import RiskComponent from '../../components/Risk/RiskComponent';
 import './AdminDashboard.css';
 
@@ -13,6 +13,12 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [currentData, setCurrentData] = useState(appData);
   const [selectedTruck, setSelectedTruck] = useState(null);
+  const [serviceTypeFilter, setServiceTypeFilter] = useState('todos'); // todos | recoleccion | fumigacion
+
+  // Normalizar camiones: si no tienen tipoServicio, asumir 'recoleccion'
+  const normalizedCamiones = currentData.camiones.map(camion => (
+    camion.tipoServicio ? camion : { ...camion, tipoServicio: 'recoleccion' }
+  ));
 
   // Simular actualizaciones de datos en tiempo real
   useEffect(() => {
@@ -35,19 +41,81 @@ const AdminDashboard = ({ user, onLogout }) => {
       case 'dashboard':
         return (
           <div className="dashboard-content">
+            {/* Mapa primero */}
+            <div className="card">
+              <div className="card__body">
+                <h3>🗺️ Monitoreo GPS en Tiempo Real</h3>
+                <p className="section-description">
+                  Seguimiento en vivo de {
+                    serviceTypeFilter === 'todos' ? 'todos los vehículos' :
+                    serviceTypeFilter === 'recoleccion' ? 'vehículos de recolección' : 'vehículos de fumigación'
+                  } con actualizaciones automáticas
+                </p>
+                <MapComponent 
+                  key={`map-${serviceTypeFilter}`}
+                  camiones={serviceTypeFilter === 'todos' 
+                    ? normalizedCamiones 
+                    : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter)
+                  } 
+                  userType={user.tipo}
+                  showRealTime={true}
+                  selectedTruck={selectedTruck}
+                  serviceTypeFilter={serviceTypeFilter}
+                />
+              </div>
+            </div>
+
+            {/* Filtros de servicio */}
+            <div className="service-filters">
+              <div className="filter-group">
+                <label>Tipo de Servicio:</label>
+                <div className="filter-buttons">
+                  <button 
+                    className={`filter-btn ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
+                    onClick={() => setServiceTypeFilter('todos')}
+                  >
+                    📊 Todos
+                  </button>
+                  <button 
+                    className={`filter-btn ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
+                    onClick={() => setServiceTypeFilter('recoleccion')}
+                  >
+                    🚛 Recolección
+                  </button>
+                  <button 
+                    className={`filter-btn ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
+                    onClick={() => setServiceTypeFilter('fumigacion')}
+                  >
+                    🚐 Fumigación
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="kpi-grid">
               <div className="kpi-card">
                 <div className="kpi-icon">🚛</div>
                 <div className="kpi-content">
-                  <div className="kpi-value">{currentData.camiones.length}</div>
-                  <div className="kpi-label">Total Camiones</div>
+                  <div className="kpi-value">
+                    {serviceTypeFilter === 'todos' 
+                      ? normalizedCamiones.length 
+                      : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter).length
+                    }
+                  </div>
+                  <div className="kpi-label">
+                    {serviceTypeFilter === 'todos' ? 'Total Vehículos' : 
+                     serviceTypeFilter === 'recoleccion' ? 'Camiones Recolección' : 'Vehículos Fumigación'}
+                  </div>
                 </div>
               </div>
               <div className="kpi-card">
                 <div className="kpi-icon">🟢</div>
                 <div className="kpi-content">
                   <div className="kpi-value">
-                    {currentData.camiones.filter(c => c.estado === 'En ruta').length}
+                    {serviceTypeFilter === 'todos' 
+                      ? normalizedCamiones.filter(c => c.estado === 'En ruta').length
+                      : normalizedCamiones.filter(c => c.estado === 'En ruta' && c.tipoServicio === serviceTypeFilter).length
+                    }
                   </div>
                   <div className="kpi-label">En Ruta</div>
                 </div>
@@ -105,35 +173,56 @@ const AdminDashboard = ({ user, onLogout }) => {
                 </div>
               </div>
             )}
-            
-            <div className="card">
-              <div className="card__body">
-                <h3>🗺️ Monitoreo GPS en Tiempo Real</h3>
-                <p className="section-description">
-                  Seguimiento en vivo de todos los vehículos recolectores con actualizaciones automáticas
-                </p>
-                <MapComponent 
-                  camiones={currentData.camiones} 
-                  userType={user.tipo}
-                  showRealTime={true}
-                  selectedTruck={selectedTruck}
-                />
-              </div>
-            </div>
           </div>
         );
         
       case 'camiones':
+        // Filtrar vehículos según el filtro seleccionado
+        const filteredVehicles = serviceTypeFilter === 'todos' 
+          ? normalizedCamiones 
+          : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter);
+
         return (
           <div className="dashboard-content">
             <div className="card">
               <div className="card__body">
-                <h3>🚛 Gestión de Camiones</h3>
+                <h3>
+                  {serviceTypeFilter === 'todos' ? '🚛 Gestión de Vehículos' : 
+                   serviceTypeFilter === 'recoleccion' ? '🚛 Gestión de Camiones' : '🚐 Gestión de Fumigación'}
+                </h3>
+                
+                {/* Filtros de servicio también en la página de camiones */}
+                <div className="service-filters">
+                  <div className="filter-group">
+                    <label>Tipo de Servicio:</label>
+                    <div className="filter-buttons">
+                      <button 
+                        className={`filter-btn ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
+                        onClick={() => setServiceTypeFilter('todos')}
+                      >
+                        📊 Todos
+                      </button>
+                      <button 
+                        className={`filter-btn ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
+                        onClick={() => setServiceTypeFilter('recoleccion')}
+                      >
+                        🚛 Recolección
+                      </button>
+                      <button 
+                        className={`filter-btn ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
+                        onClick={() => setServiceTypeFilter('fumigacion')}
+                      >
+                        🚐 Fumigación
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="table-controls">
                   <div className="search-box">
                     <input 
                       type="text" 
-                      placeholder="🔍 Buscar camión..." 
+                      placeholder="🔍 Buscar vehículo..." 
                       className="search-input"
                     />
                   </div>
@@ -143,6 +232,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                     <thead>
                       <tr>
                         <th>ID</th>
+                        <th>Tipo</th>
                         <th>Conductor</th>
                         <th>Estado</th>
                         <th>Ruta Asignada</th>
@@ -151,15 +241,20 @@ const AdminDashboard = ({ user, onLogout }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {currentData.camiones.map(camion => (
+                      {filteredVehicles.map(camion => (
                         <tr key={camion.id} className={selectedTruck === camion.id ? 'selected-row' : ''}>
                           <td>
                             <button 
                               className="truck-id-btn"
                               onClick={() => setSelectedTruck(camion.id)}
                             >
-                              {camion.id}
+                              {camion.tipoServicio === 'fumigacion' ? '🚐' : '🚛'} {camion.id}
                             </button>
+                          </td>
+                          <td>
+                            <span className={`service-type-badge ${camion.tipoServicio}`}>
+                              {camion.tipoServicio === 'fumigacion' ? 'Fumigación' : 'Recolección'}
+                            </span>
                           </td>
                           <td>{camion.conductor}</td>
                           <td>
@@ -183,6 +278,11 @@ const AdminDashboard = ({ user, onLogout }) => {
                                 <span className="progress-text">
                                   {camion.paradaActual}/{camion.totalParadas}
                                 </span>
+                                {camion.tipoServicio === 'fumigacion' && camion.areaFumigada && (
+                                  <small className="fumigation-area">
+                                    📐 {camion.areaFumigada}m²
+                                  </small>
+                                )}
                               </div>
                             )}
                           </td>
@@ -225,8 +325,7 @@ const AdminDashboard = ({ user, onLogout }) => {
       case 'inventario':
         return <InventoryComponent userType={user.tipo} />;
         
-      case 'servicios':
-        return <ServicesComponent userType={user.tipo} />;
+
         
       case 'riesgos':
         return <RiskComponent userType={user.tipo} />;
@@ -293,14 +392,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 📦 Inventario
               </button>
             </li>
-            <li>
-              <button 
-                className={activeTab === 'servicios' ? 'active' : ''}
-                onClick={() => setActiveTab('servicios')}
-              >
-                🏢 Servicios
-              </button>
-            </li>
+
             <li>
               <button 
                 className={activeTab === 'riesgos' ? 'active' : ''}

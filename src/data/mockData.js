@@ -12,6 +12,7 @@ export const appData = {
       "lng": -79.516670, 
       "estado": "En ruta", 
       "rutaAsignada": "Ruta Centro",
+      "tipoServicio": "recoleccion", // recoleccion | fumigacion
       "velocidad": 25, // km/h
       "combustible": 75, // %
       "ultimaActualizacion": new Date().toISOString(),
@@ -33,6 +34,7 @@ export const appData = {
       "lng": -79.526670, 
       "estado": "Disponible", 
       "rutaAsignada": null,
+      "tipoServicio": "recoleccion",
       "velocidad": 0,
       "combustible": 90,
       "ultimaActualizacion": new Date().toISOString(),
@@ -51,6 +53,7 @@ export const appData = {
       "lng": -79.506670, 
       "estado": "En ruta", 
       "rutaAsignada": "Ruta Norte",
+      "tipoServicio": "recoleccion",
       "velocidad": 30,
       "combustible": 60,
       "ultimaActualizacion": new Date().toISOString(),
@@ -72,6 +75,7 @@ export const appData = {
       "lng": -79.536670, 
       "estado": "Disponible", 
       "rutaAsignada": null,
+      "tipoServicio": "recoleccion",
       "velocidad": 0,
       "combustible": 85,
       "ultimaActualizacion": new Date().toISOString(),
@@ -90,6 +94,7 @@ export const appData = {
       "lng": -79.546670, 
       "estado": "En mantenimiento", 
       "rutaAsignada": null,
+      "tipoServicio": "recoleccion",
       "velocidad": 0,
       "combustible": 40,
       "ultimaActualizacion": new Date().toISOString(),
@@ -99,6 +104,73 @@ export const appData = {
       "direccion": 0,
       "historialPosiciones": [
         { lat: 8.953333, lng: -79.546670, timestamp: new Date().toISOString() }
+      ]
+    },
+    // Vehículos de fumigación
+    {
+      "id": "FG-001", 
+      "conductor": "Roberto Silva", 
+      "lat": 8.978333, 
+      "lng": -79.521670, 
+      "estado": "En ruta", 
+      "rutaAsignada": "Ruta Centro",
+      "tipoServicio": "fumigacion",
+      "velocidad": 20, // km/h
+      "combustible": 80, // %
+      "ultimaActualizacion": new Date().toISOString(),
+      "paradaActual": 2,
+      "totalParadas": 10,
+      "areaFumigada": 250, // m² acumulados
+      "direccion": 75, // grados
+      "tipoPlaga": "mosquitos", // mosquitos | roedores | cucarachas
+      "historialPosiciones": [
+        { lat: 8.975000, lng: -79.525000, timestamp: new Date(Date.now() - 10 * 60000).toISOString() },
+        { lat: 8.976000, lng: -79.523000, timestamp: new Date(Date.now() - 8 * 60000).toISOString() },
+        { lat: 8.977000, lng: -79.522000, timestamp: new Date(Date.now() - 5 * 60000).toISOString() },
+        { lat: 8.978333, lng: -79.521670, timestamp: new Date().toISOString() }
+      ]
+    },
+    {
+      "id": "FG-002", 
+      "conductor": "Carmen Vega", 
+      "lat": 8.968333, 
+      "lng": -79.511670, 
+      "estado": "En ruta", 
+      "rutaAsignada": "Ruta Norte",
+      "tipoServicio": "fumigacion",
+      "velocidad": 25, // km/h
+      "combustible": 65, // %
+      "ultimaActualizacion": new Date().toISOString(),
+      "paradaActual": 5,
+      "totalParadas": 10,
+      "areaFumigada": 420, // m² acumulados
+      "direccion": 150, // grados
+      "tipoPlaga": "roedores",
+      "historialPosiciones": [
+        { lat: 8.965000, lng: -79.515000, timestamp: new Date(Date.now() - 15 * 60000).toISOString() },
+        { lat: 8.966000, lng: -79.513000, timestamp: new Date(Date.now() - 12 * 60000).toISOString() },
+        { lat: 8.967000, lng: -79.512000, timestamp: new Date(Date.now() - 8 * 60000).toISOString() },
+        { lat: 8.968333, lng: -79.511670, timestamp: new Date().toISOString() }
+      ]
+    },
+    {
+      "id": "FG-003", 
+      "conductor": "Diego Morales", 
+      "lat": 8.988333, 
+      "lng": -79.531670, 
+      "estado": "Disponible", 
+      "rutaAsignada": null,
+      "tipoServicio": "fumigacion",
+      "velocidad": 0,
+      "combustible": 95,
+      "ultimaActualizacion": new Date().toISOString(),
+      "paradaActual": 0,
+      "totalParadas": 0,
+      "areaFumigada": 0,
+      "direccion": 0,
+      "tipoPlaga": null,
+      "historialPosiciones": [
+        { lat: 8.988333, lng: -79.531670, timestamp: new Date().toISOString() }
       ]
     }
   ],
@@ -486,8 +558,8 @@ export const appData = {
       ]
     }
   ],
-  // Camiones actualizados con posiciones y rutas reales
-  camiones: [
+  // Camiones actualizados con posiciones y rutas reales (legacy, no usar para filtros nuevos)
+  camionesLegacy: [
     {
       id: 'CAM-001',
       conductor: 'Carlos Mendez',
@@ -627,52 +699,69 @@ export const appData = {
   }
 };
 
+// ------------------------------
+// Integración con Mapbox Directions API
+// ------------------------------
+
+const MAPBOX_TOKEN = 'pk.eyJ1Ijoia2V2aW5uMjMiLCJhIjoiY204Y2J0bWN1MTg5ZzJtb2xobXljODM0MiJ9.48MFADtQhp_sFuQjewLFeA';
+
+// Helper para convertir [lon, lat] → [lat, lon]
+const convertCoords = (coords) => coords.map(([lon, lat]) => [lat, lon]);
+
 // Función para obtener ruta real usando OSRM
 export const calcularRutaReal = async (inicio, fin) => {
   try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${inicio.lng},${inicio.lat};${fin.lng},${fin.lat}?overview=full&geometries=geojson`;
+    const coords = `${inicio.lng},${inicio.lat};${fin.lng},${fin.lat}`;
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coords}?overview=full&geometries=geojson&access_token=${MAPBOX_TOKEN}`;
     const response = await fetch(url);
     const data = await response.json();
-    
+
     if (data.routes && data.routes[0]?.geometry) {
-      // Convertir coordenadas de OSRM [lng, lat] a Leaflet [lat, lng]
-      return data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+      return convertCoords(data.routes[0].geometry.coordinates);
     }
   } catch (error) {
-    console.warn('Error calculando ruta OSRM, usando fallback:', error);
+    console.warn('Error calculando ruta con Mapbox, usando fallback:', error);
   }
-  
-  // Fallback: interpolación con más puntos para rutas más suaves
+
+  // Fallback simple
   const deltaLat = (fin.lat - inicio.lat) / 20;
   const deltaLng = (fin.lng - inicio.lng) / 20;
-  
   const waypoints = [];
   for (let i = 0; i <= 20; i++) {
-    // Añadir algo de curvatura para simular calles
     const factor = i / 20;
-    const curvatura = Math.sin(factor * Math.PI) * 0.002; // Pequeña desviación
+    const curvatura = Math.sin(factor * Math.PI) * 0.002;
     waypoints.push([
       inicio.lat + (deltaLat * i) + curvatura,
       inicio.lng + (deltaLng * i) + curvatura
     ]);
   }
-  
   return waypoints;
 };
 
 // Función para calcular ruta completa con todas las paradas
 export const calcularRutaCompleta = async (paradas) => {
-  const rutaCompleta = [];
-  
-  for (let i = 0; i < paradas.length - 1; i++) {
-    const segmento = await calcularRutaReal(paradas[i], paradas[i + 1]);
-    if (rutaCompleta.length > 0) {
-      // Evitar puntos duplicados
-      segmento.shift();
+  try {
+    if (paradas.length < 2) return paradas.map(p => [p.lat, p.lng]);
+
+    const coordsStr = paradas.map(p => `${p.lng},${p.lat}`).join(';');
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordsStr}?overview=full&geometries=geojson&access_token=${MAPBOX_TOKEN}`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.routes && data.routes[0]?.geometry) {
+      return convertCoords(data.routes[0].geometry.coordinates);
     }
-    rutaCompleta.push(...segmento);
+  } catch (error) {
+    console.warn('Error calculando ruta completa con Mapbox, usando fallback:', error);
   }
-  
+
+  // Fallback: concatenar segmentos simples
+  const rutaCompleta = [];
+  for (let i = 0; i < paradas.length - 1; i++) {
+    const segment = await calcularRutaReal(paradas[i], paradas[i + 1]);
+    if (i > 0) segment.shift();
+    rutaCompleta.push(...segment);
+  }
   return rutaCompleta;
 };
 

@@ -9,6 +9,7 @@ const ReportsComponent = ({ userType = 'admin' }) => {
     fin: new Date().toISOString().split('T')[0]
   });
   const [filterTruck, setFilterTruck] = useState('todos');
+  const [serviceTypeFilter, setServiceTypeFilter] = useState('todos'); // todos | recoleccion | fumigacion
   const [reportData, setReportData] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [autoReportConfig, setAutoReportConfig] = useState({
@@ -21,7 +22,7 @@ const ReportsComponent = ({ userType = 'admin' }) => {
   // Generar datos del reporte automáticamente
   useEffect(() => {
     generateReportData();
-  }, [dateRange, activeReportTab, filterTruck]);
+  }, [dateRange, activeReportTab, filterTruck, serviceTypeFilter]);
 
   const generateReportData = () => {
     setIsGenerating(true);
@@ -35,11 +36,23 @@ const ReportsComponent = ({ userType = 'admin' }) => {
   };
 
   const calculateReportMetrics = () => {
-    const camiones = appData.camiones.filter(c => filterTruck === 'todos' ? true : c.id === filterTruck);
+    // Filtrar por camión específico y tipo de servicio
+    let camiones = appData.camiones.filter(c => filterTruck === 'todos' ? true : c.id === filterTruck);
+    if (serviceTypeFilter !== 'todos') {
+      camiones = camiones.filter(c => c.tipoServicio === serviceTypeFilter);
+    }
+    
     const rutas = appData.rutas;
     
-    // Calcular métricas operativas
-    const totalKgRecolectado = camiones.reduce((total, camion) => total + camion.pesoAcumulado, 0);
+    // Calcular métricas operativas según tipo de servicio
+    const totalKgRecolectado = camiones
+      .filter(c => c.tipoServicio === 'recoleccion')
+      .reduce((total, camion) => total + (camion.pesoAcumulado || 0), 0);
+    
+    const totalAreaFumigada = camiones
+      .filter(c => c.tipoServicio === 'fumigacion')
+      .reduce((total, camion) => total + (camion.areaFumigada || 0), 0);
+    
     const rutasCompletadas = camiones.filter(c => c.estado === 'En ruta').length;
     const eficienciaPromedio = camiones.reduce((total, camion) => {
       if (camion.estado === 'En ruta' && camion.totalParadas > 0) {
@@ -77,24 +90,42 @@ const ReportsComponent = ({ userType = 'admin' }) => {
     const productividadConductores = camiones.map(camion => ({
       conductor: camion.conductor,
       camion: camion.id,
-      pesoRecolectado: camion.pesoAcumulado,
+      tipoServicio: camion.tipoServicio,
+      pesoRecolectado: camion.pesoAcumulado || 0,
+      areaFumigada: camion.areaFumigada || 0,
+      tipoPlaga: camion.tipoPlaga,
       paradaCompletadas: camion.paradaActual,
       eficiencia: camion.totalParadas > 0 ? ((camion.paradaActual / camion.totalParadas) * 100).toFixed(1) : 0,
       combustibleUsado: 100 - camion.combustible,
       horasActivas: Math.floor(Math.random() * 8) + 1
     }));
 
+    // Métricas específicas de fumigación
+    const fumigacionMetrics = {
+      totalVehiculos: camiones.filter(c => c.tipoServicio === 'fumigacion').length,
+      vehiculosActivos: camiones.filter(c => c.tipoServicio === 'fumigacion' && c.estado === 'En ruta').length,
+      totalAreaFumigada: Math.round(totalAreaFumigada),
+      plagasControladas: {
+        mosquitos: camiones.filter(c => c.tipoServicio === 'fumigacion' && c.tipoPlaga === 'mosquitos').length,
+        roedores: camiones.filter(c => c.tipoServicio === 'fumigacion' && c.tipoPlaga === 'roedores').length,
+        cucarachas: camiones.filter(c => c.tipoServicio === 'fumigacion' && c.tipoPlaga === 'cucarachas').length
+      }
+    };
+
     return {
       resumenOperativo: {
         totalKgRecolectado: Math.round(totalKgRecolectado),
+        totalAreaFumigada: Math.round(totalAreaFumigada),
         rutasCompletadas,
         totalRutas: rutas.length,
         eficienciaPromedio: Math.round(eficienciaPromedio),
         camioneActivos: camiones.filter(c => c.estado !== 'En mantenimiento').length,
-        totalCamiones: camiones.length
+        totalCamiones: camiones.length,
+        serviceTypeFilter
       },
       analisisPorZona,
       frecuenciaServicio,
+      fumigacionMetrics,
       productividadConductores: filterTruck === 'todos' ? productividadConductores : productividadConductores.filter(p => p.camion === filterTruck),
       tendencias: generateTrendData()
     };
@@ -176,15 +207,12 @@ ${reportData?.analisisPorZona.map(zona =>
   const renderOperationalReport = () => (
     <div className="report-content">
       <div className="report-summary">
-        <h3>📊 Resumen Operativo</h3>
+        <h3>📊 Resumen Operativo - {
+          serviceTypeFilter === 'todos' ? 'Todos los Servicios' :
+          serviceTypeFilter === 'recoleccion' ? 'Recolección de Residuos' : 'Fumigación'
+        }</h3>
         <div className="summary-grid">
-          <div className="summary-card">
-            <div className="summary-icon">📦</div>
-            <div className="summary-data">
-              <div className="summary-value">{reportData?.resumenOperativo.totalKgRecolectado.toLocaleString()}</div>
-              <div className="summary-label">Carga Recolectada</div>
-            </div>
-          </div>
+          {/* Métricas comunes */}
           <div className="summary-card">
             <div className="summary-icon">🗺️</div>
             <div className="summary-data">
@@ -201,16 +229,72 @@ ${reportData?.analisisPorZona.map(zona =>
               <div className="summary-label">Eficiencia Promedio</div>
             </div>
           </div>
+          
+          {/* Métricas específicas de recolección */}
+          {(serviceTypeFilter === 'todos' || serviceTypeFilter === 'recoleccion') && (
+            <div className="summary-card">
+              <div className="summary-icon">📦</div>
+              <div className="summary-data">
+                <div className="summary-value">{reportData?.resumenOperativo.totalKgRecolectado.toLocaleString()} kg</div>
+                <div className="summary-label">Carga Recolectada</div>
+              </div>
+            </div>
+          )}
+          
+          {/* Métricas específicas de fumigación */}
+          {(serviceTypeFilter === 'todos' || serviceTypeFilter === 'fumigacion') && (
+            <div className="summary-card">
+              <div className="summary-icon">📐</div>
+              <div className="summary-data">
+                <div className="summary-value">{reportData?.resumenOperativo.totalAreaFumigada.toLocaleString()} m²</div>
+                <div className="summary-label">Área Fumigada</div>
+              </div>
+            </div>
+          )}
+          
+          {/* Métricas de vehículos */}
           <div className="summary-card">
-            <div className="summary-icon">🚛</div>
+            <div className="summary-icon">{serviceTypeFilter === 'fumigacion' ? '🚐' : '🚛'}</div>
             <div className="summary-data">
               <div className="summary-value">
                 {reportData?.resumenOperativo.camioneActivos}/{reportData?.resumenOperativo.totalCamiones}
               </div>
-              <div className="summary-label">Camiones Activos</div>
+              <div className="summary-label">
+                {serviceTypeFilter === 'fumigacion' ? 'Vehículos Fumigación' : 'Vehículos Activos'}
+              </div>
             </div>
           </div>
         </div>
+        
+        {/* Métricas adicionales de fumigación */}
+        {serviceTypeFilter === 'fumigacion' && reportData?.fumigacionMetrics && (
+          <div className="fumigation-metrics">
+            <h4>🦟 Control de Plagas</h4>
+            <div className="pest-control-grid">
+              <div className="pest-card">
+                <div className="pest-icon">🦟</div>
+                <div className="pest-data">
+                  <div className="pest-value">{reportData.fumigacionMetrics.plagasControladas.mosquitos}</div>
+                  <div className="pest-label">Mosquitos</div>
+                </div>
+              </div>
+              <div className="pest-card">
+                <div className="pest-icon">🐀</div>
+                <div className="pest-data">
+                  <div className="pest-value">{reportData.fumigacionMetrics.plagasControladas.roedores}</div>
+                  <div className="pest-label">Roedores</div>
+                </div>
+              </div>
+              <div className="pest-card">
+                <div className="pest-icon">🪳</div>
+                <div className="pest-data">
+                  <div className="pest-value">{reportData.fumigacionMetrics.plagasControladas.cucarachas}</div>
+                  <div className="pest-label">Cucarachas</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="report-section">
@@ -287,17 +371,29 @@ ${reportData?.analisisPorZona.map(zona =>
   const renderProductivityReport = () => (
     <div className="report-content">
       <div className="report-section">
-        <h3>👥 Productividad por Conductor</h3>
+        <h3>👥 Productividad por Conductor - {
+          serviceTypeFilter === 'todos' ? 'Todos los Servicios' :
+          serviceTypeFilter === 'recoleccion' ? 'Recolección' : 'Fumigación'
+        }</h3>
         <div className="table-wrapper">
           <table className="report-table">
             <thead>
               <tr>
                 <th>Conductor</th>
-                <th>Camión</th>
-                <th>Carga Recolectada</th>
-                <th>Paradas Completadas</th>
+                <th>Vehículo</th>
+                <th>Tipo</th>
+                {(serviceTypeFilter === 'todos' || serviceTypeFilter === 'recoleccion') && (
+                  <th>Carga (kg)</th>
+                )}
+                {(serviceTypeFilter === 'todos' || serviceTypeFilter === 'fumigacion') && (
+                  <th>Área (m²)</th>
+                )}
+                {serviceTypeFilter === 'fumigacion' && (
+                  <th>Plaga</th>
+                )}
+                <th>Paradas</th>
                 <th>Eficiencia</th>
-                <th>Horas Activas</th>
+                <th>Horas</th>
                 <th>Rendimiento</th>
               </tr>
             </thead>
@@ -305,8 +401,27 @@ ${reportData?.analisisPorZona.map(zona =>
               {reportData?.productividadConductores.map((conductor, index) => (
                 <tr key={index}>
                   <td>{conductor.conductor}</td>
-                  <td>{conductor.camion}</td>
-                  <td>{conductor.pesoRecolectado}</td>
+                  <td>
+                    {conductor.tipoServicio === 'fumigacion' ? '🚐' : '🚛'} {conductor.camion}
+                  </td>
+                  <td>
+                    <span className={`service-type-badge ${conductor.tipoServicio}`}>
+                      {conductor.tipoServicio === 'fumigacion' ? 'Fumigación' : 'Recolección'}
+                    </span>
+                  </td>
+                  {(serviceTypeFilter === 'todos' || serviceTypeFilter === 'recoleccion') && (
+                    <td>{conductor.pesoRecolectado || 0}</td>
+                  )}
+                  {(serviceTypeFilter === 'todos' || serviceTypeFilter === 'fumigacion') && (
+                    <td>{conductor.areaFumigada || 0}</td>
+                  )}
+                  {serviceTypeFilter === 'fumigacion' && (
+                    <td>
+                      {conductor.tipoPlaga ? (
+                        <span className="plague-type">{conductor.tipoPlaga}</span>
+                      ) : '-'}
+                    </td>
+                  )}
                   <td>{conductor.paradaCompletadas}</td>
                   <td>{conductor.eficiencia}%</td>
                   <td>{conductor.horasActivas}h</td>
@@ -394,12 +509,24 @@ ${reportData?.analisisPorZona.map(zona =>
               <button className="btn btn--sm" onClick={() => setDateRange({ inicio: new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0], fin: new Date().toISOString().split('T')[0] })}>30d</button>
             </div>
           </div>
+          <div className="service-filter">
+            <label>Tipo de Servicio:</label>
+            <select value={serviceTypeFilter} onChange={e => setServiceTypeFilter(e.target.value)}>
+              <option value="todos">Todos</option>
+              <option value="recoleccion">🚛 Recolección</option>
+              <option value="fumigacion">🚐 Fumigación</option>
+            </select>
+          </div>
           <div className="truck-filter">
-            <label>Camión:</label>
+            <label>Vehículo:</label>
             <select value={filterTruck} onChange={e => setFilterTruck(e.target.value)}>
               <option value="todos">Todos</option>
-              {appData.camiones.map(c => (
-                <option key={c.id} value={c.id}>{c.id}</option>
+              {appData.camiones
+                .filter(c => serviceTypeFilter === 'todos' || c.tipoServicio === serviceTypeFilter)
+                .map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.tipoServicio === 'fumigacion' ? '🚐' : '🚛'} {c.id}
+                </option>
               ))}
             </select>
           </div>

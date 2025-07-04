@@ -14,20 +14,36 @@ L.Icon.Default.mergeOptions({
 });
 
 // Iconos personalizados para diferentes estados con mejor diseño GPS
-const createCustomIcon = (estado, direccion = 0) => {
+const createCustomIcon = (estado, direccion = 0, tipoServicio = 'recoleccion') => {
   const colors = {
     'En ruta': '#22c55e',
     'Disponible': '#3b82f6',
     'En mantenimiento': '#f59e0b'
   };
   
+  // Iconos diferentes según el tipo de servicio
+  const serviceIcons = {
+    'recoleccion': '🚛',
+    'fumigacion': '🚐'
+  };
+  
+  // Colores específicos para fumigación
+  const fumigationColors = {
+    'En ruta': '#ef4444',
+    'Disponible': '#8b5cf6',
+    'En mantenimiento': '#f59e0b'
+  };
+  
+  const iconColors = tipoServicio === 'fumigacion' ? fumigationColors : colors;
+  
   const iconHtml = `
-    <div class="custom-truck-marker gps-style" style="transform: rotate(${direccion}deg)">
-      <div class="truck-icon-gps" style="background-color: ${colors[estado] || '#6b7280'}">
-        <div class="truck-symbol">🚛</div>
+    <div class="custom-truck-marker gps-style ${tipoServicio}-vehicle" style="transform: rotate(${direccion}deg)">
+      <div class="truck-icon-gps" style="background-color: ${iconColors[estado] || '#6b7280'}">
+        <div class="truck-symbol">${serviceIcons[tipoServicio] || '🚛'}</div>
         <div class="gps-direction-arrow"></div>
+        ${tipoServicio === 'fumigacion' ? '<div class="fumigation-indicator">🦟</div>' : ''}
       </div>
-      <div class="truck-pulse-gps" style="border-color: ${colors[estado] || '#6b7280'}"></div>
+      <div class="truck-pulse-gps" style="border-color: ${iconColors[estado] || '#6b7280'}"></div>
     </div>
   `;
 
@@ -67,7 +83,9 @@ const createStopIcon = (stopNumber, status, color, tipo = 'normal') => {
   });
 };
 
-const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck = null }) => {
+const MAPBOX_TOKEN = 'pk.eyJ1Ijoia2V2aW5uMjMiLCJhIjoiY204Y2J0bWN1MTg5ZzJtb2xobXljODM0MiJ9.48MFADtQhp_sFuQjewLFeA';
+
+const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck = null, serviceTypeFilter = 'todos' }) => {
   const [mapCamiones, setMapCamiones] = useState(camiones);
   const [showTrails, setShowTrails] = useState(true); // Activado por defecto para ver rutas
   const [realTimeEnabled, setRealTimeEnabled] = useState(showRealTime);
@@ -80,10 +98,8 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
   // Mapa de rutas viales precalculadas { [routeId]: coords[] }
   const [roadRoutes, setRoadRoutes] = useState({});
 
-  // Filtrar camiones para mostrar solo los activos (En ruta y En mantenimiento)
-  const activeCamiones = mapCamiones.filter(camion => 
-    camion.estado === 'En ruta' || camion.estado === 'En mantenimiento'
-  );
+  // Usar todos los camiones recibidos sin filtrar por estado
+  const activeCamiones = mapCamiones;
 
   // Simular actualizaciones en tiempo real siguiendo rutas reales
   useEffect(() => {
@@ -304,14 +320,55 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
       </div>
 
       <div className="map-legend gps-legend">
-        <div className="legend-item">
-          <span className="legend-color" style={{ backgroundColor: '#22c55e' }}></span>
-          En Ruta ({activeCamiones.filter(c => c.estado === 'En ruta').length})
-        </div>
-        <div className="legend-item">
-          <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
-          Mantenimiento ({activeCamiones.filter(c => c.estado === 'En mantenimiento').length})
-        </div>
+        {serviceTypeFilter === 'fumigacion' ? (
+          <>
+            <div className="legend-item">
+              <span className="legend-color" style={{ backgroundColor: '#ef4444' }}></span>
+              🚐 Fumigación En Ruta ({activeCamiones.filter(c => c.estado === 'En ruta').length})
+            </div>
+            <div className="legend-item">
+              <span className="legend-color" style={{ backgroundColor: '#8b5cf6' }}></span>
+              🚐 Fumigación Disponible ({activeCamiones.filter(c => c.estado === 'Disponible').length})
+            </div>
+            <div className="legend-item">
+              <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
+              🚐 Fumigación Mantenimiento ({activeCamiones.filter(c => c.estado === 'En mantenimiento').length})
+            </div>
+          </>
+        ) : serviceTypeFilter === 'recoleccion' ? (
+          <>
+            <div className="legend-item">
+              <span className="legend-color" style={{ backgroundColor: '#22c55e' }}></span>
+              🚛 Recolección En Ruta ({activeCamiones.filter(c => c.estado === 'En ruta').length})
+            </div>
+            <div className="legend-item">
+              <span className="legend-color" style={{ backgroundColor: '#3b82f6' }}></span>
+              🚛 Recolección Disponible ({activeCamiones.filter(c => c.estado === 'Disponible').length})
+            </div>
+            <div className="legend-item">
+              <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
+              🚛 Recolección Mantenimiento ({activeCamiones.filter(c => c.estado === 'En mantenimiento').length})
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="legend-item">
+              <span className="legend-color" style={{ backgroundColor: '#22c55e' }}></span>
+              En Ruta ({activeCamiones.filter(c => c.estado === 'En ruta').length})
+            </div>
+            <div className="legend-item">
+              <span className="legend-color" style={{ backgroundColor: '#3b82f6' }}></span>
+              Disponible ({activeCamiones.filter(c => c.estado === 'Disponible').length})
+            </div>
+            <div className="legend-item">
+              <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
+              Mantenimiento ({activeCamiones.filter(c => c.estado === 'En mantenimiento').length})
+            </div>
+            <div className="legend-item" style={{ opacity: 0.7, fontSize: '10px' }}>
+              🚛 Recolección | 🚐 Fumigación
+            </div>
+          </>
+        )}
         <div className="legend-item" style={{ opacity: 0.6, fontSize: '11px' }}>
           💡 Solo vehículos activos
         </div>
@@ -325,8 +382,10 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
           className="leaflet-container gps-map"
         >
           <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url={`https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`}
+            attribution='&copy; <a href="https://www.mapbox.com/">Mapbox</a> - Datos © <a href="https://www.openstreetmap.org/">OpenStreetMap</a>.'
+            tileSize={512}
+            zoomOffset={-1}
           />
           
           {/* Mostrar todas las rutas activas con estilo GPS mejorado */}
@@ -358,7 +417,7 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                 {/* Marcador principal del camión con estilo GPS */}
                 <Marker 
                   position={[camion.lat, camion.lng]}
-                  icon={createCustomIcon(camion.estado, camion.direccion)}
+                  icon={createCustomIcon(camion.estado, camion.direccion, camion.tipoServicio)}
                   eventHandlers={{
                     click: () => handleTruckClick(camion.id)
                   }}
@@ -366,9 +425,14 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                   {/* Solo mostrar popup si NO está seleccionado, para evitar dos modales */}
                   {!isSelected && (
                     <Popup>
-                      <div className="truck-popup gps-popup">
+                      <div className={`truck-popup gps-popup ${camion.tipoServicio === 'fumigacion' ? 'fumigation-popup' : ''}`}>
                         <div className="popup-header">
-                          <h4>🚛 {camion.id}</h4>
+                          <h4>
+                            {camion.tipoServicio === 'fumigacion' ? '🚐' : '🚛'} {camion.id}
+                            {camion.tipoServicio === 'fumigacion' && (
+                              <span className="service-type">FUMIGACIÓN</span>
+                            )}
+                          </h4>
                           <span 
                             className="status-badge" 
                             style={{ backgroundColor: getStatusColor(camion.estado) }}
@@ -391,6 +455,40 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                                 <strong>🚀 Velocidad:</strong> {camion.velocidad} km/h
                               </div>
                             </>
+                          )}
+                          
+                          {/* Información específica de fumigación */}
+                          {camion.tipoServicio === 'fumigacion' && (
+                            <>
+                              {camion.tipoPlaga && (
+                                <div className="info-row">
+                                  <strong>🦟 Plaga:</strong> 
+                                  <span className="plague-type">{camion.tipoPlaga}</span>
+                                </div>
+                              )}
+                              {camion.areaFumigada > 0 && (
+                                <div className="info-row">
+                                  <strong>📐 Área fumigada:</strong> {camion.areaFumigada} m²
+                                </div>
+                              )}
+                              <div className="fumigation-stats">
+                                <div className="fumigation-stat">
+                                  <span className="stat-icon">🎯</span>
+                                  <span>{camion.paradaActual}/{camion.totalParadas}</span>
+                                </div>
+                                <div className="fumigation-stat">
+                                  <span className="stat-icon">⛽</span>
+                                  <span>{camion.combustible}%</span>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                          
+                          {/* Información específica de recolección */}
+                          {camion.tipoServicio === 'recoleccion' && camion.pesoAcumulado > 0 && (
+                            <div className="info-row">
+                              <strong>⚖️ Peso acumulado:</strong> {camion.pesoAcumulado} kg
+                            </div>
                           )}
                           
                           <div className="info-row">
@@ -504,6 +602,12 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
             <div className="route-info-header">
               <h4 className="route-info-title">
                 🛰️ GPS: {getSelectedTruckRoute().nombre}
+                {getSelectedTruck().tipoServicio === 'fumigacion' && (
+                  <span className="service-type-badge">🚐 FUMIGACIÓN</span>
+                )}
+                {getSelectedTruck().tipoServicio === 'recoleccion' && (
+                  <span className="service-type-badge">🚛 RECOLECCIÓN</span>
+                )}
               </h4>
               <div style={{ display: 'flex', alignItems: 'center' }}>
                 <button 
