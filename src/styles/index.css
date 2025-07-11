@@ -1,47 +1,95 @@
 :root {
-  /* Colors - Tema Verde Eco-Friendly */
-  --color-background: rgba(248, 252, 248, 1);
-  --color-surface: rgba(255, 255, 255, 1);
-  --color-text: rgba(27, 69, 35, 1);
-  --color-text-secondary: rgba(76, 125, 84, 1);
-  --color-primary: rgba(34, 139, 34, 1);          /* Forest Green */
-  --color-primary-hover: rgba(50, 155, 50, 1);    /* Lighter Green */
-  --color-primary-active: rgba(25, 120, 25, 1);   /* Darker Green */
-  --color-secondary: rgba(144, 238, 144, 0.15);   /* Light Green */
-  --color-secondary-hover: rgba(144, 238, 144, 0.25);
-  --color-secondary-active: rgba(144, 238, 144, 0.35);
-  --color-border: rgba(144, 238, 144, 0.3);
-  --color-btn-primary-text: rgba(255, 255, 255, 1);
-  --color-card-border: rgba(144, 238, 144, 0.2);
-  --color-card-border-inner: rgba(144, 238, 144, 0.15);
-  --color-error: rgba(220, 53, 69, 1);            /* Red para errores */
-  --color-success: rgba(40, 167, 69, 1);          /* Success Green */
-  --color-warning: rgba(255, 193, 7, 1);          /* Amber para warnings */
-  --color-info: rgba(23, 162, 184, 1);            /* Teal para info */
-  --color-focus-ring: rgba(34, 139, 34, 0.4);
-  --color-select-caret: rgba(27, 69, 35, 0.8);
-
+  /* Colors - Tema Verde Eco-Friendly Refinado */
+  --color-background: #fafcfb;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #f8fdf9;
+  --color-text: #1a3d23;
+  --color-text-secondary: #4a6b54;
+  --color-text-muted: #6b7d73;
+  
+  /* Paleta Principal Verde Profesional */
+  --color-primary: #2d7a2d;          /* Verde bosque profesional */
+  --color-primary-hover: #358535;     /* Verde hover */
+  --color-primary-active: #246824;   /* Verde activo */
+  --color-primary-light: #e8f5e8;    /* Verde muy claro */
+  --color-primary-soft: #d4f0d4;     /* Verde suave */
+  
+  /* Paleta Secundaria Verde Eco */
+  --color-secondary: #4a7c59;        /* Verde intermedio */
+  --color-secondary-hover: #558a66;   /* Verde secundario hover */
+  --color-secondary-light: #edf7f0;   /* Verde secundario claro */
+  
+  /* Paleta Terciaria Verde Menta */
+  --color-tertiary: #47b381;         /* Verde menta */
+  --color-tertiary-hover: #52c793;   /* Verde menta hover */
+  --color-tertiary-light: #e7f9f2;   /* Verde menta claro */
+  
+  /* Colores de Acento */
+  --color-accent-eco: #7db46c;       /* Verde eco */
+  --color-accent-recycling: #5cb85c; /* Verde reciclaje */
+  --color-accent-nature: #6ba16b;    /* Verde naturaleza */
+  
+  /* Colores de Estado */
+  --color-success: #4caf50;          /* Verde éxito */
+  --color-success-light: #e8f5e9;    /* Verde éxito claro */
+  --color-warning: #ff9800;          /* Naranja advertencia */
+  --color-warning-light: #fff3e0;    /* Naranja advertencia claro */
+  --color-error: #f44336;            /* Rojo error */
+  --color-error-light: #ffebee;      /* Rojo error claro */
+  --color-info: #2196f3;             /* Azul información */
+  --color-info-light: #e3f2fd;       /* Azul información claro */
+  
+  /* Colores de Superficie */
+  --color-border: #d5e4d7;           /* Border principal */
+  --color-border-light: #e8f1ea;     /* Border claro */
+  --color-border-dark: #c1d4c4;      /* Border oscuro */
+  
+  /* Colores de Botones */
+  --color-btn-primary-text: #ffffff;
+  --color-btn-secondary-text: #2d7a2d;
+  
+  /* Colores de Cards */
+  --color-card-border: #e3f0e5;
+  --color-card-border-inner: #edf7ef;
+  --color-card-shadow: rgba(45, 122, 45, 0.08);
+  
+  /* Colores de Focus */
+  --color-focus-ring: rgba(45, 122, 45, 0.3);
+  --color-focus-border: #2d7a2d;
+  
   /* Colores específicos para Eco-Waste */
-  --color-eco-primary: rgba(34, 139, 34, 1);      /* Verde principal */
-  --color-eco-secondary: rgba(107, 142, 35, 1);   /* Verde oliva */
-  --color-eco-accent: rgba(152, 251, 152, 1);     /* Verde claro */
-  --color-eco-dark: rgba(0, 100, 0, 1);           /* Verde oscuro */
-  --color-recycling: rgba(76, 175, 80, 1);        /* Verde reciclaje */
-
+  --color-eco-primary: #2d7a2d;      /* Verde principal */
+  --color-eco-secondary: #4a7c59;    /* Verde secundario */
+  --color-eco-tertiary: #47b381;     /* Verde terciario */
+  --color-eco-accent: #7db46c;       /* Verde acento */
+  --color-eco-dark: #1a3d23;         /* Verde oscuro */
+  --color-eco-light: #f0f9f1;        /* Verde muy claro */
+  
+  /* Gradientes Profesionales */
+  --gradient-primary: linear-gradient(135deg, #2d7a2d 0%, #4a7c59 100%);
+  --gradient-secondary: linear-gradient(135deg, #4a7c59 0%, #47b381 100%);
+  --gradient-tertiary: linear-gradient(135deg, #47b381 0%, #7db46c 100%);
+  --gradient-surface: linear-gradient(135deg, #fafcfb 0%, #f8fdf9 100%);
+  --gradient-overlay: linear-gradient(135deg, rgba(45, 122, 45, 0.05) 0%, rgba(71, 179, 129, 0.03) 100%);
+  
   /* Common style patterns */
   --focus-ring: 0 0 0 3px var(--color-focus-ring);
-  --focus-outline: 2px solid var(--color-primary);
-  --status-bg-opacity: 0.15;
-  --status-border-opacity: 0.25;
-  --select-caret-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231B4523' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  --focus-outline: 2px solid var(--color-focus-border);
+  --status-bg-opacity: 0.1;
+  --status-border-opacity: 0.3;
+  --select-caret-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%232d7a2d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   --select-caret-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 
   /* RGB versions for opacity control */
-  --color-success-rgb: 40, 167, 69;
-  --color-error-rgb: 220, 53, 69;
-  --color-warning-rgb: 255, 193, 7;
-  --color-info-rgb: 23, 162, 184;
-  --color-primary-rgb: 34, 139, 34;
+  --color-primary-rgb: 45, 122, 45;
+  --color-secondary-rgb: 74, 124, 89;
+  --color-tertiary-rgb: 71, 179, 129;
+  --color-success-rgb: 76, 175, 80;
+  --color-error-rgb: 244, 67, 54;
+  --color-warning-rgb: 255, 152, 0;
+  --color-info-rgb: 33, 150, 243;
+  --color-eco-secondary-rgb: 74, 124, 89;
+  --color-surface-rgb: 255, 255, 255;
 
   /* Typography */
   --font-family-base: "FKGroteskNeue", "Geist", "Inter", -apple-system,
@@ -86,15 +134,18 @@
   --radius-lg: 12px;
   --radius-full: 9999px;
 
-  /* Shadows - Con toque verde */
-  --shadow-xs: 0 1px 2px rgba(34, 139, 34, 0.05);
-  --shadow-sm: 0 1px 3px rgba(34, 139, 34, 0.08), 0 1px 2px rgba(34, 139, 34, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(34, 139, 34, 0.08),
-    0 2px 4px -1px rgba(34, 139, 34, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(34, 139, 34, 0.08),
-    0 4px 6px -2px rgba(34, 139, 34, 0.04);
+  /* Shadows - Con toque verde profesional */
+  --shadow-xs: 0 1px 2px rgba(45, 122, 45, 0.06);
+  --shadow-sm: 0 1px 3px rgba(45, 122, 45, 0.1), 0 1px 2px rgba(45, 122, 45, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(45, 122, 45, 0.1),
+    0 2px 4px -1px rgba(45, 122, 45, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(45, 122, 45, 0.1),
+    0 4px 6px -2px rgba(45, 122, 45, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(45, 122, 45, 0.1),
+    0 10px 10px -5px rgba(45, 122, 45, 0.04);
   --shadow-inset-sm: inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 -1px 0 rgba(34, 139, 34, 0.05);
+    inset 0 -1px 0 rgba(45, 122, 45, 0.05);
+  --shadow-eco: 0 8px 32px rgba(45, 122, 45, 0.12), 0 2px 8px rgba(45, 122, 45, 0.08);
 
   /* Animation */
   --duration-fast: 150ms;
@@ -108,36 +159,91 @@
   --container-xl: 1280px;
 }
 
-/* Dark mode colors - Tema verde oscuro */
+/* Dark mode colors - Tema verde oscuro refinado */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: rgba(15, 25, 15, 1);       /* Verde muy oscuro */
-    --color-surface: rgba(25, 35, 25, 1);          /* Verde oscuro */
-    --color-text: rgba(230, 245, 230, 1);          /* Verde muy claro */
-    --color-text-secondary: rgba(180, 220, 180, 0.8);
-    --color-primary: rgba(76, 175, 80, 1);         /* Verde brillante */
-    --color-primary-hover: rgba(102, 187, 106, 1);
-    --color-primary-active: rgba(67, 160, 71, 1);
-    --color-secondary: rgba(144, 238, 144, 0.15);
-    --color-secondary-hover: rgba(144, 238, 144, 0.25);
-    --color-secondary-active: rgba(144, 238, 144, 0.3);
-    --color-border: rgba(144, 238, 144, 0.2);
-    --color-error: rgba(239, 83, 80, 1);
-    --color-success: rgba(102, 187, 106, 1);
-    --color-warning: rgba(255, 202, 40, 1);
-    --color-info: rgba(77, 208, 225, 1);
+    --color-background: #0f1b12;       /* Verde muy oscuro */
+    --color-surface: #1a2a1f;          /* Verde oscuro */
+    --color-surface-elevated: #233530;  /* Verde oscuro elevado */
+    --color-text: #e8f5ea;             /* Verde muy claro */
+    --color-text-secondary: #b8d4c0;   /* Verde claro */
+    --color-text-muted: #95b3a1;       /* Verde muted */
+    
+    /* Paleta Principal Verde Dark */
+    --color-primary: #4caf50;          /* Verde brillante */
+    --color-primary-hover: #66bb6a;    /* Verde hover */
+    --color-primary-active: #43a047;   /* Verde activo */
+    --color-primary-light: #1b3d1f;    /* Verde muy oscuro */
+    --color-primary-soft: #2e5233;     /* Verde suave oscuro */
+    
+    /* Paleta Secundaria Verde Dark */
+    --color-secondary: #6ba16b;        /* Verde intermedio */
+    --color-secondary-hover: #7fb37f;  /* Verde secundario hover */
+    --color-secondary-light: #233530;  /* Verde secundario oscuro */
+    
+    /* Paleta Terciaria Verde Menta Dark */
+    --color-tertiary: #4db6ac;         /* Verde menta */
+    --color-tertiary-hover: #6dc4ba;   /* Verde menta hover */
+    --color-tertiary-light: #1e403c;   /* Verde menta oscuro */
+    
+    /* Colores de Acento Dark */
+    --color-accent-eco: #81c784;       /* Verde eco */
+    --color-accent-recycling: #66bb6a; /* Verde reciclaje */
+    --color-accent-nature: #7fb37f;    /* Verde naturaleza */
+    
+    /* Colores de Estado Dark */
+    --color-success: #4caf50;          /* Verde éxito */
+    --color-success-light: #1b3d1f;    /* Verde éxito oscuro */
+    --color-warning: #ffb74d;          /* Naranja advertencia */
+    --color-warning-light: #3d2f1f;    /* Naranja advertencia oscuro */
+    --color-error: #ef5350;            /* Rojo error */
+    --color-error-light: #3d1f1f;      /* Rojo error oscuro */
+    --color-info: #42a5f5;             /* Azul información */
+    --color-info-light: #1f2f3d;       /* Azul información oscuro */
+    
+    /* Colores de Superficie Dark */
+    --color-border: #3d5940;           /* Border principal */
+    --color-border-light: #334036;     /* Border claro */
+    --color-border-dark: #4a6b4d;      /* Border oscuro */
+    
+    /* Colores de Botones Dark */
+    --color-btn-primary-text: #0f1b12;
+    --color-btn-secondary-text: #4caf50;
+    
+    /* Colores de Cards Dark */
+    --color-card-border: #334036;
+    --color-card-border-inner: #2e3d32;
+    --color-card-shadow: rgba(0, 0, 0, 0.4);
+    
+    /* Colores de Focus Dark */
     --color-focus-ring: rgba(76, 175, 80, 0.4);
-    --color-btn-primary-text: rgba(15, 25, 15, 1);
-    --color-card-border: rgba(144, 238, 144, 0.15);
-    --color-card-border-inner: rgba(144, 238, 144, 0.1);
-    --color-select-caret: rgba(230, 245, 230, 0.8);
-
+    --color-focus-border: #4caf50;
+    
+    /* Colores específicos para Eco-Waste Dark */
+    --color-eco-primary: #4caf50;      /* Verde principal */
+    --color-eco-secondary: #6ba16b;    /* Verde secundario */
+    --color-eco-tertiary: #4db6ac;     /* Verde terciario */
+    --color-eco-accent: #81c784;       /* Verde acento */
+    --color-eco-dark: #0f1b12;         /* Verde muy oscuro */
+    --color-eco-light: #1a2a1f;        /* Verde claro */
+    
+    /* Gradientes Profesionales Dark */
+    --gradient-primary: linear-gradient(135deg, #4caf50 0%, #6ba16b 100%);
+    --gradient-secondary: linear-gradient(135deg, #6ba16b 0%, #4db6ac 100%);
+    --gradient-tertiary: linear-gradient(135deg, #4db6ac 0%, #81c784 100%);
+    --gradient-surface: linear-gradient(135deg, #0f1b12 0%, #1a2a1f 100%);
+    --gradient-overlay: linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(77, 182, 172, 0.03) 100%);
+    
     /* RGB versions for dark mode */
-    --color-success-rgb: 102, 187, 106;
-    --color-error-rgb: 239, 83, 80;
-    --color-warning-rgb: 255, 202, 40;
-    --color-info-rgb: 77, 208, 225;
     --color-primary-rgb: 76, 175, 80;
+    --color-secondary-rgb: 107, 161, 107;
+    --color-tertiary-rgb: 77, 182, 172;
+    --color-success-rgb: 76, 175, 80;
+    --color-error-rgb: 239, 83, 80;
+    --color-warning-rgb: 255, 183, 77;
+    --color-info-rgb: 66, 165, 245;
+    --color-eco-secondary-rgb: 107, 161, 107;
+    --color-surface-rgb: 26, 42, 31;
   }
 }
 
@@ -243,35 +349,59 @@ a:hover {
 }
 
 .btn--primary {
-  background-color: var(--color-primary);
+  background: var(--gradient-primary);
   color: var(--color-btn-primary-text);
   box-shadow: var(--shadow-sm);
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn--primary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.btn--primary:hover::before {
+  left: 100%;
 }
 
 .btn--primary:hover {
-  background-color: var(--color-primary-hover);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
+  background: var(--gradient-primary);
+  filter: brightness(1.1);
+  box-shadow: var(--shadow-eco);
+  transform: translateY(-2px);
 }
 
 .btn--primary:active {
-  background-color: var(--color-primary-active);
   transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn--secondary {
-  background-color: var(--color-secondary);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
+  background: var(--color-secondary-light);
+  color: var(--color-btn-secondary-text);
+  border: 2px solid var(--color-border);
+  transition: all var(--duration-fast) var(--ease-standard);
 }
 
 .btn--secondary:hover {
-  background-color: var(--color-secondary-hover);
+  background: var(--color-primary-light);
   border-color: var(--color-primary);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn--secondary:active {
-  background-color: var(--color-secondary-active);
+  background: var(--color-primary-soft);
+  transform: translateY(0);
 }
 
 .btn--outline {
@@ -364,23 +494,53 @@ select.form-control {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
-  transition: all var(--duration-fast) var(--ease-standard);
+  transition: all var(--duration-normal) var(--ease-standard);
+  position: relative;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-standard);
 }
 
 .card:hover {
-  box-shadow: var(--shadow-md);
-  border-color: rgba(var(--color-primary-rgb), 0.3);
+  box-shadow: var(--shadow-eco);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.card:hover::before {
+  opacity: 1;
 }
 
 .card__body {
-  padding: var(--space-20);
+  padding: var(--space-24);
 }
 
 .card__header,
 .card__footer {
-  padding: var(--space-16) var(--space-20);
+  padding: var(--space-20) var(--space-24);
   border-bottom: 1px solid var(--color-card-border-inner);
-  background: rgba(var(--color-primary-rgb), 0.02);
+  background: var(--gradient-overlay);
+  position: relative;
+}
+
+.card__header::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--gradient-primary);
+  opacity: 0.3;
 }
 
 /* Status badges */
@@ -421,38 +581,62 @@ select.form-control {
 /* KPI Cards */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-16);
-  margin-bottom: var(--space-24);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-20);
+  margin-bottom: var(--space-32);
 }
 
 .kpi-card {
-  background: var(--color-surface);
+  background: var(--gradient-surface);
   border: 2px solid var(--color-card-border);
   border-radius: var(--radius-lg);
-  padding: var(--space-20);
+  padding: var(--space-24);
   text-align: center;
-  transition: all var(--duration-fast) var(--ease-standard);
+  transition: all var(--duration-normal) var(--ease-standard);
+  position: relative;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-primary);
+  transition: all var(--duration-normal) var(--ease-standard);
 }
 
 .kpi-card:hover {
   border-color: var(--color-primary);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-eco);
+  transform: translateY(-4px);
+}
+
+.kpi-card:hover::before {
+  height: 6px;
+  background: var(--gradient-secondary);
 }
 
 .kpi-value {
-  font-size: var(--font-size-3xl);
+  font-size: var(--font-size-4xl);
   font-weight: var(--font-weight-bold);
-  color: var(--color-primary);
-  margin-bottom: var(--space-8);
-  text-shadow: 0 1px 2px rgba(var(--color-primary-rgb), 0.1);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: var(--space-12);
+  text-shadow: 0 2px 4px rgba(var(--color-primary-rgb), 0.1);
+  line-height: 1.2;
 }
 
 .kpi-label {
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Tables */
@@ -474,15 +658,35 @@ select.form-control {
 
 .table th {
   font-weight: var(--font-weight-semibold);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-eco-secondary));
+  background: var(--gradient-primary);
   color: white;
   text-transform: uppercase;
   font-size: var(--font-size-xs);
   letter-spacing: 0.5px;
+  position: relative;
+}
+
+.table th::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gradient-tertiary);
+}
+
+.table tbody tr {
+  transition: all var(--duration-fast) var(--ease-standard);
 }
 
 .table tbody tr:hover {
-  background: rgba(var(--color-primary-rgb), 0.05);
+  background: var(--color-primary-light);
+  transform: translateX(2px);
+}
+
+.table tbody tr:nth-child(even) {
+  background: rgba(var(--color-primary-rgb), 0.02);
 }
 
 .table tbody tr:last-child td {
@@ -495,7 +699,24 @@ select.form-control {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-background), rgba(var(--color-primary-rgb), 0.05));
+  background: var(--gradient-surface);
+  position: relative;
+}
+
+.loading-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--gradient-overlay);
+  z-index: 1;
+}
+
+.loading-container > * {
+  position: relative;
+  z-index: 2;
 }
 
 .loading-spinner {

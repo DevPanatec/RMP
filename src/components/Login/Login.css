@@ -3,8 +3,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-background) 0%, rgba(var(--color-primary-rgb), 0.05) 100%);
+  background: var(--gradient-surface);
   padding: var(--space-16);
+  position: relative;
+}
+
+.login-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--gradient-overlay);
+  z-index: 1;
+}
+
+.login-container > * {
+  position: relative;
+  z-index: 2;
 }
 
 .login-card {
@@ -43,13 +60,26 @@
 .rmp-logo h1 {
   font-size: var(--font-size-4xl);
   font-weight: var(--font-weight-bold);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-eco-secondary));
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin: 0;
   letter-spacing: var(--letter-spacing-tight);
   text-shadow: 0 2px 4px rgba(var(--color-primary-rgb), 0.1);
+  position: relative;
+  display: inline-block;
+}
+
+.rmp-logo h1::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: var(--gradient-tertiary);
+  border-radius: 2px;
 }
 
 .rmp-logo p {
@@ -155,7 +185,7 @@
 }
 
 .btn--primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-eco-secondary));
+  background: var(--gradient-primary);
   border: none;
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
@@ -165,9 +195,10 @@
 }
 
 .btn--primary:hover {
-  background: linear-gradient(135deg, var(--color-primary-hover), var(--color-eco-secondary));
+  background: var(--gradient-primary);
+  filter: brightness(1.1);
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(var(--color-primary-rgb), 0.3);
+  box-shadow: var(--shadow-eco);
 }
 
 .btn--primary::after {

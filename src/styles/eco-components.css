@@ -1,0 +1,450 @@
+/* Componentes Eco-Friendly Personalizados */
+
+/* Eco Badge - Insignias para diferentes tipos de residuos */
+.eco-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-12);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.eco-badge--organic {
+  background: var(--gradient-primary);
+  color: white;
+  border: 1px solid var(--color-primary);
+}
+
+.eco-badge--recyclable {
+  background: var(--gradient-secondary);
+  color: white;
+  border: 1px solid var(--color-secondary);
+}
+
+.eco-badge--hazardous {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+  color: white;
+  border: 1px solid #ff6b6b;
+}
+
+.eco-badge--general {
+  background: var(--gradient-tertiary);
+  color: white;
+  border: 1px solid var(--color-tertiary);
+}
+
+.eco-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Eco Progress Bar - Barra de progreso con tema ecológico */
+.eco-progress {
+  width: 100%;
+  height: 8px;
+  background: var(--color-primary-light);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.eco-progress__fill {
+  height: 100%;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-full);
+  transition: width var(--duration-normal) var(--ease-standard);
+  position: relative;
+  overflow: hidden;
+}
+
+.eco-progress__fill::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: progressShine 2s infinite;
+}
+
+@keyframes progressShine {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Eco Stats Card - Tarjeta de estadísticas ecológicas */
+.eco-stats-card {
+  background: var(--gradient-surface);
+  border: 2px solid var(--color-card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-24);
+  position: relative;
+  overflow: hidden;
+  transition: all var(--duration-normal) var(--ease-standard);
+}
+
+.eco-stats-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--gradient-primary);
+}
+
+.eco-stats-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-eco);
+  border-color: var(--color-primary);
+}
+
+.eco-stats-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  margin-bottom: var(--space-16);
+}
+
+.eco-stats-card__icon {
+  width: 48px;
+  height: 48px;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.eco-stats-card__title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.eco-stats-card__value {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: var(--space-8);
+}
+
+.eco-stats-card__label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Eco Action Button - Botón de acción ecológica */
+.eco-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--space-20);
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-standard);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.eco-action-btn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.eco-action-btn:hover::before {
+  left: 100%;
+}
+
+.eco-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-eco);
+  filter: brightness(1.1);
+}
+
+.eco-action-btn:active {
+  transform: translateY(0);
+}
+
+.eco-action-btn--secondary {
+  background: var(--gradient-secondary);
+}
+
+.eco-action-btn--tertiary {
+  background: var(--gradient-tertiary);
+}
+
+/* Eco Alert - Alertas con tema ecológico */
+.eco-alert {
+  padding: var(--space-16) var(--space-20);
+  border-radius: var(--radius-base);
+  border: 1px solid;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+  margin-bottom: var(--space-16);
+}
+
+.eco-alert--success {
+  background: var(--color-success-light);
+  border-color: var(--color-success);
+  color: var(--color-success);
+}
+
+.eco-alert--warning {
+  background: var(--color-warning-light);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.eco-alert--error {
+  background: var(--color-error-light);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.eco-alert--info {
+  background: var(--color-info-light);
+  border-color: var(--color-info);
+  color: var(--color-info);
+}
+
+.eco-alert__icon {
+  font-size: var(--font-size-lg);
+  flex-shrink: 0;
+}
+
+.eco-alert__content {
+  flex: 1;
+}
+
+.eco-alert__title {
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-4);
+}
+
+.eco-alert__message {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+/* Eco Navigation - Navegación con tema ecológico */
+.eco-nav {
+  display: flex;
+  gap: var(--space-4);
+  background: var(--gradient-surface);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-base);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.eco-nav__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-10) var(--space-16);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: all var(--duration-fast) var(--ease-standard);
+  position: relative;
+  overflow: hidden;
+}
+
+.eco-nav__item::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.eco-nav__item:hover::before,
+.eco-nav__item.active::before {
+  opacity: 1;
+}
+
+.eco-nav__item:hover,
+.eco-nav__item.active {
+  color: white;
+  transform: translateY(-1px);
+}
+
+.eco-nav__item__icon,
+.eco-nav__item__text {
+  position: relative;
+  z-index: 1;
+}
+
+/* Eco Card Grid - Grid de tarjetas ecológicas */
+.eco-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-24);
+  margin-bottom: var(--space-32);
+}
+
+.eco-card-grid--compact {
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-16);
+}
+
+.eco-card-grid--large {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-32);
+}
+
+/* Eco Loading Spinner - Spinner con tema ecológico */
+.eco-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.eco-loading__spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-primary-light);
+  border-top: 2px solid var(--color-primary);
+  border-radius: 50%;
+  animation: ecoSpin 1s linear infinite;
+}
+
+@keyframes ecoSpin {
+  0% { 
+    transform: rotate(0deg);
+    border-top-color: var(--color-primary);
+  }
+  25% { 
+    border-top-color: var(--color-secondary);
+  }
+  50% { 
+    border-top-color: var(--color-tertiary);
+  }
+  75% { 
+    border-top-color: var(--color-accent-eco);
+  }
+  100% { 
+    transform: rotate(360deg);
+    border-top-color: var(--color-primary);
+  }
+}
+
+/* Eco Tooltip - Tooltips con tema ecológico */
+.eco-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.eco-tooltip__content {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-8) var(--space-12);
+  background: var(--gradient-primary);
+  color: white;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all var(--duration-fast) var(--ease-standard);
+  z-index: 1000;
+  box-shadow: var(--shadow-md);
+}
+
+.eco-tooltip__content::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--color-primary);
+}
+
+.eco-tooltip:hover .eco-tooltip__content {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-4px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .eco-card-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-16);
+  }
+  
+  .eco-nav {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  
+  .eco-stats-card {
+    padding: var(--space-16);
+  }
+  
+  .eco-stats-card__value {
+    font-size: var(--font-size-2xl);
+  }
+}
+
+@media (max-width: 480px) {
+  .eco-action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .eco-alert {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .eco-stats-card__header {
+    flex-direction: column;
+    text-align: center;
+  }
+}
