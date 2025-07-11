@@ -111,8 +111,8 @@
 }
 
 .route-status {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-eco-secondary));
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-btn-primary-text);
   padding: var(--space-6) var(--space-12);
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
@@ -123,13 +123,13 @@
 }
 
 .time-indicator {
-  background: rgba(var(--color-primary-rgb), 0.1);
+  background: var(--color-secondary);
   color: var(--color-primary);
   padding: var(--space-6) var(--space-12);
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
-  border: 2px solid rgba(var(--color-primary-rgb), 0.2);
+  border: 1px solid var(--color-primary);
   font-family: 'Courier New', monospace;
 }
 
@@ -160,26 +160,26 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-eco-secondary));
+  height: 3px;
+  background: var(--color-primary);
 }
 
 .kpi-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(var(--color-primary-rgb), 0.4);
-  box-shadow: 0 8px 25px rgba(var(--color-primary-rgb), 0.15);
+  border-color: var(--color-primary);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
 .kpi-icon {
   font-size: var(--font-size-3xl);
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, rgba(var(--color-primary-rgb), 0.1), rgba(var(--color-eco-secondary-rgb), 0.1));
+  background: var(--color-secondary);
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid rgba(var(--color-primary-rgb), 0.2);
+  border: 2px solid var(--color-primary);
   flex-shrink: 0;
 }
 
@@ -190,12 +190,8 @@
 .kpi-value {
   font-size: var(--font-size-3xl);
   font-weight: var(--font-weight-bold);
-  color: var(--color-text);
+  color: var(--color-primary);
   margin-bottom: var(--space-4);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-eco-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .kpi-label {
@@ -219,15 +215,15 @@
 .progress-bar-large {
   position: relative;
   height: 20px;
-  background: rgba(var(--color-primary-rgb), 0.1);
+  background: var(--color-secondary);
   border-radius: var(--radius-full);
   overflow: hidden;
-  border: 2px solid rgba(var(--color-primary-rgb), 0.2);
+  border: 1px solid var(--color-border);
 }
 
 .progress-fill-large {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-eco-secondary));
+  background: var(--color-primary);
   border-radius: var(--radius-full);
   transition: width var(--duration-normal) var(--ease-standard);
   position: relative;
@@ -272,9 +268,9 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--space-12);
-  background: rgba(var(--color-primary-rgb), 0.05);
+  background: var(--color-secondary);
   border-radius: var(--radius-base);
-  border: 1px solid rgba(var(--color-primary-rgb), 0.1);
+  border: 1px solid var(--color-border);
 }
 
 .detail-label {
@@ -339,7 +335,7 @@
 .fuel-bar-small {
   flex: 1;
   height: 8px;
-  background: rgba(var(--color-primary-rgb), 0.1);
+  background: var(--color-secondary);
   border-radius: var(--radius-full);
   overflow: hidden;
   min-width: 60px;
@@ -375,7 +371,7 @@
 }
 
 .stops-container::-webkit-scrollbar-track {
-  background: rgba(var(--color-primary-rgb), 0.05);
+  background: var(--color-secondary);
   border-radius: var(--radius-full);
 }
 
@@ -397,11 +393,12 @@
 
 .step-item.current {
   transform: scale(1.02);
-  background: rgba(var(--color-primary-rgb), 0.02);
+  background: var(--color-surface);
   border-radius: var(--radius-base);
   padding: var(--space-12);
   margin: var(--space-4);
-  border: 2px solid rgba(var(--color-primary-rgb), 0.2);
+  border: 2px solid var(--color-primary);
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.15);
 }
 
 .step-indicator {
@@ -432,8 +429,8 @@
 }
 
 .step-item.current .step-number {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-eco-secondary));
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-btn-primary-text);
   border: 3px solid white;
   box-shadow: 0 0 0 2px var(--color-primary);
   animation: currentPulse 2s infinite;
@@ -486,7 +483,7 @@
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   font-weight: var(--font-weight-medium);
-  background: rgba(var(--color-primary-rgb), 0.1);
+  background: var(--color-secondary);
   padding: var(--space-2) var(--space-6);
   border-radius: var(--radius-sm);
   white-space: nowrap;

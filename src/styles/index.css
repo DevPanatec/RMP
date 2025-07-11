@@ -1,51 +1,51 @@
 :root {
-  /* Colors - Tema Verde Eco-Friendly */
-  --color-background: rgba(248, 252, 248, 1);
-  --color-surface: rgba(255, 255, 255, 1);
-  --color-text: rgba(27, 69, 35, 1);
-  --color-text-secondary: rgba(76, 125, 84, 1);
-  --color-primary: rgba(34, 139, 34, 1);          /* Forest Green */
-  --color-primary-hover: rgba(50, 155, 50, 1);    /* Lighter Green */
-  --color-primary-active: rgba(25, 120, 25, 1);   /* Darker Green */
-  --color-secondary: rgba(144, 238, 144, 0.15);   /* Light Green */
-  --color-secondary-hover: rgba(144, 238, 144, 0.25);
-  --color-secondary-active: rgba(144, 238, 144, 0.35);
-  --color-border: rgba(144, 238, 144, 0.3);
-  --color-btn-primary-text: rgba(255, 255, 255, 1);
-  --color-card-border: rgba(144, 238, 144, 0.2);
-  --color-card-border-inner: rgba(144, 238, 144, 0.15);
-  --color-error: rgba(220, 53, 69, 1);            /* Red para errores */
-  --color-success: rgba(40, 167, 69, 1);          /* Success Green */
-  --color-warning: rgba(255, 193, 7, 1);          /* Amber para warnings */
-  --color-info: rgba(23, 162, 184, 1);            /* Teal para info */
-  --color-focus-ring: rgba(34, 139, 34, 0.4);
-  --color-select-caret: rgba(27, 69, 35, 0.8);
+  /* Colors - Tema Blanco y Verde Moderno */
+  --color-background: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-text: #333333;
+  --color-text-secondary: #666666;
+  --color-primary: #27AE60;                       /* Verde principal */
+  --color-primary-hover: #2ECC40;                 /* Verde más claro al hover */
+  --color-primary-active: #229A54;                /* Verde más oscuro al click */
+  --color-secondary: #F2F2F2;                     /* Gris claro para fondos */
+  --color-secondary-hover: #E0E0E0;               /* Gris más oscuro al hover */
+  --color-secondary-active: #D0D0D0;              /* Gris activo */
+  --color-border: #E0E0E0;                        /* Bordes grises suaves */
+  --color-btn-primary-text: #FFFFFF;              /* Texto blanco en botones verdes */
+  --color-card-border: #E0E0E0;                   /* Borde de tarjetas */
+  --color-card-border-inner: #F2F2F2;             /* Borde interno más claro */
+  --color-error: #E74C3C;                         /* Rojo para errores */
+  --color-success: #27AE60;                       /* Verde éxito */
+  --color-warning: #F39C12;                       /* Naranja para warnings */
+  --color-info: #3498DB;                          /* Azul para info */
+  --color-focus-ring: rgba(39, 174, 96, 0.3);    /* Verde con transparencia */
+  --color-select-caret: rgba(51, 51, 51, 0.8);
 
   /* Colores específicos para Eco-Waste */
-  --color-eco-primary: rgba(34, 139, 34, 1);      /* Verde principal */
-  --color-eco-secondary: rgba(107, 142, 35, 1);   /* Verde oliva */
-  --color-eco-accent: rgba(152, 251, 152, 1);     /* Verde claro */
-  --color-eco-dark: rgba(0, 100, 0, 1);           /* Verde oscuro */
-  --color-recycling: rgba(76, 175, 80, 1);        /* Verde reciclaje */
+  --color-eco-primary: #27AE60;                   /* Verde principal */
+  --color-eco-secondary: #2ECC40;                 /* Verde brillante */
+  --color-eco-accent: #A8E6CF;                    /* Verde muy claro */
+  --color-eco-dark: #1E8449;                      /* Verde oscuro */
+  --color-recycling: #27AE60;                     /* Verde reciclaje */
 
   /* Common style patterns */
   --focus-ring: 0 0 0 3px var(--color-focus-ring);
   --focus-outline: 2px solid var(--color-primary);
-  --status-bg-opacity: 0.15;
-  --status-border-opacity: 0.25;
-  --select-caret-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231B4523' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  --status-bg-opacity: 0.1;
+  --status-border-opacity: 0.2;
+  --select-caret-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   --select-caret-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 
   /* RGB versions for opacity control */
-  --color-success-rgb: 40, 167, 69;
-  --color-error-rgb: 220, 53, 69;
-  --color-warning-rgb: 255, 193, 7;
-  --color-info-rgb: 23, 162, 184;
-  --color-primary-rgb: 34, 139, 34;
+  --color-success-rgb: 39, 174, 96;
+  --color-error-rgb: 231, 76, 60;
+  --color-warning-rgb: 243, 156, 18;
+  --color-info-rgb: 52, 152, 219;
+  --color-primary-rgb: 39, 174, 96;
 
-  /* Typography */
-  --font-family-base: "FKGroteskNeue", "Geist", "Inter", -apple-system,
-    BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  /* Typography - Fuentes modernas y limpias */
+  --font-family-base: "Inter", "Roboto", "Open Sans", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-family-mono: "Berkeley Mono", ui-monospace, SFMono-Regular, Menlo,
     Monaco, Consolas, monospace;
   --font-size-xs: 11px;
@@ -86,15 +86,15 @@
   --radius-lg: 12px;
   --radius-full: 9999px;
 
-  /* Shadows - Con toque verde */
-  --shadow-xs: 0 1px 2px rgba(34, 139, 34, 0.05);
-  --shadow-sm: 0 1px 3px rgba(34, 139, 34, 0.08), 0 1px 2px rgba(34, 139, 34, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(34, 139, 34, 0.08),
-    0 2px 4px -1px rgba(34, 139, 34, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(34, 139, 34, 0.08),
-    0 4px 6px -2px rgba(34, 139, 34, 0.04);
+  /* Shadows - Sutiles y grises */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08),
+    0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08),
+    0 4px 6px -2px rgba(0, 0, 0, 0.04);
   --shadow-inset-sm: inset 0 1px 0 rgba(255, 255, 255, 0.15),
-    inset 0 -1px 0 rgba(34, 139, 34, 0.05);
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
 
   /* Animation */
   --duration-fast: 150ms;
@@ -111,33 +111,33 @@
 /* Dark mode colors - Tema verde oscuro */
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: rgba(15, 25, 15, 1);       /* Verde muy oscuro */
-    --color-surface: rgba(25, 35, 25, 1);          /* Verde oscuro */
-    --color-text: rgba(230, 245, 230, 1);          /* Verde muy claro */
-    --color-text-secondary: rgba(180, 220, 180, 0.8);
-    --color-primary: rgba(76, 175, 80, 1);         /* Verde brillante */
-    --color-primary-hover: rgba(102, 187, 106, 1);
-    --color-primary-active: rgba(67, 160, 71, 1);
-    --color-secondary: rgba(144, 238, 144, 0.15);
-    --color-secondary-hover: rgba(144, 238, 144, 0.25);
-    --color-secondary-active: rgba(144, 238, 144, 0.3);
-    --color-border: rgba(144, 238, 144, 0.2);
-    --color-error: rgba(239, 83, 80, 1);
-    --color-success: rgba(102, 187, 106, 1);
-    --color-warning: rgba(255, 202, 40, 1);
-    --color-info: rgba(77, 208, 225, 1);
-    --color-focus-ring: rgba(76, 175, 80, 0.4);
-    --color-btn-primary-text: rgba(15, 25, 15, 1);
-    --color-card-border: rgba(144, 238, 144, 0.15);
-    --color-card-border-inner: rgba(144, 238, 144, 0.1);
-    --color-select-caret: rgba(230, 245, 230, 0.8);
+    --color-background: #1A1A1A;                   /* Gris muy oscuro */
+    --color-surface: #2A2A2A;                      /* Gris oscuro */
+    --color-text: #FFFFFF;                         /* Texto blanco */
+    --color-text-secondary: rgba(255, 255, 255, 0.7);
+    --color-primary: #27AE60;                      /* Verde principal */
+    --color-primary-hover: #2ECC40;                /* Verde más claro */
+    --color-primary-active: #229A54;               /* Verde más oscuro */
+    --color-secondary: rgba(255, 255, 255, 0.08); /* Fondos sutiles */
+    --color-secondary-hover: rgba(255, 255, 255, 0.12);
+    --color-secondary-active: rgba(255, 255, 255, 0.16);
+    --color-border: rgba(255, 255, 255, 0.15);
+    --color-error: #E74C3C;
+    --color-success: #27AE60;
+    --color-warning: #F39C12;
+    --color-info: #3498DB;
+    --color-focus-ring: rgba(39, 174, 96, 0.4);
+    --color-btn-primary-text: #FFFFFF;
+    --color-card-border: rgba(255, 255, 255, 0.1);
+    --color-card-border-inner: rgba(255, 255, 255, 0.05);
+    --color-select-caret: rgba(255, 255, 255, 0.8);
 
     /* RGB versions for dark mode */
-    --color-success-rgb: 102, 187, 106;
-    --color-error-rgb: 239, 83, 80;
-    --color-warning-rgb: 255, 202, 40;
-    --color-info-rgb: 77, 208, 225;
-    --color-primary-rgb: 76, 175, 80;
+    --color-success-rgb: 39, 174, 96;
+    --color-error-rgb: 231, 76, 60;
+    --color-warning-rgb: 243, 156, 18;
+    --color-info-rgb: 52, 152, 219;
+    --color-primary-rgb: 39, 174, 96;
   }
 }
 
@@ -342,7 +342,7 @@ select.form-control {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: var(--focus-ring);
-  background-color: rgba(var(--color-primary-rgb), 0.02);
+  background-color: #FFFFFF;
 }
 
 .form-label {
@@ -380,7 +380,7 @@ select.form-control {
 .card__footer {
   padding: var(--space-16) var(--space-20);
   border-bottom: 1px solid var(--color-card-border-inner);
-  background: rgba(var(--color-primary-rgb), 0.02);
+  background: var(--color-secondary);
 }
 
 /* Status badges */
@@ -474,15 +474,16 @@ select.form-control {
 
 .table th {
   font-weight: var(--font-weight-semibold);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-eco-secondary));
-  color: white;
+  background: var(--color-secondary);
+  color: var(--color-text);
   text-transform: uppercase;
   font-size: var(--font-size-xs);
   letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--color-primary);
 }
 
 .table tbody tr:hover {
-  background: rgba(var(--color-primary-rgb), 0.05);
+  background: var(--color-secondary);
 }
 
 .table tbody tr:last-child td {
@@ -495,7 +496,7 @@ select.form-control {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-background), rgba(var(--color-primary-rgb), 0.05));
+  background: var(--color-background);
 }
 
 .loading-spinner {

@@ -13,7 +13,7 @@
 }
 
 .services-title h2 {
-  color: var(--color-text-primary);
+  color: var(--color-text);
   margin: 0 0 0.5rem 0;
   font-size: 1.8rem;
   font-weight: 600;
@@ -33,7 +33,7 @@
 }
 
 .services-header h3 {
-  color: var(--color-text-primary);
+  color: var(--color-text);
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
@@ -89,19 +89,21 @@
 }
 
 .stat-card {
-  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-btn-primary-text);
   padding: 1.5rem;
   border-radius: 12px;
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(39, 174, 96, 0.15);
   transition: transform 0.2s ease;
 }
 
 .stat-card:hover {
+  background: var(--color-primary-hover);
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(39, 174, 96, 0.25);
 }
 
 .stat-icon {
@@ -138,14 +140,15 @@
 .service-type-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .service-type-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-primary);
 }
 
 .service-type-header {
@@ -160,7 +163,7 @@
 }
 
 .service-type-header h4 {
-  color: var(--color-text-primary);
+  color: var(--color-text);
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
@@ -177,7 +180,7 @@
 }
 
 .service-type-services h5 {
-  color: var(--color-text-primary);
+  color: var(--color-text);
   margin: 0 0 0.5rem 0;
   font-size: 0.9rem;
   font-weight: 600;
@@ -212,12 +215,13 @@
 }
 
 .service-count {
-  background: var(--color-primary-light);
+  background: var(--color-secondary);
   color: var(--color-primary);
   padding: 0.25rem 0.75rem;
   border-radius: 15px;
   font-size: 0.75rem;
   font-weight: 600;
+  border: 1px solid var(--color-primary);
 }
 
 /* ========================================
@@ -233,19 +237,20 @@
 .service-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .service-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-primary);
 }
 
 .service-card-header {
   padding: 1rem;
-  background: var(--color-surface-alt);
+  background: var(--color-secondary);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
@@ -269,28 +274,28 @@
 }
 
 .status-success {
-  background: var(--color-success-light);
+  background: rgba(var(--color-success-rgb), 0.15);
   color: var(--color-success);
 }
 
 .status-warning {
-  background: var(--color-warning-light);
+  background: rgba(var(--color-warning-rgb), 0.15);
   color: var(--color-warning);
 }
 
 .status-info {
-  background: var(--color-info-light);
+  background: rgba(var(--color-info-rgb), 0.15);
   color: var(--color-info);
 }
 
 .status-secondary {
-  background: var(--color-surface-alt);
+  background: var(--color-secondary);
   color: var(--color-text-secondary);
 }
 
 .status-danger {
-  background: var(--color-danger-light);
-  color: var(--color-danger);
+  background: rgba(var(--color-error-rgb), 0.15);
+  color: var(--color-error);
 }
 
 .service-card-content {
@@ -298,7 +303,7 @@
 }
 
 .service-card-content h4 {
-  color: var(--color-text-primary);
+  color: var(--color-text);
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
   font-weight: 600;
@@ -322,7 +327,7 @@
 }
 
 .detail-value {
-  color: var(--color-text-primary);
+  color: var(--color-text);
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -332,7 +337,7 @@
 }
 
 .progress-label {
-  color: var(--color-text-primary);
+  color: var(--color-text);
   font-size: 0.85rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
@@ -341,15 +346,15 @@
 .progress-bar {
   width: 100%;
   height: 8px;
-  background: var(--color-border);
-  border-radius: 4px;
+  background: var(--color-secondary);
+  border-radius: var(--radius-full);
   overflow: hidden;
   margin-top: 0.5rem;
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-light));
+  background: var(--color-primary);
   transition: width 0.3s ease;
 }
 
@@ -372,14 +377,15 @@
 .team-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .team-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-primary);
 }
 
 .team-header {
@@ -390,7 +396,7 @@
 }
 
 .team-header h4 {
-  color: var(--color-text-primary);
+  color: var(--color-text);
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
@@ -422,7 +428,7 @@
 }
 
 .info-value {
-  color: var(--color-text-primary);
+  color: var(--color-text);
   font-size: 0.85rem;
   font-weight: 600;
 }
@@ -432,7 +438,7 @@
 }
 
 .team-members h5 {
-  color: var(--color-text-primary);
+  color: var(--color-text);
   margin: 0 0 0.5rem 0;
   font-size: 0.9rem;
   font-weight: 600;
@@ -473,25 +479,25 @@
 }
 
 .services-table thead {
-  background: var(--color-surface-alt);
+  background: var(--color-secondary);
 }
 
 .services-table th {
   padding: 1rem;
   text-align: left;
   font-weight: 600;
-  color: var(--color-text-primary);
-  border-bottom: 2px solid var(--color-border);
+  color: var(--color-text);
+  border-bottom: 2px solid var(--color-primary);
 }
 
 .services-table td {
   padding: 1rem;
   border-bottom: 1px solid var(--color-border);
-  color: var(--color-text-primary);
+  color: var(--color-text);
 }
 
 .services-table tbody tr:hover {
-  background: var(--color-surface-hover);
+  background: var(--color-secondary);
 }
 
 .priority-badge {
