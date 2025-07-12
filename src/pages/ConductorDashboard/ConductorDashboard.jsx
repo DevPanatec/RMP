@@ -221,7 +221,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                           className="fuel-fill"
                           style={{ 
                             width: `${userTruck.combustible}%`,
-                            backgroundColor: userTruck.combustible < 30 ? '#ef4444' : '#22c55e'
+                            backgroundColor: userTruck.combustible < 30 ? '#E74C3C' : '#27AE60'
                           }}
                         ></div>
                       </div>

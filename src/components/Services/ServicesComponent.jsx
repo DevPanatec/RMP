@@ -26,7 +26,7 @@ const ServicesComponent = ({ userType = 'admin' }) => {
           id: 'limpieza',
           nombre: 'Limpieza General',
           descripcion: 'Limpieza de espacios públicos y privados',
-          color: '#3b82f6',
+          color: '#27AE60', // Verde principal
           icon: '🧹',
           serviciosIncluidos: [
             'Barrido de calles',
@@ -39,7 +39,7 @@ const ServicesComponent = ({ userType = 'admin' }) => {
           id: 'aseo',
           nombre: 'Aseo Urbano',
           descripcion: 'Mantenimiento de limpieza urbana',
-          color: '#10b981',
+          color: '#2ECC40', // Verde más claro
           icon: '🏢',
           serviciosIncluidos: [
             'Limpieza de plazas',
@@ -52,7 +52,7 @@ const ServicesComponent = ({ userType = 'admin' }) => {
           id: 'desinfeccion',
           nombre: 'Desinfección',
           descripcion: 'Desinfección preventiva y correctiva',
-          color: '#f59e0b',
+          color: '#1E8449', // Verde oscuro
           icon: '🧴',
           serviciosIncluidos: [
             'Desinfección de espacios públicos',
@@ -65,7 +65,7 @@ const ServicesComponent = ({ userType = 'admin' }) => {
           id: 'fumigacion',
           nombre: 'Fumigación',
           descripcion: 'Control de plagas y fumigación',
-          color: '#ef4444',
+          color: '#F39C12', // Naranja
           icon: '🦟',
           serviciosIncluidos: [
             'Control de roedores',

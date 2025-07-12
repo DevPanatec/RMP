@@ -16,9 +16,9 @@ L.Icon.Default.mergeOptions({
 // Iconos personalizados para diferentes estados con mejor diseño GPS
 const createCustomIcon = (estado, direccion = 0, tipoServicio = 'recoleccion') => {
   const colors = {
-    'En ruta': '#22c55e',
-    'Disponible': '#3b82f6',
-    'En mantenimiento': '#f59e0b'
+    'En ruta': '#27AE60', // Verde principal
+    'Disponible': '#2ECC40', // Verde más claro
+    'En mantenimiento': '#F39C12' // Naranja para mantenimiento
   };
   
   // Iconos diferentes según el tipo de servicio
@@ -27,11 +27,11 @@ const createCustomIcon = (estado, direccion = 0, tipoServicio = 'recoleccion') =
     'fumigacion': '🚐'
   };
   
-  // Colores específicos para fumigación
+  // Colores específicos para fumigación - usando variaciones de verde
   const fumigationColors = {
-    'En ruta': '#ef4444',
-    'Disponible': '#8b5cf6',
-    'En mantenimiento': '#f59e0b'
+    'En ruta': '#27AE60', // Verde principal
+    'Disponible': '#2ECC40', // Verde más claro
+    'En mantenimiento': '#F39C12' // Naranja para mantenimiento
   };
   
   const iconColors = tipoServicio === 'fumigacion' ? fumigationColors : colors;
@@ -200,10 +200,10 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
 
   const getStatusColor = (estado) => {
     switch (estado) {
-      case 'En ruta': return '#22c55e';
-      case 'Disponible': return '#3b82f6';
-      case 'En mantenimiento': return '#f59e0b';
-      default: return '#6b7280';
+      case 'En ruta': return '#27AE60'; // Verde principal
+      case 'Disponible': return '#2ECC40'; // Verde más claro
+      case 'En mantenimiento': return '#F39C12'; // Naranja para mantenimiento
+      default: return '#6b7280'; // Gris
     }
   };
 
@@ -215,10 +215,10 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
   };
 
   const getLoadStatus = (pesoAcumulado) => {
-    if (pesoAcumulado > 600) return { text: 'Carga alta', color: '#22c55e' };
-    if (pesoAcumulado > 300) return { text: 'Carga media', color: '#f59e0b' };
-    if (pesoAcumulado > 0) return { text: 'Carga baja', color: '#ef4444' };
-    return { text: 'Sin carga', color: '#6b7280' };
+    if (pesoAcumulado > 600) return { text: 'Carga alta', color: '#27AE60' }; // Verde principal
+    if (pesoAcumulado > 300) return { text: 'Carga media', color: '#2ECC40' }; // Verde más claro
+    if (pesoAcumulado > 0) return { text: 'Carga baja', color: '#F39C12' }; // Naranja
+    return { text: 'Sin carga', color: '#6b7280' }; // Gris
   };
 
   const handleTruckClick = (camionId) => {
@@ -266,11 +266,11 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
     return Math.round((camion.paradaActual / camion.totalParadas) * 100);
   };
 
-  const getRouteTypeColor = (routeId) => {
+    const getRouteTypeColor = (routeId) => {
     const colors = {
-      'ruta-norte': '#22c55e',
-      'ruta-centro': '#3b82f6', 
-      'ruta-sur': '#f59e0b'
+      'ruta-norte': '#27AE60', // Verde principal
+      'ruta-centro': '#2ECC40', // Verde más claro
+      'ruta-sur': '#1E8449' // Verde oscuro
     };
     return colors[routeId] || '#6b7280';
   };
@@ -323,45 +323,45 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
         {serviceTypeFilter === 'fumigacion' ? (
           <>
             <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#ef4444' }}></span>
+              <span className="legend-color" style={{ backgroundColor: '#27AE60' }}></span>
               🚐 Fumigación En Ruta ({activeCamiones.filter(c => c.estado === 'En ruta').length})
             </div>
             <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#8b5cf6' }}></span>
+              <span className="legend-color" style={{ backgroundColor: '#2ECC40' }}></span>
               🚐 Fumigación Disponible ({activeCamiones.filter(c => c.estado === 'Disponible').length})
             </div>
             <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
+              <span className="legend-color" style={{ backgroundColor: '#F39C12' }}></span>
               🚐 Fumigación Mantenimiento ({activeCamiones.filter(c => c.estado === 'En mantenimiento').length})
             </div>
           </>
         ) : serviceTypeFilter === 'recoleccion' ? (
           <>
             <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#22c55e' }}></span>
+              <span className="legend-color" style={{ backgroundColor: '#27AE60' }}></span>
               🚛 Recolección En Ruta ({activeCamiones.filter(c => c.estado === 'En ruta').length})
             </div>
             <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#3b82f6' }}></span>
+              <span className="legend-color" style={{ backgroundColor: '#2ECC40' }}></span>
               🚛 Recolección Disponible ({activeCamiones.filter(c => c.estado === 'Disponible').length})
             </div>
             <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
+              <span className="legend-color" style={{ backgroundColor: '#F39C12' }}></span>
               🚛 Recolección Mantenimiento ({activeCamiones.filter(c => c.estado === 'En mantenimiento').length})
             </div>
           </>
         ) : (
           <>
             <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#22c55e' }}></span>
+              <span className="legend-color" style={{ backgroundColor: '#27AE60' }}></span>
               En Ruta ({activeCamiones.filter(c => c.estado === 'En ruta').length})
             </div>
             <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#3b82f6' }}></span>
+              <span className="legend-color" style={{ backgroundColor: '#2ECC40' }}></span>
               Disponible ({activeCamiones.filter(c => c.estado === 'Disponible').length})
             </div>
             <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
+              <span className="legend-color" style={{ backgroundColor: '#F39C12' }}></span>
               Mantenimiento ({activeCamiones.filter(c => c.estado === 'En mantenimiento').length})
             </div>
             <div className="legend-item" style={{ opacity: 0.7, fontSize: '10px' }}>
@@ -550,9 +550,9 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
             getSelectedTruckRoute().paradas.map((parada, index) => {
               const status = getStopStatus(index, getSelectedTruck());
               const statusColors = {
-                'completed': '#34a853',
-                'current': '#fbbc05',
-                'pending': '#9e9e9e'
+                'completed': '#27AE60', // Verde principal
+                'current': '#2ECC40', // Verde más claro
+                'pending': '#9e9e9e' // Gris
               };
               return (
                 <Marker
@@ -702,7 +702,7 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                 </button>
               </div>
 
-              <div style={{ fontSize: '12px', color: '#5f6368', marginTop: '16px', textAlign: 'center' }}>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '16px', textAlign: 'center' }}>
                 💡 Navegación GPS en tiempo real activada
               </div>
             </div>
@@ -793,9 +793,9 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                     // Calcular nivel de carga basado en peso recolectado
                     const getLoadLevel = (peso) => {
                       if (!peso || peso === 0) return { level: 'Sin carga', color: '#9e9e9e', icon: '⚪' };
-                      if (peso <= 30) return { level: 'Carga baja', color: '#4caf50', icon: '🟢' };
-                      if (peso <= 60) return { level: 'Carga media', color: '#ff9800', icon: '🟡' };
-                      return { level: 'Carga alta', color: '#f44336', icon: '🔴' };
+                      if (peso <= 30) return { level: 'Carga baja', color: '#27AE60', icon: '🟢' }; // Verde principal
+                      if (peso <= 60) return { level: 'Carga media', color: '#2ECC40', icon: '🟡' }; // Verde más claro
+                      return { level: 'Carga alta', color: '#F39C12', icon: '🔴' }; // Naranja
                     };
                     
                     const loadInfo = getLoadLevel(parada.pesoRecolectado);
