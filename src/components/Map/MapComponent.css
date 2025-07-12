@@ -2003,4 +2003,117 @@
 @keyframes badgeGlow {
   0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.3); }
   50% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+}
+
+/* Estilos para información de carga en paradas */
+.stop-load-info {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--color-secondary);
+  border-radius: var(--radius-base);
+  border-left: 3px solid var(--color-primary);
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.load-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.load-icon {
+  font-size: 14px;
+}
+
+.load-weight {
+  font-weight: 400;
+  opacity: 0.8;
+}
+
+/* Resumen de carga en el modal */
+.load-summary {
+  background: var(--color-secondary);
+  border-radius: var(--radius-base);
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid var(--color-border);
+}
+
+.load-summary h4 {
+  margin: 0 0 16px 0;
+  color: var(--color-text);
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.load-breakdown {
+  background: var(--color-surface);
+  border-radius: var(--radius-base);
+  padding: 16px;
+  border: 1px solid var(--color-border);
+}
+
+.load-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.load-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--color-secondary);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--color-border);
+}
+
+.load-stat.total {
+  background: var(--color-primary);
+  color: var(--color-btn-primary-text);
+  border-color: var(--color-primary);
+  font-weight: 600;
+}
+
+.load-stat-icon {
+  font-size: 16px;
+}
+
+.load-stat-label {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  flex: 1;
+}
+
+.load-stat-value {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.load-stat.total .load-stat-label,
+.load-stat.total .load-stat-value {
+  color: var(--color-btn-primary-text);
+}
+
+/* Responsive para el resumen de carga */
+@media (max-width: 768px) {
+  .load-stats {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .load-stat {
+    padding: 10px 12px;
+  }
+  
+  .load-summary {
+    padding: 16px;
+    margin-bottom: 20px;
+  }
 } 

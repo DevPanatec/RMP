@@ -738,8 +738,48 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                     <div className="stat-label">Duración Est.</div>
                   </div>
                   <div className="summary-stat">
-                    <div className="stat-value">{selectedRoute.paradas.reduce((sum, p) => sum + (p.pesoRecolectado || 0), 0)}</div>
+                    <div className="stat-value">
+                      {selectedRoute.paradas.reduce((sum, p) => sum + (p.pesoRecolectado || 0), 0)} kg
+                    </div>
                     <div className="stat-label">Carga Total</div>
+                  </div>
+                </div>
+                
+                {/* Resumen de carga por niveles */}
+                <div className="load-summary">
+                  <h4>📊 Resumen de Carga por Parada</h4>
+                  <div className="load-breakdown">
+                    {(() => {
+                      const totalCarga = selectedRoute.paradas.reduce((sum, p) => sum + (p.pesoRecolectado || 0), 0);
+                      const cargasBajas = selectedRoute.paradas.filter(p => (p.pesoRecolectado || 0) <= 30).length;
+                      const cargasMedias = selectedRoute.paradas.filter(p => (p.pesoRecolectado || 0) > 30 && (p.pesoRecolectado || 0) <= 60).length;
+                      const cargasAltas = selectedRoute.paradas.filter(p => (p.pesoRecolectado || 0) > 60).length;
+                      
+                      return (
+                        <div className="load-stats">
+                          <div className="load-stat">
+                            <span className="load-stat-icon">🟢</span>
+                            <span className="load-stat-label">Cargas bajas:</span>
+                            <span className="load-stat-value">{cargasBajas} paradas</span>
+                          </div>
+                          <div className="load-stat">
+                            <span className="load-stat-icon">🟡</span>
+                            <span className="load-stat-label">Cargas medias:</span>
+                            <span className="load-stat-value">{cargasMedias} paradas</span>
+                          </div>
+                          <div className="load-stat">
+                            <span className="load-stat-icon">🔴</span>
+                            <span className="load-stat-label">Cargas altas:</span>
+                            <span className="load-stat-value">{cargasAltas} paradas</span>
+                          </div>
+                          <div className="load-stat total">
+                            <span className="load-stat-icon">⚖️</span>
+                            <span className="load-stat-label">Total acumulado:</span>
+                            <span className="load-stat-value">{totalCarga} kg</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -747,6 +787,16 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                   {selectedRoute.paradas.map((parada, index) => {
                     const currentTruck = getSelectedTruck();
                     const status = getStopStatus(index, currentTruck);
+                    
+                    // Calcular nivel de carga basado en peso recolectado
+                    const getLoadLevel = (peso) => {
+                      if (!peso || peso === 0) return { level: 'Sin carga', color: '#9e9e9e', icon: '⚪' };
+                      if (peso <= 30) return { level: 'Carga baja', color: '#4caf50', icon: '🟢' };
+                      if (peso <= 60) return { level: 'Carga media', color: '#ff9800', icon: '🟡' };
+                      return { level: 'Carga alta', color: '#f44336', icon: '🔴' };
+                    };
+                    
+                    const loadInfo = getLoadLevel(parada.pesoRecolectado);
                     
                     return (
                       <div key={index} className={`stop-item stop-item--${status}`}>
@@ -783,11 +833,15 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                             </div>
                           </div>
                           
-                          {parada.pesoRecolectado !== undefined && (
-                            <div className="stop-weight">
-                              <strong>Carga recolectada:</strong> {parada.pesoRecolectado}
+                          <div className="stop-load-info">
+                            <div className="load-indicator" style={{ color: loadInfo.color }}>
+                              <span className="load-icon">{loadInfo.icon}</span>
+                              <strong>Carga:</strong> {loadInfo.level}
+                              {parada.pesoRecolectado !== undefined && parada.pesoRecolectado > 0 && (
+                                <span className="load-weight"> ({parada.pesoRecolectado} kg)</span>
+                              )}
                             </div>
-                          )}
+                          </div>
                         </div>
                         
                         <div className="stop-status-indicator">

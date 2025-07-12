@@ -7,13 +7,13 @@
   --color-primary: #27AE60;                       /* Verde principal */
   --color-primary-hover: #2ECC40;                 /* Verde más claro al hover */
   --color-primary-active: #229A54;                /* Verde más oscuro al click */
-  --color-secondary: #F2F2F2;                     /* Gris claro para fondos */
-  --color-secondary-hover: #E0E0E0;               /* Gris más oscuro al hover */
-  --color-secondary-active: #D0D0D0;              /* Gris activo */
-  --color-border: #E0E0E0;                        /* Bordes grises suaves */
+  --color-secondary: #F8F9FA;                     /* Gris muy claro para fondos */
+  --color-secondary-hover: #E9ECEF;               /* Gris claro al hover */
+  --color-secondary-active: #DEE2E6;              /* Gris activo */
+  --color-border: #E9ECEF;                        /* Bordes grises suaves */
   --color-btn-primary-text: #FFFFFF;              /* Texto blanco en botones verdes */
-  --color-card-border: #E0E0E0;                   /* Borde de tarjetas */
-  --color-card-border-inner: #F2F2F2;             /* Borde interno más claro */
+  --color-card-border: #E9ECEF;                   /* Borde de tarjetas */
+  --color-card-border-inner: #F8F9FA;             /* Borde interno más claro */
   --color-error: #E74C3C;                         /* Rojo para errores */
   --color-success: #27AE60;                       /* Verde éxito */
   --color-warning: #F39C12;                       /* Naranja para warnings */
@@ -27,6 +27,19 @@
   --color-eco-accent: #A8E6CF;                    /* Verde muy claro */
   --color-eco-dark: #1E8449;                      /* Verde oscuro */
   --color-recycling: #27AE60;                     /* Verde reciclaje */
+
+  /* Variables adicionales para componentes */
+  --color-text-primary: #333333;
+  --color-text-secondary: #666666;
+  --color-surface-alt: #F8F9FA;
+  --color-surface-hover: #E9ECEF;
+  --color-primary-light: #2ECC40;
+  --color-danger-light: rgba(231, 76, 60, 0.1);
+  --color-warning-light: rgba(243, 156, 18, 0.1);
+  --color-success-light: rgba(39, 174, 96, 0.1);
+  --color-danger: #E74C3C;
+  --color-warning: #F39C12;
+  --color-success: #27AE60;
 
   /* Common style patterns */
   --focus-ring: 0 0 0 3px var(--color-focus-ring);
@@ -138,6 +151,19 @@
     --color-warning-rgb: 243, 156, 18;
     --color-info-rgb: 52, 152, 219;
     --color-primary-rgb: 39, 174, 96;
+
+    /* Variables adicionales para componentes en modo oscuro */
+    --color-text-primary: #FFFFFF;
+    --color-text-secondary: rgba(255, 255, 255, 0.7);
+    --color-surface-alt: rgba(255, 255, 255, 0.05);
+    --color-surface-hover: rgba(255, 255, 255, 0.08);
+    --color-primary-light: #2ECC40;
+    --color-danger-light: rgba(231, 76, 60, 0.2);
+    --color-warning-light: rgba(243, 156, 18, 0.2);
+    --color-success-light: rgba(39, 174, 96, 0.2);
+    --color-danger: #E74C3C;
+    --color-warning: #F39C12;
+    --color-success: #27AE60;
   }
 }
 

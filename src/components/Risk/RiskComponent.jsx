@@ -5,6 +5,11 @@ const RiskComponent = ({ userType = 'admin' }) => {
   const [risks, setRisks] = useState([]);
   const [incidents, setIncidents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [filterCategory, setFilterCategory] = useState('todos');
+  const [filterSeverity, setFilterSeverity] = useState('todos');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showRiskModal, setShowRiskModal] = useState(false);
+  const [selectedRisk, setSelectedRisk] = useState(null);
 
   useEffect(() => {
     loadRiskData();
@@ -111,6 +116,34 @@ const RiskComponent = ({ userType = 'admin' }) => {
     return 'bajo';
   };
 
+  // Filtrar riesgos según criterios
+  const filteredRisks = risks.filter(risk => {
+    const sevLevel = getSeverityLevel(calcSeverity(risk));
+    const matchesCategory = filterCategory === 'todos' || risk.categoria === filterCategory;
+    const matchesSeverity = filterSeverity === 'todos' || sevLevel === filterSeverity;
+    const matchesSearch = searchTerm === '' || 
+      risk.area.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      risk.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      risk.id.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesCategory && matchesSeverity && matchesSearch;
+  });
+
+  const handleViewRisk = (risk) => {
+    setSelectedRisk(risk);
+    setShowRiskModal(true);
+  };
+
+  const closeRiskModal = () => {
+    setShowRiskModal(false);
+    setSelectedRisk(null);
+  };
+
+  const getCategories = () => {
+    const categories = [...new Set(risks.map(r => r.categoria))];
+    return categories;
+  };
+
   return (
     <div className="risk-container">
       <div className="risk-header-main">
@@ -156,6 +189,50 @@ const RiskComponent = ({ userType = 'admin' }) => {
                 <div className="stat-label">Incidentes Recientes</div>
               </div>
             </div>
+            <div className="stat-card">
+              <div className="stat-icon">📊</div>
+              <div className="stat-data">
+                <div className="stat-value">{filteredRisks.length}</div>
+                <div className="stat-label">Filtrados</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Controles de filtrado y búsqueda */}
+          <div className="risk-controls">
+            <div className="search-box">
+              <input
+                type="text"
+                placeholder="🔍 Buscar riesgos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+            </div>
+            
+            <div className="filter-controls">
+              <select 
+                value={filterCategory} 
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="filter-select"
+              >
+                <option value="todos">📂 Todas las categorías</option>
+                {getCategories().map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              
+              <select 
+                value={filterSeverity} 
+                onChange={(e) => setFilterSeverity(e.target.value)}
+                className="filter-select"
+              >
+                <option value="todos">⚠️ Todas las severidades</option>
+                <option value="alto">🔴 Alto</option>
+                <option value="medio">🟡 Medio</option>
+                <option value="bajo">🟢 Bajo</option>
+              </select>
+            </div>
           </div>
 
           {/* Tabla de riesgos */}
@@ -175,7 +252,7 @@ const RiskComponent = ({ userType = 'admin' }) => {
                 </tr>
               </thead>
               <tbody>
-                {risks.map(risk => {
+                {filteredRisks.map(risk => {
                   const sevValue = calcSeverity(risk);
                   const sevLevel = getSeverityLevel(sevValue);
                   return (
@@ -193,8 +270,19 @@ const RiskComponent = ({ userType = 'admin' }) => {
                       <td>{risk.categoria}</td>
                       <td>{risk.estado}</td>
                       <td>
-                        <button className="btn btn--small btn--secondary">👁️</button>
-                        <button className="btn btn--small btn--primary">✏️</button>
+                        <button 
+                          className="btn btn--small btn--secondary"
+                          onClick={() => handleViewRisk(risk)}
+                          title="Ver detalles"
+                        >
+                          👁️
+                        </button>
+                        <button 
+                          className="btn btn--small btn--primary"
+                          title="Editar riesgo"
+                        >
+                          ✏️
+                        </button>
                       </td>
                     </tr>
                   );
@@ -226,6 +314,77 @@ const RiskComponent = ({ userType = 'admin' }) => {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de detalles del riesgo */}
+      {showRiskModal && selectedRisk && (
+        <div className="risk-modal-overlay" onClick={closeRiskModal}>
+          <div className="risk-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="risk-modal-header">
+              <h3>⚠️ Detalles del Riesgo: {selectedRisk.id}</h3>
+              <button className="modal-close-btn" onClick={closeRiskModal}>
+                ✕
+              </button>
+            </div>
+            
+            <div className="risk-modal-content">
+              <div className="risk-detail-grid">
+                <div className="risk-detail-item">
+                  <label>Área:</label>
+                  <span>{selectedRisk.area}</span>
+                </div>
+                <div className="risk-detail-item">
+                  <label>Categoría:</label>
+                  <span>{selectedRisk.categoria}</span>
+                </div>
+                <div className="risk-detail-item">
+                  <label>Estado:</label>
+                  <span className={`status-badge status-${selectedRisk.estado.toLowerCase()}`}>
+                    {selectedRisk.estado}
+                  </span>
+                </div>
+                <div className="risk-detail-item">
+                  <label>Propietario:</label>
+                  <span>{selectedRisk.propietario}</span>
+                </div>
+                <div className="risk-detail-item">
+                  <label>Fecha de Reporte:</label>
+                  <span>{selectedRisk.fechaReporte}</span>
+                </div>
+                <div className="risk-detail-item">
+                  <label>Probabilidad:</label>
+                  <span>{selectedRisk.probabilidad}/5</span>
+                </div>
+                <div className="risk-detail-item">
+                  <label>Impacto:</label>
+                  <span>{selectedRisk.impacto}/5</span>
+                </div>
+                <div className="risk-detail-item">
+                  <label>Severidad:</label>
+                  <span className={`severity-badge severity-${getSeverityLevel(calcSeverity(selectedRisk))}`}>
+                    {calcSeverity(selectedRisk)}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="risk-description">
+                <label>Descripción:</label>
+                <p>{selectedRisk.descripcion}</p>
+              </div>
+              
+              <div className="risk-mitigation">
+                <label>Plan de Mitigación:</label>
+                <p>{selectedRisk.planMitigacion}</p>
+              </div>
+              
+              <div className="risk-actions">
+                <button className="btn btn--primary">📝 Actualizar Estado</button>
+                <button className="btn btn--secondary">📊 Ver Historial</button>
+                <button className="btn btn--outline">📋 Generar Reporte</button>
+              </div>
             </div>
           </div>
         </div>
