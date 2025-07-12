@@ -405,7 +405,6 @@ const RiskComponent = ({ userType = 'admin' }) => {
                 ✕
               </button>
             </div>
-            
             <div className="risk-modal-content">
               <div className="risk-detail-grid">
                 <div className="risk-detail-item">
@@ -445,21 +444,188 @@ const RiskComponent = ({ userType = 'admin' }) => {
                   </span>
                 </div>
               </div>
-              
               <div className="risk-description">
                 <label>Descripción:</label>
                 <p>{selectedRisk.descripcion}</p>
               </div>
-              
               <div className="risk-mitigation">
                 <label>Plan de Mitigación:</label>
                 <p>{selectedRisk.planMitigacion}</p>
               </div>
-              
               <div className="risk-actions">
-                <button className="btn btn--primary">📝 Actualizar Estado</button>
+                <button 
+                  className="btn btn--primary"
+                  onClick={() => {
+                    const newStatus = selectedRisk.estado === 'Abierto' ? 'En Progreso' : 
+                                     selectedRisk.estado === 'En Progreso' ? 'Cerrado' : 'Abierto';
+                    handleUpdateRiskStatus(selectedRisk.id, newStatus);
+                    closeRiskModal();
+                  }}
+                >
+                  📝 Actualizar Estado
+                </button>
                 <button className="btn btn--secondary">📊 Ver Historial</button>
                 <button className="btn btn--outline">📋 Generar Reporte</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de detalles del incidente */}
+      {showIncidentModal && selectedIncident && (
+        <div className="risk-modal-overlay" onClick={closeIncidentModal}>
+          <div className="risk-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="risk-modal-header">
+              <h3>🚨 Detalles del Incidente: {selectedIncident.id}</h3>
+              <button className="modal-close-btn" onClick={closeIncidentModal}>
+                ✕
+              </button>
+            </div>
+            <div className="risk-modal-content">
+              <div className="risk-detail-grid">
+                <div className="risk-detail-item">
+                  <label>Fecha:</label>
+                  <span>{selectedIncident.fecha}</span>
+                </div>
+                <div className="risk-detail-item">
+                  <label>Tipo:</label>
+                  <span>{selectedIncident.tipo}</span>
+                </div>
+                <div className="risk-detail-item">
+                  <label>Severidad:</label>
+                  <span className={`status-badge status-${selectedIncident.severidad.toLowerCase()}`}>
+                    {selectedIncident.severidad}
+                  </span>
+                </div>
+                <div className="risk-detail-item">
+                  <label>Responsable:</label>
+                  <span>{selectedIncident.responsable}</span>
+                </div>
+              </div>
+              <div className="risk-description">
+                <label>Descripción:</label>
+                <p>{selectedIncident.descripcion}</p>
+              </div>
+              <div className="risk-mitigation">
+                <label>Acciones Tomadas:</label>
+                <p>{selectedIncident.acciones}</p>
+              </div>
+              <div className="risk-actions">
+                <button className="btn btn--primary">📝 Registrar Seguimiento</button>
+                <button className="btn btn--secondary">📊 Ver Historial</button>
+                <button className="btn btn--outline">📋 Generar Reporte</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para agregar nuevo riesgo */}
+      {showAddRiskModal && (
+        <div className="risk-modal-overlay" onClick={closeAddRiskModal}>
+          <div className="risk-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="risk-modal-header">
+              <h3>➕ Nuevo Riesgo</h3>
+              <button className="modal-close-btn" onClick={closeAddRiskModal}>
+                ✕
+              </button>
+            </div>
+            <div className="risk-modal-content">
+              <div className="form-group">
+                <label>Área:</label>
+                <input
+                  type="text"
+                  value={newRisk.area}
+                  onChange={(e) => setNewRisk(prev => ({ ...prev, area: e.target.value }))}
+                  placeholder="Ej: Centro Histórico"
+                  className="form-control"
+                />
+              </div>
+              <div className="form-group">
+                <label>Descripción:</label>
+                <textarea
+                  value={newRisk.descripcion}
+                  onChange={(e) => setNewRisk(prev => ({ ...prev, descripcion: e.target.value }))}
+                  placeholder="Describe el riesgo identificado..."
+                  className="form-control"
+                  rows="3"
+                />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Probabilidad (1-5):</label>
+                  <select
+                    value={newRisk.probabilidad}
+                    onChange={(e) => setNewRisk(prev => ({ ...prev, probabilidad: parseInt(e.target.value) }))}
+                    className="form-control"
+                  >
+                    <option value="1">1 - Muy Baja</option>
+                    <option value="2">2 - Baja</option>
+                    <option value="3">3 - Media</option>
+                    <option value="4">4 - Alta</option>
+                    <option value="5">5 - Muy Alta</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Impacto (1-5):</label>
+                  <select
+                    value={newRisk.impacto}
+                    onChange={(e) => setNewRisk(prev => ({ ...prev, impacto: parseInt(e.target.value) }))}
+                    className="form-control"
+                  >
+                    <option value="1">1 - Muy Bajo</option>
+                    <option value="2">2 - Bajo</option>
+                    <option value="3">3 - Medio</option>
+                    <option value="4">4 - Alto</option>
+                    <option value="5">5 - Muy Alto</option>
+                  </select>
+                </div>
+              </div>
+              <div className="form-group">
+                <label>Categoría:</label>
+                <select
+                  value={newRisk.categoria}
+                  onChange={(e) => setNewRisk(prev => ({ ...prev, categoria: e.target.value }))}
+                  className="form-control"
+                >
+                  <option value="Operativo">Operativo</option>
+                  <option value="Ambiental">Ambiental</option>
+                  <option value="Logístico">Logístico</option>
+                  <option value="Seguridad">Seguridad</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Propietario:</label>
+                <input
+                  type="text"
+                  value={newRisk.propietario}
+                  onChange={(e) => setNewRisk(prev => ({ ...prev, propietario: e.target.value }))}
+                  placeholder="Ej: Depto. Operaciones"
+                  className="form-control"
+                />
+              </div>
+              <div className="form-group">
+                <label>Plan de Mitigación:</label>
+                <textarea
+                  value={newRisk.planMitigacion}
+                  onChange={(e) => setNewRisk(prev => ({ ...prev, planMitigacion: e.target.value }))}
+                  placeholder="Describe las acciones para mitigar el riesgo..."
+                  className="form-control"
+                  rows="3"
+                />
+              </div>
+              <div className="risk-actions">
+                <button 
+                  className="btn btn--primary"
+                  onClick={handleSaveRisk}
+                  disabled={!newRisk.area || !newRisk.descripcion}
+                >
+                  💾 Guardar Riesgo
+                </button>
+                <button className="btn btn--outline" onClick={closeAddRiskModal}>
+                  ❌ Cancelar
+                </button>
               </div>
             </div>
           </div>
