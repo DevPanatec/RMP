@@ -13,6 +13,18 @@ const InventoryComponent = ({ userType = 'admin' }) => {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [alerts, setAlerts] = useState([]);
+  const [materialForm, setMaterialForm] = useState({
+    codigo: '',
+    nombre: '',
+    categoria: 'Bolsas',
+    unidad: 'Unidad',
+    stockActual: 0,
+    stockMinimo: 10,
+    stockMaximo: 100,
+    precio: 0,
+    proveedor: '',
+    descripcion: ''
+  });
 
   // Inicializar datos del inventario
   useEffect(() => {
@@ -384,13 +396,52 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                 </td>
                 <td>
                   <div className="action-buttons">
-                    <button className="btn btn--small btn--secondary">
+                    <button 
+                      className="btn btn--small btn--secondary"
+                      onClick={() => {
+                        setSelectedMaterial(material);
+                        setMaterialForm({
+                          codigo: material.codigo,
+                          nombre: material.nombre,
+                          categoria: material.categoria,
+                          unidad: material.unidad,
+                          stockActual: material.stockActual,
+                          stockMinimo: material.stockMinimo,
+                          stockMaximo: material.stockMaximo,
+                          precio: material.precio,
+                          proveedor: material.proveedor,
+                          descripcion: material.descripcion
+                        });
+                        setShowMaterialModal(true);
+                      }}
+                    >
                       👁️
                     </button>
-                    <button className="btn btn--small btn--primary">
+                    <button 
+                      className="btn btn--small btn--primary"
+                      onClick={() => {
+                        setSelectedMaterial(material);
+                        setMaterialForm({
+                          codigo: material.codigo,
+                          nombre: material.nombre,
+                          categoria: material.categoria,
+                          unidad: material.unidad,
+                          stockActual: material.stockActual,
+                          stockMinimo: material.stockMinimo,
+                          stockMaximo: material.stockMaximo,
+                          precio: material.precio,
+                          proveedor: material.proveedor,
+                          descripcion: material.descripcion
+                        });
+                        setShowMaterialModal(true);
+                      }}
+                    >
                       ✏️
                     </button>
-                    <button className="btn btn--small btn--success">
+                    <button 
+                      className="btn btn--small btn--success"
+                      onClick={() => setShowOrderModal(true)}
+                    >
                       🛒
                     </button>
                   </div>
@@ -460,6 +511,129 @@ const InventoryComponent = ({ userType = 'admin' }) => {
     </div>
   );
 
+  const handleMaterialFormChange = (field, value) => {
+    setMaterialForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveMaterial = () => {
+    if (!materialForm.nombre.trim() || !materialForm.codigo.trim()) {
+      alert('Debe completar nombre y código del material');
+      return;
+    }
+
+    if (selectedMaterial) {
+      // Editar material existente
+      setMaterials(prev => prev.map(m => 
+        m.id === selectedMaterial.id ? { ...m, ...materialForm } : m
+      ));
+    } else {
+      // Agregar nuevo material
+      const newMaterial = {
+        ...materialForm,
+        id: `MAT${String(materials.length + 1).padStart(3, '0')}`,
+        estado: 'Activo',
+        ultimaCompra: new Date().toISOString().split('T')[0],
+        consumoMensual: 0
+      };
+      setMaterials(prev => [...prev, newMaterial]);
+    }
+    setShowMaterialModal(false);
+    setSelectedMaterial(null);
+    setMaterialForm({
+      codigo: '',
+      nombre: '',
+      categoria: 'Bolsas',
+      unidad: 'Unidad',
+      stockActual: 0,
+      stockMinimo: 10,
+      stockMaximo: 100,
+      precio: 0,
+      proveedor: '',
+      descripcion: ''
+    });
+  };
+
+  const handleDeleteMaterial = (materialId) => {
+    if (window.confirm('¿Eliminar este material del inventario?')) {
+      setMaterials(prev => prev.filter(m => m.id !== materialId));
+    }
+  };
+
+  const renderOrdersTab = () => (
+    <div className="inventory-content">
+      <div className="inventory-header">
+        <h3>🛒 Órdenes de Compra</h3>
+        <button className="btn btn--primary" onClick={() => setShowOrderModal(true)}>
+          ➕ Nueva Orden
+        </button>
+      </div>
+      <div className="table-wrapper">
+        <table className="inventory-table">
+          <thead>
+            <tr>
+              <th>Número</th>
+              <th>Fecha</th>
+              <th>Proveedor</th>
+              <th>Total</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {purchaseOrders.map(order => (
+              <tr key={order.id}>
+                <td>{order.numero}</td>
+                <td>{order.fecha}</td>
+                <td>{order.proveedor}</td>
+                <td>${order.total}</td>
+                <td>
+                  <span className={`status status--${order.estado === 'Pendiente' ? 'warning' : 'success'}`}>
+                    {order.estado}
+                  </span>
+                </td>
+                <td>
+                  <button className="btn btn--small btn--secondary">👁️</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  const renderConsumptionTab = () => (
+    <div className="inventory-content">
+      <div className="inventory-header">
+        <h3>📊 Consumo de Materiales</h3>
+      </div>
+      <div className="table-wrapper">
+        <table className="inventory-table">
+          <thead>
+            <tr>
+              <th>Material</th>
+              <th>Fecha</th>
+              <th>Cantidad</th>
+              <th>Ruta</th>
+              <th>Responsable</th>
+            </tr>
+          </thead>
+          <tbody>
+            {consumption.slice(0, 20).map(cons => (
+              <tr key={cons.id}>
+                <td>{cons.materialNombre}</td>
+                <td>{cons.fecha}</td>
+                <td>{cons.cantidad}</td>
+                <td>{cons.ruta}</td>
+                <td>{cons.responsable}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
   return (
     <div className="inventory-container">
       <div className="inventory-header-main">
@@ -482,6 +656,18 @@ const InventoryComponent = ({ userType = 'admin' }) => {
         >
           🏢 Proveedores
         </button>
+        <button 
+          className={`tab ${activeInventoryTab === 'orders' ? 'tab--active' : ''}`}
+          onClick={() => setActiveInventoryTab('orders')}
+        >
+          🛒 Órdenes
+        </button>
+        <button 
+          className={`tab ${activeInventoryTab === 'consumption' ? 'tab--active' : ''}`}
+          onClick={() => setActiveInventoryTab('consumption')}
+        >
+          📊 Consumo
+        </button>
       </div>
 
       {isLoading ? (
@@ -495,24 +681,200 @@ const InventoryComponent = ({ userType = 'admin' }) => {
         <div className="inventory-body">
           {activeInventoryTab === 'materials' && renderMaterialsTab()}
           {activeInventoryTab === 'suppliers' && renderSuppliersTab()}
+          {activeInventoryTab === 'orders' && renderOrdersTab()}
+          {activeInventoryTab === 'consumption' && renderConsumptionTab()}
         </div>
       )}
 
-      {/* Modales */}
+      {/* Modal para ver/editar material */}
       {showMaterialModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setShowMaterialModal(false)}>
+          <div className="modal-content material-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Nuevo Material</h3>
-              <button 
-                className="modal-close"
-                onClick={() => setShowMaterialModal(false)}
-              >
-                ✕
-              </button>
+              <h4>{selectedMaterial ? 'Editar Material' : 'Nuevo Material'}</h4>
+              <button className="modal-close" onClick={() => setShowMaterialModal(false)}>✕</button>
             </div>
             <div className="modal-body">
-              <p>Formulario de nuevo material (por implementar)</p>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Código:</label>
+                  <input 
+                    type="text" 
+                    value={materialForm.codigo}
+                    onChange={e => handleMaterialFormChange('codigo', e.target.value)}
+                    placeholder="Ej: BOL-001"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Nombre:</label>
+                  <input 
+                    type="text" 
+                    value={materialForm.nombre}
+                    onChange={e => handleMaterialFormChange('nombre', e.target.value)}
+                    placeholder="Ej: Bolsas de basura"
+                  />
+                </div>
+              </div>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Categoría:</label>
+                  <select 
+                    value={materialForm.categoria}
+                    onChange={e => handleMaterialFormChange('categoria', e.target.value)}
+                  >
+                    <option value="Bolsas">Bolsas</option>
+                    <option value="Químicos">Químicos</option>
+                    <option value="EPP">EPP</option>
+                    <option value="Herramientas">Herramientas</option>
+                    <option value="Fumigación">Fumigación</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Unidad:</label>
+                  <input 
+                    type="text" 
+                    value={materialForm.unidad}
+                    onChange={e => handleMaterialFormChange('unidad', e.target.value)}
+                    placeholder="Ej: Paquete"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Stock Actual:</label>
+                  <input 
+                    type="number" 
+                    value={materialForm.stockActual}
+                    onChange={e => handleMaterialFormChange('stockActual', parseInt(e.target.value))}
+                    min="0"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Stock Mínimo:</label>
+                  <input 
+                    type="number" 
+                    value={materialForm.stockMinimo}
+                    onChange={e => handleMaterialFormChange('stockMinimo', parseInt(e.target.value))}
+                    min="0"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Stock Máximo:</label>
+                  <input 
+                    type="number" 
+                    value={materialForm.stockMaximo}
+                    onChange={e => handleMaterialFormChange('stockMaximo', parseInt(e.target.value))}
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Precio Unitario:</label>
+                  <input 
+                    type="number" 
+                    value={materialForm.precio}
+                    onChange={e => handleMaterialFormChange('precio', parseFloat(e.target.value))}
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Proveedor:</label>
+                  <input 
+                    type="text" 
+                    value={materialForm.proveedor}
+                    onChange={e => handleMaterialFormChange('proveedor', e.target.value)}
+                    placeholder="Ej: Limpieza Total S.A."
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Descripción:</label>
+                <textarea 
+                  value={materialForm.descripcion}
+                  onChange={e => handleMaterialFormChange('descripcion', e.target.value)}
+                  placeholder="Descripción del material..."
+                />
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn--outline" onClick={() => setShowMaterialModal(false)}>Cancelar</button>
+              {selectedMaterial && (
+                <button 
+                  className="btn btn--danger" 
+                  onClick={() => handleDeleteMaterial(selectedMaterial.id)}
+                >
+                  🗑️ Eliminar
+                </button>
+              )}
+              <button className="btn btn--primary" onClick={handleSaveMaterial}>
+                {selectedMaterial ? 'Actualizar' : 'Crear'} Material
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para orden de compra */}
+      {showOrderModal && (
+        <div className="modal-overlay" onClick={() => setShowOrderModal(false)}>
+          <div className="modal-content order-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>🛒 Nueva Orden de Compra</h4>
+              <button className="modal-close" onClick={() => setShowOrderModal(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="order-form">
+                <div className="form-group">
+                  <label>Material:</label>
+                  <select className="form-select">
+                    {materials.map(material => (
+                      <option key={material.id} value={material.id}>
+                        {material.nombre} - Stock: {material.stockActual}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Cantidad a ordenar:</label>
+                  <input type="number" min="1" defaultValue="10" />
+                </div>
+                <div className="form-group">
+                  <label>Proveedor:</label>
+                  <select className="form-select">
+                    {suppliers.map(supplier => (
+                      <option key={supplier.id} value={supplier.id}>
+                        {supplier.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Fecha de entrega:</label>
+                  <input type="date" />
+                </div>
+                <div className="form-group">
+                  <label>Notas:</label>
+                  <textarea placeholder="Notas adicionales..." />
+                </div>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn--outline" onClick={() => setShowOrderModal(false)}>Cancelar</button>
+              <button 
+                className="btn btn--primary" 
+                onClick={() => {
+                  setShowOrderModal(false);
+                  alert('✅ Orden de compra creada correctamente');
+                }}
+              >
+                🛒 Crear Orden
+              </button>
             </div>
           </div>
         </div>

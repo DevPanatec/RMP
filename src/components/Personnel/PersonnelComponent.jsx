@@ -6,8 +6,8 @@ const PersonnelComponent = ({ userType = 'admin' }) => {
   const [activePersonnelTab, setActivePersonnelTab] = useState('employees');
   const [employees, setEmployees] = useState([]);
   const [shifts, setShifts] = useState([]);
-  const [attendance] = useState([]);
-  const [performance] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+  const [performance, setPerformance] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

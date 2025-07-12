@@ -14,6 +14,10 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [currentData, setCurrentData] = useState(appData);
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [serviceTypeFilter, setServiceTypeFilter] = useState('todos'); // todos | recoleccion | fumigacion
+  const [showTruckModal, setShowTruckModal] = useState(false);
+  const [showTruckConfig, setShowTruckConfig] = useState(false);
+  const [selectedTruckData, setSelectedTruckData] = useState(null);
+  const [showRouteAssignment, setShowRouteAssignment] = useState(false);
 
   // Normalizar camiones: si no tienen tipoServicio, asumir 'recoleccion'
   const normalizedCamiones = currentData.camiones.map(camion => (
@@ -61,6 +65,8 @@ const AdminDashboard = ({ user, onLogout }) => {
                   showRealTime={true}
                   selectedTruck={selectedTruck}
                   serviceTypeFilter={serviceTypeFilter}
+                  showRoutes={true}
+                  showStops={true}
                 />
               </div>
             </div>
@@ -288,10 +294,22 @@ const AdminDashboard = ({ user, onLogout }) => {
                           </td>
                           <td>
                             <div className="action-buttons">
-                              <button className="btn btn--sm btn--outline">
+                              <button 
+                                className="btn btn--sm btn--outline"
+                                onClick={() => {
+                                  setSelectedTruckData(camion);
+                                  setShowTruckModal(true);
+                                }}
+                              >
                                 📍 Ver
                               </button>
-                              <button className="btn btn--sm btn--outline">
+                              <button 
+                                className="btn btn--sm btn--outline"
+                                onClick={() => {
+                                  setSelectedTruckData(camion);
+                                  setShowTruckConfig(true);
+                                }}
+                              >
                                 ⚙️ Config
                               </button>
                             </div>
@@ -309,10 +327,30 @@ const AdminDashboard = ({ user, onLogout }) => {
       case 'rutas':
         return (
           <div className="dashboard-content">
-            <RoutesComponent
-              initialRoutes={currentData.rutas}
-              onRoutesChange={(routes) => setCurrentData(prev => ({ ...prev, rutas: routes }))}
-            />
+            <div className="routes-header-section">
+              <RoutesComponent
+                initialRoutes={currentData.rutas}
+                onRoutesChange={(routes) => setCurrentData(prev => ({ ...prev, rutas: routes }))}
+              />
+              
+              <div className="route-assignment-section">
+                <div className="card">
+                  <div className="card__body">
+                    <h3>👥 Asignación de Rutas a Conductores</h3>
+                    <p className="section-description">
+                      Asigne rutas específicas a conductores para optimizar las operaciones
+                    </p>
+                    
+                    <button 
+                      className="btn btn--primary"
+                      onClick={() => setShowRouteAssignment(true)}
+                    >
+                      🗺️ Gestionar Asignaciones
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         );
         
@@ -419,6 +457,315 @@ const AdminDashboard = ({ user, onLogout }) => {
         </div>
         {renderContent()}
       </div>
+
+      {/* Modal para ver información del camión */}
+      {showTruckModal && selectedTruckData && (
+        <div className="modal-overlay" onClick={() => setShowTruckModal(false)}>
+          <div className="modal-content truck-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>
+                {selectedTruckData.tipoServicio === 'fumigacion' ? '🚐' : '🚛'} {selectedTruckData.id}
+              </h4>
+              <button className="modal-close" onClick={() => setShowTruckModal(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="truck-info-grid">
+                <div className="info-section">
+                  <h5>📋 Información General</h5>
+                  <div className="info-row">
+                    <strong>Conductor:</strong> {selectedTruckData.conductor}
+                  </div>
+                  <div className="info-row">
+                    <strong>Estado:</strong> 
+                    <span className={`status-badge status-${selectedTruckData.estado === 'En ruta' ? 'success' : selectedTruckData.estado === 'Disponible' ? 'info' : 'warning'}`}>
+                      {selectedTruckData.estado}
+                    </span>
+                  </div>
+                  <div className="info-row">
+                    <strong>Tipo de Servicio:</strong> 
+                    <span className="service-type-badge">
+                      {selectedTruckData.tipoServicio === 'fumigacion' ? 'Fumigación' : 'Recolección'}
+                    </span>
+                  </div>
+                  <div className="info-row">
+                    <strong>Ruta Asignada:</strong> {selectedTruckData.rutaAsignada || 'Sin asignar'}
+                  </div>
+                </div>
+
+                <div className="info-section">
+                  <h5>📍 Ubicación y Estado</h5>
+                  <div className="info-row">
+                    <strong>Latitud:</strong> {selectedTruckData.lat.toFixed(6)}
+                  </div>
+                  <div className="info-row">
+                    <strong>Longitud:</strong> {selectedTruckData.lng.toFixed(6)}
+                  </div>
+                  <div className="info-row">
+                    <strong>Velocidad:</strong> {selectedTruckData.velocidad} km/h
+                  </div>
+                  <div className="info-row">
+                    <strong>Combustible:</strong> 
+                    <div className="fuel-bar">
+                      <div className="fuel-fill" style={{ width: `${selectedTruckData.combustible}%` }}></div>
+                    </div>
+                    {selectedTruckData.combustible}%
+                  </div>
+                </div>
+
+                {selectedTruckData.estado === 'En ruta' && (
+                  <div className="info-section">
+                    <h5>🗺️ Progreso de Ruta</h5>
+                    <div className="info-row">
+                      <strong>Parada Actual:</strong> {selectedTruckData.paradaActual}/{selectedTruckData.totalParadas}
+                    </div>
+                    <div className="progress-bar">
+                      <div 
+                        className="progress-fill"
+                        style={{ width: `${(selectedTruckData.paradaActual / selectedTruckData.totalParadas) * 100}%` }}
+                      ></div>
+                    </div>
+                    {selectedTruckData.tipoServicio === 'recoleccion' && (
+                      <div className="info-row">
+                        <strong>Peso Acumulado:</strong> {selectedTruckData.pesoAcumulado} kg
+                      </div>
+                    )}
+                    {selectedTruckData.tipoServicio === 'fumigacion' && (
+                      <div className="info-row">
+                        <strong>Área Fumigada:</strong> {selectedTruckData.areaFumigada} m²
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="info-section">
+                  <h5>🕐 Última Actualización</h5>
+                  <div className="info-row">
+                    <strong>Fecha:</strong> {new Date(selectedTruckData.ultimaActualizacion).toLocaleString('es-ES')}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn--outline" onClick={() => setShowTruckModal(false)}>Cerrar</button>
+              <button 
+                className="btn btn--primary" 
+                onClick={() => {
+                  setShowTruckModal(false);
+                  setSelectedTruck(selectedTruckData.id);
+                  setActiveTab('dashboard');
+                }}
+              >
+                🗺️ Ver en Mapa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para configurar camión */}
+      {showTruckConfig && selectedTruckData && (
+        <div className="modal-overlay" onClick={() => setShowTruckConfig(false)}>
+          <div className="modal-content truck-config-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>⚙️ Configurar {selectedTruckData.id}</h4>
+              <button className="modal-close" onClick={() => setShowTruckConfig(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="config-section">
+                <h5>👨‍💼 Asignación de Conductor</h5>
+                <select className="form-select" defaultValue={selectedTruckData.conductor}>
+                  <option value="Juan Pérez">Juan Pérez</option>
+                  <option value="María García">María García</option>
+                  <option value="Carlos López">Carlos López</option>
+                  <option value="Ana Martín">Ana Martín</option>
+                  <option value="Luis Rodríguez">Luis Rodríguez</option>
+                  <option value="Roberto Silva">Roberto Silva</option>
+                  <option value="Carmen Vega">Carmen Vega</option>
+                  <option value="Diego Morales">Diego Morales</option>
+                </select>
+              </div>
+
+              <div className="config-section">
+                <h5>🗺️ Asignación de Ruta</h5>
+                <select className="form-select" defaultValue={selectedTruckData.rutaAsignada || ''}>
+                  <option value="">Sin asignar</option>
+                  <option value="Ruta Centro">Ruta Centro</option>
+                  <option value="Ruta Norte">Ruta Norte</option>
+                  <option value="Ruta Sur">Ruta Sur</option>
+                  <option value="Ruta Este">Ruta Este</option>
+                </select>
+              </div>
+
+              <div className="config-section">
+                <h5>🔧 Estado del Vehículo</h5>
+                <select className="form-select" defaultValue={selectedTruckData.estado}>
+                  <option value="Disponible">Disponible</option>
+                  <option value="En ruta">En ruta</option>
+                  <option value="En mantenimiento">En mantenimiento</option>
+                </select>
+              </div>
+
+              {selectedTruckData.tipoServicio === 'fumigacion' && (
+                <div className="config-section">
+                  <h5>🦟 Tipo de Plaga</h5>
+                  <select className="form-select" defaultValue={selectedTruckData.tipoPlaga || ''}>
+                    <option value="">Sin especificar</option>
+                    <option value="mosquitos">Mosquitos</option>
+                    <option value="roedores">Roedores</option>
+                    <option value="cucarachas">Cucarachas</option>
+                  </select>
+                </div>
+              )}
+
+              <div className="config-section">
+                <h5>⛽ Nivel de Combustible</h5>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={selectedTruckData.combustible} 
+                  className="fuel-slider"
+                  onChange={(e) => {
+                    const updatedTruck = { ...selectedTruckData, combustible: parseInt(e.target.value) };
+                    setSelectedTruckData(updatedTruck);
+                    setCurrentData(prev => ({
+                      ...prev,
+                      camiones: prev.camiones.map(c => c.id === updatedTruck.id ? updatedTruck : c)
+                    }));
+                  }}
+                />
+                <div className="fuel-display">{selectedTruckData.combustible}%</div>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn--outline" onClick={() => setShowTruckConfig(false)}>Cancelar</button>
+              <button 
+                className="btn btn--primary" 
+                onClick={() => {
+                  // Actualizar el camión en los datos
+                  setCurrentData(prev => ({
+                    ...prev,
+                    camiones: prev.camiones.map(c => c.id === selectedTruckData.id ? selectedTruckData : c)
+                  }));
+                  setShowTruckConfig(false);
+                  alert('✅ Configuración actualizada correctamente');
+                }}
+              >
+                💾 Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de asignación de rutas */}
+      {showRouteAssignment && (
+        <div className="modal-overlay" onClick={() => setShowRouteAssignment(false)}>
+          <div className="modal-content route-assignment-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>🗺️ Asignación de Rutas a Conductores</h4>
+              <button className="modal-close" onClick={() => setShowRouteAssignment(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="assignment-grid">
+                <div className="drivers-section">
+                  <h5>👨‍💼 Conductores Disponibles</h5>
+                  <div className="drivers-list">
+                    {normalizedCamiones.map(camion => (
+                      <div key={camion.id} className="driver-item">
+                        <div className="driver-info">
+                          <div className="driver-name">{camion.conductor}</div>
+                          <div className="driver-vehicle">
+                            {camion.tipoServicio === 'fumigacion' ? '🚐' : '🚛'} {camion.id}
+                          </div>
+                          <div className="driver-status">
+                            Estado: <span className={`status-${camion.estado === 'En ruta' ? 'success' : camion.estado === 'Disponible' ? 'info' : 'warning'}`}>
+                              {camion.estado}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="driver-assignment">
+                          <select 
+                            className="route-select"
+                            value={camion.rutaAsignada || ''}
+                            onChange={(e) => {
+                              const updatedCamion = { ...camion, rutaAsignada: e.target.value || null };
+                              setCurrentData(prev => ({
+                                ...prev,
+                                camiones: prev.camiones.map(c => c.id === camion.id ? updatedCamion : c)
+                              }));
+                            }}
+                          >
+                            <option value="">Sin asignar</option>
+                            {currentData.rutas.map(ruta => (
+                              <option key={ruta.id} value={ruta.nombre}>
+                                {ruta.nombre} ({ruta.paradas.length} paradas)
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="routes-summary">
+                  <h5>📊 Resumen de Asignaciones</h5>
+                  <div className="summary-stats">
+                    <div className="summary-stat">
+                      <div className="stat-value">{normalizedCamiones.filter(c => c.rutaAsignada).length}</div>
+                      <div className="stat-label">Conductores Asignados</div>
+                    </div>
+                    <div className="summary-stat">
+                      <div className="stat-value">{normalizedCamiones.filter(c => !c.rutaAsignada).length}</div>
+                      <div className="stat-label">Conductores Disponibles</div>
+                    </div>
+                    <div className="summary-stat">
+                      <div className="stat-value">{currentData.rutas.length}</div>
+                      <div className="stat-label">Rutas Totales</div>
+                    </div>
+                  </div>
+
+                  <div className="route-usage">
+                    <h6>Uso de Rutas:</h6>
+                    {currentData.rutas.map(ruta => {
+                      const assignedDrivers = normalizedCamiones.filter(c => c.rutaAsignada === ruta.nombre);
+                      return (
+                        <div key={ruta.id} className="route-usage-item">
+                          <div className="route-name">{ruta.nombre}</div>
+                          <div className="route-drivers">
+                            {assignedDrivers.length > 0 ? (
+                              assignedDrivers.map(driver => (
+                                <span key={driver.id} className="driver-badge">
+                                  {driver.conductor} ({driver.id})
+                                </span>
+                              ))
+                            ) : (
+                              <span className="no-assignment">Sin asignar</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button className="btn btn--outline" onClick={() => setShowRouteAssignment(false)}>Cerrar</button>
+              <button 
+                className="btn btn--primary" 
+                onClick={() => {
+                  setShowRouteAssignment(false);
+                  alert('✅ Asignaciones de rutas guardadas correctamente');
+                }}
+              >
+                💾 Guardar Asignaciones
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
