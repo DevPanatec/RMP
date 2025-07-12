@@ -745,43 +745,45 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                   </div>
                 </div>
                 
-                {/* Resumen de carga por niveles */}
-                <div className="load-summary">
-                  <h4>📊 Resumen de Carga por Parada</h4>
-                  <div className="load-breakdown">
-                    {(() => {
-                      const totalCarga = selectedRoute.paradas.reduce((sum, p) => sum + (p.pesoRecolectado || 0), 0);
-                      const cargasBajas = selectedRoute.paradas.filter(p => (p.pesoRecolectado || 0) <= 30).length;
-                      const cargasMedias = selectedRoute.paradas.filter(p => (p.pesoRecolectado || 0) > 30 && (p.pesoRecolectado || 0) <= 60).length;
-                      const cargasAltas = selectedRoute.paradas.filter(p => (p.pesoRecolectado || 0) > 60).length;
-                      
-                      return (
-                        <div className="load-stats">
-                          <div className="load-stat">
-                            <span className="load-stat-icon">🟢</span>
-                            <span className="load-stat-label">Cargas bajas:</span>
-                            <span className="load-stat-value">{cargasBajas} paradas</span>
+                {/* Resumen de carga por niveles - Solo se muestra cuando se selecciona una parada individual */}
+                {selectedRoute.paradas.length > 0 && (
+                  <div className="load-summary">
+                    <h4>📊 Resumen de Carga por Parada</h4>
+                    <div className="load-breakdown">
+                      {(() => {
+                        const totalCarga = selectedRoute.paradas.reduce((sum, p) => sum + (p.pesoRecolectado || 0), 0);
+                        const cargasBajas = selectedRoute.paradas.filter(p => (p.pesoRecolectado || 0) <= 30).length;
+                        const cargasMedias = selectedRoute.paradas.filter(p => (p.pesoRecolectado || 0) > 30 && (p.pesoRecolectado || 0) <= 60).length;
+                        const cargasAltas = selectedRoute.paradas.filter(p => (p.pesoRecolectado || 0) > 60).length;
+                        
+                        return (
+                          <div className="load-stats">
+                            <div className="load-stat">
+                              <span className="load-stat-icon">🟢</span>
+                              <span className="load-stat-label">Cargas bajas:</span>
+                              <span className="load-stat-value">{cargasBajas} paradas</span>
+                            </div>
+                            <div className="load-stat">
+                              <span className="load-stat-icon">🟡</span>
+                              <span className="load-stat-label">Cargas medias:</span>
+                              <span className="load-stat-value">{cargasMedias} paradas</span>
+                            </div>
+                            <div className="load-stat">
+                              <span className="load-stat-icon">🔴</span>
+                              <span className="load-stat-label">Cargas altas:</span>
+                              <span className="load-stat-value">{cargasAltas} paradas</span>
+                            </div>
+                            <div className="load-stat total">
+                              <span className="load-stat-icon">⚖️</span>
+                              <span className="load-stat-label">Total acumulado:</span>
+                              <span className="load-stat-value">{totalCarga} kg</span>
+                            </div>
                           </div>
-                          <div className="load-stat">
-                            <span className="load-stat-icon">🟡</span>
-                            <span className="load-stat-label">Cargas medias:</span>
-                            <span className="load-stat-value">{cargasMedias} paradas</span>
-                          </div>
-                          <div className="load-stat">
-                            <span className="load-stat-icon">🔴</span>
-                            <span className="load-stat-label">Cargas altas:</span>
-                            <span className="load-stat-value">{cargasAltas} paradas</span>
-                          </div>
-                          <div className="load-stat total">
-                            <span className="load-stat-icon">⚖️</span>
-                            <span className="load-stat-label">Total acumulado:</span>
-                            <span className="load-stat-value">{totalCarga} kg</span>
-                          </div>
-                        </div>
-                      );
-                    })()}
+                        );
+                      })()}
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="stops-list">
                   {selectedRoute.paradas.map((parada, index) => {
@@ -830,6 +832,11 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                                   <strong> | Salida:</strong> {parada.horaSalida}
                                 </>
                               )}
+                              {status === 'completed' && parada.horaCompletado && (
+                                <>
+                                  <strong> | Completado:</strong> {parada.horaCompletado}
+                                </>
+                              )}
                             </div>
                           </div>
                           
@@ -841,6 +848,12 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                                 <span className="load-weight"> ({parada.pesoRecolectado} kg)</span>
                               )}
                             </div>
+                            {status === 'completed' && parada.pesoRecolectado && (
+                              <div className="completion-info">
+                                <span className="completion-time">✅ Completado a las {parada.horaCompletado || parada.horaSalida}</span>
+                                <span className="completion-load">📦 Carga recolectada: {parada.pesoRecolectado} kg</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                         

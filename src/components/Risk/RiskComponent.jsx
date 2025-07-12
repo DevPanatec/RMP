@@ -10,6 +10,18 @@ const RiskComponent = ({ userType = 'admin' }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showRiskModal, setShowRiskModal] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState(null);
+  const [showIncidentModal, setShowIncidentModal] = useState(false);
+  const [selectedIncident, setSelectedIncident] = useState(null);
+  const [showAddRiskModal, setShowAddRiskModal] = useState(false);
+  const [newRisk, setNewRisk] = useState({
+    area: '',
+    descripcion: '',
+    probabilidad: 3,
+    impacto: 3,
+    categoria: 'Operativo',
+    propietario: '',
+    planMitigacion: ''
+  });
 
   useEffect(() => {
     loadRiskData();
@@ -139,6 +151,51 @@ const RiskComponent = ({ userType = 'admin' }) => {
     setSelectedRisk(null);
   };
 
+  const handleViewIncident = (incident) => {
+    setSelectedIncident(incident);
+    setShowIncidentModal(true);
+  };
+
+  const closeIncidentModal = () => {
+    setShowIncidentModal(false);
+    setSelectedIncident(null);
+  };
+
+  const handleAddRisk = () => {
+    setShowAddRiskModal(true);
+  };
+
+  const closeAddRiskModal = () => {
+    setShowAddRiskModal(false);
+    setNewRisk({
+      area: '',
+      descripcion: '',
+      probabilidad: 3,
+      impacto: 3,
+      categoria: 'Operativo',
+      propietario: '',
+      planMitigacion: ''
+    });
+  };
+
+  const handleSaveRisk = () => {
+    const riskToAdd = {
+      ...newRisk,
+      id: `RISK${String(risks.length + 1).padStart(3, '0')}`,
+      fechaReporte: new Date().toISOString().split('T')[0],
+      estado: 'Abierto'
+    };
+    
+    setRisks(prev => [...prev, riskToAdd]);
+    closeAddRiskModal();
+  };
+
+  const handleUpdateRiskStatus = (riskId, newStatus) => {
+    setRisks(prev => prev.map(risk => 
+      risk.id === riskId ? { ...risk, estado: newStatus } : risk
+    ));
+  };
+
   const getCategories = () => {
     const categories = [...new Set(risks.map(r => r.categoria))];
     return categories;
@@ -150,6 +207,15 @@ const RiskComponent = ({ userType = 'admin' }) => {
         <div className="risk-title">
           <h2>⚠️ Análisis de Riesgos Operativos</h2>
           <p>Identificación y mitigación de riesgos en las operaciones de recolección</p>
+        </div>
+        <div className="risk-actions">
+          <button 
+            className="btn btn--primary"
+            onClick={handleAddRisk}
+            title="Agregar nuevo riesgo"
+          >
+            ➕ Nuevo Riesgo
+          </button>
         </div>
       </div>
 
@@ -279,9 +345,14 @@ const RiskComponent = ({ userType = 'admin' }) => {
                         </button>
                         <button 
                           className="btn btn--small btn--primary"
-                          title="Editar riesgo"
+                          title="Actualizar estado"
+                          onClick={() => {
+                            const newStatus = risk.estado === 'Abierto' ? 'En Progreso' : 
+                                             risk.estado === 'En Progreso' ? 'Cerrado' : 'Abierto';
+                            handleUpdateRiskStatus(risk.id, newStatus);
+                          }}
                         >
-                          ✏️
+                          🔄
                         </button>
                       </td>
                     </tr>
@@ -310,7 +381,12 @@ const RiskComponent = ({ userType = 'admin' }) => {
                     </div>
                   </div>
                   <div className="incident-actions">
-                    <button className="btn btn--small btn--outline">📄 Detalles</button>
+                    <button 
+                      className="btn btn--small btn--outline"
+                      onClick={() => handleViewIncident(inc)}
+                    >
+                      📄 Detalles
+                    </button>
                   </div>
                 </div>
               ))}

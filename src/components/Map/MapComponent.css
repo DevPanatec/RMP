@@ -2101,6 +2101,38 @@
   color: var(--color-btn-primary-text);
 }
 
+/* Estilos para información de completado de paradas */
+.completion-info {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--color-success-light);
+  border-radius: var(--radius-base);
+  border-left: 3px solid var(--color-success);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.completion-time,
+.completion-load {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-success);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.completion-time::before {
+  content: "✅";
+  font-size: 12px;
+}
+
+.completion-load::before {
+  content: "📦";
+  font-size: 12px;
+}
+
 /* Responsive para el resumen de carga */
 @media (max-width: 768px) {
   .load-stats {
