@@ -437,10 +437,10 @@
 }
 
 .step-item.completed .step-number {
-  background: #22c55e;
+  background: var(--color-success);
   color: white;
   border: 3px solid white;
-  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+  box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
 }
 
 @keyframes currentPulse {
@@ -456,7 +456,7 @@
 }
 
 .step-item.completed .step-line {
-  background: linear-gradient(180deg, #22c55e, rgba(34, 197, 94, 0.3));
+  background: linear-gradient(180deg, var(--color-success), rgba(39, 174, 96, 0.3));
 }
 
 .step-content {
@@ -490,8 +490,8 @@
 }
 
 .step-completed {
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  background: rgba(39, 174, 96, 0.1);
+  border: 1px solid rgba(39, 174, 96, 0.2);
   border-radius: var(--radius-base);
   padding: var(--space-12);
   margin-top: var(--space-8);
@@ -499,7 +499,7 @@
 
 .completed-info {
   font-size: var(--font-size-sm);
-  color: #16a34a;
+  color: var(--color-green-dark);
   font-weight: var(--font-weight-semibold);
   margin-bottom: var(--space-4);
 }

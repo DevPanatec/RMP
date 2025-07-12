@@ -155,7 +155,7 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
     };
 
     const iconHtml = `
-      <div class="route-stop-marker" style="background: #3b82f6; color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;">
+      <div class="route-stop-marker" style="background: var(--color-info); color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white;">
         ${iconos[tipo] || stopNumber}
       </div>
     `;
@@ -283,7 +283,7 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
                       {editingRoute.paradas.length > 1 && (
                         <Polyline
                           positions={editingRoute.paradas.map(p => [p.lat, p.lng])}
-                          color="#3b82f6"
+                          color="var(--color-info)"
                           weight={4}
                           opacity={0.8}
                         />

@@ -27,6 +27,10 @@
   --color-eco-accent: #A8E6CF;                    /* Verde muy claro */
   --color-eco-dark: #1E8449;                      /* Verde oscuro */
   --color-recycling: #27AE60;                     /* Verde reciclaje */
+  
+  /* Colores adicionales para consistencia */
+  --color-green-light: #22c55e;                   /* Verde claro para compatibilidad */
+  --color-green-dark: #16a34a;                    /* Verde oscuro para compatibilidad */
 
   /* Variables adicionales para componentes */
   --color-text-primary: #333333;

@@ -469,7 +469,7 @@
 
 .fuel-bar {
   height: 6px;
-  background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+  background: linear-gradient(90deg, var(--color-success), var(--color-warning), var(--color-error));
   border-radius: var(--radius-full);
   transition: width var(--duration-normal) var(--ease-standard);
   min-width: 40px;
@@ -680,7 +680,7 @@
 }
 
 .realtime-status {
-  background: linear-gradient(45deg, #22c55e, #16a34a);
+  background: linear-gradient(45deg, var(--color-success), var(--color-green-dark));
   color: white;
   padding: var(--space-6) var(--space-12);
   border-radius: var(--radius-base);
@@ -974,7 +974,7 @@
 
 .fuel-fill {
   height: 100%;
-  background: linear-gradient(90deg, #ef4444, #f59e0b, #22c55e);
+  background: linear-gradient(90deg, var(--color-error), var(--color-warning), var(--color-success));
   transition: width 0.3s ease;
 }
 
@@ -989,7 +989,7 @@
 
 .progress-fill {
   height: 100%;
-  background: #22c55e;
+  background: var(--color-success);
   transition: width 0.3s ease;
 }
 
