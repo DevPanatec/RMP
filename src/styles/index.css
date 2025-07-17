@@ -125,17 +125,17 @@
   --container-xl: 1280px;
 }
 
-/* Dark mode colors - Tema verde oscuro */
+/* Dark mode colors - Tema verde oscuro (TEMPORARILY DISABLED)
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: #1A1A1A;                   /* Gris muy oscuro */
-    --color-surface: #2A2A2A;                      /* Gris oscuro */
-    --color-text: #FFFFFF;                         /* Texto blanco */
+    --color-background: #1A1A1A;
+    --color-surface: #2A2A2A;
+    --color-text: #FFFFFF;
     --color-text-secondary: rgba(255, 255, 255, 0.7);
-    --color-primary: #27AE60;                      /* Verde principal */
-    --color-primary-hover: #2ECC40;                /* Verde más claro */
-    --color-primary-active: #229A54;               /* Verde más oscuro */
-    --color-secondary: rgba(255, 255, 255, 0.08); /* Fondos sutiles */
+    --color-primary: #27AE60;
+    --color-primary-hover: #2ECC40;
+    --color-primary-active: #229A54;
+    --color-secondary: rgba(255, 255, 255, 0.08);
     --color-secondary-hover: rgba(255, 255, 255, 0.12);
     --color-secondary-active: rgba(255, 255, 255, 0.16);
     --color-border: rgba(255, 255, 255, 0.15);
@@ -149,14 +149,12 @@
     --color-card-border-inner: rgba(255, 255, 255, 0.05);
     --color-select-caret: rgba(255, 255, 255, 0.8);
 
-    /* RGB versions for dark mode */
     --color-success-rgb: 39, 174, 96;
     --color-error-rgb: 231, 76, 60;
     --color-warning-rgb: 243, 156, 18;
     --color-info-rgb: 52, 152, 219;
     --color-primary-rgb: 39, 174, 96;
 
-    /* Variables adicionales para componentes en modo oscuro */
     --color-text-primary: #FFFFFF;
     --color-text-secondary: rgba(255, 255, 255, 0.7);
     --color-surface-alt: rgba(255, 255, 255, 0.05);
@@ -170,6 +168,7 @@
     --color-success: #27AE60;
   }
 }
+*/
 
 /* Base styles */
 html {
@@ -362,11 +361,14 @@ select.form-control {
   appearance: none;
 }
 
+/* Dark mode select dropdown styles (TEMPORARILY DISABLED) */
+/*
 @media (prefers-color-scheme: dark) {
   select.form-control {
     background-image: var(--select-caret-dark);
   }
 }
+*/
 
 .form-control:focus {
   outline: none;

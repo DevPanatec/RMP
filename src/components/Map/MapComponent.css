@@ -4,12 +4,48 @@
   width: 100%;
 }
 
+.map-component {
+  height: 100%;
+  width: 100%;
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+}
+
 .map-container {
   height: 400px;
   width: 100%;
   border-radius: var(--radius-base);
   border: 1px solid var(--color-card-border);
   overflow: hidden;
+}
+
+/* Ensure Leaflet map displays correctly */
+.leaflet-container {
+  height: 100% !important;
+  width: 100% !important;
+  background: #f5f5f5 !important;
+  z-index: 0 !important;
+}
+
+.leaflet-container.gps-map {
+  min-height: 500px !important;
+}
+
+.leaflet-map-pane {
+  z-index: 1 !important;
+}
+
+.leaflet-tile-pane {
+  opacity: 1 !important;
+}
+
+.leaflet-tile {
+  opacity: 1 !important;
+}
+
+.leaflet-tile-container {
+  opacity: 1 !important;
 }
 
 .leaflet-popup-content-wrapper {
@@ -921,7 +957,8 @@
   }
 }
 
-/* Dark mode support */
+/* Dark mode support (TEMPORARILY DISABLED) */
+/*
 @media (prefers-color-scheme: dark) {
   .truck-icon {
     border-color: var(--color-surface);
@@ -933,6 +970,7 @@
     border-color: rgba(var(--color-primary-rgb), 0.3);
   }
 }
+*/
 
 /* Estilos GPS mejorados */
 .gps-style {

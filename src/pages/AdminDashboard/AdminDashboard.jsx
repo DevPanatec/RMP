@@ -5,6 +5,7 @@ import ReportsComponent from '../../components/Reports/ReportsComponent';
 import PersonnelComponent from '../../components/Personnel/PersonnelComponent';
 import InventoryComponent from '../../components/Inventory/InventoryComponent';
 import RoutesComponent from '../../components/Routes/RoutesComponent';
+import ManagementComponent from '../../components/Management/ManagementComponent';
 
 import RiskComponent from '../../components/Risk/RiskComponent';
 import './AdminDashboard.css';
@@ -182,183 +183,17 @@ const AdminDashboard = ({ user, onLogout }) => {
           </div>
         );
         
-      case 'camiones':
-        // Filtrar vehículos según el filtro seleccionado
-        const filteredVehicles = serviceTypeFilter === 'todos' 
-          ? normalizedCamiones 
-          : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter);
-
-        return (
-          <div className="dashboard-content">
-            <div className="card">
-              <div className="card__body">
-                <h3>
-                  {serviceTypeFilter === 'todos' ? '🚛 Gestión de Vehículos' : 
-                   serviceTypeFilter === 'recoleccion' ? '🚛 Gestión de Camiones' : '🚐 Gestión de Fumigación'}
-                </h3>
-                
-                {/* Filtros de servicio también en la página de camiones */}
-                <div className="service-filters">
-                  <div className="filter-group">
-                    <label>Tipo de Servicio:</label>
-                    <div className="filter-buttons">
-                      <button 
-                        className={`filter-btn ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
-                        onClick={() => setServiceTypeFilter('todos')}
-                      >
-                        📊 Todos
-                      </button>
-                      <button 
-                        className={`filter-btn ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
-                        onClick={() => setServiceTypeFilter('recoleccion')}
-                      >
-                        🚛 Recolección
-                      </button>
-                      <button 
-                        className={`filter-btn ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
-                        onClick={() => setServiceTypeFilter('fumigacion')}
-                      >
-                        🚐 Fumigación
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="table-controls">
-                  <div className="search-box">
-                    <input 
-                      type="text" 
-                      placeholder="🔍 Buscar vehículo..." 
-                      className="search-input"
-                    />
-                  </div>
-                </div>
-                <div className="table-wrapper">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Tipo</th>
-                        <th>Conductor</th>
-                        <th>Estado</th>
-                        <th>Ruta Asignada</th>
-                        <th>Progreso</th>
-                        <th>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredVehicles.map(camion => (
-                        <tr key={camion.id} className={selectedTruck === camion.id ? 'selected-row' : ''}>
-                          <td>
-                            <button 
-                              className="truck-id-btn"
-                              onClick={() => setSelectedTruck(camion.id)}
-                            >
-                              {camion.tipoServicio === 'fumigacion' ? '🚐' : '🚛'} {camion.id}
-                            </button>
-                          </td>
-                          <td>
-                            <span className={`service-type-badge ${camion.tipoServicio}`}>
-                              {camion.tipoServicio === 'fumigacion' ? 'Fumigación' : 'Recolección'}
-                            </span>
-                          </td>
-                          <td>{camion.conductor}</td>
-                          <td>
-                            <span className={`status status--${
-                              camion.estado === 'En ruta' ? 'success' : 
-                              camion.estado === 'Disponible' ? 'info' : 'warning'
-                            }`}>
-                              {camion.estado}
-                            </span>
-                          </td>
-                          <td>{camion.rutaAsignada || 'Sin asignar'}</td>
-                          <td>
-                            {camion.estado === 'En ruta' && (
-                              <div className="progress-info">
-                                <div className="progress-bar">
-                                  <div 
-                                    className="progress-fill"
-                                    style={{ width: `${(camion.paradaActual / camion.totalParadas) * 100}%` }}
-                                  ></div>
-                                </div>
-                                <span className="progress-text">
-                                  {camion.paradaActual}/{camion.totalParadas}
-                                </span>
-                                {camion.tipoServicio === 'fumigacion' && camion.areaFumigada && (
-                                  <small className="fumigation-area">
-                                    📐 {camion.areaFumigada}m²
-                                  </small>
-                                )}
-                              </div>
-                            )}
-                          </td>
-                          <td>
-                            <div className="action-buttons">
-                              <button 
-                                className="btn btn--sm btn--outline"
-                                onClick={() => {
-                                  setSelectedTruckData(camion);
-                                  setShowTruckModal(true);
-                                }}
-                              >
-                                📍 Ver
-                              </button>
-                              <button 
-                                className="btn btn--sm btn--outline"
-                                onClick={() => {
-                                  setSelectedTruckData(camion);
-                                  setShowTruckConfig(true);
-                                }}
-                              >
-                                ⚙️ Config
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-        
-      case 'rutas':
-        return (
-          <div className="dashboard-content">
-            <div className="routes-header-section">
-              <RoutesComponent
-                initialRoutes={currentData.rutas}
-                onRoutesChange={(routes) => setCurrentData(prev => ({ ...prev, rutas: routes }))}
-              />
-              
-              <div className="route-assignment-section">
-                <div className="card">
-                  <div className="card__body">
-                    <h3>👥 Asignación de Rutas a Conductores</h3>
-                    <p className="section-description">
-                      Asigne rutas específicas a conductores para optimizar las operaciones
-                    </p>
-                    
-                    <button 
-                      className="btn btn--primary"
-                      onClick={() => setShowRouteAssignment(true)}
-                    >
-                      🗺️ Gestionar Asignaciones
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+      case 'management':
+        return <ManagementComponent 
+          userType={user.tipo} 
+          onViewTruckOnMap={(truckId) => {
+            setActiveTab('dashboard');
+            setSelectedTruck(truckId);
+          }}
+        />;
         
       case 'reportes':
         return <ReportsComponent userType={user.tipo} />;
-        
-      case 'personal':
-        return <PersonnelComponent userType={user.tipo} />;
         
       case 'inventario':
         return <InventoryComponent userType={user.tipo} />;
@@ -392,18 +227,10 @@ const AdminDashboard = ({ user, onLogout }) => {
             </li>
             <li>
               <button 
-                className={activeTab === 'camiones' ? 'active' : ''}
-                onClick={() => setActiveTab('camiones')}
+                className={activeTab === 'management' ? 'active' : ''}
+                onClick={() => setActiveTab('management')}
               >
-                🚛 Camiones
-              </button>
-            </li>
-            <li>
-              <button 
-                className={activeTab === 'rutas' ? 'active' : ''}
-                onClick={() => setActiveTab('rutas')}
-              >
-                🗺️ Rutas
+                🎛️ Gestión
               </button>
             </li>
             <li>
@@ -412,14 +239,6 @@ const AdminDashboard = ({ user, onLogout }) => {
                 onClick={() => setActiveTab('reportes')}
               >
                 📈 Reportes
-              </button>
-            </li>
-            <li>
-              <button 
-                className={activeTab === 'personal' ? 'active' : ''}
-                onClick={() => setActiveTab('personal')}
-              >
-                👥 Personal
               </button>
             </li>
             <li>

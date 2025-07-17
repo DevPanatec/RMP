@@ -169,6 +169,26 @@
   gap: var(--space-24);
 }
 
+/* Map card specific styles */
+.dashboard-content .card {
+  margin-bottom: var(--space-24);
+}
+
+.dashboard-content .card:first-child {
+  min-height: 650px;
+}
+
+.dashboard-content .card:first-child .card__body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-content .card:first-child .map-component {
+  flex: 1;
+  min-height: 500px;
+}
+
 /* Enhanced KPI cards */
 .kpi-grid {
   display: grid;
@@ -894,8 +914,9 @@
 .truck-config-modal .modal-content,
 .route-assignment-modal .modal-content {
   max-width: 800px;
-  max-height: 90vh;
+  max-height: calc(100vh - 40px);
   overflow-y: auto;
+  width: 90vw;
 }
 
 .truck-info-grid {
@@ -2204,6 +2225,7 @@
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+  box-sizing: border-box;
 }
 
 .modal-content {
@@ -2212,8 +2234,11 @@
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
   max-width: 600px;
   width: 100%;
-  max-height: 90vh;
+  max-height: calc(100vh - 40px);
   overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
@@ -2222,6 +2247,7 @@
   align-items: center;
   padding: 20px;
   border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 .modal-header h3,
@@ -2254,6 +2280,8 @@
 
 .modal-body {
   padding: 20px;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .modal-actions {
@@ -2262,6 +2290,7 @@
   justify-content: flex-end;
   padding: 20px;
   border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 /* Estilos para tablas */
@@ -2362,9 +2391,31 @@
   .modal-content {
     margin: 10px;
     max-width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
+  }
+  
+  .modal-overlay {
+    padding: 10px;
   }
   
   .truck-info-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+  .modal-overlay {
+    padding: 15px;
+  }
+  
+  .modal-content {
+    max-width: calc(100vw - 30px);
+    max-height: calc(100vh - 30px);
+  }
+  
+  .truck-modal .modal-content,
+  .truck-config-modal .modal-content,
+  .route-assignment-modal .modal-content {
+    width: 95vw;
   }
 } 
