@@ -45,141 +45,211 @@ const AdminDashboard = ({ user, onLogout }) => {
     switch (activeTab) {
       case 'dashboard':
         return (
-          <div className="dashboard-content">
-            {/* Mapa primero */}
-            <div className="card">
-              <div className="card__body">
-                <h3>🗺️ Monitoreo GPS en Tiempo Real</h3>
-                <p className="section-description">
-                  Seguimiento en vivo de {
-                    serviceTypeFilter === 'todos' ? 'todos los vehículos' :
-                    serviceTypeFilter === 'recoleccion' ? 'vehículos de recolección' : 'vehículos de fumigación'
-                  } con actualizaciones automáticas
-                </p>
-                <MapComponent 
-                  key={`map-${serviceTypeFilter}`}
-                  camiones={serviceTypeFilter === 'todos' 
-                    ? normalizedCamiones 
-                    : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter)
-                  } 
-                  userType={user.tipo}
-                  showRealTime={true}
-                  selectedTruck={selectedTruck}
-                  serviceTypeFilter={serviceTypeFilter}
-                  showRoutes={true}
-                  showStops={true}
-                />
+          <div className="unified-dashboard">
+            {/* SECCIÓN 1: MAPA COMPLETO */}
+            <section className="map-section">
+              <div className="map-container-fullscreen">
+                <div className="map-wrapper-fullscreen">
+                  <MapComponent 
+                    key={`map-${serviceTypeFilter}`}
+                    camiones={serviceTypeFilter === 'todos' 
+                      ? normalizedCamiones 
+                      : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter)
+                    } 
+                    userType={user.tipo}
+                    showRealTime={true}
+                    selectedTruck={selectedTruck}
+                    serviceTypeFilter={serviceTypeFilter}
+                    showRoutes={true}
+                    showStops={true}
+                  />
+                  <div className="service-filters-overlay">
+                    <button 
+                      className={`filter-compact ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
+                      onClick={() => setServiceTypeFilter('todos')}
+                    >
+                      Todos
+                    </button>
+                    <button 
+                      className={`filter-compact ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
+                      onClick={() => setServiceTypeFilter('recoleccion')}
+                    >
+                      🚛 Recolección
+                    </button>
+                    <button 
+                      className={`filter-compact ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
+                      onClick={() => setServiceTypeFilter('fumigacion')}
+                    >
+                      🚐 Fumigación
+                    </button>
+                  </div>
+                </div>
+                <div className="scroll-indicator">
+                  <span>Desliza hacia abajo para ver estadísticas</span>
+                  <div className="scroll-arrow">↓</div>
+                </div>
               </div>
-            </div>
+            </section>
 
-            {/* Filtros de servicio */}
-            <div className="service-filters">
-              <div className="filter-group">
-                <label>Tipo de Servicio:</label>
-                <div className="filter-buttons">
-                  <button 
-                    className={`filter-btn ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
-                    onClick={() => setServiceTypeFilter('todos')}
-                  >
-                    📊 Todos
-                  </button>
-                  <button 
-                    className={`filter-btn ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
-                    onClick={() => setServiceTypeFilter('recoleccion')}
-                  >
-                    🚛 Recolección
-                  </button>
-                  <button 
-                    className={`filter-btn ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
-                    onClick={() => setServiceTypeFilter('fumigacion')}
-                  >
-                    🚐 Fumigación
-                  </button>
+            {/* SECCIÓN 2: DASHBOARD COMPACTO */}
+            <section className="dashboard-section">
+              <div className="dashboard-container-compact">
+                <div className="dashboard-header-compact">
+                  <h1>📊 Actividad del Día</h1>
+                  <span className="dashboard-date">{new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                 </div>
-              </div>
-            </div>
 
-            <div className="kpi-grid">
-              <div className="kpi-card">
-                <div className="kpi-icon">🚛</div>
-                <div className="kpi-content">
-                  <div className="kpi-value">
-                    {serviceTypeFilter === 'todos' 
-                      ? normalizedCamiones.length 
-                      : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter).length
-                    }
+                {/* KPIs Horizontales Compactos */}
+                <div className="kpis-horizontal">
+                  <div className="kpi-compact primary">
+                    <div className="kpi-icon-small">🚛</div>
+                    <div className="kpi-data">
+                      <span className="kpi-number">
+                        {serviceTypeFilter === 'todos' 
+                          ? normalizedCamiones.length 
+                          : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter).length
+                        }
+                      </span>
+                      <span className="kpi-label-small">Vehículos Activos</span>
+                    </div>
                   </div>
-                  <div className="kpi-label">
-                    {serviceTypeFilter === 'todos' ? 'Total Vehículos' : 
-                     serviceTypeFilter === 'recoleccion' ? 'Camiones Recolección' : 'Vehículos Fumigación'}
+                  <div className="kpi-compact success">
+                    <div className="kpi-icon-small">✅</div>
+                    <div className="kpi-data">
+                      <span className="kpi-number">
+                        {normalizedCamiones.filter(c => c.estado === 'En ruta').length}
+                      </span>
+                      <span className="kpi-label-small">En Ruta</span>
+                    </div>
+                  </div>
+                  <div className="kpi-compact warning">
+                    <div className="kpi-icon-small">⚡</div>
+                    <div className="kpi-data">
+                      <span className="kpi-number">{Math.round(currentData.estadisticasOperativas.eficienciaPromedio)}%</span>
+                      <span className="kpi-label-small">Eficiencia</span>
+                    </div>
+                  </div>
+                  <div className="kpi-compact secondary">
+                    <div className="kpi-icon-small">⚠️</div>
+                    <div className="kpi-data">
+                      <span className="kpi-number">{currentData.alertas.length}</span>
+                      <span className="kpi-label-small">Alertas</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div className="kpi-card">
-                <div className="kpi-icon">🟢</div>
-                <div className="kpi-content">
-                  <div className="kpi-value">
-                    {serviceTypeFilter === 'todos' 
-                      ? normalizedCamiones.filter(c => c.estado === 'En ruta').length
-                      : normalizedCamiones.filter(c => c.estado === 'En ruta' && c.tipoServicio === serviceTypeFilter).length
-                    }
-                  </div>
-                  <div className="kpi-label">En Ruta</div>
-                </div>
-              </div>
-              <div className="kpi-card">
-                <div className="kpi-icon">⚡</div>
-                <div className="kpi-content">
-                  <div className="kpi-value">
-                    {Math.round(currentData.estadisticasOperativas.eficienciaPromedio)}%
-                  </div>
-                  <div className="kpi-label">Eficiencia Promedio</div>
-                </div>
-              </div>
-              <div className="kpi-card">
-                <div className="kpi-icon">⛽</div>
-                <div className="kpi-content">
-                  <div className="kpi-value">
-                    {Math.round(currentData.estadisticasOperativas.combustiblePromedio)}%
-                  </div>
-                  <div className="kpi-label">Combustible Promedio</div>
-                </div>
-              </div>
-              <div className="kpi-card">
-                <div className="kpi-icon">⚠️</div>
-                <div className="kpi-content">
-                  <div className="kpi-value">
-                    {currentData.alertas.length}
-                  </div>
-                  <div className="kpi-label">Alertas Activas</div>
-                </div>
-              </div>
-            </div>
 
-            {/* Alertas importantes */}
-            {currentData.alertas.length > 0 && (
-              <div className="alerts-section">
-                <h3>🚨 Alertas Recientes</h3>
-                <div className="alerts-grid">
-                  {currentData.alertas.slice(0, 3).map(alerta => (
-                    <div key={alerta.id} className={`alert-card alert-${alerta.prioridad}`}>
-                      <div className="alert-header">
-                        <span className="alert-type">
-                          {alerta.tipo === 'combustible' && '⛽'}
-                          {alerta.tipo === 'mantenimiento' && '🔧'}
-                          {alerta.tipo === 'ruta' && '🗺️'}
-                        </span>
-                        <span className="alert-priority">{alerta.prioridad.toUpperCase()}</span>
+                {/* Contenido Principal en Grid */}
+                <div className="dashboard-main-grid">
+                  {/* Columna Izquierda: Conductores */}
+                  <div className="dashboard-column">
+                    <h3>👥 Conductores Activos</h3>
+                    <div className="conductors-compact">
+                      {normalizedCamiones.slice(0, 4).map(truck => (
+                        <div key={truck.id} className="conductor-item-compact">
+                          <div className="conductor-avatar-small">
+                            <span>{truck.conductor.charAt(0)}</span>
+                          </div>
+                          <div className="conductor-details">
+                            <div className="conductor-name-small">{truck.conductor}</div>
+                            <div className="conductor-info-small">{truck.id} • {truck.rutaAsignada || 'Sin ruta'}</div>
+                            <div className="progress-compact">
+                              <div className="progress-bar-small">
+                                <div className="progress-fill" style={{ width: `${(truck.paradaActual / truck.totalParadas) * 100}%` }}></div>
+                              </div>
+                              <span className="progress-text-small">{truck.paradaActual}/{truck.totalParadas}</span>
+                            </div>
+                          </div>
+                          <div className={`status-badge-small status-${truck.estado.toLowerCase().replace(' ', '-')}`}>
+                            {truck.estado === 'En ruta' ? 'Activo' : truck.estado}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Columna Derecha: Rutas */}
+                  <div className="dashboard-column">
+                    <h3>🗺️ Rutas de Hoy</h3>
+                    <div className="routes-compact">
+                      {currentData.rutas.slice(0, 4).map((route, index) => (
+                        <div key={index} className="route-item-compact">
+                          <div className="route-icon-small">
+                            {route.nombre.includes('Norte') ? '🚛' : '🚐'}
+                          </div>
+                          <div className="route-details">
+                            <div className="route-name-small">{route.nombre}</div>
+                            <div className="route-info-small">
+                              {route.paradas.length} paradas • {route.distanciaTotal} km • {Math.round(route.tiempoEstimado / 60)}h
+                            </div>
+                            <div className="progress-compact">
+                              <div className="progress-bar-small">
+                                <div className="progress-fill" style={{ width: `${Math.random() * 100}%` }}></div>
+                              </div>
+                              <span className="progress-text-small">
+                                {Math.floor(Math.random() * 5)}/{route.paradas.length} completadas
+                              </span>
+                            </div>
+                          </div>
+                          <div className="route-status-small">
+                            {Math.random() > 0.3 ? 'En progreso' : 'Completada'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Alertas y Resumen en Fila */}
+                <div className="dashboard-bottom-row">
+                  {/* Alertas */}
+                  <div className="alerts-compact">
+                    <h3>🚨 Alertas Recientes</h3>
+                    <div className="alerts-horizontal">
+                      <div className="alert-item-compact alert-media">
+                        <span className="alert-icon-small">⚠️</span>
+                        <div className="alert-text">
+                          <div className="alert-truck-small">TR-003</div>
+                          <div className="alert-message-small">Reporte de riesgo: Área peligrosa detectada</div>
+                        </div>
                       </div>
-                      <div className="alert-content">
-                        <div className="alert-truck">Camión: {alerta.camion}</div>
-                        <div className="alert-message">{alerta.mensaje}</div>
+                      <div className="alert-item-compact alert-baja">
+                        <span className="alert-icon-small">📋</span>
+                        <div className="alert-text">
+                          <div className="alert-truck-small">TR-001</div>
+                          <div className="alert-message-small">Reporte de conductor: Parada completada</div>
+                        </div>
+                      </div>
+                      <div className="alert-item-compact alert-alta">
+                        <span className="alert-icon-small">🚧</span>
+                        <div className="alert-text">
+                          <div className="alert-truck-small">TR-002</div>
+                          <div className="alert-message-small">Riesgo reportado: Obstáculo en ruta</div>
+                        </div>
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Resumen */}
+                  <div className="summary-compact">
+                    <h3>📈 Resumen</h3>
+                    <div className="summary-items">
+                      <div className="summary-item-small">
+                        <span className="summary-number">{Math.round(currentData.estadisticasOperativas.eficienciaPromedio)}%</span>
+                        <span className="summary-label">Eficiencia</span>
+                      </div>
+                      <div className="summary-item-small">
+                        <span className="summary-number">{Math.round(currentData.estadisticasOperativas.combustiblePromedio)}%</span>
+                        <span className="summary-label">Combustible</span>
+                      </div>
+                      <div className="summary-item-small">
+                        <span className="summary-number">{Math.round(currentData.estadisticasOperativas.totalKgHoy / 10)}</span>
+                        <span className="summary-label">Volumen (m³)</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
+            </section>
           </div>
         );
         
@@ -322,13 +392,6 @@ const AdminDashboard = ({ user, onLogout }) => {
                   <div className="info-row">
                     <strong>Velocidad:</strong> {selectedTruckData.velocidad} km/h
                   </div>
-                  <div className="info-row">
-                    <strong>Combustible:</strong> 
-                    <div className="fuel-bar">
-                      <div className="fuel-fill" style={{ width: `${selectedTruckData.combustible}%` }}></div>
-                    </div>
-                    {selectedTruckData.combustible}%
-                  </div>
                 </div>
 
                 {selectedTruckData.estado === 'En ruta' && (
@@ -345,7 +408,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                     </div>
                     {selectedTruckData.tipoServicio === 'recoleccion' && (
                       <div className="info-row">
-                        <strong>Peso Acumulado:</strong> {selectedTruckData.pesoAcumulado} kg
+                        <strong>Volumen Estimado:</strong> {Math.round(selectedTruckData.pesoAcumulado / 100)} m³
                       </div>
                     )}
                     {selectedTruckData.tipoServicio === 'fumigacion' && (
@@ -436,25 +499,6 @@ const AdminDashboard = ({ user, onLogout }) => {
                 </div>
               )}
 
-              <div className="config-section">
-                <h5>⛽ Nivel de Combustible</h5>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="100" 
-                  value={selectedTruckData.combustible} 
-                  className="fuel-slider"
-                  onChange={(e) => {
-                    const updatedTruck = { ...selectedTruckData, combustible: parseInt(e.target.value) };
-                    setSelectedTruckData(updatedTruck);
-                    setCurrentData(prev => ({
-                      ...prev,
-                      camiones: prev.camiones.map(c => c.id === updatedTruck.id ? updatedTruck : c)
-                    }));
-                  }}
-                />
-                <div className="fuel-display">{selectedTruckData.combustible}%</div>
-              </div>
             </div>
             <div className="modal-actions">
               <button className="btn btn--outline" onClick={() => setShowTruckConfig(false)}>Cancelar</button>

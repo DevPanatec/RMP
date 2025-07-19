@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { appData } from '../../data/mockData';
+import { appData, driverReports } from '../../data/mockData';
 import WeightModal from '../../components/WeightModal/WeightModal';
+import ReportModal from '../../components/ReportModal/ReportModal';
 import MapComponent from '../../components/Map/MapComponent';
 import './ConductorDashboard.css';
 
@@ -8,6 +9,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
   const [completedStops, setCompletedStops] = useState([]);
   const [currentStop, setCurrentStop] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [pendingStopIndex, setPendingStopIndex] = useState(null);
   const [currentData, setCurrentData] = useState(appData);
   const [timeOnRoute, setTimeOnRoute] = useState(0);
@@ -73,6 +75,21 @@ const ConductorDashboard = ({ user, onLogout }) => {
     setPendingStopIndex(null);
   };
 
+  const handleReportSubmit = (report) => {
+    const enrichedReport = {
+      ...report,
+      driverName: user.nombre,
+      truckId: user.camionAsignado,
+      routeName: assignedRoute?.nombre || 'No especificada'
+    };
+    
+    driverReports.addReport(enrichedReport);
+    setIsReportModalOpen(false);
+    
+    // Mostrar confirmación
+    alert('✅ Reporte enviado correctamente. El administrador será notificado.');
+  };
+
   const formatTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -87,6 +104,71 @@ const ConductorDashboard = ({ user, onLogout }) => {
   const getProgressPercentage = () => {
     if (!assignedRoute) return 0;
     return Math.round((completedStops.length / assignedRoute.paradas.length) * 100);
+  };
+
+  const handleCompleteRoute = () => {
+    if (completedStops.length < assignedRoute.paradas.length) {
+      alert('⚠️ Debes completar todas las paradas antes de finalizar la ruta');
+      return;
+    }
+
+    // Calcular estadísticas del reporte
+    const totalStops = completedStops.length;
+    const categoryCounts = {
+      'Bajo': completedStops.filter(s => s.category === 'Bajo').length,
+      'Intermedio': completedStops.filter(s => s.category === 'Intermedio').length,
+      'Alto': completedStops.filter(s => s.category === 'Alto').length,
+      'Muy Alto': completedStops.filter(s => s.category === 'Muy Alto').length
+    };
+
+    // Determinar categoría promedio
+    let promedioCategoria = 'Bajo';
+    if (categoryCounts['Muy Alto'] > totalStops * 0.4) {
+      promedioCategoria = 'Muy Alto';
+    } else if (categoryCounts['Alto'] > totalStops * 0.3) {
+      promedioCategoria = 'Alto';
+    } else if (categoryCounts['Intermedio'] > totalStops * 0.3) {
+      promedioCategoria = 'Intermedio';
+    }
+
+    // Generar reporte de ruta completada
+    const routeReport = {
+      id: `RR-${Date.now()}`,
+      type: 'route-completion',
+      routeName: assignedRoute.nombre,
+      driverName: user.nombre,
+      truckId: user.camionAsignado,
+      completedAt: new Date().toISOString(),
+      duration: timeOnRoute,
+      totalStops: totalStops,
+      stopsCompleted: completedStops.length,
+      categoryBreakdown: categoryCounts,
+      averageCategory: promedioCategoria,
+      stops: completedStops.map(stop => ({
+        ...stop,
+        stopName: assignedRoute.paradas[stop.index]?.nombre || `Parada ${stop.index + 1}`
+      })),
+      serviceType: userTruck.tipoServicio || 'recoleccion',
+      status: 'completed'
+    };
+
+    // Guardar el reporte en mockData
+    if (!window.routeReports) {
+      window.routeReports = [];
+    }
+    window.routeReports.push(routeReport);
+
+    // Actualizar estado del camión
+    setCurrentData(prevData => ({
+      ...prevData,
+      camiones: prevData.camiones.map(camion => 
+        camion.id === user.camionAsignado 
+          ? { ...camion, estado: 'Completado', paradaActual: assignedRoute.paradas.length }
+          : camion
+      )
+    }));
+
+    alert(`✅ Ruta completada exitosamente!\n\nResumen:\n- Paradas: ${totalStops}\n- Promedio de carga: ${promedioCategoria}\n- Tiempo total: ${formatTime(timeOnRoute)}\n\nEl reporte ha sido enviado al administrador.`);
   };
 
   if (!userTruck || !assignedRoute) {
@@ -130,6 +212,9 @@ const ConductorDashboard = ({ user, onLogout }) => {
             <div className="time-indicator">
               ⏱️ {formatTime(timeOnRoute)}
             </div>
+            <button className="report-btn" onClick={() => setIsReportModalOpen(true)}>
+              ⚠️ Reportar
+            </button>
             <button className="logout-btn" onClick={onLogout}>
               🚪 Cerrar Sesión
             </button>
@@ -185,6 +270,18 @@ const ConductorDashboard = ({ user, onLogout }) => {
                     <span className="detail-value">{Math.round(assignedRoute.tiempoEstimado / 60)} hrs</span>
                   </div>
                 </div>
+                
+                {/* Botón para finalizar ruta */}
+                {completedStops.length === assignedRoute.paradas.length && (
+                  <div className="complete-route-section">
+                    <button
+                      className="btn btn--success btn--large"
+                      onClick={handleCompleteRoute}
+                    >
+                      🏁 Finalizar Ruta
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -324,6 +421,13 @@ const ConductorDashboard = ({ user, onLogout }) => {
           onClose={handleCloseModal}
           onConfirm={handleWeightConfirm}
           currentStop={pendingStopIndex !== null ? assignedRoute.paradas[pendingStopIndex]?.nombre : ''}
+        />
+        
+        <ReportModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          onSubmit={handleReportSubmit}
+          currentStop={assignedRoute.paradas[currentStop]?.nombre || 'No especificada'}
         />
       </div>
     </div>

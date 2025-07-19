@@ -794,4 +794,81 @@ export const simularMovimientoReal = (camion, ruta) => {
   return camion;
 };
 
+// Almacenamiento local para reportes de conductores
+export const driverReports = {
+  reports: [
+    {
+      id: 1731941002461,
+      type: 'Externo',
+      description: 'Grupo de indigentes impide el acceso a la zona de recolección en el Mercado de Abastos',
+      severity: 'Alta',
+      stop: 'Mercado de Abastos',
+      timestamp: '2024-07-18T14:16:42.461Z',
+      status: 'Abierto',
+      driverName: 'Juan Pérez',
+      truckId: 'TR-001',
+      routeName: 'Ruta Centro',
+      createdAt: '2024-07-18T14:16:42.461Z',
+      photos: [
+        {
+          id: 1731941002461001,
+          name: 'obstruccion_mercado.jpg',
+          size: 256000,
+          dataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRkY2QjZCIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPk9ic3RydWNjacOzbjwvdGV4dD4KPC9zdmc+'
+        },
+        {
+          id: 1731941002461002,
+          name: 'grupo_personas.jpg',
+          size: 189000,
+          dataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRkY4QTY1Ii8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPkdydXBvIGRlIFBlcnNvbmFzPC90ZXh0Pgo8L3N2Zz4='
+        }
+      ]
+    },
+    {
+      id: 1731941002462,
+      type: 'Interno',
+      description: 'Problema con el sistema hidráulico del camión, no se puede elevar el contenedor',
+      severity: 'Media',
+      stop: 'Residencial San Francisco',
+      timestamp: '2024-07-18T14:10:30.462Z',
+      status: 'Abierto',
+      driverName: 'Juan Pérez',
+      truckId: 'TR-001',
+      routeName: 'Ruta Centro',
+      createdAt: '2024-07-18T14:10:30.462Z',
+      photos: [
+        {
+          id: 1731941002462001,
+          name: 'problema_hidraulico.jpg',
+          size: 312000,
+          dataUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDIwMCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyMDAiIGhlaWdodD0iMTUwIiBmaWxsPSIjRkZCQjMzIi8+Cjx0ZXh0IHg9IjEwMCIgeT0iNzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPlNpc3RlbWEgSGlkcsOhdWxpY288L3RleHQ+Cjwvc3ZnPg=='
+        }
+      ]
+    }
+  ],
+  
+  addReport: (report) => {
+    const newReport = {
+      id: Date.now(),
+      ...report,
+      createdAt: new Date().toISOString()
+    };
+    driverReports.reports.push(newReport);
+    return newReport;
+  },
+  
+  getReports: () => {
+    return driverReports.reports;
+  },
+  
+  updateReportStatus: (id, status) => {
+    const report = driverReports.reports.find(r => r.id === id);
+    if (report) {
+      report.status = status;
+      report.updatedAt = new Date().toISOString();
+    }
+    return report;
+  }
+};
+
 export default appData; 

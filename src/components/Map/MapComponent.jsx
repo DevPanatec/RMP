@@ -1,93 +1,115 @@
-import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useEffect, useState, useRef } from 'react';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { appData, simularMovimientoReal, calcularRutaCompleta } from '../../data/mockData';
 import './MapComponent.css';
 
-// Fix para iconos de Leaflet
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+// Configurar token de Mapbox
+mapboxgl.accessToken = 'pk.eyJ1Ijoia2V2aW5uMjMiLCJhIjoiY204Y2J0bWN1MTg5ZzJtb2xobXljODM0MiJ9.48MFADtQhp_sFuQjewLFeA';
 
-// Iconos personalizados para diferentes estados con mejor diseño GPS
-const createCustomIcon = (estado, direccion = 0, tipoServicio = 'recoleccion') => {
+// Servicio de geocoding para obtener direcciones reales
+const geocodeAddress = async (coordinates) => {
+  try {
+    const response = await fetch(
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${coordinates[0]},${coordinates[1]}.json?access_token=${mapboxgl.accessToken}&language=es&country=pa`
+    );
+    const data = await response.json();
+    return data.features[0]?.place_name || `${coordinates[1].toFixed(4)}, ${coordinates[0].toFixed(4)}`;
+  } catch (error) {
+    console.error('Error geocoding address:', error);
+    return `${coordinates[1].toFixed(4)}, ${coordinates[0].toFixed(4)}`;
+  }
+};
+
+// Servicio de rutas optimizadas
+const getOptimizedRoute = async (coordinates, profile = 'driving') => {
+  try {
+    const coordinatesString = coordinates.map(coord => coord.join(',')).join(';');
+    const response = await fetch(
+      `https://api.mapbox.com/directions/v5/mapbox/${profile}/${coordinatesString}?geometries=geojson&access_token=${mapboxgl.accessToken}&language=es`
+    );
+    const data = await response.json();
+    return data.routes[0]?.geometry || null;
+  } catch (error) {
+    console.error('Error getting optimized route:', error);
+    return null;
+  }
+};
+
+// Función para crear marcadores de vehículos
+const createVehicleMarker = (camion) => {
   const colors = {
     'En ruta': '#27AE60',
     'Disponible': '#3498DB',
     'En mantenimiento': '#F39C12'
   };
   
-  // Iconos diferentes según el tipo de servicio
-  const serviceIcons = {
-    'recoleccion': '🚛',
-    'fumigacion': '🚐'
-  };
-  
-  // Colores específicos para fumigación
   const fumigationColors = {
     'En ruta': '#E74C3C',
     'Disponible': '#8b5cf6',
     'En mantenimiento': '#F39C12'
   };
   
-  const iconColors = tipoServicio === 'fumigacion' ? fumigationColors : colors;
+  const iconColors = camion.tipoServicio === 'fumigacion' ? fumigationColors : colors;
+  const serviceIcon = camion.tipoServicio === 'fumigacion' ? '🚐' : '🚛';
   
-  const iconHtml = `
-    <div class="custom-truck-marker gps-style ${tipoServicio}-vehicle" style="transform: rotate(${direccion}deg)">
-      <div class="truck-icon-gps" style="background-color: ${iconColors[estado] || '#666666'}">
-        <div class="truck-symbol">${serviceIcons[tipoServicio] || '🚛'}</div>
-        <div class="gps-direction-arrow"></div>
-        ${tipoServicio === 'fumigacion' ? '<div class="fumigation-indicator">🦟</div>' : ''}
-      </div>
-      <div class="truck-pulse-gps" style="border-color: ${iconColors[estado] || '#666666'}"></div>
-    </div>
-  `;
-
-  return L.divIcon({
-    html: iconHtml,
-    className: 'custom-div-icon',
-    iconSize: [40, 40],
-    iconAnchor: [20, 20]
-  });
+  const el = document.createElement('div');
+  el.className = 'mapbox-vehicle-marker';
+  el.style.backgroundColor = iconColors[camion.estado] || '#666666';
+  el.style.width = '40px';
+  el.style.height = '40px';
+  el.style.borderRadius = '50%';
+  el.style.border = '3px solid white';
+  el.style.display = 'flex';
+  el.style.alignItems = 'center';
+  el.style.justifyContent = 'center';
+  el.style.fontSize = '16px';
+  el.style.boxShadow = '0 2px 10px rgba(0,0,0,0.3)';
+  el.style.cursor = 'pointer';
+  el.innerHTML = serviceIcon;
+  
+  return el;
 };
 
-// Icono para paradas de ruta con estilo GPS más grande tipo Waze/Google Maps
-const createStopIcon = (stopNumber, status, color, tipo = 'normal') => {
-  const iconos = {
-    'inicio': '🏁',
-    'residencial': '🏠',
-    'comercial': '🏢',
-    'turistico': '🏛️',
-    'normal': stopNumber
+// Función para crear marcadores de paradas
+const createStopMarker = (stopNumber, status) => {
+  const colors = {
+    'completed': '#27AE60',
+    'current': '#F39C12',
+    'pending': '#666666'
   };
-
-  const iconHtml = `
-    <div class="route-stop-marker-gps route-stop-${status}" 
-         style="border-color: ${color}; background: ${color};">
-      <div class="stop-content-large">
-        ${iconos[tipo] || stopNumber}
-      </div>
-      <div class="stop-number-badge-large">${stopNumber}</div>
-    </div>
-  `;
   
-  return L.divIcon({
-    html: iconHtml,
-    className: 'custom-div-icon',
-    iconSize: [45, 45], // Aumentado de 35x35 a 45x45
-    iconAnchor: [22, 45]
-  });
+  const el = document.createElement('div');
+  el.className = 'mapbox-stop-marker';
+  el.style.backgroundColor = colors[status];
+  el.style.width = '30px';
+  el.style.height = '30px';
+  el.style.borderRadius = '50%';
+  el.style.border = '2px solid white';
+  el.style.display = 'flex';
+  el.style.alignItems = 'center';
+  el.style.justifyContent = 'center';
+  el.style.fontSize = '12px';
+  el.style.fontWeight = 'bold';
+  el.style.color = 'white';
+  el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+  el.style.cursor = 'pointer';
+  el.innerHTML = stopNumber;
+  
+  return el;
 };
-
-const MAPBOX_TOKEN = 'pk.eyJ1Ijoia2V2aW5uMjMiLCJhIjoiY204Y2J0bWN1MTg5ZzJtb2xobXljODM0MiJ9.48MFADtQhp_sFuQjewLFeA';
 
 const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck = null, serviceTypeFilter = 'todos' }) => {
+  const mapContainer = useRef(null);
+  const map = useRef(null);
+  const markers = useRef(new Map());
+  const routeLines = useRef(new Map());
+  const routeStops = useRef(new Map());
+  const activeRouteLayer = useRef(null);
+  const progressMarkers = useRef(new Map());
+  
   const [mapCamiones, setMapCamiones] = useState(camiones);
-  const [showTrails, setShowTrails] = useState(true); // Activado por defecto para ver rutas
+  const [showTrails, setShowTrails] = useState(true);
   const [realTimeEnabled, setRealTimeEnabled] = useState(showRealTime);
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [selectedTruckId, setSelectedTruckId] = useState(selectedTruck);
@@ -96,8 +118,16 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
   const [showStopsModal, setShowStopsModal] = useState(false);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [mapLoaded, setMapLoaded] = useState(false);
-  // Mapa de rutas viales precalculadas { [routeId]: coords[] }
   const [roadRoutes, setRoadRoutes] = useState({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [isFollowingTruck, setIsFollowingTruck] = useState(false);
+  const [routeVisibility, setRouteVisibility] = useState({});
+  const [animationFrame, setAnimationFrame] = useState(null);
+  const [showTruckModal, setShowTruckModal] = useState(false);
+  const [selectedTruckData, setSelectedTruckData] = useState(null);
+  const [truckAddress, setTruckAddress] = useState('Obteniendo ubicación...');
 
   // Usar todos los camiones recibidos sin filtrar por estado
   const activeCamiones = mapCamiones;
@@ -156,7 +186,34 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
   useEffect(() => {
     setSelectedTruckId(selectedTruck);
     setShowRouteInfo(!!selectedTruck);
-  }, [selectedTruck]);
+    
+    if (selectedTruck && map.current && mapLoaded) {
+      const camion = mapCamiones.find(c => c.id === selectedTruck);
+      if (camion) {
+        setIsFollowingTruck(true);
+        // Zoom automático al camión seleccionado
+        setTimeout(() => {
+          if (map.current) {
+            map.current.flyTo({
+              center: [camion.lng, camion.lat],
+              zoom: 16,
+              pitch: 60,
+              bearing: 0,
+              speed: 1.2,
+              curve: 1.42,
+              essential: true
+            });
+            highlightTruckRoute(camion);
+          }
+        }, 100);
+      }
+    } else {
+      setIsFollowingTruck(false);
+      if (map.current && mapLoaded) {
+        restoreAllRoutes();
+      }
+    }
+  }, [selectedTruck, mapCamiones, mapLoaded]);
 
   // Force map refresh when service filter changes
   useEffect(() => {
@@ -165,57 +222,347 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
     }, 100);
   }, [serviceTypeFilter]);
 
-  // Force map refresh when component mounts
+  // Inicializar mapa de Mapbox
   useEffect(() => {
-    console.log('MapComponent mounting...');
-    const timer = setTimeout(() => {
-      console.log('Setting map loaded to true');
+    if (map.current) return; // Prevenir múltiples inicializaciones
+    
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: [-79.5167, 8.9833], // Ciudad de Panamá
+      zoom: 13,
+      pitch: 45, // Vista 3D
+      bearing: 0
+    });
+
+    // Agregar controles de navegación
+    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    map.current.addControl(new mapboxgl.FullscreenControl(), 'top-right');
+    
+    // Agregar control de geolocalización
+    map.current.addControl(
+      new mapboxgl.GeolocateControl({
+        positionOptions: {
+          enableHighAccuracy: true
+        },
+        trackUserLocation: true,
+        showUserHeading: true
+      }), 'top-right'
+    );
+
+    // Cuando el mapa esté cargado
+    map.current.on('load', () => {
       setMapLoaded(true);
-      setTimeout(() => {
-        console.log('Dispatching resize event');
-        window.dispatchEvent(new Event('resize'));
-      }, 100);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  /* ------------------------------------------------------------
-   * Precalcular rutas reales usando OSRM para TODAS las rutas al montar.
-   * ----------------------------------------------------------*/
-  useEffect(() => {
-    let mounted = true;
-
-    const buildAllRoutes = async () => {
-      const newMap = {};
-      for (const ruta of appData.rutas) {
-        try {
-          console.log(`Calculando ruta ${ruta.nombre} con ${ruta.paradas.length} paradas...`);
-          const coords = await calcularRutaCompleta(ruta.paradas);
-          newMap[ruta.id] = coords;
-          console.log(`Ruta ${ruta.nombre} calculada: ${coords.length} puntos`);
-        } catch (error) {
-          console.error(`Error calculando ruta ${ruta.nombre}:`, error);
-          // Fallback: líneas directas entre paradas
-          const fallbackCoords = [];
-          ruta.paradas.forEach(parada => {
-            fallbackCoords.push([parada.lat, parada.lng]);
-          });
-          newMap[ruta.id] = fallbackCoords;
-        }
-      }
-      
-      if (mounted) {
-        setRoadRoutes(newMap);
-        console.log('Todas las rutas calculadas:', Object.keys(newMap));
-      }
-    };
-
-    buildAllRoutes();
+      console.log('Mapbox cargado correctamente');
+    });
 
     return () => {
-      mounted = false;
+      if (map.current) {
+        // Limpiar marcadores
+        markers.current.forEach(marker => marker.remove());
+        markers.current.clear();
+        
+        // Limpiar rutas
+        routeLines.current.forEach((sourceId, routeId) => {
+          if (map.current.getLayer(`route-layer-${routeId}`)) {
+            map.current.removeLayer(`route-layer-${routeId}`);
+          }
+          if (map.current.getSource(sourceId)) {
+            map.current.removeSource(sourceId);
+          }
+        });
+        routeLines.current.clear();
+        
+        // Limpiar paradas
+        routeStops.current.forEach((sourceId, routeId) => {
+          if (map.current.getLayer(`stops-layer-${routeId}`)) {
+            map.current.removeLayer(`stops-layer-${routeId}`);
+          }
+          if (map.current.getSource(sourceId)) {
+            map.current.removeSource(sourceId);
+          }
+        });
+        routeStops.current.clear();
+        
+        // Limpiar progreso
+        if (progressMarkers.current) {
+          progressMarkers.current.forEach(marker => marker.remove());
+          progressMarkers.current.clear();
+        }
+        
+        // Cancelar animaciones
+        if (animationFrame) {
+          cancelAnimationFrame(animationFrame);
+        }
+        
+        map.current.remove();
+        map.current = null;
+      }
     };
   }, []);
+
+  // Actualizar marcadores de vehículos con animación fluida
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    mapCamiones.forEach(camion => {
+      const existingMarker = markers.current.get(camion.id);
+      
+      if (existingMarker) {
+        // Actualizar posición con animación fluida
+        const currentLngLat = existingMarker.getLngLat();
+        const newLngLat = [camion.lng, camion.lat];
+        
+        // Solo animar si la posición ha cambiado significativamente
+        const distance = Math.sqrt(
+          Math.pow(newLngLat[0] - currentLngLat.lng, 2) + 
+          Math.pow(newLngLat[1] - currentLngLat.lat, 2)
+        );
+        
+        if (distance > 0.0001) { // Umbral mínimo para evitar animaciones innecesarias
+          // Animación suave de movimiento
+          const duration = 2000; // 2 segundos
+          const startTime = Date.now();
+          const startPos = [currentLngLat.lng, currentLngLat.lat];
+          const endPos = newLngLat;
+          
+          const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Función de easing para movimiento suave
+            const easeInOutQuad = (t) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+            const easedProgress = easeInOutQuad(progress);
+            
+            const currentPos = [
+              startPos[0] + (endPos[0] - startPos[0]) * easedProgress,
+              startPos[1] + (endPos[1] - startPos[1]) * easedProgress
+            ];
+            
+            existingMarker.setLngLat(currentPos);
+            
+            // Seguir al camión seleccionado
+            if (isFollowingTruck && selectedTruckId === camion.id && map.current) {
+              try {
+                map.current.easeTo({
+                  center: currentPos,
+                  duration: 100,
+                  easing: (t) => t
+                });
+              } catch (error) {
+                console.warn('Error siguiendo camión:', error);
+              }
+            }
+            
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            }
+          };
+          
+          animate();
+        }
+      } else {
+        // Crear nuevo marcador
+        const markerElement = createVehicleMarker(camion);
+        
+        const marker = new mapboxgl.Marker(markerElement)
+          .setLngLat([camion.lng, camion.lat])
+          .addTo(map.current);
+
+        // Sin popup - usaremos solo el panel lateral
+        
+        // Manejar click en marcador
+        markerElement.addEventListener('click', () => {
+          handleTruckClick(camion.id);
+        });
+
+        markers.current.set(camion.id, marker);
+      }
+    });
+    
+    // Remover marcadores que ya no existen
+    const existingIds = new Set(mapCamiones.map(c => c.id));
+    markers.current.forEach((marker, id) => {
+      if (!existingIds.has(id)) {
+        marker.remove();
+        markers.current.delete(id);
+      }
+    });
+  }, [mapCamiones, mapLoaded, isFollowingTruck, selectedTruckId]);
+
+  // Agregar rutas al mapa con optimización y control de visibilidad
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    // Limpiar rutas existentes
+    routeLines.current.forEach((sourceId) => {
+      if (map.current.getSource(sourceId)) {
+        map.current.removeLayer(`route-layer-${sourceId.split('-')[1]}`);
+        map.current.removeSource(sourceId);
+      }
+    });
+    routeStops.current.forEach((sourceId) => {
+      if (map.current.getSource(sourceId)) {
+        map.current.removeLayer(`stops-layer-${sourceId.split('-')[1]}`);
+        map.current.removeSource(sourceId);
+      }
+    });
+    routeLines.current.clear();
+    routeStops.current.clear();
+
+    // Agregar nuevas rutas con optimización
+    appData.rutas.forEach(async (ruta, index) => {
+      const routeCoords = ruta.paradas.map(parada => [parada.lng, parada.lat]);
+      
+      // Intentar obtener ruta optimizada de Mapbox
+      const optimizedGeometry = await getOptimizedRoute(routeCoords);
+      
+      const sourceId = `route-${ruta.id}`;
+      const layerId = `route-layer-${ruta.id}`;
+      
+      // Usar geometría optimizada si está disponible, sino usar coordenadas directas
+      const routeGeometry = optimizedGeometry || {
+        type: 'LineString',
+        coordinates: routeCoords
+      };
+      
+      if (map.current.getSource(sourceId)) {
+        map.current.removeLayer(layerId);
+        map.current.removeSource(sourceId);
+      }
+      
+      map.current.addSource(sourceId, {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {
+            routeName: ruta.nombre,
+            routeType: ruta.tipo || 'recoleccion',
+            distance: ruta.distanciaTotal
+          },
+          geometry: routeGeometry
+        }
+      });
+
+      map.current.addLayer({
+        id: layerId,
+        type: 'line',
+        source: sourceId,
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+          'visibility': showTrails ? 'visible' : 'none'
+        },
+        paint: {
+          'line-color': getRouteTypeColor(ruta.id),
+          'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            10, 3,
+            15, 5,
+            18, 7
+          ],
+          'line-opacity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            10, 0.6,
+            15, 0.7,
+            18, 0.8
+          ]
+        }
+      });
+
+      // Agregar paradas como círculos
+      const stopsSourceId = `stops-${ruta.id}`;
+      const stopsLayerId = `stops-layer-${ruta.id}`;
+      
+      if (map.current.getSource(stopsSourceId)) {
+        map.current.removeLayer(stopsLayerId);
+        map.current.removeSource(stopsSourceId);
+      }
+      
+      map.current.addSource(stopsSourceId, {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: ruta.paradas.map((parada, index) => ({
+            type: 'Feature',
+            properties: {
+              name: parada.nombre,
+              index: index + 1,
+              type: parada.tipo || 'residencial'
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: [parada.lng, parada.lat]
+            }
+          }))
+        }
+      });
+
+      map.current.addLayer({
+        id: stopsLayerId,
+        type: 'circle',
+        source: stopsSourceId,
+        layout: {
+          'visibility': showTrails ? 'visible' : 'none'
+        },
+        paint: {
+          'circle-radius': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            10, 3,
+            15, 5,
+            18, 7
+          ],
+          'circle-color': getRouteTypeColor(ruta.id),
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 2,
+          'circle-opacity': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            10, 0.5,
+            15, 0.6,
+            18, 0.7
+          ]
+        }
+      });
+
+      routeLines.current.set(ruta.id, sourceId);
+      routeStops.current.set(ruta.id, stopsSourceId);
+    });
+  }, [mapLoaded, showTrails]);
+
+  // Controlar visibilidad de rutas
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    appData.rutas.forEach(ruta => {
+      const layerId = `route-layer-${ruta.id}`;
+      const stopsLayerId = `stops-layer-${ruta.id}`;
+      
+      try {
+        if (map.current.getLayer(layerId)) {
+          map.current.setLayoutProperty(layerId, 'visibility', showTrails ? 'visible' : 'none');
+        }
+        
+        if (map.current.getLayer(stopsLayerId)) {
+          map.current.setLayoutProperty(stopsLayerId, 'visibility', showTrails ? 'visible' : 'none');
+        }
+      } catch (error) {
+        console.warn('Error controlando visibilidad de ruta:', layerId, error);
+      }
+    });
+    
+    // Restaurar rutas si no hay camión seleccionado
+    if (!selectedTruckId && showTrails) {
+      restoreAllRoutes();
+    }
+  }, [showTrails, mapLoaded, selectedTruckId]);
 
   // Centro en Ciudad de Panamá con mejor zoom
   const centerPosition = [8.9833, -79.5167]; // Centro de distribución en Pedregal
@@ -244,14 +591,194 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
   };
 
   const handleTruckClick = (camionId) => {
-    if (selectedTruckId === camionId) {
-      setSelectedTruckId(null);
-      setShowRouteInfo(false);
-    } else {
+    if (!map.current || !mapLoaded) return;
+    
+    const selectedCamion = mapCamiones.find(c => c.id === camionId);
+    if (selectedCamion) {
+      // Cerrar modal anterior si existe
+      setShowTruckModal(false);
+      
+      // Configurar datos del camión seleccionado
+      setSelectedTruckData(selectedCamion);
       setSelectedTruckId(camionId);
       setShowRouteInfo(true);
       setIsPanelMinimized(false);
+      setIsFollowingTruck(true);
+      
+      // Obtener dirección del camión
+      setTruckAddress('Obteniendo ubicación...');
+      geocodeAddress([selectedCamion.lng, selectedCamion.lat])
+        .then(address => setTruckAddress(address))
+        .catch(() => setTruckAddress('Ubicación no disponible'));
+      
+      // Resaltar la ruta del camión seleccionado SIN hacer zoom automático
+      try {
+        highlightTruckRoute(selectedCamion);
+      } catch (error) {
+        console.warn('Error resaltando ruta:', error);
+      }
     }
+  };
+
+  const handleCloseTruckModal = () => {
+    setShowTruckModal(false);
+    setSelectedTruckData(null);
+    setSelectedTruckId(null);
+    setShowRouteInfo(false);
+    setIsFollowingTruck(false);
+    setTruckAddress('Obteniendo ubicación...');
+    
+    // Restaurar vista general
+    try {
+      map.current.flyTo({
+        center: [-79.5167, 8.9833],
+        zoom: 13,
+        pitch: 45,
+        bearing: 0,
+        speed: 1.5,
+        curve: 1.42,
+        essential: true
+      });
+      restoreAllRoutes();
+    } catch (error) {
+      console.warn('Error restaurando vista general:', error);
+    }
+  };
+
+  const highlightTruckRoute = (camion) => {
+    if (!map.current || !mapLoaded || !camion.rutaAsignada) return;
+    
+    const ruta = appData.rutas.find(r => r.nombre === camion.rutaAsignada);
+    if (!ruta) return;
+    
+    // Ocultar todas las rutas
+    appData.rutas.forEach(r => {
+      const layerId = `route-layer-${r.id}`;
+      const stopsLayerId = `stops-layer-${r.id}`;
+      
+      try {
+        if (map.current.getLayer(layerId)) {
+          map.current.setLayoutProperty(layerId, 'visibility', 'none');
+        }
+        if (map.current.getLayer(stopsLayerId)) {
+          map.current.setLayoutProperty(stopsLayerId, 'visibility', 'none');
+        }
+      } catch (error) {
+        console.warn('Error ocultando ruta:', layerId, error);
+      }
+    });
+    
+    // Mostrar solo la ruta del camión seleccionado
+    const selectedLayerId = `route-layer-${ruta.id}`;
+    const selectedStopsId = `stops-layer-${ruta.id}`;
+    
+    try {
+      if (map.current.getLayer(selectedLayerId)) {
+        map.current.setLayoutProperty(selectedLayerId, 'visibility', 'visible');
+        map.current.setPaintProperty(selectedLayerId, 'line-width', 8);
+        map.current.setPaintProperty(selectedLayerId, 'line-opacity', 1);
+      }
+      
+      if (map.current.getLayer(selectedStopsId)) {
+        map.current.setLayoutProperty(selectedStopsId, 'visibility', 'visible');
+        map.current.setPaintProperty(selectedStopsId, 'circle-radius', 8);
+        map.current.setPaintProperty(selectedStopsId, 'circle-opacity', 1);
+      }
+    } catch (error) {
+      console.warn('Error resaltando ruta:', selectedLayerId, error);
+    }
+    
+    // Agregar progreso de ruta
+    addRouteProgress(ruta, camion);
+  };
+
+  const addRouteProgress = (ruta, camion) => {
+    if (!map.current || !mapLoaded) return;
+    
+    const completedStops = Math.min(camion.paradaActual || 0, ruta.paradas.length);
+    const progressSourceId = `progress-${ruta.id}`;
+    const progressLayerId = `progress-layer-${ruta.id}`;
+    
+    // Crear línea de progreso
+    const completedCoords = ruta.paradas.slice(0, completedStops + 1).map(p => [p.lng, p.lat]);
+    
+    if (completedCoords.length > 1) {
+      try {
+        if (map.current.getSource(progressSourceId)) {
+          map.current.removeLayer(progressLayerId);
+          map.current.removeSource(progressSourceId);
+        }
+        
+        map.current.addSource(progressSourceId, {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: completedCoords
+            }
+          }
+        });
+        
+        map.current.addLayer({
+          id: progressLayerId,
+          type: 'line',
+          source: progressSourceId,
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round'
+          },
+          paint: {
+            'line-color': '#27AE60',
+            'line-width': 6,
+            'line-opacity': 0.8
+          }
+        });
+      } catch (error) {
+        console.warn('Error agregando progreso de ruta:', progressLayerId, error);
+      }
+    }
+  };
+
+  const restoreAllRoutes = () => {
+    if (!map.current || !mapLoaded) return;
+    
+    appData.rutas.forEach(ruta => {
+      const layerId = `route-layer-${ruta.id}`;
+      const stopsLayerId = `stops-layer-${ruta.id}`;
+      
+      try {
+        if (map.current.getLayer(layerId)) {
+          map.current.setLayoutProperty(layerId, 'visibility', showTrails ? 'visible' : 'none');
+          map.current.setPaintProperty(layerId, 'line-width', 6);
+          map.current.setPaintProperty(layerId, 'line-opacity', 0.6);
+        }
+        
+        if (map.current.getLayer(stopsLayerId)) {
+          map.current.setLayoutProperty(stopsLayerId, 'visibility', showTrails ? 'visible' : 'none');
+          map.current.setPaintProperty(stopsLayerId, 'circle-radius', 6);
+          map.current.setPaintProperty(stopsLayerId, 'circle-opacity', 0.6);
+        }
+      } catch (error) {
+        console.warn('Error restaurando ruta:', layerId, error);
+      }
+    });
+    
+    // Limpiar progreso
+    appData.rutas.forEach(ruta => {
+      const progressLayerId = `progress-layer-${ruta.id}`;
+      const progressSourceId = `progress-${ruta.id}`;
+      
+      try {
+        if (map.current.getLayer(progressLayerId)) {
+          map.current.removeLayer(progressLayerId);
+          map.current.removeSource(progressSourceId);
+        }
+      } catch (error) {
+        console.warn('Error limpiando progreso:', progressLayerId, error);
+      }
+    });
   };
 
   const handleStopClick = (ruta) => {
@@ -267,8 +794,42 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
   const getSelectedTruckRoute = () => {
     if (!selectedTruckId) return null;
     const camion = mapCamiones.find(c => c.id === selectedTruckId);
-    if (!camion || !camion.rutaAsignada) return null;
-    return appData.rutas.find(r => r.nombre === camion.rutaAsignada);
+    if (!camion) return null;
+    
+    // Si tiene ruta asignada, buscarla en los datos
+    if (camion.rutaAsignada) {
+      const rutaAsignada = appData.rutas.find(r => r.nombre === camion.rutaAsignada);
+      if (rutaAsignada) return rutaAsignada;
+    }
+    
+    // Si no tiene ruta asignada, crear una ruta mock basada en el tipo de servicio
+    const rutasMock = {
+      'recoleccion': {
+        nombre: 'Ruta de Recolección',
+        paradas: [
+          { nombre: 'Zona Centro', direccion: 'Calle Principal, Centro', estimado: '08:00', tipo: 'comercial' },
+          { nombre: 'Zona Norte', direccion: 'Avenida Norte, Residencial', estimado: '09:30', tipo: 'residencial' },
+          { nombre: 'Zona Sur', direccion: 'Boulevard Sur, Comercial', estimado: '11:00', tipo: 'comercial' },
+          { nombre: 'Zona Este', direccion: 'Calle Este, Industrial', estimado: '12:30', tipo: 'comercial' },
+          { nombre: 'Zona Oeste', direccion: 'Avenida Oeste, Residencial', estimado: '14:00', tipo: 'residencial' }
+        ],
+        distanciaTotal: 25,
+        tiempoEstimado: 480
+      },
+      'fumigacion': {
+        nombre: 'Ruta de Fumigación',
+        paradas: [
+          { nombre: 'Parque Central', direccion: 'Parque Central, Ciudad', estimado: '07:00', tipo: 'turistico' },
+          { nombre: 'Zona Comercial', direccion: 'Centro Comercial, Main St', estimado: '09:00', tipo: 'comercial' },
+          { nombre: 'Área Residencial', direccion: 'Barrio Residencial, Zona Norte', estimado: '11:00', tipo: 'residencial' },
+          { nombre: 'Zona Industrial', direccion: 'Polígono Industrial, Zona Este', estimado: '13:00', tipo: 'comercial' }
+        ],
+        distanciaTotal: 18,
+        tiempoEstimado: 360
+      }
+    };
+    
+    return rutasMock[camion.tipoServicio] || rutasMock['recoleccion'];
   };
 
   const getSelectedTruck = () => {
@@ -297,8 +858,121 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
     return colors[routeId] || '#666666';
   };
 
+  // Funciones de búsqueda
+  const searchAddress = async (query) => {
+    if (!query || query.length < 3) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxgl.accessToken}&country=pa&language=es&limit=5`
+      );
+      const data = await response.json();
+      setSearchResults(data.features || []);
+      setShowSearchResults(true);
+    } catch (error) {
+      console.error('Error searching address:', error);
+      setSearchResults([]);
+      setShowSearchResults(false);
+    }
+  };
+
+  const handleSearchSelect = (result) => {
+    const [lng, lat] = result.center;
+    map.current.flyTo({
+      center: [lng, lat],
+      zoom: 16,
+      speed: 1.2,
+      curve: 1.42
+    });
+    
+    // Agregar marcador temporal
+    const searchMarker = new mapboxgl.Marker({
+      color: '#FF6B6B',
+      scale: 1.2
+    })
+    .setLngLat([lng, lat])
+    .setPopup(
+      new mapboxgl.Popup({ offset: 25 })
+        .setHTML(`
+          <div class="mapbox-popup">
+            <h3>📍 Búsqueda</h3>
+            <p><strong>Dirección:</strong> ${result.place_name}</p>
+            <p><strong>Tipo:</strong> ${result.place_type?.[0] || 'Ubicación'}</p>
+          </div>
+        `)
+    )
+    .addTo(map.current);
+    
+    // Remover marcador después de 10 segundos
+    setTimeout(() => {
+      searchMarker.remove();
+    }, 10000);
+    
+    setSearchQuery(result.place_name);
+    setShowSearchResults(false);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setShowSearchResults(false);
+  };
+
   return (
     <div className="map-component">
+      {/* Barra de búsqueda */}
+      <div className="mapbox-search-container">
+        <div className="mapbox-search-bar">
+          <input
+            type="text"
+            placeholder="🔍 Buscar dirección en Panamá..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              searchAddress(e.target.value);
+            }}
+            onFocus={() => {
+              if (searchResults.length > 0) {
+                setShowSearchResults(true);
+              }
+            }}
+            className="mapbox-search-input"
+          />
+          {searchQuery && (
+            <button
+              onClick={clearSearch}
+              className="mapbox-search-clear"
+              title="Limpiar búsqueda"
+            >
+              ❌
+            </button>
+          )}
+        </div>
+        
+        {showSearchResults && searchResults.length > 0 && (
+          <div className="mapbox-search-results">
+            {searchResults.map((result, index) => (
+              <div
+                key={index}
+                className="mapbox-search-result"
+                onClick={() => handleSearchSelect(result)}
+              >
+                <div className="search-result-title">
+                  📍 {result.text}
+                </div>
+                <div className="search-result-address">
+                  {result.place_name}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="map-controls">
         <div className="control-group">
           <label className="control-label gps-control">
@@ -315,11 +989,18 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
               checked={showTrails}
               onChange={(e) => setShowTrails(e.target.checked)}
             />
-            🗺️ Mostrar Rutas Completas
+            🗺️ Mostrar Rutas
           </label>
           {selectedTruckId && (
             <div className="selected-truck-info gps-info">
               📍 Rastreando: <strong>{getSelectedTruck()?.conductor}</strong> ({selectedTruckId})
+              <button 
+                className={`btn btn--sm ${isFollowingTruck ? 'btn--primary' : 'btn--outline'}`}
+                onClick={() => setIsFollowingTruck(!isFollowingTruck)}
+                title={isFollowingTruck ? 'Desactivar seguimiento' : 'Activar seguimiento'}
+              >
+                {isFollowingTruck ? '🎯 Siguiendo' : '🎯 Seguir'}
+              </button>
               <button 
                 className="btn btn--sm btn--outline"
                 onClick={() => handleTruckClick(selectedTruckId)}
@@ -392,262 +1073,52 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
           </>
         )}
         <div className="legend-item" style={{ opacity: 0.6, fontSize: '11px' }}>
-          💡 Solo vehículos activos
+          💡 Powered by Mapbox
         </div>
       </div>
 
       <div style={{ position: 'relative', flex: 1, minHeight: '500px' }}>
+        <div 
+          ref={mapContainer}
+          className="mapbox-map"
+          style={{ 
+            height: '100%', 
+            width: '100%', 
+            minHeight: '500px',
+            borderRadius: '8px'
+          }}
+        />
+        
         {!mapLoaded && (
           <div style={{ 
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
             height: '500px', 
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center', 
-            background: '#f5f5f5',
+            background: 'rgba(245, 245, 245, 0.9)',
             borderRadius: '8px',
             fontSize: '18px',
-            color: '#666'
+            color: '#666',
+            zIndex: 10
           }}>
-            🗺️ Cargando mapa del dashboard...
+            🗺️ Cargando Mapbox...
           </div>
-        )}
-        {mapLoaded && (
-          <MapContainer 
-            key={`dashboard-map-${serviceTypeFilter}-${Date.now()}`}
-            center={centerPosition} 
-            zoom={13} 
-            style={{ height: '100%', width: '100%', minHeight: '500px' }}
-            className="leaflet-container gps-map"
-            whenCreated={(mapInstance) => {
-              // Force resize after map creation
-              console.log('MapContainer created:', mapInstance);
-              setTimeout(() => {
-                console.log('Invalidating map size');
-                mapInstance.invalidateSize();
-              }, 100);
-            }}
-          >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            maxZoom={18}
-          />
-          
-          {/* Mostrar todas las rutas activas con estilo GPS mejorado */}
-          {showTrails && appData.rutas.map(ruta => {
-            const routeColor = getRouteTypeColor(ruta.id);
-            const isSelectedRoute = getSelectedTruckRoute() && getSelectedTruckRoute().id === ruta.id;
-            
-            return (
-              <Polyline
-                key={`route-${ruta.id}`}
-                positions={roadRoutes[ruta.id] || ruta.coordenadasCompletas}
-                color={routeColor}
-                weight={isSelectedRoute ? 12 : 6} // Aumentado de 8/4 a 12/6 para mejor visibilidad GPS
-                opacity={isSelectedRoute ? 1 : 0.7} // Mejor contraste
-                dashArray={isSelectedRoute ? null : "15, 8"} // Patrón más visible
-                className={isSelectedRoute ? 'route-selected gps-route-active' : 'gps-route'}
-              />
-            );
-          })}
-          
-          {activeCamiones.map(camion => {
-            const loadStatus = getLoadStatus(camion.pesoAcumulado);
-            const isSelected = selectedTruckId === camion.id;
-            const currentRoute = camion.rutaAsignada ? 
-              appData.rutas.find(r => r.nombre === camion.rutaAsignada) : null;
-            
-            return (
-              <div key={camion.id}>
-                {/* Marcador principal del camión con estilo GPS */}
-                <Marker 
-                  position={[camion.lat, camion.lng]}
-                  icon={createCustomIcon(camion.estado, camion.direccion, camion.tipoServicio)}
-                  eventHandlers={{
-                    click: () => handleTruckClick(camion.id)
-                  }}
-                >
-                  {/* Solo mostrar popup si NO está seleccionado, para evitar dos modales */}
-                  {!isSelected && (
-                    <Popup>
-                      <div className={`truck-popup gps-popup ${camion.tipoServicio === 'fumigacion' ? 'fumigation-popup' : ''}`}>
-                        <div className="popup-header">
-                          <h4>
-                            {camion.tipoServicio === 'fumigacion' ? '🚐' : '🚛'} {camion.id}
-                            {camion.tipoServicio === 'fumigacion' && (
-                              <span className="service-type">FUMIGACIÓN</span>
-                            )}
-                          </h4>
-                          <span 
-                            className="status-badge" 
-                            style={{ backgroundColor: getStatusColor(camion.estado) }}
-                          >
-                            {camion.estado}
-                          </span>
-                        </div>
-                        
-                        <div className="popup-content">
-                          <div className="info-row">
-                            <strong>👨‍💼 Conductor:</strong> {camion.conductor}
-                          </div>
-                          <div className="info-row">
-                            <strong>🗺️ Ruta:</strong> {camion.rutaAsignada || 'Sin asignar'}
-                          </div>
-                          
-                          {camion.estado === 'En ruta' && (
-                            <>
-                              <div className="info-row">
-                                <strong>🚀 Velocidad:</strong> {camion.velocidad} km/h
-                              </div>
-                            </>
-                          )}
-                          
-                          {/* Información específica de fumigación */}
-                          {camion.tipoServicio === 'fumigacion' && (
-                            <>
-                              {camion.tipoPlaga && (
-                                <div className="info-row">
-                                  <strong>🦟 Plaga:</strong> 
-                                  <span className="plague-type">{camion.tipoPlaga}</span>
-                                </div>
-                              )}
-                              {camion.areaFumigada > 0 && (
-                                <div className="info-row">
-                                  <strong>📐 Área fumigada:</strong> {camion.areaFumigada} m²
-                                </div>
-                              )}
-                              <div className="fumigation-stats">
-                                <div className="fumigation-stat">
-                                  <span className="stat-icon">🎯</span>
-                                  <span>{camion.paradaActual}/{camion.totalParadas}</span>
-                                </div>
-                                <div className="fumigation-stat">
-                                  <span className="stat-icon">⛽</span>
-                                  <span>{camion.combustible}%</span>
-                                </div>
-                              </div>
-                            </>
-                          )}
-                          
-                          {/* Información específica de recolección */}
-                          {camion.tipoServicio === 'recoleccion' && camion.pesoAcumulado > 0 && (
-                            <div className="info-row">
-                              <strong>⚖️ Peso acumulado:</strong> {camion.pesoAcumulado} kg
-                            </div>
-                          )}
-                          
-                          <div className="info-row">
-                            <button 
-                              className="btn btn--primary btn--sm"
-                              onClick={() => handleTruckClick(camion.id)}
-                            >
-                              🛰️ Ver información completa
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </Popup>
-                  )}
-                </Marker>
-
-                {/* Mostrar historial de GPS si está habilitado */}
-                {showTrails && camion.historialPosiciones.length > 1 && (
-                  <Polyline
-                    positions={camion.historialPosiciones.map(pos => [pos.lat, pos.lng])}
-                    color={getStatusColor(camion.estado)}
-                    weight={isSelected ? 6 : 3}
-                    opacity={isSelected ? 0.9 : 0.5}
-                    dashArray={camion.estado === 'En ruta' ? null : "5, 10"}
-                    className={isSelected ? 'route-selected gps-trail-active' : 'gps-trail'}
-                  />
-                )}
-
-                {/* Círculo de cobertura GPS para camiones en ruta */}
-                {camion.estado === 'En ruta' && isSelected && (
-                  <Circle
-                    center={[camion.lat, camion.lng]}
-                    radius={300}
-                    fillColor={getStatusColor(camion.estado)}
-                    color={getStatusColor(camion.estado)}
-                    weight={2}
-                    opacity={0.4}
-                    fillOpacity={0.1}
-                    className="gps-coverage"
-                  />
-                )}
-              </div>
-            );
-          })}
-
-          {/* Dibujar la ruta seleccionada con mayor grosor */}
-          {!showTrails && getSelectedTruckRoute() && roadRoutes[getSelectedTruckRoute().id] && (
-            <Polyline
-              positions={roadRoutes[getSelectedTruckRoute().id]}
-              color={getStatusColor(getSelectedTruck()?.estado || 'En ruta')}
-              weight={12} // Aumentado de 8 a 12
-              opacity={0.95}
-              className="route-selected gps-route-active"
-            />
-          )}
-
-          {/* Marcadores de las paradas */}
-          {getSelectedTruckRoute() && getSelectedTruck() && (
-            getSelectedTruckRoute().paradas.map((parada, index) => {
-              const status = getStopStatus(index, getSelectedTruck());
-              const statusColors = {
-                'completed': '#27AE60',
-                'current': '#F39C12',
-                'pending': '#666666'
-              };
-              return (
-                <Marker
-                  key={`stop-${index}`}
-                  position={[parada.lat, parada.lng]}
-                  icon={createStopIcon(index + 1, status, statusColors[status], parada.tipo)}
-                  eventHandlers={{
-                    click: () => handleStopClick(getSelectedTruckRoute())
-                  }}
-                >
-                  <Popup>
-                    <div className="stop-popup gps-stop-popup">
-                      <h5>📍 {parada.nombre}</h5>
-                      <div className="stop-info">
-                        <strong>Parada:</strong> {index + 1} de {getSelectedTruckRoute().paradas.length}<br/>
-                        <strong>Tipo:</strong> {parada.tipo}<br/>
-                        <strong>Dirección:</strong> {parada.direccion || parada.nombre}<br/>
-                        <strong>Horario estimado:</strong> {parada.estimado}
-                      </div>
-                      <div className={`stop-status ${status}`}>
-                        {status === 'completed' && '✅ Completada'}
-                        {status === 'current' && '📍 En proceso'}
-                        {status === 'pending' && '⏳ Pendiente'}
-                      </div>
-                      <div className="info-row" style={{ marginTop: '12px' }}>
-                        <button 
-                          className="btn btn--primary btn--sm"
-                          onClick={() => handleStopClick(getSelectedTruckRoute())}
-                        >
-                          📋 Ver todas las paradas
-                        </button>
-                      </div>
-                    </div>
-                  </Popup>
-                </Marker>
-              );
-            })
-          )}
-          </MapContainer>
         )}
 
         {/* Panel de información GPS */}
-        {showRouteInfo && getSelectedTruckRoute() && getSelectedTruck() && (
+        {showRouteInfo && getSelectedTruck() && (
           <div 
             className={`route-info-panel gps-info-panel ${isPanelMinimized ? 'minimized' : ''}`}
             onClick={isPanelMinimized ? () => setIsPanelMinimized(false) : undefined}
           >
             <div className="route-info-header">
               <h4 className="route-info-title">
-                🛰️ GPS: {getSelectedTruckRoute().nombre}
+                🛰️ GPS: {getSelectedTruckRoute() ? getSelectedTruckRoute().nombre : `Camión ${getSelectedTruck().id}`}
                 {getSelectedTruck().tipoServicio === 'fumigacion' && (
                   <span className="service-type-badge">🚐 FUMIGACIÓN</span>
                 )}
@@ -672,6 +1143,10 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                     e.stopPropagation();
                     setShowRouteInfo(false);
                     setIsPanelMinimized(false);
+                    setSelectedTruckId(null);
+                    setSelectedTruckData(null);
+                    setIsFollowingTruck(false);
+                    restoreAllRoutes();
                   }}
                   title="Cerrar panel"
                 >
@@ -681,6 +1156,76 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
             </div>
             
             <div className="route-info-content">
+              {/* Información del conductor */}
+              <div className="conductor-section">
+                <h5>👤 Conductor</h5>
+                <div className="conductor-details">
+                  <div className="detail-item">
+                    <span className="detail-label">Nombre:</span>
+                    <span className="detail-value">{getSelectedTruck().conductor}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Estado:</span>
+                    <span className={`detail-value status-${getSelectedTruck().estado.toLowerCase().replace(' ', '-')}`}>
+                      {getSelectedTruck().estado}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Vehículo:</span>
+                    <span className="detail-value">#{getSelectedTruck().id}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Combustible */}
+              <div className="fuel-section">
+                <h5>⛽ Combustible</h5>
+                <div className="fuel-display">
+                  <div className="fuel-bar">
+                    <div 
+                      className="fuel-fill" 
+                      style={{ 
+                        width: `${getSelectedTruck().combustible}%`,
+                        backgroundColor: getSelectedTruck().combustible > 50 ? '#27AE60' : 
+                                       getSelectedTruck().combustible > 25 ? '#F39C12' : '#E74C3C'
+                      }}
+                    />
+                  </div>
+                  <span className="fuel-text">{getSelectedTruck().combustible}%</span>
+                </div>
+              </div>
+
+              {/* Ubicación actual */}
+              <div className="location-section">
+                <h5>📍 Ubicación Actual</h5>
+                <div className="location-details">
+                  <div className="address-info">
+                    {truckAddress}
+                  </div>
+                  <div className="coordinates-info">
+                    <small>Lat: {getSelectedTruck().lat.toFixed(6)}, Lng: {getSelectedTruck().lng.toFixed(6)}</small>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tiempo en ruta */}
+              <div className="time-section">
+                <h5>🕐 Tiempo en Ruta</h5>
+                <div className="time-details">
+                  <div className="detail-item">
+                    <span className="detail-label">Inicio:</span>
+                    <span className="detail-value">{getSelectedTruck().horaInicio || '08:00'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Tiempo transcurrido:</span>
+                    <span className="detail-value">
+                      {Math.floor((Date.now() - new Date(getSelectedTruck().ultimaActualizacion).getTime()) / (1000 * 60 * 60))}h 
+                      {Math.floor(((Date.now() - new Date(getSelectedTruck().ultimaActualizacion).getTime()) % (1000 * 60 * 60)) / (1000 * 60))}m
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               <div className="gps-status">
                 <div className="gps-signal">
                   <span className="signal-icon">📡</span>
@@ -692,6 +1237,7 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                 </div>
               </div>
               
+              {/* Información de ruta (siempre disponible) */}
               <div className="route-stats">
                 <div className="route-stat">
                   <div className="route-stat-value">{getSelectedTruckRoute().paradas.length}</div>
@@ -702,7 +1248,7 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                   <div className="route-stat-label">Distancia GPS</div>
                 </div>
                 <div className="route-stat">
-                  <div className="route-stat-value">{getSelectedTruck().paradaActual}</div>
+                  <div className="route-stat-value">{getSelectedTruck().paradaActual || 0}</div>
                   <div className="route-stat-label">Completadas</div>
                 </div>
                 <div className="route-stat">
@@ -719,37 +1265,64 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                   ></div>
                 </div>
                 <div className="route-progress-text">
-                  Progreso GPS: {getSelectedTruck().paradaActual}/{getSelectedTruckRoute().paradas.length} paradas 
+                  Progreso GPS: {getSelectedTruck().paradaActual || 0}/{getSelectedTruckRoute().paradas.length} paradas 
                   ({calculateProgress(getSelectedTruck(), getSelectedTruckRoute())}%)
                 </div>
               </div>
 
-              <div className="next-stop-info">
-                <h6>📍 Próxima parada:</h6>
-                {getSelectedTruckRoute().paradas[getSelectedTruck().paradaActual] ? (
-                  <div className="next-stop">
-                    <strong>{getSelectedTruckRoute().paradas[getSelectedTruck().paradaActual].nombre}</strong><br/>
-                    <small>{getSelectedTruckRoute().paradas[getSelectedTruck().paradaActual].direccion || getSelectedTruckRoute().paradas[getSelectedTruck().paradaActual].nombre}</small><br/>
-                    <small>ETA: {getSelectedTruckRoute().paradas[getSelectedTruck().paradaActual].estimado}</small>
-                  </div>
-                ) : (
-                  <div className="route-complete">
-                    ✅ Ruta completada
-                  </div>
-                )}
+              {/* Paradas restantes */}
+              <div className="remaining-stops-info">
+                <h6>📍 Paradas Restantes:</h6>
+                <div className="stops-preview">
+                  {getSelectedTruckRoute().paradas.slice(getSelectedTruck().paradaActual || 0, (getSelectedTruck().paradaActual || 0) + 3).map((parada, index) => (
+                    <div key={index} className={`stop-preview ${index === 0 ? 'next-stop' : ''}`}>
+                      <span className="stop-number">{(getSelectedTruck().paradaActual || 0) + index + 1}</span>
+                      <div className="stop-info">
+                        <div className="stop-name">{parada.nombre}</div>
+                        <div className="stop-time">ETA: {parada.estimado}</div>
+                      </div>
+                      {index === 0 && <span className="current-badge">ACTUAL</span>}
+                    </div>
+                  ))}
+                  {getSelectedTruckRoute().paradas.length > (getSelectedTruck().paradaActual || 0) + 3 && (
+                    <div className="more-stops">
+                      +{getSelectedTruckRoute().paradas.length - (getSelectedTruck().paradaActual || 0) - 3} paradas más
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="route-actions">
                 <button 
-                  className="btn btn--primary btn--full"
+                  className="btn btn--primary"
                   onClick={() => handleStopClick(getSelectedTruckRoute())}
                 >
                   📋 Ver todas las paradas
                 </button>
+                <button 
+                  className="btn btn--outline"
+                  onClick={() => {
+                    try {
+                      map.current.flyTo({
+                        center: [getSelectedTruck().lng, getSelectedTruck().lat],
+                        zoom: 16,
+                        pitch: 45,
+                        bearing: 0,
+                        speed: 1.0,
+                        curve: 1.42,
+                        essential: true
+                      });
+                    } catch (error) {
+                      console.warn('Error haciendo zoom:', error);
+                    }
+                  }}
+                >
+                  🎯 Centrar en mapa
+                </button>
               </div>
 
               <div style={{ fontSize: '12px', color: '#666666', marginTop: '16px', textAlign: 'center' }}>
-                💡 Navegación GPS en tiempo real activada
+                💡 Powered by Mapbox GL JS
               </div>
             </div>
           </div>
@@ -783,68 +1356,12 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                     <div className="stat-value">{Math.round(selectedRoute.tiempoEstimado / 60)}h</div>
                     <div className="stat-label">Duración Est.</div>
                   </div>
-                  <div className="summary-stat">
-                    <div className="stat-value">
-                      {selectedRoute.paradas.reduce((sum, p) => sum + (p.pesoRecolectado || 0), 0)} kg
-                    </div>
-                    <div className="stat-label">Carga Total</div>
-                  </div>
                 </div>
-                
-                {/* Resumen de carga por niveles - Solo se muestra cuando se selecciona una parada individual */}
-                {selectedRoute.paradas.length > 0 && (
-                  <div className="load-summary">
-                    <h4>📊 Resumen de Carga por Parada</h4>
-                    <div className="load-breakdown">
-                      {(() => {
-                        const totalCarga = selectedRoute.paradas.reduce((sum, p) => sum + (p.pesoRecolectado || 0), 0);
-                        const cargasBajas = selectedRoute.paradas.filter(p => (p.pesoRecolectado || 0) <= 30).length;
-                        const cargasMedias = selectedRoute.paradas.filter(p => (p.pesoRecolectado || 0) > 30 && (p.pesoRecolectado || 0) <= 60).length;
-                        const cargasAltas = selectedRoute.paradas.filter(p => (p.pesoRecolectado || 0) > 60).length;
-                        
-                        return (
-                          <div className="load-stats">
-                            <div className="load-stat">
-                              <span className="load-stat-icon">🟢</span>
-                              <span className="load-stat-label">Cargas bajas:</span>
-                              <span className="load-stat-value">{cargasBajas} paradas</span>
-                            </div>
-                            <div className="load-stat">
-                              <span className="load-stat-icon">🟡</span>
-                              <span className="load-stat-label">Cargas medias:</span>
-                              <span className="load-stat-value">{cargasMedias} paradas</span>
-                            </div>
-                            <div className="load-stat">
-                              <span className="load-stat-icon">🔴</span>
-                              <span className="load-stat-label">Cargas altas:</span>
-                              <span className="load-stat-value">{cargasAltas} paradas</span>
-                            </div>
-                            <div className="load-stat total">
-                              <span className="load-stat-icon">⚖️</span>
-                              <span className="load-stat-label">Total acumulado:</span>
-                              <span className="load-stat-value">{totalCarga} kg</span>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                )}
 
                 <div className="stops-list">
                   {selectedRoute.paradas.map((parada, index) => {
                     const currentTruck = getSelectedTruck();
                     const status = getStopStatus(index, currentTruck);
-                    
-                    // Calcular nivel de carga basado en peso recolectado
-                    const getLoadLevel = (peso) => {
-                      if (!peso || peso === 0) return { level: 'Sin carga', color: '#666666', icon: '⚪' };
-                      if (peso <= 30) return { level: 'Carga baja', color: '#27AE60', icon: '🟢' };
-                      if (peso <= 60) return { level: 'Carga media', color: '#F39C12', icon: '🟡' };
-                      return { level: 'Carga alta', color: '#E74C3C', icon: '🔴' };
-                    };
-                    
-                    const loadInfo = getLoadLevel(parada.pesoRecolectado);
                     
                     return (
                       <div key={index} className={`stop-item stop-item--${status}`}>
@@ -872,34 +1389,7 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                           <div className="stop-times">
                             <div className="time-info">
                               <strong>Estimado:</strong> {parada.estimado}
-                              {parada.horaLlegada && (
-                                <>
-                                  <strong> | Llegada:</strong> {parada.horaLlegada}
-                                  <strong> | Salida:</strong> {parada.horaSalida}
-                                </>
-                              )}
-                              {status === 'completed' && parada.horaCompletado && (
-                                <>
-                                  <strong> | Completado:</strong> {parada.horaCompletado}
-                                </>
-                              )}
                             </div>
-                          </div>
-                          
-                          <div className="stop-load-info">
-                            <div className="load-indicator" style={{ color: loadInfo.color }}>
-                              <span className="load-icon">{loadInfo.icon}</span>
-                              <strong>Carga:</strong> {loadInfo.level}
-                              {parada.pesoRecolectado !== undefined && parada.pesoRecolectado > 0 && (
-                                <span className="load-weight"> ({parada.pesoRecolectado} kg)</span>
-                              )}
-                            </div>
-                            {status === 'completed' && parada.pesoRecolectado && (
-                              <div className="completion-info">
-                                <span className="completion-time">✅ Completado a las {parada.horaCompletado || parada.horaSalida}</span>
-                                <span className="completion-load">📦 Carga recolectada: {parada.pesoRecolectado} kg</span>
-                              </div>
-                            )}
                           </div>
                         </div>
                         
@@ -916,6 +1406,7 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
             </div>
           </div>
         )}
+
       </div>
     </div>
   );

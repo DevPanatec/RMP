@@ -1697,6 +1697,664 @@
     padding: 20px;
     margin-bottom: 24px;
   }
+}
+
+/* Estilos para el modal del camión */
+.truck-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+}
+
+.truck-modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.truck-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 16px 24px;
+  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+}
+
+.truck-modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.truck-id {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  background: var(--color-secondary);
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.truck-modal-content {
+  padding: 24px;
+  max-height: calc(90vh - 100px);
+  overflow-y: auto;
+}
+
+.truck-modal-content h4 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.truck-modal-content .info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.truck-modal-content .info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.truck-modal-content .info-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.truck-modal-content .info-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.truck-modal-content .info-value.status-en-ruta {
+  color: var(--color-success);
+}
+
+.truck-modal-content .info-value.status-disponible {
+  color: var(--color-primary);
+}
+
+.truck-modal-content .info-value.status-en-mantenimiento {
+  color: var(--color-warning);
+}
+
+.fuel-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--color-surface);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+}
+
+.fuel-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fuel-bar {
+  flex: 1;
+  height: 12px;
+  background: var(--color-secondary);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.fuel-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.fuel-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: fuelShimmer 2s infinite;
+}
+
+@keyframes fuelShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.fuel-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  min-width: 40px;
+}
+
+.location-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--color-surface);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+}
+
+.location-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.coordinates {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-family: 'Courier New', monospace;
+}
+
+.coordinates span {
+  background: var(--color-secondary);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.address {
+  font-size: 14px;
+  color: var(--color-text);
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.route-progress-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--color-surface);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+}
+
+.route-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 16px;
+}
+
+.progress-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.progress-stats .stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.progress-stats .stat-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.progress-stats .stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.truck-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.truck-actions .btn {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.truck-actions .btn--primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.truck-actions .btn--primary:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.3);
+}
+
+.truck-actions .btn--outline {
+  background: transparent;
+  border: 2px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.truck-actions .btn--outline:hover {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+/* Responsive para el modal del camión */
+@media (max-width: 768px) {
+  .truck-modal {
+    max-width: 100%;
+    margin: 16px;
+  }
+  
+  .truck-modal-header {
+    padding: 20px 20px 16px 20px;
+  }
+  
+  .truck-modal-header h3 {
+    font-size: 18px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .truck-modal-content {
+    padding: 20px;
+  }
+  
+  .truck-modal-content .info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .coordinates {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .progress-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .truck-actions {
+    flex-direction: column;
+  }
+}
+
+/* Estilos para las secciones del panel lateral */
+.conductor-section,
+.fuel-section,
+.location-section,
+.time-section {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.conductor-section h5,
+.fuel-section h5,
+.location-section h5,
+.time-section h5 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a73e8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.conductor-details,
+.time-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 12px;
+  color: #5f6368;
+  font-weight: 500;
+}
+
+.detail-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #202124;
+}
+
+.detail-value.status-en-ruta {
+  color: #137333;
+}
+
+.detail-value.status-disponible {
+  color: #1a73e8;
+}
+
+.detail-value.status-en-mantenimiento {
+  color: #ea8600;
+}
+
+.fuel-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.fuel-bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.fuel-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.fuel-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: fuelShimmer 2s infinite;
+}
+
+@keyframes fuelShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.fuel-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #202124;
+  min-width: 35px;
+}
+
+.location-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.address-info {
+  font-size: 13px;
+  color: #202124;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.coordinates-info {
+  font-size: 11px;
+  color: #5f6368;
+  font-family: 'Courier New', monospace;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+
+.no-route-info {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(255, 193, 7, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  text-align: center;
+}
+
+.no-route-info h6 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #ea8600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.no-route-info p {
+  margin: 0;
+  font-size: 12px;
+  color: #5f6368;
+}
+
+/* Estilos para paradas restantes */
+.remaining-stops-info {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.remaining-stops-info h6 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a73e8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stops-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stop-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.stop-preview.next-stop {
+  background: rgba(26, 115, 232, 0.1);
+  border-color: rgba(26, 115, 232, 0.2);
+  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.1);
+}
+
+.stop-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #e8f0fe;
+  color: #1a73e8;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.stop-preview.next-stop .stop-number {
+  background: #1a73e8;
+  color: white;
+  animation: currentPulse 2s infinite;
+}
+
+@keyframes currentPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.stop-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stop-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #202124;
+}
+
+.stop-time {
+  font-size: 11px;
+  color: #5f6368;
+}
+
+.current-badge {
+  background: #1a73e8;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.more-stops {
+  font-size: 12px;
+  color: #5f6368;
+  text-align: center;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+  border: 1px dashed rgba(0, 0, 0, 0.1);
+  font-style: italic;
+}
+
+/* Estilos para los botones del panel lateral */
+.route-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.route-actions .btn {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  text-decoration: none;
+  border: none;
+}
+
+.route-actions .btn--primary {
+  background: linear-gradient(135deg, #4285f4, #1a73e8);
+  color: white;
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+}
+
+.route-actions .btn--primary:hover {
+  background: linear-gradient(135deg, #1a73e8, #1557b0);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(26, 115, 232, 0.4);
+}
+
+.route-actions .btn--outline {
+  background: transparent;
+  color: #1a73e8;
+  border: 2px solid #1a73e8;
+}
+
+.route-actions .btn--outline:hover {
+  background: #1a73e8;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+}
 
   .stop-item {
     padding: 16px;
@@ -2185,5 +2843,359 @@
   .load-summary {
     padding: 16px;
     margin-bottom: 20px;
+  }
+}
+
+/* Estilos para la barra de búsqueda Mapbox */
+.mapbox-search-container {
+  position: absolute;
+  top: 80px;
+  left: 10px;
+  right: 10px;
+  z-index: 1000;
+  max-width: 400px;
+  pointer-events: none;
+}
+
+.mapbox-search-container > * {
+  pointer-events: auto;
+}
+
+.mapbox-search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e0e0e0;
+  backdrop-filter: blur(10px);
+}
+
+.mapbox-search-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  background: transparent;
+  color: #333;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.mapbox-search-input::placeholder {
+  color: #999;
+}
+
+.mapbox-search-clear {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.mapbox-search-clear:hover {
+  background: #f0f0f0;
+}
+
+.mapbox-search-results {
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  margin-top: 4px;
+  border: 1px solid #e0e0e0;
+  max-height: 300px;
+  overflow-y: auto;
+  backdrop-filter: blur(10px);
+}
+
+.mapbox-search-result {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.mapbox-search-result:hover {
+  background: rgba(248, 249, 250, 0.8);
+}
+
+.mapbox-search-result:last-child {
+  border-bottom: none;
+}
+
+.search-result-title {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.search-result-address {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* Estilos para el mapa Mapbox */
+.mapbox-map {
+  flex: 1;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mapbox-popup {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  max-width: 320px;
+  padding: 16px;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.mapbox-popup h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mapbox-popup p {
+  margin: 8px 0;
+  font-size: 13px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.mapbox-popup strong {
+  color: #333;
+  font-weight: 600;
+}
+
+/* Marcadores de vehículos Mapbox */
+.mapbox-vehicle-marker {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  z-index: 10;
+}
+
+.mapbox-vehicle-marker:hover {
+  transform: scale(1.15);
+  z-index: 100;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.mapbox-vehicle-marker.selected {
+  transform: scale(1.2);
+  z-index: 1000;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
+  animation: selectedPulse 2s ease-in-out infinite;
+}
+
+@keyframes selectedPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(39, 174, 96, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(39, 174, 96, 0);
+  }
+}
+
+.mapbox-stop-marker {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+}
+
+.mapbox-stop-marker:hover {
+  transform: scale(1.15);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Estilos para rutas mejoradas */
+.route-line-enhanced {
+  transition: all 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.route-line-enhanced:hover {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.route-line-selected {
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 8px currentColor);
+  animation: routeGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes routeGlow {
+  0% {
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 8px currentColor);
+  }
+  100% {
+    filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 12px currentColor);
+  }
+}
+
+/* Progreso de ruta */
+.route-progress-line {
+  animation: progressFlow 3s linear infinite;
+}
+
+@keyframes progressFlow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 20;
+  }
+}
+
+/* Controles mejorados */
+.selected-truck-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, rgba(39, 174, 96, 0.1), rgba(52, 168, 83, 0.1));
+  border-radius: 20px;
+  border: 1px solid rgba(39, 174, 96, 0.2);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text);
+  box-shadow: 0 2px 8px rgba(39, 174, 96, 0.1);
+}
+
+.selected-truck-info .btn {
+  padding: 4px 8px;
+  font-size: 10px;
+  border-radius: 12px;
+  min-width: auto;
+  transition: all 0.2s ease;
+}
+
+.selected-truck-info .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Animaciones de carga */
+.map-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #666;
+}
+
+.map-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e0e0e0;
+  border-top: 2px solid #4285f4;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Mejoras en los popups */
+.mapbox-popup {
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  animation: popupFadeIn 0.3s ease-out;
+}
+
+@keyframes popupFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Controles del mapa mejorados */
+.map-controls {
+  backdrop-filter: blur(15px);
+  border-radius: 0 0 12px 12px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.control-label {
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.control-label:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Botones de seguimiento */
+.btn--primary.following {
+  background: linear-gradient(135deg, #4285f4, #34a853);
+  animation: followingPulse 2s ease-in-out infinite;
+}
+
+@keyframes followingPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(66, 133, 244, 0);
+  }
+}
+
+/* Responsive para búsqueda */
+@media (max-width: 768px) {
+  .mapbox-search-container {
+    left: 8px;
+    right: 8px;
+    top: 60px;
+  }
+  
+  .mapbox-search-input {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  
+  .mapbox-search-result {
+    padding: 10px 14px;
+  }
+  
+  .search-result-title {
+    font-size: 13px;
+  }
+  
+  .search-result-address {
+    font-size: 11px;
   }
 } 

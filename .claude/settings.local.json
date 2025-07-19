@@ -5,7 +5,12 @@
       "Bash(ls:*)",
       "Bash(find:*)",
       "Bash(npm start)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(wc:*)",
+      "Bash(npm install:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(rm:*)",
+      "WebFetch(domain:docs.mapbox.com)"
     ]
   },
   "enableAllProjectMcpServers": true,

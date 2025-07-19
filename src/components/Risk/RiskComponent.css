@@ -8,6 +8,339 @@
   min-height: 100vh;
 }
 
+/* Tabs styles */
+.risk-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.tab-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.tab-button:hover {
+  color: var(--color-primary);
+  background-color: var(--color-background-secondary);
+}
+
+.tab-button.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  background-color: var(--color-background-secondary);
+}
+
+.report-count {
+  background: var(--color-error);
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 50%;
+  margin-left: 0.5rem;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Driver Reports Section */
+.driver-reports-section {
+  margin-top: 2rem;
+}
+
+.no-reports {
+  text-align: center;
+  padding: 3rem;
+  color: var(--color-text-secondary);
+}
+
+.no-reports-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.reports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.report-card {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  border-left: 4px solid var(--color-border);
+}
+
+.report-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.report-card.report-alta {
+  border-left-color: var(--color-error);
+}
+
+.report-card.report-media {
+  border-left-color: var(--color-warning);
+}
+
+.report-card.report-baja {
+  border-left-color: var(--color-success);
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.report-id {
+  font-weight: 700;
+  color: var(--color-text);
+  font-size: 1.1rem;
+}
+
+.report-type {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--color-background-secondary);
+  color: var(--color-text);
+}
+
+.report-type.externo {
+  background: var(--color-info-light);
+  color: var(--color-info);
+}
+
+.report-type.interno {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.report-severity {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.report-severity.severity-alta {
+  background: var(--color-error-light);
+  color: var(--color-error);
+}
+
+.report-severity.severity-media {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.report-severity.severity-baja {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.report-content h4 {
+  margin: 0 0 1rem 0;
+  color: var(--color-text);
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
+.report-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.report-info,
+.report-location {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.report-driver,
+.report-truck,
+.report-route,
+.report-stop {
+  color: var(--color-text-secondary);
+}
+
+.report-date {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.photos-indicator {
+  background: var(--color-info-light);
+  color: var(--color-info);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--border-radius);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.report-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.btn--small {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.btn--success {
+  background: var(--color-success);
+  color: white;
+  border: none;
+}
+
+.btn--success:hover {
+  background: var(--color-success-dark);
+}
+
+.btn--warning {
+  background: var(--color-warning);
+  color: white;
+  border: none;
+}
+
+.btn--warning:hover {
+  background: var(--color-warning-dark);
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--border-radius);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.status-badge.abierto {
+  background: var(--color-error-light);
+  color: var(--color-error);
+}
+
+.status-badge.en-proceso {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.status-badge.resuelto {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+/* Photo gallery styles */
+.report-photos {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.report-photos label {
+  display: block;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.photos-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.photo-gallery-item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+  background-color: var(--color-background);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.photo-gallery-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.photo-gallery-image {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.photo-gallery-item:hover .photo-gallery-image {
+  transform: scale(1.05);
+}
+
+.photo-gallery-info {
+  padding: 0.75rem;
+  background-color: var(--color-background-secondary);
+}
+
+.photo-gallery-name {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.photo-gallery-size {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .photos-gallery {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.75rem;
+  }
+  
+  .photo-gallery-image {
+    height: 90px;
+  }
+  
+  .photo-gallery-info {
+    padding: 0.5rem;
+  }
+}
+
 .risk-header-main {
   margin-bottom: 2rem;
 }
