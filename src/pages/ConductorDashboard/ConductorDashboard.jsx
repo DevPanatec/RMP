@@ -4,13 +4,70 @@ import WeightModal from '../../components/WeightModal/WeightModal';
 import MapComponent from '../../components/Map/MapComponent';
 import './ConductorDashboard.css';
 
+// Hook para PWA
+const usePWAInstallPrompt = () => {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const installPWA = async () => {
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+      setIsInstallable(false);
+    }
+  };
+
+  return { isInstallable, installPWA };
+};
+
 const ConductorDashboard = ({ user, onLogout }) => {
+  const { isInstallable, installPWA } = usePWAInstallPrompt();
   const [completedStops, setCompletedStops] = useState([]);
   const [currentStop, setCurrentStop] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pendingStopIndex, setPendingStopIndex] = useState(null);
   const [currentData, setCurrentData] = useState(appData);
   const [timeOnRoute, setTimeOnRoute] = useState(0);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [showOfflineBanner, setShowOfflineBanner] = useState(false);
+
+  // Detectar estado de conexión
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setShowOfflineBanner(false);
+    };
+    
+    const handleOffline = () => {
+      setIsOnline(false);
+      setShowOfflineBanner(true);
+      setTimeout(() => setShowOfflineBanner(false), 5000);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Simular tiempo en ruta
   useEffect(() => {
@@ -120,10 +177,32 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
   return (
     <div className="dashboard-container">
+      {/* Banner de estado offline */}
+      {showOfflineBanner && (
+        <div className="offline-banner">
+          📱 Modo sin conexión activado - Los datos se sincronizarán cuando regrese la conexión
+        </div>
+      )}
+
+      {/* Banner de instalación PWA */}
+      {isInstallable && (
+        <div className="install-banner">
+          <div className="install-content">
+            <span>📱 Instala RMP Conductor en tu dispositivo</span>
+            <button className="install-btn" onClick={installPWA}>
+              ⬇️ Instalar App
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="main-content">
         <div className="dashboard-header">
           <h1>🚛 Dashboard Conductor</h1>
           <div className="header-actions">
+            <div className="connection-status">
+              {isOnline ? '🟢 En línea' : '🔴 Sin conexión'}
+            </div>
             <div className="route-status">
               🗺️ {assignedRoute.nombre}
             </div>

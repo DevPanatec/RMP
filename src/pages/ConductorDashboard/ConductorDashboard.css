@@ -1,3 +1,163 @@
+/* PWA Banners */
+.offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  color: white;
+  padding: 12px 20px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+  z-index: 1000;
+  animation: slideDown 0.3s ease-out;
+}
+
+.install-banner {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #1b4523, #22c55e);
+  color: white;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  animation: slideUp 0.4s ease-out;
+}
+
+.install-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.install-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.install-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+}
+
+.connection-status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+/* Animations */
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* PWA Optimizations para móviles */
+@media (max-width: 768px) {
+  /* Banner de instalación optimizado para móviles */
+  .install-banner {
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    padding: 12px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  
+  .install-content {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+  
+  .install-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px; /* Evita zoom en iOS */
+    touch-action: manipulation;
+  }
+  
+  /* Header móvil optimizado */
+  .dashboard-header {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    position: sticky;
+    top: 0;
+    background: rgba(var(--color-background-rgb), 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 100;
+  }
+  
+  .header-actions {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  .connection-status {
+    order: -1;
+    width: 100%;
+    text-align: center;
+    padding: 8px 16px;
+    border-radius: 25px;
+    font-size: 14px;
+  }
+  
+  /* Optimizaciones táctiles para móvil */
+  .btn, button {
+    min-height: 44px; /* Tamaño mínimo táctil iOS */
+    font-size: 16px; /* Evita zoom en iOS */
+    touch-action: manipulation;
+  }
+  
+  /* Dashboard container móvil */
+  .dashboard-container {
+    padding: 0;
+    height: 100vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .main-content {
+    padding: 0 16px 100px 16px; /* Espacio para banners */
+  }
+}
+
 .conductor-info,
 .route-progress,
 .route-stops {
@@ -606,25 +766,41 @@
   }
 }
 
+/* Optimizaciones móviles extremas */
 @media (max-width: 480px) {
+  /* PWA status bar y notch support */
+  .dashboard-container {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* KPI cards optimizadas para pantallas pequeñas */
   .kpi-card {
     flex-direction: column;
     text-align: center;
     gap: var(--space-12);
+    padding: var(--space-16);
+    min-height: 120px;
   }
   
   .kpi-icon {
     width: 50px;
     height: 50px;
     font-size: var(--font-size-2xl);
+    margin: 0 auto;
   }
   
   .kpi-value {
     font-size: var(--font-size-2xl);
   }
   
+  /* Steps optimizados para móvil */
   .step-item {
     gap: var(--space-12);
+    padding: var(--space-12);
+    margin: var(--space-8) 0;
   }
   
   .step-number {
@@ -635,5 +811,97 @@
   
   .step-line {
     height: 24px;
+  }
+  
+  /* Botones más grandes para dedos */
+  .btn--primary, .btn--outline {
+    min-height: 48px;
+    padding: 12px 20px;
+    font-size: 16px;
+    border-radius: 12px;
+  }
+  
+  /* Controles de parada optimizados */
+  .current-indicator {
+    font-size: 14px;
+    padding: 10px 16px;
+    border-radius: 20px;
+  }
+  
+  /* Progress bar más visible */
+  .progress-bar-large {
+    height: 24px;
+  }
+  
+  .progress-percentage {
+    font-size: 14px;
+    font-weight: bold;
+  }
+  
+  /* Banner de instalación en pantallas pequeñas */
+  .install-banner {
+    bottom: 80px; /* Evita interferir con navegación */
+    border-radius: 8px;
+  }
+  
+  /* Mejoras de accesibilidad táctil */
+  .info-grid {
+    gap: var(--space-12);
+  }
+  
+  .info-item {
+    background: rgba(var(--color-primary-rgb), 0.05);
+    padding: var(--space-12);
+    border-radius: 8px;
+    border: 1px solid rgba(var(--color-primary-rgb), 0.1);
+  }
+  
+  /* Fuel indicator móvil */
+  .fuel-display {
+    flex-direction: column;
+    gap: var(--space-6);
+    align-items: stretch;
+  }
+  
+  .fuel-bar-small {
+    height: 12px;
+    min-width: auto;
+  }
+  
+  .fuel-text {
+    text-align: center;
+    font-size: 14px;
+  }
+}
+
+/* Optimizaciones específicas para PWA en fullscreen */
+@media (display-mode: standalone) {
+  .dashboard-header {
+    padding-top: env(safe-area-inset-top, 20px);
+  }
+  
+  .install-banner {
+    display: none; /* Ocultar banner de instalación si ya está instalada */
+  }
+  
+  /* Mejor uso del espacio en modo standalone */
+  .main-content {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+}
+
+/* Dark mode para PWA */
+@media (prefers-color-scheme: dark) {
+  .offline-banner {
+    background: linear-gradient(90deg, #92400e, #b45309);
+  }
+  
+  .install-banner {
+    background: linear-gradient(135deg, #0f1f13, #166534);
+  }
+  
+  .connection-status {
+    background: rgba(0, 0, 0, 0.3);
+    color: #e5e7eb;
   }
 } 

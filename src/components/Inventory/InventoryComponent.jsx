@@ -3,14 +3,9 @@ import { appData } from '../../data/mockData';
 import './InventoryComponent.css';
 
 const InventoryComponent = ({ userType = 'admin' }) => {
-  const [activeInventoryTab, setActiveInventoryTab] = useState('materials');
   const [materials, setMaterials] = useState([]);
-  const [suppliers, setSuppliers] = useState([]);
-  const [purchaseOrders, setPurchaseOrders] = useState([]);
-  const [consumption, setConsumption] = useState([]);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
-  const [showOrderModal, setShowOrderModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [alerts, setAlerts] = useState([]);
 
@@ -136,99 +131,15 @@ const InventoryComponent = ({ userType = 'admin' }) => {
         }
       ];
 
-      // Proveedores
-      const suppliersData = [
-        {
-          id: 'PROV001',
-          nombre: 'Limpieza Total S.A.',
-          contacto: 'Carlos Mendoza',
-          telefono: '+507 236-4567',
-          email: 'ventas@limpiezatotal.com',
-          direccion: 'Vía España, Edificio Plaza 2000',
-          ruc: '155-123456-1-DV',
-          categorias: ['Bolsas', 'Químicos'],
-          calificacion: 4.5,
-          tiempoEntrega: '2-3 días',
-          condicionesPago: '30 días',
-          estado: 'Activo',
-          ultimoPedido: '2024-01-15'
-        },
-        {
-          id: 'PROV002',
-          nombre: 'Suministros Panamá',
-          contacto: 'María Rodríguez',
-          telefono: '+507 345-6789',
-          email: 'info@suministrospanama.com',
-          direccion: 'Zona Libre de Colón, Edificio 45',
-          ruc: '155-234567-2-DV',
-          categorias: ['Bolsas', 'Herramientas'],
-          calificacion: 4.2,
-          tiempoEntrega: '3-5 días',
-          condicionesPago: '45 días',
-          estado: 'Activo',
-          ultimoPedido: '2024-01-10'
-        }
-      ];
-
-      // Órdenes de compra
-      const ordersData = [
-        {
-          id: 'OC001',
-          numero: 'OC-2024-001',
-          fecha: '2024-01-28',
-          proveedor: 'Limpieza Total S.A.',
-          estado: 'Pendiente',
-          total: 1250.00,
-          fechaEntrega: '2024-01-30',
-          items: [
-            { material: 'Bolsas de basura regulares', cantidad: 100, precio: 12.50 }
-          ],
-          notas: 'Entrega urgente para reposición',
-          aprobadoPor: 'María García'
-        }
-      ];
-
-      // Generar datos de consumo
-      const consumptionData = generateConsumptionData(materialsData);
-
       // Generar alertas automáticas
       const generatedAlerts = generateAlerts(materialsData);
 
       setMaterials(materialsData);
-      setSuppliers(suppliersData);
-      setPurchaseOrders(ordersData);
-      setConsumption(consumptionData);
       setAlerts(generatedAlerts);
       setIsLoading(false);
     }, 1000);
   };
 
-  const generateConsumptionData = (materials) => {
-    const data = [];
-    const today = new Date();
-    
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      
-      materials.forEach(material => {
-        if (Math.random() > 0.7) { // 30% probabilidad de consumo por día
-          data.push({
-            id: `CONS${material.id}${date.toISOString().split('T')[0]}`,
-            materialId: material.id,
-            materialNombre: material.nombre,
-            fecha: date.toISOString().split('T')[0],
-            cantidad: Math.floor(Math.random() * 10) + 1,
-            ruta: `Ruta ${['Centro', 'Norte', 'Sur', 'Este'][Math.floor(Math.random() * 4)]}`,
-            responsable: ['Juan Pérez', 'María García', 'Carlos López'][Math.floor(Math.random() * 3)],
-            observaciones: ''
-          });
-        }
-      });
-    }
-    
-    return data;
-  };
 
   const generateAlerts = (materials) => {
     const alerts = [];
@@ -323,10 +234,18 @@ const InventoryComponent = ({ userType = 'admin' }) => {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">🏢</div>
+          <div className="stat-icon">📅</div>
           <div className="stat-data">
-            <div className="stat-value">{suppliers.length}</div>
-            <div className="stat-label">Proveedores</div>
+            <div className="stat-value">
+              {materials.filter(m => {
+                if (!m.fechaVencimiento) return false;
+                const today = new Date();
+                const vencimiento = new Date(m.fechaVencimiento);
+                const diasRestantes = (vencimiento - today) / (1000 * 60 * 60 * 24);
+                return diasRestantes <= 60; // Vence en 60 días o menos
+              }).length}
+            </div>
+            <div className="stat-label">Por Vencer</div>
           </div>
         </div>
       </div>
@@ -403,85 +322,14 @@ const InventoryComponent = ({ userType = 'admin' }) => {
     </div>
   );
 
-  const renderSuppliersTab = () => (
-    <div className="inventory-content">
-      <div className="inventory-header">
-        <h3>🏢 Gestión de Proveedores</h3>
-        <button className="btn btn--primary">
-          ➕ Nuevo Proveedor
-        </button>
-      </div>
-
-      <div className="suppliers-grid">
-        {suppliers.map(supplier => (
-          <div key={supplier.id} className="supplier-card">
-            <div className="supplier-header">
-              <h4>{supplier.nombre}</h4>
-              <div className="supplier-rating">
-                {'⭐'.repeat(Math.floor(supplier.calificacion))} {supplier.calificacion}
-              </div>
-            </div>
-            <div className="supplier-info">
-              <div className="info-row">
-                <span className="info-label">Contacto:</span>
-                <span className="info-value">{supplier.contacto}</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">Teléfono:</span>
-                <span className="info-value">{supplier.telefono}</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">Email:</span>
-                <span className="info-value">{supplier.email}</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">Entrega:</span>
-                <span className="info-value">{supplier.tiempoEntrega}</span>
-              </div>
-            </div>
-            <div className="supplier-categories">
-              {supplier.categorias.map(cat => (
-                <span key={cat} className={`category-badge category-${cat.toLowerCase()}`}>
-                  {cat}
-                </span>
-              ))}
-            </div>
-            <div className="supplier-actions">
-              <button className="btn btn--small btn--secondary">
-                📋 Historial
-              </button>
-              <button className="btn btn--small btn--primary">
-                🛒 Pedir
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
   return (
     <div className="inventory-container">
       <div className="inventory-header-main">
         <div className="inventory-title">
-          <h2>📦 Sistema de Gestión de Inventario</h2>
-          <p>Control integral de materiales, insumos y proveedores</p>
+          <h2>📦 Gestión de Inventario</h2>
+          <p>Control integral de materiales e insumos</p>
         </div>
-      </div>
-
-      <div className="inventory-tabs">
-        <button 
-          className={`tab ${activeInventoryTab === 'materials' ? 'tab--active' : ''}`}
-          onClick={() => setActiveInventoryTab('materials')}
-        >
-          📦 Materiales
-        </button>
-        <button 
-          className={`tab ${activeInventoryTab === 'suppliers' ? 'tab--active' : ''}`}
-          onClick={() => setActiveInventoryTab('suppliers')}
-        >
-          🏢 Proveedores
-        </button>
       </div>
 
       {isLoading ? (
@@ -493,8 +341,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
         </div>
       ) : (
         <div className="inventory-body">
-          {activeInventoryTab === 'materials' && renderMaterialsTab()}
-          {activeInventoryTab === 'suppliers' && renderSuppliersTab()}
+          {renderMaterialsTab()}
         </div>
       )}
 
