@@ -1,35 +1,13 @@
 import { useState, useEffect } from 'react';
-import { reportesRiesgo } from '../../data/mockData';
+import { useRiskReports } from '../../context/RiskReportsContext';
 import './RiskComponent.css';
 
 const RiskComponent = ({ userType = 'admin' }) => {
-  const [risks, setRisks] = useState([]);
+  const { reports, loading, updateReportStatus, getReportStats } = useRiskReports();
   const [selectedReport, setSelectedReport] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    loadRiskData();
-  }, []);
-
-  const loadRiskData = () => {
-    setIsLoading(true);
-
-    setTimeout(() => {
-      // Cargar reportes de riesgo de conductores
-      setRisks(reportesRiesgo);
-      setIsLoading(false);
-    }, 800);
-  };
-
-  const updateReportStatus = (reportId, newStatus) => {
-    setRisks(prevRisks => 
-      prevRisks.map(risk => 
-        risk.id === reportId 
-          ? { ...risk, estado: newStatus, fechaActualizacion: new Date().toISOString() }
-          : risk
-      )
-    );
-  };
+  // Los reportes y funciones vienen del contexto
+  const stats = getReportStats();
 
   const getPriorityLevel = (priority) => {
     switch(priority) {
@@ -60,7 +38,7 @@ const RiskComponent = ({ userType = 'admin' }) => {
         </div>
       </div>
 
-      {isLoading ? (
+      {loading ? (
         <div className="risk-loading">
           <div className="loading-spinner">
             <div className="spinner"></div>
@@ -74,44 +52,75 @@ const RiskComponent = ({ userType = 'admin' }) => {
             <div className="stat-card">
               <div className="stat-icon">📋</div>
               <div className="stat-data">
-                <div className="stat-value">{risks.length}</div>
+                <div className="stat-value">{stats.total}</div>
                 <div className="stat-label">Total Reportes</div>
               </div>
             </div>
             <div className="stat-card">
               <div className="stat-icon">🔧</div>
               <div className="stat-data">
-                <div className="stat-value">
-                  {risks.filter(r => r.tipo === 'interno').length}
-                </div>
+                <div className="stat-value">{stats.internos}</div>
                 <div className="stat-label">Riesgos Internos</div>
               </div>
             </div>
             <div className="stat-card">
               <div className="stat-icon">🚧</div>
               <div className="stat-data">
-                <div className="stat-value">
-                  {risks.filter(r => r.tipo === 'externo').length}
-                </div>
+                <div className="stat-value">{stats.externos}</div>
                 <div className="stat-label">Riesgos Externos</div>
               </div>
             </div>
             <div className="stat-card">
               <div className="stat-icon">⚡</div>
               <div className="stat-data">
-                <div className="stat-value">
-                  {risks.filter(r => r.estado === 'reportado').length}
-                </div>
+                <div className="stat-value">{stats.pendientes}</div>
                 <div className="stat-label">Pendientes</div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon">👁️</div>
+              <div className="stat-data">
+                <div className="stat-value">{stats.enRevision}</div>
+                <div className="stat-label">En Revisión</div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon">✅</div>
+              <div className="stat-data">
+                <div className="stat-value">{stats.resueltos}</div>
+                <div className="stat-label">Resueltos</div>
               </div>
             </div>
           </div>
 
-          {/* Lista de reportes */}
+          {/* Grid de reportes */}
           <div className="reports-section">
-            <h3>📋 Reportes de Conductores</h3>
-            <div className="reports-grid">
-              {risks.map(risk => (
+            <div className="reports-section-header">
+              <h3>📋 Reportes de Conductores</h3>
+              <div className="reports-filters">
+                <select className="reports-filter-select">
+                  <option value="todos">Todos los reportes</option>
+                  <option value="reportado">Pendientes</option>
+                  <option value="en_revision">En revisión</option>
+                  <option value="resuelto">Resueltos</option>
+                </select>
+                <select className="reports-filter-select">
+                  <option value="todos">Todos los tipos</option>
+                  <option value="interno">Internos</option>
+                  <option value="externo">Externos</option>
+                </select>
+              </div>
+            </div>
+            
+            {reports.length === 0 ? (
+              <div className="no-reports">
+                <div className="no-reports-icon">📋</div>
+                <h4>No hay reportes de riesgo</h4>
+                <p>Los conductores no han creado reportes de riesgo aún</p>
+              </div>
+            ) : (
+              <div className="reports-responsive-grid">
+                {reports.map(risk => (
                 <div key={risk.id} className={`report-card report-${getPriorityLevel(risk.prioridad)}`}>
                   <div className="report-header">
                     <div className="report-type">
@@ -177,16 +186,9 @@ const RiskComponent = ({ userType = 'admin' }) => {
                     )}
                   </div>
                 </div>
-              ))}
-              
-              {risks.length === 0 && (
-                <div className="no-reports">
-                  <div className="no-reports-icon">📋</div>
-                  <h4>No hay reportes de riesgo</h4>
-                  <p>Los conductores no han creado reportes de riesgo aún</p>
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -3,6 +3,7 @@ import Login from './components/Login/Login';
 import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
 import EnterpriseDashboard from './pages/EnterpriseDashboard/EnterpriseDashboard';
 import ConductorDashboard from './pages/ConductorDashboard/ConductorDashboard';
+import { RiskReportsProvider } from './context/RiskReportsContext';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -44,24 +45,32 @@ function App() {
   }
 
   // Mostrar dashboard según el tipo de usuario
-  switch (user.tipo) {
-    case 'admin':
-      return <AdminDashboard user={user} onLogout={handleLogout} />;
-    case 'enterprise':
-      return <EnterpriseDashboard user={user} onLogout={handleLogout} />;
-    case 'conductor':
-      return <ConductorDashboard user={user} onLogout={handleLogout} />;
-    default:
-      return (
-        <div className="error-container">
-          <h1>Error</h1>
-          <p>Tipo de usuario no reconocido: {user.tipo}</p>
-          <button className="btn btn--primary" onClick={handleLogout}>
-            Volver al Login
-          </button>
-        </div>
-      );
-  }
+  const renderDashboard = () => {
+    switch (user.tipo) {
+      case 'admin':
+        return <AdminDashboard user={user} onLogout={handleLogout} />;
+      case 'enterprise':
+        return <EnterpriseDashboard user={user} onLogout={handleLogout} />;
+      case 'conductor':
+        return <ConductorDashboard user={user} onLogout={handleLogout} />;
+      default:
+        return (
+          <div className="error-container">
+            <h1>Error</h1>
+            <p>Tipo de usuario no reconocido: {user.tipo}</p>
+            <button className="btn btn--primary" onClick={handleLogout}>
+              Volver al Login
+            </button>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <RiskReportsProvider>
+      {renderDashboard()}
+    </RiskReportsProvider>
+  );
 }
 
 export default App; 

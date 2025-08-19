@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { appData, reportesRiesgo } from '../../data/mockData';
+import { appData } from '../../data/mockData';
 import WeightModal from '../../components/WeightModal/WeightModal';
 import MapComponent from '../../components/Map/MapComponent';
+import { useRiskReports } from '../../context/RiskReportsContext';
 import './ConductorDashboard.css';
 
 // Hook para PWA
@@ -38,6 +39,8 @@ const usePWAInstallPrompt = () => {
 
 const ConductorDashboard = ({ user, onLogout }) => {
   const { isInstallable, installPWA } = usePWAInstallPrompt();
+  const { addReport, getReportsByDriver, loading: reportsLoading } = useRiskReports();
+  
   const [completedStops, setCompletedStops] = useState([]);
   const [currentStop, setCurrentStop] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -161,24 +164,21 @@ const ConductorDashboard = ({ user, onLogout }) => {
       return;
     }
 
-    // Simular envío del reporte
-    const newReport = {
-      id: `RISK_${Date.now()}`,
+    // Crear el reporte con datos reales
+    const reportData = {
       conductor: user.nombre,
       camion: user.camionAsignado,
       fecha: new Date().toISOString(),
       ...riskReport,
       ubicacion: userTruck ? `Lat: ${userTruck.lat.toFixed(6)}, Lng: ${userTruck.lng.toFixed(6)}` : 'No disponible',
-      coordenadas: userTruck ? { lat: userTruck.lat, lng: userTruck.lng } : null,
-      estado: 'reportado',
-      fechaCreacion: new Date().toISOString(),
-      fechaActualizacion: new Date().toISOString()
+      coordenadas: userTruck ? { lat: userTruck.lat, lng: userTruck.lng } : null
     };
 
-    // En una implementación real, esto se enviaría al servidor
-    console.log('Nuevo reporte de riesgo:', newReport);
+    // Agregar al estado global (se guarda automáticamente en localStorage)
+    const createdReport = addReport(reportData);
+    console.log('Reporte creado:', createdReport);
     
-    alert('Reporte de riesgo enviado correctamente. El administrador será notificado.');
+    alert('✅ Reporte de riesgo enviado correctamente. El administrador será notificado.');
     
     // Resetear formulario
     setRiskReport({
@@ -475,45 +475,50 @@ const ConductorDashboard = ({ user, onLogout }) => {
             <div className="card">
               <div className="card__body">
                 <h3>📋 Mis Reportes de Riesgo</h3>
-                <div className="reportes-list">
-                  {reportesRiesgo
-                    .filter(reporte => reporte.conductor === user.nombre)
-                    .map(reporte => (
-                    <div key={reporte.id} className={`reporte-item reporte-${reporte.prioridad}`}>
-                      <div className="reporte-header">
-                        <div className="reporte-tipo">
-                          {reporte.tipo === 'interno' ? '🔧' : '🚧'} {reporte.tipo.toUpperCase()}
+                {reportsLoading ? (
+                  <div className="loading-reports">
+                    <div className="spinner"></div>
+                    <p>Cargando reportes...</p>
+                  </div>
+                ) : (
+                  <div className="reportes-grid">
+                    {getReportsByDriver(user.nombre).map(reporte => (
+                      <div key={reporte.id} className={`reporte-card reporte-${reporte.prioridad}`}>
+                        <div className="reporte-header">
+                          <div className="reporte-tipo">
+                            {reporte.tipo === 'interno' ? '🔧' : '🚧'} {reporte.tipo.toUpperCase()}
+                          </div>
+                          <div className="reporte-fecha">
+                            {new Date(reporte.fechaCreacion).toLocaleDateString('es-ES')}
+                          </div>
+                          <div className={`reporte-estado estado-${reporte.estado}`}>
+                            {reporte.estado.replace('_', ' ').toUpperCase()}
+                          </div>
                         </div>
-                        <div className="reporte-fecha">
-                          {new Date(reporte.fechaCreacion).toLocaleDateString('es-ES')}
-                        </div>
-                        <div className={`reporte-estado estado-${reporte.estado}`}>
-                          {reporte.estado.replace('_', ' ').toUpperCase()}
+                        <div className="reporte-body">
+                          <h4>{reporte.titulo}</h4>
+                          <p className="reporte-categoria">📂 {reporte.categoria}</p>
+                          <p className="reporte-descripcion">{reporte.descripcion}</p>
+                          <div className="reporte-meta">
+                            <span className="reporte-prioridad">
+                              ⚠️ Prioridad: {reporte.prioridad.toUpperCase()}
+                            </span>
+                            <span className="reporte-ubicacion">
+                              📍 {reporte.ubicacion}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <div className="reporte-body">
-                        <h4>{reporte.titulo}</h4>
-                        <p className="reporte-categoria">📂 {reporte.categoria}</p>
-                        <p className="reporte-descripcion">{reporte.descripcion}</p>
-                        <div className="reporte-meta">
-                          <span className="reporte-prioridad">
-                            ⚠️ Prioridad: {reporte.prioridad.toUpperCase()}
-                          </span>
-                          <span className="reporte-ubicacion">
-                            📍 {reporte.ubicacion}
-                          </span>
-                        </div>
+                    ))}
+                    {getReportsByDriver(user.nombre).length === 0 && (
+                      <div className="no-reportes">
+                        <div className="no-reportes-icon">📋</div>
+                        <h4>No tienes reportes de riesgo</h4>
+                        <p>Usa el botón "Reportar Riesgo" para crear tu primer reporte</p>
                       </div>
-                    </div>
-                  ))}
-                  {reportesRiesgo.filter(reporte => reporte.conductor === user.nombre).length === 0 && (
-                    <div className="no-reportes">
-                      <div className="no-reportes-icon">📋</div>
-                      <h4>No tienes reportes de riesgo</h4>
-                      <p>Usa el botón "Reportar Riesgo" para crear tu primer reporte</p>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
