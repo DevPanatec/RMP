@@ -1014,6 +1014,8 @@ const AdminDashboard = ({ user, onLogout }) => {
     }
   };
 
+  console.log('AdminDashboard renderizado'); // DEBUG
+  
   return (
     <div className="dashboard-container">
       <div className="sidebar">
@@ -1059,8 +1061,9 @@ const AdminDashboard = ({ user, onLogout }) => {
               <button 
                 className={activeTab === 'reportes' ? 'active' : ''}
                 onClick={() => handleTabChange('reportes')}
+                style={{ backgroundColor: 'yellow', border: '3px solid red' }}
               >
-                📊 Reportes
+                📊 Reportes (DEBUG)
               </button>
             </li>
           </ul>
