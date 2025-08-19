@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { appData } from '../../data/mockData';
+import { appData, reportesRiesgo } from '../../data/mockData';
 import WeightModal from '../../components/WeightModal/WeightModal';
 import MapComponent from '../../components/Map/MapComponent';
 import './ConductorDashboard.css';
@@ -46,6 +46,15 @@ const ConductorDashboard = ({ user, onLogout }) => {
   const [timeOnRoute, setTimeOnRoute] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
+  const [activeTab, setActiveTab] = useState('ruta');
+  const [showRiskModal, setShowRiskModal] = useState(false);
+  const [riskReport, setRiskReport] = useState({
+    tipo: 'interno',
+    categoria: '',
+    titulo: '',
+    descripcion: '',
+    prioridad: 'media'
+  });
 
   // Detectar estado de conexión
   useEffect(() => {
@@ -146,6 +155,42 @@ const ConductorDashboard = ({ user, onLogout }) => {
     return Math.round((completedStops.length / assignedRoute.paradas.length) * 100);
   };
 
+  const handleSubmitRiskReport = () => {
+    if (!riskReport.categoria || !riskReport.titulo || !riskReport.descripcion) {
+      alert('Por favor completa todos los campos obligatorios');
+      return;
+    }
+
+    // Simular envío del reporte
+    const newReport = {
+      id: `RISK_${Date.now()}`,
+      conductor: user.nombre,
+      camion: user.camionAsignado,
+      fecha: new Date().toISOString(),
+      ...riskReport,
+      ubicacion: userTruck ? `Lat: ${userTruck.lat.toFixed(6)}, Lng: ${userTruck.lng.toFixed(6)}` : 'No disponible',
+      coordenadas: userTruck ? { lat: userTruck.lat, lng: userTruck.lng } : null,
+      estado: 'reportado',
+      fechaCreacion: new Date().toISOString(),
+      fechaActualizacion: new Date().toISOString()
+    };
+
+    // En una implementación real, esto se enviaría al servidor
+    console.log('Nuevo reporte de riesgo:', newReport);
+    
+    alert('Reporte de riesgo enviado correctamente. El administrador será notificado.');
+    
+    // Resetear formulario
+    setRiskReport({
+      tipo: 'interno',
+      categoria: '',
+      titulo: '',
+      descripcion: '',
+      prioridad: 'media'
+    });
+    setShowRiskModal(false);
+  };
+
   if (!userTruck || !assignedRoute) {
     return (
       <div className="dashboard-container">
@@ -209,14 +254,39 @@ const ConductorDashboard = ({ user, onLogout }) => {
             <div className="time-indicator">
               ⏱️ {formatTime(timeOnRoute)}
             </div>
+            <button 
+              className="btn btn--warning"
+              onClick={() => setShowRiskModal(true)}
+              title="Reportar un riesgo"
+            >
+              ⚠️ Reportar Riesgo
+            </button>
             <button className="logout-btn" onClick={onLogout}>
               🚪 Cerrar Sesión
             </button>
           </div>
         </div>
 
-        {/* KPIs del conductor */}
-        <div className="conductor-kpis">
+        {/* Navegación por tabs */}
+        <div className="conductor-tabs">
+          <button 
+            className={`tab-btn ${activeTab === 'ruta' ? 'active' : ''}`}
+            onClick={() => setActiveTab('ruta')}
+          >
+            🗺️ Mi Ruta
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'reportes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('reportes')}
+          >
+            📋 Mis Reportes
+          </button>
+        </div>
+
+        {activeTab === 'ruta' && (
+          <>
+            {/* KPIs del conductor */}
+            <div className="conductor-kpis">
           <div className="kpi-card">
             <div className="kpi-icon">🚛</div>
             <div className="kpi-content">
@@ -397,6 +467,181 @@ const ConductorDashboard = ({ user, onLogout }) => {
             </div>
           </div>
         </div>
+          </>
+        )}
+
+        {activeTab === 'reportes' && (
+          <div className="mis-reportes-section">
+            <div className="card">
+              <div className="card__body">
+                <h3>📋 Mis Reportes de Riesgo</h3>
+                <div className="reportes-list">
+                  {reportesRiesgo
+                    .filter(reporte => reporte.conductor === user.nombre)
+                    .map(reporte => (
+                    <div key={reporte.id} className={`reporte-item reporte-${reporte.prioridad}`}>
+                      <div className="reporte-header">
+                        <div className="reporte-tipo">
+                          {reporte.tipo === 'interno' ? '🔧' : '🚧'} {reporte.tipo.toUpperCase()}
+                        </div>
+                        <div className="reporte-fecha">
+                          {new Date(reporte.fechaCreacion).toLocaleDateString('es-ES')}
+                        </div>
+                        <div className={`reporte-estado estado-${reporte.estado}`}>
+                          {reporte.estado.replace('_', ' ').toUpperCase()}
+                        </div>
+                      </div>
+                      <div className="reporte-body">
+                        <h4>{reporte.titulo}</h4>
+                        <p className="reporte-categoria">📂 {reporte.categoria}</p>
+                        <p className="reporte-descripcion">{reporte.descripcion}</p>
+                        <div className="reporte-meta">
+                          <span className="reporte-prioridad">
+                            ⚠️ Prioridad: {reporte.prioridad.toUpperCase()}
+                          </span>
+                          <span className="reporte-ubicacion">
+                            📍 {reporte.ubicacion}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {reportesRiesgo.filter(reporte => reporte.conductor === user.nombre).length === 0 && (
+                    <div className="no-reportes">
+                      <div className="no-reportes-icon">📋</div>
+                      <h4>No tienes reportes de riesgo</h4>
+                      <p>Usa el botón "Reportar Riesgo" para crear tu primer reporte</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de reporte de riesgo */}
+        {showRiskModal && (
+          <div className="modal-overlay" onClick={() => setShowRiskModal(false)}>
+            <div className="modal-content risk-modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>⚠️ Reportar Riesgo</h3>
+                <button className="modal-close" onClick={() => setShowRiskModal(false)}>✕</button>
+              </div>
+              
+              <div className="modal-body">
+                <div className="form-group">
+                  <label>Tipo de Riesgo *</label>
+                  <div className="radio-group">
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name="tipo"
+                        value="interno"
+                        checked={riskReport.tipo === 'interno'}
+                        onChange={e => setRiskReport(prev => ({...prev, tipo: e.target.value}))}
+                      />
+                      <span>🔧 Interno</span>
+                      <small>Problemas con el vehículo, equipo o empresa</small>
+                    </label>
+                    <label className="radio-label">
+                      <input
+                        type="radio"
+                        name="tipo"
+                        value="externo"
+                        checked={riskReport.tipo === 'externo'}
+                        onChange={e => setRiskReport(prev => ({...prev, tipo: e.target.value}))}
+                      />
+                      <span>🚧 Externo</span>
+                      <small>Situaciones externas que afectan las operaciones</small>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Categoría *</label>
+                  <select
+                    value={riskReport.categoria}
+                    onChange={e => setRiskReport(prev => ({...prev, categoria: e.target.value}))}
+                    required
+                  >
+                    <option value="">Seleccionar categoría</option>
+                    {riskReport.tipo === 'interno' ? (
+                      <>
+                        <option value="Mecánico">Problemas mecánicos</option>
+                        <option value="Combustible">Combustible</option>
+                        <option value="Equipo de seguridad">Equipo de seguridad</option>
+                        <option value="Mantenimiento">Mantenimiento requerido</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="Bloqueo de vía">Bloqueo de vía</option>
+                        <option value="Seguridad ciudadana">Seguridad ciudadana</option>
+                        <option value="Condiciones climáticas">Condiciones climáticas</option>
+                        <option value="Protesta/manifestación">Protesta o manifestación</option>
+                        <option value="Accidente de tránsito">Accidente de tránsito</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Título del reporte *</label>
+                  <input
+                    type="text"
+                    placeholder="Resumen breve del riesgo"
+                    value={riskReport.titulo}
+                    onChange={e => setRiskReport(prev => ({...prev, titulo: e.target.value}))}
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Descripción detallada *</label>
+                  <textarea
+                    placeholder="Describe el riesgo con el mayor detalle posible..."
+                    rows={4}
+                    value={riskReport.descripcion}
+                    onChange={e => setRiskReport(prev => ({...prev, descripcion: e.target.value}))}
+                    required
+                  ></textarea>
+                </div>
+
+                <div className="form-group">
+                  <label>Prioridad</label>
+                  <select
+                    value={riskReport.prioridad}
+                    onChange={e => setRiskReport(prev => ({...prev, prioridad: e.target.value}))}
+                  >
+                    <option value="baja">🟢 Baja</option>
+                    <option value="media">🟡 Media</option>
+                    <option value="alta">🟠 Alta</option>
+                    <option value="critica">🔴 Crítica</option>
+                  </select>
+                </div>
+
+                <div className="location-info">
+                  <p><strong>📍 Ubicación actual:</strong></p>
+                  <p>Lat: {userTruck?.lat.toFixed(6)}, Lng: {userTruck?.lng.toFixed(6)}</p>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button 
+                  className="btn btn--secondary"
+                  onClick={() => setShowRiskModal(false)}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  className="btn btn--warning"
+                  onClick={handleSubmitRiskReport}
+                >
+                  📤 Enviar Reporte
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <WeightModal
           isOpen={isModalOpen}

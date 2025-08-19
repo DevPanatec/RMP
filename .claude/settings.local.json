@@ -5,7 +5,9 @@
       "Bash(mv:*)",
       "Bash(rm:*)",
       "Bash(git add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(taskkill:*)",
+      "Bash(git pull:*)"
     ],
     "deny": [],
     "ask": [],

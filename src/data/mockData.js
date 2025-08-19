@@ -794,4 +794,88 @@ export const simularMovimientoReal = (camion, ruta) => {
   return camion;
 };
 
+// Reportes de riesgo creados por conductores
+export const reportesRiesgo = [
+  {
+    id: 'RISK_001',
+    conductor: 'Juan Pérez',
+    camion: 'TR-001',
+    fecha: new Date('2024-01-26T14:30:00').toISOString(),
+    tipo: 'interno', // interno | externo
+    categoria: 'Mecánico',
+    titulo: 'Frenos del camión con ruido extraño',
+    descripcion: 'Durante la ruta matutina noté que los frenos del camión TR-001 hacen un ruido extraño al frenar. No afecta el frenado pero podría ser una falla futura.',
+    ubicacion: 'Calle 50, cerca del Hospital Santo Tomás',
+    coordenadas: { lat: 8.960574, lng: -79.526755 },
+    prioridad: 'media', // baja | media | alta | critica
+    estado: 'reportado', // reportado | en_revision | resuelto
+    fechaCreacion: new Date('2024-01-26T14:30:00').toISOString(),
+    fechaActualizacion: new Date('2024-01-26T14:30:00').toISOString()
+  },
+  {
+    id: 'RISK_002',
+    conductor: 'María García',
+    camion: 'TR-002',
+    fecha: new Date('2024-01-25T16:15:00').toISOString(),
+    tipo: 'externo',
+    categoria: 'Bloqueo de vía',
+    titulo: 'Protesta bloquea Avenida Central',
+    descripcion: 'Hay una manifestación pacífica en Avenida Central que impide el paso de vehículos de carga. Tuve que tomar ruta alterna por Vía España.',
+    ubicacion: 'Avenida Central, frente al Teatro Nacional',
+    coordenadas: { lat: 8.955000, lng: -79.532000 },
+    prioridad: 'alta',
+    estado: 'reportado',
+    fechaCreacion: new Date('2024-01-25T16:15:00').toISOString(),
+    fechaActualizacion: new Date('2024-01-25T16:15:00').toISOString()
+  },
+  {
+    id: 'RISK_003',
+    conductor: 'Juan Pérez',
+    camion: 'TR-001',
+    fecha: new Date('2024-01-24T11:45:00').toISOString(),
+    tipo: 'interno',
+    categoria: 'Combustible',
+    titulo: 'Medidor de combustible marca incorrectamente',
+    descripcion: 'El medidor de combustible muestra 75% pero el tanque parece tener menos gasolina. Recomiendo revisión del sistema de medición.',
+    ubicacion: 'Base de operaciones RMP',
+    coordenadas: { lat: 8.990000, lng: -79.520000 },
+    prioridad: 'media',
+    estado: 'en_revision',
+    fechaCreacion: new Date('2024-01-24T11:45:00').toISOString(),
+    fechaActualizacion: new Date('2024-01-26T09:00:00').toISOString()
+  },
+  {
+    id: 'RISK_004',
+    conductor: 'Carlos López',
+    camion: 'TR-003',
+    fecha: new Date('2024-01-23T13:20:00').toISOString(),
+    tipo: 'externo',
+    categoria: 'Seguridad ciudadana',
+    titulo: 'Actividad sospechosa en zona de recolección',
+    descripcion: 'Observé personas sospechosas merodeando en la zona del Mercado de Mariscos. No se acercaron pero mantenían vigilancia sobre los camiones.',
+    ubicacion: 'Mercado de Mariscos, Casco Viejo',
+    coordenadas: { lat: 8.951000, lng: -79.534000 },
+    prioridad: 'alta',
+    estado: 'reportado',
+    fechaCreacion: new Date('2024-01-23T13:20:00').toISOString(),
+    fechaActualizacion: new Date('2024-01-23T13:20:00').toISOString()
+  },
+  {
+    id: 'RISK_005',
+    conductor: 'María García',
+    camion: 'TR-002',
+    fecha: new Date('2024-01-22T08:30:00').toISOString(),
+    tipo: 'interno',
+    categoria: 'Equipo de seguridad',
+    titulo: 'Chaleco reflectivo deteriorado',
+    descripcion: 'Mi chaleco reflectivo tiene varias rasgaduras y ha perdido capacidad reflectante. Necesito reemplazo urgente por seguridad.',
+    ubicacion: 'Almacén de equipos RMP',
+    coordenadas: { lat: 8.990000, lng: -79.520000 },
+    prioridad: 'media',
+    estado: 'resuelto',
+    fechaCreacion: new Date('2024-01-22T08:30:00').toISOString(),
+    fechaActualizacion: new Date('2024-01-22T15:00:00').toISOString()
+  }
+];
+
 export default appData; 

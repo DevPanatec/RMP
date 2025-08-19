@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import { reportesRiesgo } from '../../data/mockData';
 import './RiskComponent.css';
 
 const RiskComponent = ({ userType = 'admin' }) => {
   const [risks, setRisks] = useState([]);
-  const [incidents, setIncidents] = useState([]);
+  const [selectedReport, setSelectedReport] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -14,109 +15,48 @@ const RiskComponent = ({ userType = 'admin' }) => {
     setIsLoading(true);
 
     setTimeout(() => {
-      // Datos de riesgos (mock)
-      const risksData = [
-        {
-          id: 'RISK001',
-          area: 'Centro Histórico',
-          descripcion: 'Calles estrechas que dificultan maniobras de camiones',
-          probabilidad: 4,
-          impacto: 3,
-          categoria: 'Operativo',
-          propietario: 'Depto. Operaciones',
-          fechaReporte: '2024-01-15',
-          estado: 'Abierto',
-          planMitigacion: 'Asignar camiones pequeños y rutas alternas'
-        },
-        {
-          id: 'RISK002',
-          area: 'Mercado de Abastos',
-          descripcion: 'Concentración de residuos orgánicos genera malos olores',
-          probabilidad: 3,
-          impacto: 4,
-          categoria: 'Ambiental',
-          propietario: 'Depto. Higiene',
-          fechaReporte: '2024-01-18',
-          estado: 'En Progreso',
-          planMitigacion: 'Aumentar frecuencia de recolección y desinfección'
-        },
-        {
-          id: 'RISK003',
-          area: 'Ruta Norte',
-          descripcion: 'Alto tránsito vehicular produce retrasos',
-          probabilidad: 5,
-          impacto: 2,
-          categoria: 'Logístico',
-          propietario: 'Depto. Tráfico',
-          fechaReporte: '2024-01-20',
-          estado: 'Abierto',
-          planMitigacion: 'Reprogramar horarios y optimizar rutas'
-        },
-        {
-          id: 'RISK004',
-          area: 'Planta de Transferencia',
-          descripcion: 'Fuga menor de combustible reportada',
-          probabilidad: 2,
-          impacto: 5,
-          categoria: 'Seguridad',
-          propietario: 'Depto. Mantenimiento',
-          fechaReporte: '2024-01-22',
-          estado: 'Cerrado',
-          planMitigacion: 'Reparar sellos y mejorar inspecciones'
-        }
-      ];
-
-      // Datos de incidentes (mock)
-      const incidentsData = [
-        {
-          id: 'INC001',
-          fecha: '2024-01-25',
-          tipo: 'Accidente menor',
-          descripcion: 'Golpe leve a vehículo estacionado en Casco Viejo',
-          severidad: 'Baja',
-          responsable: 'Camión #12',
-          acciones: 'Reporte y capacitación'
-        },
-        {
-          id: 'INC002',
-          fecha: '2024-01-26',
-          tipo: 'Derrame',
-          descripcion: 'Derrame de residuos líquidos en Ruta Sur',
-          severidad: 'Media',
-          responsable: 'Camión #8',
-          acciones: 'Limpieza inmediata y registro'
-        },
-        {
-          id: 'INC003',
-          fecha: '2024-01-27',
-          tipo: 'Lesión',
-          descripcion: 'Operario sufrió corte menor manipulando contenedor',
-          severidad: 'Alta',
-          responsable: 'Operario Juan P.',
-          acciones: 'Atención médica y revisión de EPP'
-        }
-      ];
-
-      setRisks(risksData);
-      setIncidents(incidentsData);
+      // Cargar reportes de riesgo de conductores
+      setRisks(reportesRiesgo);
       setIsLoading(false);
     }, 800);
   };
 
-  const calcSeverity = (risk) => risk.probabilidad * risk.impacto; // 1-25
+  const updateReportStatus = (reportId, newStatus) => {
+    setRisks(prevRisks => 
+      prevRisks.map(risk => 
+        risk.id === reportId 
+          ? { ...risk, estado: newStatus, fechaActualizacion: new Date().toISOString() }
+          : risk
+      )
+    );
+  };
 
-  const getSeverityLevel = (value) => {
-    if (value >= 15) return 'alto';
-    if (value >= 8) return 'medio';
-    return 'bajo';
+  const getPriorityLevel = (priority) => {
+    switch(priority) {
+      case 'critica': return 'alto';
+      case 'alta': return 'alto';
+      case 'media': return 'medio';
+      case 'baja': return 'bajo';
+      default: return 'medio';
+    }
+  };
+
+  const getPriorityIcon = (priority) => {
+    switch(priority) {
+      case 'critica': return '🔴';
+      case 'alta': return '🟠';
+      case 'media': return '🟡';
+      case 'baja': return '🟢';
+      default: return '🟡';
+    }
   };
 
   return (
     <div className="risk-container">
       <div className="risk-header-main">
         <div className="risk-title">
-          <h2>⚠️ Análisis de Riesgos Operativos</h2>
-          <p>Identificación y mitigación de riesgos en las operaciones de recolección</p>
+          <h2>⚠️ Reportes de Riesgo de Conductores</h2>
+          <p>Reportes de riesgo creados por los conductores durante sus operaciones</p>
         </div>
       </div>
 
@@ -124,7 +64,7 @@ const RiskComponent = ({ userType = 'admin' }) => {
         <div className="risk-loading">
           <div className="loading-spinner">
             <div className="spinner"></div>
-            <p>Cargando datos de riesgos...</p>
+            <p>Cargando reportes de riesgo...</p>
           </div>
         </div>
       ) : (
@@ -132,100 +72,221 @@ const RiskComponent = ({ userType = 'admin' }) => {
           {/* Estadísticas generales */}
           <div className="risk-stats">
             <div className="stat-card">
-              <div className="stat-icon">⚠️</div>
+              <div className="stat-icon">📋</div>
               <div className="stat-data">
                 <div className="stat-value">{risks.length}</div>
-                <div className="stat-label">Riesgos Totales</div>
+                <div className="stat-label">Total Reportes</div>
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon">🔴</div>
+              <div className="stat-icon">🔧</div>
               <div className="stat-data">
                 <div className="stat-value">
-                  {risks.filter(r => getSeverityLevel(calcSeverity(r)) === 'alto').length}
+                  {risks.filter(r => r.tipo === 'interno').length}
                 </div>
-                <div className="stat-label">Riesgos Altos</div>
+                <div className="stat-label">Riesgos Internos</div>
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon">🟡</div>
+              <div className="stat-icon">🚧</div>
               <div className="stat-data">
                 <div className="stat-value">
-                  {incidents.length}
+                  {risks.filter(r => r.tipo === 'externo').length}
                 </div>
-                <div className="stat-label">Incidentes Recientes</div>
+                <div className="stat-label">Riesgos Externos</div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-icon">⚡</div>
+              <div className="stat-data">
+                <div className="stat-value">
+                  {risks.filter(r => r.estado === 'reportado').length}
+                </div>
+                <div className="stat-label">Pendientes</div>
               </div>
             </div>
           </div>
 
-          {/* Tabla de riesgos */}
-          <div className="table-wrapper">
-            <table className="risk-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Área</th>
-                  <th>Descripción</th>
-                  <th>Prob.</th>
-                  <th>Impacto</th>
-                  <th>Severidad</th>
-                  <th>Categoría</th>
-                  <th>Estado</th>
-                  <th>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {risks.map(risk => {
-                  const sevValue = calcSeverity(risk);
-                  const sevLevel = getSeverityLevel(sevValue);
-                  return (
-                    <tr key={risk.id}>
-                      <td>{risk.id}</td>
-                      <td>{risk.area}</td>
-                      <td>{risk.descripcion}</td>
-                      <td>{risk.probabilidad}</td>
-                      <td>{risk.impacto}</td>
-                      <td>
-                        <span className={`severity-badge severity-${sevLevel}`}>
-                          {sevValue}
-                        </span>
-                      </td>
-                      <td>{risk.categoria}</td>
-                      <td>{risk.estado}</td>
-                      <td>
-                        <button className="btn btn--small btn--secondary">👁️</button>
-                        <button className="btn btn--small btn--primary">✏️</button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Incidentes recientes */}
-          <div className="incidents-section">
-            <h3>🚨 Incidentes Recientes</h3>
-            <div className="incidents-grid">
-              {incidents.map(inc => (
-                <div key={inc.id} className={`incident-card incident-${inc.severidad.toLowerCase()}`}>
-                  <div className="incident-header">
-                    <span className="incident-id">{inc.id}</span>
-                    <span className="incident-date">{inc.fecha}</span>
-                  </div>
-                  <div className="incident-body">
-                    <h4>{inc.tipo}</h4>
-                    <p>{inc.descripcion}</p>
-                    <div className="incident-details">
-                      <span>Severidad: <strong>{inc.severidad}</strong></span>
-                      <span>Responsable: {inc.responsable}</span>
+          {/* Lista de reportes */}
+          <div className="reports-section">
+            <h3>📋 Reportes de Conductores</h3>
+            <div className="reports-grid">
+              {risks.map(risk => (
+                <div key={risk.id} className={`report-card report-${getPriorityLevel(risk.prioridad)}`}>
+                  <div className="report-header">
+                    <div className="report-type">
+                      {risk.tipo === 'interno' ? '🔧' : '🚧'} {risk.tipo.toUpperCase()}
+                    </div>
+                    <div className="report-date">
+                      {new Date(risk.fechaCreacion).toLocaleDateString('es-ES')}
+                    </div>
+                    <div className={`report-status status-${risk.estado}`}>
+                      {risk.estado.replace('_', ' ').toUpperCase()}
                     </div>
                   </div>
-                  <div className="incident-actions">
-                    <button className="btn btn--small btn--outline">📄 Detalles</button>
+                  
+                  <div className="report-body">
+                    <h4>{risk.titulo}</h4>
+                    <p className="report-category">📂 {risk.categoria}</p>
+                    <p className="report-description">{risk.descripcion}</p>
+                    
+                    <div className="report-meta">
+                      <div className="meta-row">
+                        <span className="meta-label">👨‍💼 Conductor:</span>
+                        <span className="meta-value">{risk.conductor}</span>
+                      </div>
+                      <div className="meta-row">
+                        <span className="meta-label">🚛 Camión:</span>
+                        <span className="meta-value">{risk.camion}</span>
+                      </div>
+                      <div className="meta-row">
+                        <span className="meta-label">📍 Ubicación:</span>
+                        <span className="meta-value">{risk.ubicacion}</span>
+                      </div>
+                      <div className="meta-row">
+                        <span className="meta-label">⚠️ Prioridad:</span>
+                        <span className={`priority-badge priority-${risk.prioridad}`}>
+                          {getPriorityIcon(risk.prioridad)} {risk.prioridad.toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="report-actions">
+                    <button 
+                      className="btn btn--small btn--outline"
+                      onClick={() => setSelectedReport(risk)}
+                    >
+                      👁️ Ver Detalles
+                    </button>
+                    {risk.estado === 'reportado' && (
+                      <button 
+                        className="btn btn--small btn--primary"
+                        onClick={() => updateReportStatus(risk.id, 'en_revision')}
+                      >
+                        📋 Revisar
+                      </button>
+                    )}
+                    {risk.estado === 'en_revision' && (
+                      <button 
+                        className="btn btn--small btn--success"
+                        onClick={() => updateReportStatus(risk.id, 'resuelto')}
+                      >
+                        ✅ Marcar Resuelto
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
+              
+              {risks.length === 0 && (
+                <div className="no-reports">
+                  <div className="no-reports-icon">📋</div>
+                  <h4>No hay reportes de riesgo</h4>
+                  <p>Los conductores no han creado reportes de riesgo aún</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de detalles */}
+      {selectedReport && (
+        <div className="modal-overlay" onClick={() => setSelectedReport(null)}>
+          <div className="modal-content report-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>📋 Detalles del Reporte</h3>
+              <button className="modal-close" onClick={() => setSelectedReport(null)}>✕</button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="detail-section">
+                <h4>{selectedReport.titulo}</h4>
+                <div className="detail-badges">
+                  <span className={`type-badge type-${selectedReport.tipo}`}>
+                    {selectedReport.tipo === 'interno' ? '🔧' : '🚧'} {selectedReport.tipo.toUpperCase()}
+                  </span>
+                  <span className={`priority-badge priority-${selectedReport.prioridad}`}>
+                    {getPriorityIcon(selectedReport.prioridad)} {selectedReport.prioridad.toUpperCase()}
+                  </span>
+                  <span className={`status-badge status-${selectedReport.estado}`}>
+                    {selectedReport.estado.replace('_', ' ').toUpperCase()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="detail-section">
+                <h5>📂 Categoría</h5>
+                <p>{selectedReport.categoria}</p>
+              </div>
+
+              <div className="detail-section">
+                <h5>📄 Descripción</h5>
+                <p>{selectedReport.descripcion}</p>
+              </div>
+
+              <div className="detail-section">
+                <h5>ℹ️ Información del Reporte</h5>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">👨‍💼 Conductor:</span>
+                    <span className="detail-value">{selectedReport.conductor}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">🚛 Camión:</span>
+                    <span className="detail-value">{selectedReport.camion}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">📅 Fecha de Reporte:</span>
+                    <span className="detail-value">
+                      {new Date(selectedReport.fechaCreacion).toLocaleDateString('es-ES')} a las {' '}
+                      {new Date(selectedReport.fechaCreacion).toLocaleTimeString('es-ES')}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">📍 Ubicación:</span>
+                    <span className="detail-value">{selectedReport.ubicacion}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">📊 Última Actualización:</span>
+                    <span className="detail-value">
+                      {new Date(selectedReport.fechaActualizacion).toLocaleDateString('es-ES')}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                className="btn btn--secondary"
+                onClick={() => setSelectedReport(null)}
+              >
+                Cerrar
+              </button>
+              {selectedReport.estado === 'reportado' && (
+                <button 
+                  className="btn btn--primary"
+                  onClick={() => {
+                    updateReportStatus(selectedReport.id, 'en_revision');
+                    setSelectedReport(null);
+                  }}
+                >
+                  📋 Marcar en Revisión
+                </button>
+              )}
+              {selectedReport.estado === 'en_revision' && (
+                <button 
+                  className="btn btn--success"
+                  onClick={() => {
+                    updateReportStatus(selectedReport.id, 'resuelto');
+                    setSelectedReport(null);
+                  }}
+                >
+                  ✅ Marcar como Resuelto
+                </button>
+              )}
             </div>
           </div>
         </div>
