@@ -5,6 +5,7 @@ import PersonnelComponent from '../../components/Personnel/PersonnelComponent';
 import InventoryComponent from '../../components/Inventory/InventoryComponent';
 import RoutesComponent from '../../components/Routes/RoutesComponent';
 import RiskComponent from '../../components/Risk/RiskComponent';
+import ReportsComponent from '../../components/Reports/ReportsComponent';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ user, onLogout }) => {
@@ -1006,6 +1007,8 @@ const AdminDashboard = ({ user, onLogout }) => {
         return <RiskComponent userType={user.tipo} />;
       case 'inventario':
         return <InventoryComponent userType={user.tipo} />;
+      case 'reportes':
+        return <ReportsComponent userType={user.tipo} />;
       default:
         return null;
     }
@@ -1050,6 +1053,14 @@ const AdminDashboard = ({ user, onLogout }) => {
                 onClick={() => handleTabChange('inventario')}
               >
                 📦 Inventario
+              </button>
+            </li>
+            <li>
+              <button 
+                className={activeTab === 'reportes' ? 'active' : ''}
+                onClick={() => handleTabChange('reportes')}
+              >
+                📊 Reportes
               </button>
             </li>
           </ul>
