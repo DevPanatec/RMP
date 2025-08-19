@@ -6,6 +6,9 @@ import InventoryComponent from '../../components/Inventory/InventoryComponent';
 import RoutesComponent from '../../components/Routes/RoutesComponent';
 import RiskComponent from '../../components/Risk/RiskComponent';
 import ReportsComponent from '../../components/Reports/ReportsComponent';
+import { usePersonnel } from '../../context/PersonnelContext';
+import { useFleet } from '../../context/FleetContext';
+import { useRoutes } from '../../context/RoutesContext';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ user, onLogout }) => {
@@ -15,38 +18,42 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [serviceTypeFilter, setServiceTypeFilter] = useState('todos');
   
-  const [personnel, setPersonnel] = useState({
-    unassigned: [
-      { id: 'emp001', name: 'Juan Pérez', position: 'Conductor', rating: 8, avatar: 'JP' },
-      { id: 'emp002', name: 'María García', position: 'Ayudante', rating: 9, avatar: 'MG' },
-      { id: 'emp003', name: 'Carlos López', position: 'Supervisor', rating: 7, avatar: 'CL' },
-      { id: 'emp004', name: 'Ana Rodríguez', position: 'Conductor', rating: 8.5, avatar: 'AR' },
-      { id: 'emp005', name: 'Luis Martínez', position: 'Ayudante', rating: 7.8, avatar: 'LM' },
-    ],
-    morning: [
-      { id: 'emp006', name: 'Pedro Sánchez', position: 'Conductor', rating: 9.2, avatar: 'PS' },
-      { id: 'emp007', name: 'Sofia Torres', position: 'Ayudante', rating: 8.7, avatar: 'ST' },
-    ],
-    afternoon: [
-      { id: 'emp008', name: 'Diego Morales', position: 'Supervisor', rating: 8.9, avatar: 'DM' },
-    ],
-    night: [
-      { id: 'emp009', name: 'Carmen Vega', position: 'Conductor', rating: 7.5, avatar: 'CV' },
-    ]
-  });
+  // Hooks de contextos reales
+  const { 
+    personnel, 
+    loading: personnelLoading, 
+    moveEmployee, 
+    addEmployee, 
+    updateEmployee, 
+    deleteEmployee,
+    getPersonnelStats 
+  } = usePersonnel();
   
+  const { 
+    vehicles, 
+    loading: fleetLoading, 
+    updateVehicle, 
+    addVehicle, 
+    deleteVehicle, 
+    assignRoute, 
+    assignDriver,
+    getFleetStats 
+  } = useFleet();
+  
+  const { 
+    routes, 
+    loading: routesLoading, 
+    addRoute, 
+    updateRoute, 
+    deleteRoute, 
+    toggleRouteStatus,
+    getRoutesStats 
+  } = useRoutes();
+  
+  // Estados para drag & drop y modales
   const [draggedEmployee, setDraggedEmployee] = useState(null);
-  
-  const [routes, setRoutes] = useState([
-    { id: 'route001', name: 'Zona Centro', type: 'recoleccion', stops: ['Plaza Central', 'Banco Nacional', 'Centro Comercial', 'Hospital Central'], estimatedTime: '4h', color: '#22c55e', status: 'active' },
-    { id: 'route002', name: 'Zona Norte', type: 'recoleccion', stops: ['Mercado Norte', 'Residencial Los Pinos', 'Escuela Primaria'], estimatedTime: '3.5h', color: '#3b82f6', status: 'active' },
-    { id: 'route003', name: 'Zona Sur', type: 'fumigacion', stops: ['Parque Industrial', 'Almacenes del Sur'], estimatedTime: '6h', color: '#f59e0b', status: 'inactive' },
-    { id: 'route004', name: 'Zona Este', type: 'recoleccion', stops: ['Universidad', 'Centro Deportivo', 'Mall del Este', 'Terminal de Buses'], estimatedTime: '5h', color: '#8b5cf6', status: 'active' }
-  ]);
-  
   const [editingRoute, setEditingRoute] = useState(null);
   const [vehicleRouteAssignments, setVehicleRouteAssignments] = useState({});
-  
   const [showRouteCreator, setShowRouteCreator] = useState(false);
   const [newRoute, setNewRoute] = useState({
     name: '',
@@ -55,9 +62,15 @@ const AdminDashboard = ({ user, onLogout }) => {
     color: '#22c55e'
   });
 
-  const normalizedCamiones = currentData.camiones.map(camion => (
+  // Usar datos reales de los contextos
+  const normalizedCamiones = vehicles.map(camion => (
     camion.tipoServicio ? camion : { ...camion, tipoServicio: 'recoleccion' }
   ));
+  
+  // Obtener estadísticas reales
+  const personnelStats = getPersonnelStats();
+  const fleetStats = getFleetStats();
+  const routesStats = getRoutesStats();
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -95,20 +108,8 @@ const AdminDashboard = ({ user, onLogout }) => {
     const sourceShift = findEmployeeShift(draggedEmployee.id);
     if (sourceShift === targetShift) return;
 
-    setPersonnel(prev => {
-      const newPersonnel = { ...prev };
-      
-      // Remove from source
-      newPersonnel[sourceShift] = newPersonnel[sourceShift].filter(
-        emp => emp.id !== draggedEmployee.id
-      );
-      
-      // Add to target
-      newPersonnel[targetShift] = [...newPersonnel[targetShift], draggedEmployee];
-      
-      return newPersonnel;
-    });
-    
+    // Usar función del contexto
+    moveEmployee(draggedEmployee.id, sourceShift, targetShift);
     setDraggedEmployee(null);
   };
 
@@ -152,14 +153,15 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   const handleSaveRoute = () => {
     if (newRoute.name && newRoute.stops.filter(stop => stop.trim()).length > 0) {
-      const route = {
+      const routeData = {
         ...newRoute,
-        id: `route${Date.now()}`,
         stops: newRoute.stops.filter(stop => stop.trim()),
         estimatedTime: `${Math.ceil(newRoute.stops.length * 0.5)}h`,
         status: 'active'
       };
-      setRoutes(prev => [...prev, route]);
+      
+      // Usar función del contexto
+      addRoute(routeData);
       setNewRoute({ name: '', type: 'recoleccion', stops: [''], color: '#22c55e' });
       setShowRouteCreator(false);
     }
@@ -167,7 +169,9 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   const handleDeleteRoute = (routeId) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta ruta?')) {
-      setRoutes(prev => prev.filter(route => route.id !== routeId));
+      // Usar función del contexto
+      deleteRoute(routeId);
+      
       // Remove route assignments from vehicles
       setVehicleRouteAssignments(prev => {
         const updated = { ...prev };

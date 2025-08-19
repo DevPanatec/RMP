@@ -4,6 +4,9 @@ import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
 import EnterpriseDashboard from './pages/EnterpriseDashboard/EnterpriseDashboard';
 import ConductorDashboard from './pages/ConductorDashboard/ConductorDashboard';
 import { RiskReportsProvider } from './context/RiskReportsContext';
+import { PersonnelProvider } from './context/PersonnelContext';
+import { FleetProvider } from './context/FleetContext';
+import { RoutesProvider } from './context/RoutesContext';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -68,7 +71,13 @@ function App() {
 
   return (
     <RiskReportsProvider>
-      {renderDashboard()}
+      <PersonnelProvider>
+        <FleetProvider>
+          <RoutesProvider>
+            {renderDashboard()}
+          </RoutesProvider>
+        </FleetProvider>
+      </PersonnelProvider>
     </RiskReportsProvider>
   );
 }
