@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { appData, simularMovimientoReal, calcularRutaCompleta } from '../../data/mockData';
 import './MapComponent.css';
 
 // Fix para iconos de Leaflet
@@ -85,7 +84,59 @@ const createStopIcon = (stopNumber, status, color, tipo = 'normal') => {
 
 const MAPBOX_TOKEN = 'pk.eyJ1Ijoia2V2aW5uMjMiLCJhIjoiY204Y2J0bWN1MTg5ZzJtb2xobXljODM0MiJ9.48MFADtQhp_sFuQjewLFeA';
 
-const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck = null, serviceTypeFilter = 'todos' }) => {
+// Funciones de utilidad para simulación de movimiento
+const simularMovimientoReal = (camion, ruta) => {
+  if (!ruta?.coordenadasCompletas || ruta.coordenadasCompletas.length === 0) {
+    return camion;
+  }
+
+  const ahora = Date.now();
+  const tiempoTranscurrido = ahora - (camion.ultimaActualizacion || ahora);
+  const velocidadKmH = 30; // Velocidad promedio en km/h
+  const velocidadMS = (velocidadKmH * 1000) / 3600; // Convertir a m/s
+  const distanciaRecorrida = velocidadMS * (tiempoTranscurrido / 1000);
+
+  // Simular avance en la ruta
+  const indiceActual = camion.indiceRuta || 0;
+  const coordenadas = ruta.coordenadasCompletas;
+  
+  if (indiceActual >= coordenadas.length - 1) {
+    return { ...camion, estado: 'Disponible' };
+  }
+
+  const puntoActual = coordenadas[indiceActual];
+  const siguientePunto = coordenadas[indiceActual + 1];
+
+  return {
+    ...camion,
+    lat: puntoActual[0],
+    lng: puntoActual[1],
+    indiceRuta: Math.min(indiceActual + 1, coordenadas.length - 1),
+    ultimaActualizacion: ahora,
+    historialPosiciones: [
+      ...(camion.historialPosiciones || []).slice(-10), // Mantener solo las últimas 10 posiciones
+      { lat: puntoActual[0], lng: puntoActual[1], timestamp: new Date().toISOString() }
+    ]
+  };
+};
+
+const calcularRutaCompleta = async (paradas) => {
+  // Simulación básica de coordenadas para las paradas
+  // En un caso real, usarías una API de routing como OpenRouteService o Mapbox
+  const coordenadas = [];
+  
+  for (let i = 0; i < paradas.length; i++) {
+    const parada = paradas[i];
+    // Coordenadas simuladas para Bogotá
+    const lat = 4.6097100 + (Math.random() - 0.5) * 0.1;
+    const lng = -74.0817500 + (Math.random() - 0.5) * 0.1;
+    coordenadas.push([lat, lng]);
+  }
+  
+  return coordenadas;
+};
+
+const MapComponent = ({ camiones, rutas = [], userType, showRealTime = true, selectedTruck = null, serviceTypeFilter = 'todos' }) => {
   const [mapCamiones, setMapCamiones] = useState(camiones);
   const [showTrails, setShowTrails] = useState(true); // Activado por defecto para ver rutas
   const [realTimeEnabled, setRealTimeEnabled] = useState(showRealTime);
@@ -109,7 +160,7 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
       setMapCamiones(prevCamiones => 
         prevCamiones.map(camion => {
           if (camion.estado === 'En ruta' && camion.rutaAsignada) {
-            const ruta = appData.rutas.find(r => r.nombre === camion.rutaAsignada);
+            const ruta = rutas.find(r => r.nombre === camion.rutaAsignada);
             if (ruta && ruta.coordenadasCompletas) {
               // Usar la función de simulación mejorada
               const camionActualizado = simularMovimientoReal(camion, ruta);
@@ -165,7 +216,7 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
 
     const buildAllRoutes = async () => {
       const newMap = {};
-      for (const ruta of appData.rutas) {
+      for (const ruta of rutas) {
         try {
           console.log(`Calculando ruta ${ruta.nombre} con ${ruta.paradas.length} paradas...`);
           const coords = await calcularRutaCompleta(ruta.paradas);
@@ -246,7 +297,7 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
     if (!selectedTruckId) return null;
     const camion = mapCamiones.find(c => c.id === selectedTruckId);
     if (!camion || !camion.rutaAsignada) return null;
-    return appData.rutas.find(r => r.nombre === camion.rutaAsignada);
+    return rutas.find(r => r.nombre === camion.rutaAsignada);
   };
 
   const getSelectedTruck = () => {
@@ -389,14 +440,20 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
           />
           
           {/* Mostrar todas las rutas activas con estilo GPS mejorado */}
-          {showTrails && appData.rutas.map(ruta => {
+          {showTrails && rutas.map(ruta => {
             const routeColor = getRouteTypeColor(ruta.id);
             const isSelectedRoute = getSelectedTruckRoute() && getSelectedTruckRoute().id === ruta.id;
+            const routePositions = roadRoutes[ruta.id] || ruta.coordenadasCompletas;
+            
+            // Solo renderizar si hay coordenadas válidas
+            if (!routePositions || !Array.isArray(routePositions) || routePositions.length === 0) {
+              return null;
+            }
             
             return (
               <Polyline
                 key={`route-${ruta.id}`}
-                positions={roadRoutes[ruta.id] || ruta.coordenadasCompletas}
+                positions={routePositions}
                 color={routeColor}
                 weight={isSelectedRoute ? 12 : 6} // Aumentado de 8/4 a 12/6 para mejor visibilidad GPS
                 opacity={isSelectedRoute ? 1 : 0.7} // Mejor contraste
@@ -410,7 +467,7 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
             const loadStatus = getLoadStatus(camion.pesoAcumulado);
             const isSelected = selectedTruckId === camion.id;
             const currentRoute = camion.rutaAsignada ? 
-              appData.rutas.find(r => r.nombre === camion.rutaAsignada) : null;
+              rutas.find(r => r.nombre === camion.rutaAsignada) : null;
             
             return (
               <div key={camion.id}>
@@ -506,9 +563,12 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                 </Marker>
 
                 {/* Mostrar historial de GPS si está habilitado */}
-                {showTrails && camion.historialPosiciones.length > 1 && (
+                {showTrails && camion.historialPosiciones && camion.historialPosiciones.length > 1 && (
                   <Polyline
-                    positions={camion.historialPosiciones.map(pos => [pos.lat, pos.lng])}
+                    positions={camion.historialPosiciones
+                      .filter(pos => pos.lat != null && pos.lng != null)
+                      .map(pos => [pos.lat, pos.lng])
+                    }
                     color={getStatusColor(camion.estado)}
                     weight={isSelected ? 6 : 3}
                     opacity={isSelected ? 0.9 : 0.5}
@@ -535,7 +595,9 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
           })}
 
           {/* Dibujar la ruta seleccionada con mayor grosor */}
-          {!showTrails && getSelectedTruckRoute() && roadRoutes[getSelectedTruckRoute().id] && (
+          {!showTrails && getSelectedTruckRoute() && roadRoutes[getSelectedTruckRoute().id] && 
+           Array.isArray(roadRoutes[getSelectedTruckRoute().id]) && 
+           roadRoutes[getSelectedTruckRoute().id].length > 0 && (
             <Polyline
               positions={roadRoutes[getSelectedTruckRoute().id]}
               color={getStatusColor(getSelectedTruck()?.estado || 'En ruta')}
@@ -764,11 +826,11 @@ const MapComponent = ({ camiones, userType, showRealTime = true, selectedTruck =
                               {parada.tipo === 'residencial' && '🏠'}
                               {parada.tipo === 'inicio' && '🏁'}
                             </span>
-                            {parada.nombre}
+                            {parada.direccion || `Parada ${index + 1}`}
                           </div>
                           
                           <div className="stop-address">
-                            📍 {parada.direccion || parada.nombre}
+                            📍 {parada.direccion || `Lat: ${parada.latitud}, Lng: ${parada.longitud}`}
                           </div>
                           
                           <div className="stop-times">

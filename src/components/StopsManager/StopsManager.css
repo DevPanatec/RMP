@@ -1,0 +1,227 @@
+.stops-manager {
+  margin: 16px 0;
+}
+
+.stops-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.stops-header label {
+  font-weight: 500;
+  color: #374151;
+  margin: 0;
+}
+
+.add-stop-form {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 8px;
+  border: 2px dashed #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.add-stop-help {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stops-list {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.stop-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-bottom: 1px solid #f3f4f6;
+  transition: all 0.2s ease;
+}
+
+.stop-item:last-child {
+  border-bottom: none;
+}
+
+.stop-item:hover {
+  background: #fafafa;
+}
+
+.stop-order {
+  flex-shrink: 0;
+}
+
+.stop-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #3b82f6;
+  color: white;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stop-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.stop-address {
+  color: #1f2937;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.stop-full-address {
+  color: #6b7280;
+  font-size: 12px;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.stop-coordinates {
+  color: #059669;
+  font-size: 11px;
+  font-family: monospace;
+  background: #ecfdf5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.stop-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.no-stops {
+  text-align: center;
+  padding: 32px 16px;
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.no-stops-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+.no-stops-help {
+  font-size: 12px;
+  margin-top: 8px;
+  color: #9ca3af;
+}
+
+.stops-summary {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #475569;
+  border-left: 3px solid #3b82f6;
+}
+
+.stops-with-coords {
+  color: #059669;
+  font-weight: 500;
+}
+
+/* Botones especializados */
+.btn--xs {
+  padding: 2px 6px;
+  font-size: 11px;
+  min-width: 24px;
+  height: 24px;
+}
+
+.btn--outline {
+  background: transparent;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+}
+
+.btn--outline:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.btn--outline:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--outline:disabled:hover {
+  background: transparent;
+  color: #6b7280;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .stops-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .stop-item {
+    padding: 10px;
+    gap: 8px;
+  }
+  
+  .stop-actions {
+    flex-direction: column;
+    gap: 2px;
+  }
+  
+  .btn--xs {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+  
+  .add-stop-form {
+    padding: 12px;
+  }
+}
+
+/* Estados de drag and drop futuros */
+.stop-item.dragging {
+  opacity: 0.5;
+  background: #f3f4f6;
+}
+
+.stop-item.drag-over {
+  border-top: 2px solid #3b82f6;
+}
+
+/* Animaciones */
+.stop-item {
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import StopsManager from '../StopsManager/StopsManager';
 import './RoutesComponent.css';
 
 const generateId = (name = '') => name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now();
@@ -54,6 +55,10 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
 
   const handleChange = (field, value) => {
     setEditingRoute(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleStopsChange = (newStops) => {
+    setEditingRoute(prev => ({ ...prev, paradas: newStops }));
   };
 
   return (
@@ -115,7 +120,11 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
                   <input type="number" value={editingRoute.tiempoEstimado} onChange={e => handleChange('tiempoEstimado', e.target.value)} />
                 </div>
               </div>
-              {/* Nota: Gestión de paradas simplificada */}
+              
+              <StopsManager 
+                stops={editingRoute.paradas || []}
+                onStopsChange={handleStopsChange}
+              />
             </div>
             <div className="modal-actions">
               <button className="btn btn--outline" onClick={() => setShowModal(false)}>Cancelar</button>

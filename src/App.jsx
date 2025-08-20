@@ -3,10 +3,10 @@ import Login from './components/Login/Login';
 import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
 import EnterpriseDashboard from './pages/EnterpriseDashboard/EnterpriseDashboard';
 import ConductorDashboard from './pages/ConductorDashboard/ConductorDashboard';
-import { RiskReportsProvider } from './context/RiskReportsContext';
-import { PersonnelProvider } from './context/PersonnelContext';
-import { FleetProvider } from './context/FleetContext';
-import { RoutesProvider } from './context/RoutesContext';
+import { SupabaseRiskReportsProvider } from './context/SupabaseRiskReportsContext';
+import { SupabasePersonnelProvider } from './context/SupabasePersonnelContext';
+import { SupabaseFleetProvider } from './context/SupabaseFleetContext';
+import { SupabaseRoutesProvider } from './context/SupabaseRoutesContext';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -70,15 +70,15 @@ function App() {
   };
 
   return (
-    <RiskReportsProvider>
-      <PersonnelProvider>
-        <FleetProvider>
-          <RoutesProvider>
+    <SupabaseRiskReportsProvider>
+      <SupabasePersonnelProvider>
+        <SupabaseFleetProvider>
+          <SupabaseRoutesProvider>
             {renderDashboard()}
-          </RoutesProvider>
-        </FleetProvider>
-      </PersonnelProvider>
-    </RiskReportsProvider>
+          </SupabaseRoutesProvider>
+        </SupabaseFleetProvider>
+      </SupabasePersonnelProvider>
+    </SupabaseRiskReportsProvider>
   );
 }
 

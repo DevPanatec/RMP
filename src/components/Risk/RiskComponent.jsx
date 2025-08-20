@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useRiskReports } from '../../context/RiskReportsContext';
+import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
 import './RiskComponent.css';
 
 const RiskComponent = ({ userType = 'admin' }) => {
-  const { reports, loading, updateReportStatus, getReportStats } = useRiskReports();
+  const { reports, loading, updateReportStatus, getReportStats } = useSupabaseRiskReports();
   const [selectedReport, setSelectedReport] = useState(null);
 
   // Los reportes y funciones vienen del contexto

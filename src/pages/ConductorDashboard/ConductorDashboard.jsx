@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { appData } from '../../data/mockData';
 import WeightModal from '../../components/WeightModal/WeightModal';
 import MapComponent from '../../components/Map/MapComponent';
-import { useRiskReports } from '../../context/RiskReportsContext';
+import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
 import './ConductorDashboard.css';
 
 // Hook para PWA
@@ -39,7 +39,7 @@ const usePWAInstallPrompt = () => {
 
 const ConductorDashboard = ({ user, onLogout }) => {
   const { isInstallable, installPWA } = usePWAInstallPrompt();
-  const { addReport, getReportsByDriver, loading: reportsLoading } = useRiskReports();
+  const { addReport, getReportsByDriver, loading: reportsLoading } = useSupabaseRiskReports();
   
   const [completedStops, setCompletedStops] = useState([]);
   const [currentStop, setCurrentStop] = useState(0);

@@ -1,20 +1,19 @@
-import { useState, useEffect } from 'react';
-import { appData } from '../../data/mockData';
+import { useState, useEffect, useMemo } from 'react';
 import MapComponent from '../../components/Map/MapComponent';
 import PersonnelComponent from '../../components/Personnel/PersonnelComponent';
 import InventoryComponent from '../../components/Inventory/InventoryComponent';
 import RoutesComponent from '../../components/Routes/RoutesComponent';
 import RiskComponent from '../../components/Risk/RiskComponent';
 import ReportsComponent from '../../components/Reports/ReportsComponent';
-import { usePersonnel } from '../../context/PersonnelContext';
-import { useFleet } from '../../context/FleetContext';
-import { useRoutes } from '../../context/RoutesContext';
+import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
+import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
+import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
+import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSubTab, setActiveSubTab] = useState('');
-  const [currentData, setCurrentData] = useState(appData);
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [serviceTypeFilter, setServiceTypeFilter] = useState('todos');
   
@@ -27,7 +26,7 @@ const AdminDashboard = ({ user, onLogout }) => {
     updateEmployee, 
     deleteEmployee,
     getPersonnelStats 
-  } = usePersonnel();
+  } = useSupabasePersonnel();
   
   const { 
     vehicles, 
@@ -38,7 +37,7 @@ const AdminDashboard = ({ user, onLogout }) => {
     assignRoute, 
     assignDriver,
     getFleetStats 
-  } = useFleet();
+  } = useSupabaseFleet();
   
   const { 
     routes, 
@@ -48,7 +47,16 @@ const AdminDashboard = ({ user, onLogout }) => {
     deleteRoute, 
     toggleRouteStatus,
     getRoutesStats 
-  } = useRoutes();
+  } = useSupabaseRoutes();
+
+  const {
+    alerts,
+    loading: alertsLoading,
+    addAlert,
+    updateAlert,
+    deleteAlert,
+    getAlertsStats
+  } = useSupabaseRiskReports();
   
   // Estados para drag & drop y modales
   const [draggedEmployee, setDraggedEmployee] = useState(null);
@@ -71,20 +79,38 @@ const AdminDashboard = ({ user, onLogout }) => {
   const personnelStats = getPersonnelStats();
   const fleetStats = getFleetStats();
   const routesStats = getRoutesStats();
+  
+  // Transformar personal en estructura esperada para drag & drop
+  const organizedPersonnel = useMemo(() => {
+    // Por ahora, todos los empleados van a "unassigned" 
+    // Se puede modificar más tarde para clasificar por turnos
+    return {
+      unassigned: personnel || [],
+      morning: [],
+      afternoon: [],
+      night: []
+    };
+  }, [personnel]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentData(prevData => ({
-        ...prevData,
-        estadisticasOperativas: {
-          ...prevData.estadisticasOperativas,
-          totalKgHoy: prevData.estadisticasOperativas.totalKgHoy + Math.floor(Math.random() * 50),
-          eficienciaPromedio: Math.min(100, prevData.estadisticasOperativas.eficienciaPromedio + (Math.random() - 0.5) * 2)
-        }
-      }));
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  // Calcular estadísticas operativas basadas en datos reales
+  const operationalStats = useMemo(() => {
+    const defaultStats = {
+      eficienciaPromedio: 85,
+      combustiblePromedio: 75,
+      totalKgHoy: 0
+    };
+
+    if (!vehicles || vehicles.length === 0) return defaultStats;
+
+    const combustiblePromedio = vehicles.reduce((total, vehicle) => 
+      total + (vehicle.combustible_nivel || 0), 0) / vehicles.length;
+
+    return {
+      eficienciaPromedio: 85, // Se puede calcular basado en rutas completadas
+      combustiblePromedio: Math.round(combustiblePromedio),
+      totalKgHoy: vehicles.reduce((total, vehicle) => total + (vehicle.capacidad_carga || 0), 0)
+    };
+  }, [vehicles]);
 
   const handleTabChange = (newTab, defaultSubTab = '') => {
     setActiveTab(newTab);
@@ -114,7 +140,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   };
 
   const findEmployeeShift = (employeeId) => {
-    for (const [shift, employees] of Object.entries(personnel)) {
+    for (const [shift, employees] of Object.entries(organizedPersonnel)) {
       if (employees.some(emp => emp.id === employeeId)) {
         return shift;
       }
@@ -152,11 +178,12 @@ const AdminDashboard = ({ user, onLogout }) => {
   };
 
   const handleSaveRoute = () => {
-    if (newRoute.name && newRoute.stops.filter(stop => stop.trim()).length > 0) {
+    const validStops = newRoute.stops.filter(stop => typeof stop === 'string' && stop.trim());
+    if (newRoute.name && validStops.length > 0) {
       const routeData = {
         ...newRoute,
-        stops: newRoute.stops.filter(stop => stop.trim()),
-        estimatedTime: `${Math.ceil(newRoute.stops.length * 0.5)}h`,
+        stops: validStops,
+        estimatedTime: `${Math.ceil(validStops.length * 0.5)}h`,
         status: 'active'
       };
       
@@ -187,29 +214,35 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   const handleEditRoute = (route) => {
     setEditingRoute(route);
+    
+    // Convertir paradas de Supabase a formato de stops para edición
+    const stops = route.paradas ? 
+      route.paradas.map(parada => parada.direccion || `Parada ${parada.orden || 1}`) :
+      [...(route.stops || [''])];
+      
     setNewRoute({
-      name: route.name,
-      type: route.type,
-      stops: [...route.stops],
-      color: route.color
+      name: route.name || route.nombre,
+      type: route.type || route.tipoServicio,
+      stops: stops,
+      color: route.color || '#22c55e'
     });
     setShowRouteCreator(true);
   };
 
   const handleUpdateRoute = () => {
-    if (newRoute.name && newRoute.stops.filter(stop => stop.trim()).length > 0) {
+    const validStops = newRoute.stops.filter(stop => typeof stop === 'string' && stop.trim());
+    if (newRoute.name && validStops.length > 0) {
       const updatedRoute = {
         ...editingRoute,
         name: newRoute.name,
         type: newRoute.type,
-        stops: newRoute.stops.filter(stop => stop.trim()),
+        stops: validStops,
         color: newRoute.color,
-        estimatedTime: `${Math.ceil(newRoute.stops.length * 0.5)}h`
+        estimatedTime: `${Math.ceil(validStops.length * 0.5)}h`
       };
       
-      setRoutes(prev => prev.map(route => 
-        route.id === editingRoute.id ? updatedRoute : route
-      ));
+      // Usar función del contexto para actualizar
+      updateRoute(editingRoute.id, updatedRoute);
       
       setNewRoute({ name: '', type: 'recoleccion', stops: [''], color: '#22c55e' });
       setEditingRoute(null);
@@ -218,21 +251,22 @@ const AdminDashboard = ({ user, onLogout }) => {
   };
 
   const handleToggleRouteStatus = (routeId) => {
-    setRoutes(prev => prev.map(route => 
-      route.id === routeId 
-        ? { ...route, status: route.status === 'active' ? 'inactive' : 'active' }
-        : route
-    ));
+    // Usar función del contexto
+    toggleRouteStatus(routeId);
   };
 
   const handleDuplicateRoute = (route) => {
     const duplicatedRoute = {
-      ...route,
-      id: `route${Date.now()}`,
-      name: `${route.name} (Copia)`,
+      name: `${route.name || route.nombre} (Copia)`,
+      type: route.type || route.tipoServicio,
+      stops: route.paradas ? 
+        route.paradas.map(p => p.direccion || `Parada ${p.orden}`) : 
+        route.stops || [''],
+      color: route.color || '#22c55e',
       status: 'inactive'
     };
-    setRoutes(prev => [...prev, duplicatedRoute]);
+    // Usar función del contexto
+    addRoute(duplicatedRoute);
   };
 
   const handleVehicleRouteAssignment = (vehicleId, routeId) => {
@@ -277,12 +311,12 @@ const AdminDashboard = ({ user, onLogout }) => {
                   <div className="zone-header">
                     <div className="zone-title">
                       <h4>Personal Sin Asignar</h4>
-                      <span className="zone-count">{personnel.unassigned.length} empleados</span>
+                      <span className="zone-count">{organizedPersonnel.unassigned.length} empleados</span>
                     </div>
                   </div>
                   
                   <div className="employees-list">
-                    {personnel.unassigned.map(employee => (
+                    {organizedPersonnel.unassigned.map(employee => (
                       <div
                         key={employee.id}
                         className="employee-card"
@@ -301,7 +335,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                         </div>
                       </div>
                     ))}
-                    {personnel.unassigned.length === 0 && (
+                    {organizedPersonnel.unassigned.length === 0 && (
                       <div className="empty-zone">
                         <p>No hay personal sin asignar</p>
                       </div>
@@ -321,15 +355,15 @@ const AdminDashboard = ({ user, onLogout }) => {
                       <span className="shift-time">06:00 - 14:00</span>
                     </div>
                     <div className="zone-stats">
-                      <span className="employee-count">{personnel.morning.length}</span>
+                      <span className="employee-count">{organizedPersonnel.morning.length}</span>
                       <span className="average-rating">
-                        ★ {calculateShiftAverage(personnel.morning)}
+                        ★ {calculateShiftAverage(organizedPersonnel.morning)}
                       </span>
                     </div>
                   </div>
                   
                   <div className="employees-list">
-                    {personnel.morning.map(employee => (
+                    {organizedPersonnel.morning.map(employee => (
                       <div
                         key={employee.id}
                         className="employee-card"
@@ -348,7 +382,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                         </div>
                       </div>
                     ))}
-                    {personnel.morning.length === 0 && (
+                    {organizedPersonnel.morning.length === 0 && (
                       <div className="empty-zone">
                         <p>Arrastra empleados aquí</p>
                       </div>
@@ -368,15 +402,15 @@ const AdminDashboard = ({ user, onLogout }) => {
                       <span className="shift-time">14:00 - 22:00</span>
                     </div>
                     <div className="zone-stats">
-                      <span className="employee-count">{personnel.afternoon.length}</span>
+                      <span className="employee-count">{organizedPersonnel.afternoon.length}</span>
                       <span className="average-rating">
-                        ★ {calculateShiftAverage(personnel.afternoon)}
+                        ★ {calculateShiftAverage(organizedPersonnel.afternoon)}
                       </span>
                     </div>
                   </div>
                   
                   <div className="employees-list">
-                    {personnel.afternoon.map(employee => (
+                    {organizedPersonnel.afternoon.map(employee => (
                       <div
                         key={employee.id}
                         className="employee-card"
@@ -395,7 +429,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                         </div>
                       </div>
                     ))}
-                    {personnel.afternoon.length === 0 && (
+                    {organizedPersonnel.afternoon.length === 0 && (
                       <div className="empty-zone">
                         <p>Arrastra empleados aquí</p>
                       </div>
@@ -415,15 +449,15 @@ const AdminDashboard = ({ user, onLogout }) => {
                       <span className="shift-time">22:00 - 06:00</span>
                     </div>
                     <div className="zone-stats">
-                      <span className="employee-count">{personnel.night.length}</span>
+                      <span className="employee-count">{organizedPersonnel.night.length}</span>
                       <span className="average-rating">
-                        ★ {calculateShiftAverage(personnel.night)}
+                        ★ {calculateShiftAverage(organizedPersonnel.night)}
                       </span>
                     </div>
                   </div>
                   
                   <div className="employees-list">
-                    {personnel.night.map(employee => (
+                    {organizedPersonnel.night.map(employee => (
                       <div
                         key={employee.id}
                         className="employee-card"
@@ -442,7 +476,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                         </div>
                       </div>
                     ))}
-                    {personnel.night.length === 0 && (
+                    {organizedPersonnel.night.length === 0 && (
                       <div className="empty-zone">
                         <p>Arrastra empleados aquí</p>
                       </div>
@@ -720,7 +754,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                     <button 
                       className="save-route-btn"
                       onClick={editingRoute ? handleUpdateRoute : handleSaveRoute}
-                      disabled={!newRoute.name || newRoute.stops.filter(s => s.trim()).length === 0}
+                      disabled={!newRoute.name || newRoute.stops.filter(s => typeof s === 'string' && s.trim()).length === 0}
                     >
                       💾 {editingRoute ? 'Actualizar Ruta' : 'Guardar Ruta'}
                     </button>
@@ -783,16 +817,24 @@ const AdminDashboard = ({ user, onLogout }) => {
                         
                         <div className="route-stops-preview">
                           <div className="stops-header-info">
-                            <span className="stops-count">📍 {route.stops.length} paradas</span>
+                            <span className="stops-count">📍 {route.paradas ? route.paradas.length : route.stops.length} paradas</span>
                             <span className="route-time">⏱️ {route.estimatedTime}</span>
                           </div>
                           <div className="stops-preview-list">
-                            {route.stops.map((stop, index) => (
-                              <span key={index} className="stop-preview">
-                                {stop}
-                                {index < route.stops.length - 1 && ' → '}
-                              </span>
-                            ))}
+                            {route.paradas ? 
+                              route.paradas.map((parada, index) => (
+                                <span key={index} className="stop-preview">
+                                  {parada.direccion || `Parada ${index + 1}`}
+                                  {index < route.paradas.length - 1 && ' → '}
+                                </span>
+                              )) :
+                              route.stops.map((stop, index) => (
+                                <span key={index} className="stop-preview">
+                                  {typeof stop === 'string' ? stop : `Parada ${index + 1}`}
+                                  {index < route.stops.length - 1 && ' → '}
+                                </span>
+                              ))
+                            }
                           </div>
                         </div>
                       </div>
@@ -867,7 +909,8 @@ const AdminDashboard = ({ user, onLogout }) => {
                   camiones={serviceTypeFilter === 'todos' 
                     ? normalizedCamiones 
                     : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter)
-                  } 
+                  }
+                  rutas={routes || []}
                   userType={user.tipo}
                   showRealTime={true}
                   selectedTruck={selectedTruck}
@@ -932,7 +975,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 <div className="kpi-icon">⚡</div>
                 <div className="kpi-content">
                   <div className="kpi-value">
-                    {Math.round(currentData.estadisticasOperativas.eficienciaPromedio)}%
+                    {Math.round(operationalStats.eficienciaPromedio)}%
                   </div>
                   <div className="kpi-label">Eficiencia Promedio</div>
                 </div>
@@ -941,7 +984,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 <div className="kpi-icon">⛽</div>
                 <div className="kpi-content">
                   <div className="kpi-value">
-                    {Math.round(currentData.estadisticasOperativas.combustiblePromedio)}%
+                    {Math.round(operationalStats.combustiblePromedio)}%
                   </div>
                   <div className="kpi-label">Combustible Promedio</div>
                 </div>
@@ -950,17 +993,17 @@ const AdminDashboard = ({ user, onLogout }) => {
                 <div className="kpi-icon">⚠️</div>
                 <div className="kpi-content">
                   <div className="kpi-value">
-                    {currentData.alertas.length}
+                    {alerts?.length || 0}
                   </div>
                   <div className="kpi-label">Alertas Activas</div>
                 </div>
               </div>
             </div>
-            {currentData.alertas.length > 0 && (
+            {alerts && alerts.length > 0 && (
               <div className="alerts-section">
                 <h3>🚨 Alertas Recientes</h3>
                 <div className="alerts-grid">
-                  {currentData.alertas.slice(0, 3).map(alerta => (
+                  {alerts.slice(0, 3).map(alerta => (
                     <div key={alerta.id} className={`alert-card alert-${alerta.prioridad}`}>
                       <div className="alert-header">
                         <span className="alert-type">
