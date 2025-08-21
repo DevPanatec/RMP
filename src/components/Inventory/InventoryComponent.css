@@ -4,7 +4,7 @@
 
 .inventory-container {
   padding: 1.5rem;
-  background: var(--color-background);
+  background: #FFFFFF;
   min-height: 100vh;
 }
 
@@ -13,14 +13,14 @@
 }
 
 .inventory-title h2 {
-  color: var(--color-text-primary);
+  color: #1B5E20;
   margin: 0 0 0.5rem 0;
   font-size: 1.8rem;
   font-weight: 600;
 }
 
 .inventory-title p {
-  color: var(--color-text-secondary);
+  color: #757575;
   margin: 0;
   font-size: 1rem;
 }
@@ -49,9 +49,9 @@
 }
 
 .inventory-body {
-  background: var(--color-surface);
+  background: #F5F5F5;
   border-radius: 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid #757575;
   overflow: hidden;
 }
 
@@ -64,9 +64,9 @@
   justify-content: center;
   align-items: center;
   padding: 4rem;
-  background: var(--color-surface);
+  background: #F5F5F5;
   border-radius: 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid #757575;
 }
 
 /* ========================================
@@ -78,7 +78,7 @@
 }
 
 .inventory-alerts h4 {
-  color: var(--color-text-primary);
+  color: #212121;
   margin: 0 0 1rem 0;
   font-size: 1.1rem;
 }
@@ -99,15 +99,15 @@
 }
 
 .alert-crítico {
-  background: #fef2f2;
-  border-color: #dc2626;
-  color: #dc2626;
+  background: #fff8e1;
+  border-color: #FBC02D;
+  color: #F57F17;
 }
 
 .alert-advertencia {
-  background: #fffbeb;
-  border-color: #d97706;
-  color: #d97706;
+  background: #fff8e1;
+  border-color: #FBC02D;
+  color: #F57F17;
 }
 
 .alert-icon {
@@ -139,7 +139,7 @@
 }
 
 .stat-card {
-  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+  background: linear-gradient(135deg, #43A047, #2E7D32);
   color: white;
   padding: 1.5rem;
   border-radius: 12px;
@@ -182,7 +182,7 @@
 .table-wrapper {
   overflow-x: auto;
   border-radius: 8px;
-  border: 1px solid var(--color-border);
+  border: 1px solid #757575;
 }
 
 .inventory-table {
@@ -192,25 +192,25 @@
 }
 
 .inventory-table thead {
-  background: var(--color-surface-alt);
+  background: #F5F5F5;
 }
 
 .inventory-table th {
   padding: 1rem;
   text-align: left;
   font-weight: 600;
-  color: var(--color-text-primary);
-  border-bottom: 2px solid var(--color-border);
+  color: #1B5E20;
+  border-bottom: 2px solid #757575;
 }
 
 .inventory-table td {
   padding: 1rem;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text-primary);
+  border-bottom: 1px solid #757575;
+  color: #212121;
 }
 
 .inventory-table tbody tr:hover {
-  background: var(--color-surface-hover);
+  background: #F5F5F5;
 }
 
 .material-info {
@@ -221,12 +221,12 @@
 
 .material-name {
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: #212121;
 }
 
 .material-description {
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: #757575;
 }
 
 .category-badge {
@@ -275,7 +275,7 @@
 
 .stock-unit {
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: #757575;
 }
 
 .stock-range {
@@ -285,16 +285,16 @@
 }
 
 .stock-min {
-  color: var(--color-danger);
+  color: #FBC02D;
   font-weight: 600;
 }
 
 .stock-separator {
-  color: var(--color-text-secondary);
+  color: #757575;
 }
 
 .stock-max {
-  color: var(--color-success);
+  color: #43A047;
   font-weight: 600;
 }
 
@@ -307,18 +307,18 @@
 }
 
 .stock-normal {
-  background: var(--color-success-light);
-  color: var(--color-success);
+  background: #F5F5F5;
+  color: #2E7D32;
 }
 
 .stock-bajo {
-  background: var(--color-warning-light);
-  color: var(--color-warning);
+  background: #fff8e1;
+  color: #FBC02D;
 }
 
 .stock-crítico {
-  background: var(--color-danger-light);
-  color: var(--color-danger);
+  background: #fff8e1;
+  color: #FBC02D;
 }
 
 .action-buttons {

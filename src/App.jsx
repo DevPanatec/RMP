@@ -7,6 +7,8 @@ import { SupabaseRiskReportsProvider } from './context/SupabaseRiskReportsContex
 import { SupabasePersonnelProvider } from './context/SupabasePersonnelContext';
 import { SupabaseFleetProvider } from './context/SupabaseFleetContext';
 import { SupabaseRoutesProvider } from './context/SupabaseRoutesContext';
+import { SupabaseReportsProvider } from './context/SupabaseReportsContext';
+import { SupabaseInventoryProvider } from './context/SupabaseInventoryContext';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -74,7 +76,11 @@ function App() {
       <SupabasePersonnelProvider>
         <SupabaseFleetProvider>
           <SupabaseRoutesProvider>
-            {renderDashboard()}
+            <SupabaseReportsProvider>
+              <SupabaseInventoryProvider>
+                {renderDashboard()}
+              </SupabaseInventoryProvider>
+            </SupabaseReportsProvider>
           </SupabaseRoutesProvider>
         </SupabaseFleetProvider>
       </SupabasePersonnelProvider>

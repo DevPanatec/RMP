@@ -4,7 +4,7 @@
 
 .personnel-container {
   padding: 1.5rem;
-  background: var(--color-background);
+  background: #FFFFFF;
   min-height: 100vh;
 }
 
@@ -13,14 +13,14 @@
 }
 
 .personnel-title h2 {
-  color: var(--color-text-primary);
+  color: #1B5E20;
   margin: 0 0 0.5rem 0;
   font-size: 1.8rem;
   font-weight: 600;
 }
 
 .personnel-title p {
-  color: var(--color-text-secondary);
+  color: #757575;
   margin: 0;
   font-size: 1rem;
 }
@@ -33,7 +33,7 @@
 }
 
 .personnel-header h3 {
-  color: var(--color-text-primary);
+  color: #1B5E20;
   margin: 0;
   font-size: 1.25rem;
   font-weight: 600;
@@ -45,15 +45,15 @@
 
 .personnel-tabs {
   display: flex;
-  border-bottom: 2px solid var(--color-border);
+  border-bottom: 2px solid #757575;
   margin-bottom: 2rem;
   gap: 1px;
 }
 
 .personnel-body {
-  background: var(--color-surface);
+  background: #F5F5F5;
   border-radius: 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid #757575;
   overflow: hidden;
 }
 
@@ -70,9 +70,9 @@
   justify-content: center;
   align-items: center;
   padding: 4rem;
-  background: var(--color-surface);
+  background: #F5F5F5;
   border-radius: 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid #757575;
 }
 
 /* ========================================
@@ -87,7 +87,7 @@
 }
 
 .stat-card {
-  background: linear-gradient(135deg, var(--color-primary-light), var(--color-primary));
+  background: linear-gradient(135deg, #43A047, #2E7D32);
   color: white;
   padding: 1.5rem;
   border-radius: 12px;
@@ -130,7 +130,7 @@
 .table-wrapper {
   overflow-x: auto;
   border-radius: 8px;
-  border: 1px solid var(--color-border);
+  border: 1px solid #757575;
 }
 
 .personnel-table {
@@ -140,25 +140,25 @@
 }
 
 .personnel-table thead {
-  background: var(--color-surface-alt);
+  background: #F5F5F5;
 }
 
 .personnel-table th {
   padding: 1rem;
   text-align: left;
   font-weight: 600;
-  color: var(--color-text-primary);
-  border-bottom: 2px solid var(--color-border);
+  color: #1B5E20;
+  border-bottom: 2px solid #757575;
 }
 
 .personnel-table td {
   padding: 1rem;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text-primary);
+  border-bottom: 1px solid #757575;
+  color: #212121;
 }
 
 .personnel-table tbody tr:hover {
-  background: var(--color-surface-hover);
+  background: #F5F5F5;
 }
 
 .employee-info {
@@ -169,12 +169,12 @@
 
 .employee-name {
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: #212121;
 }
 
 .employee-details {
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: #757575;
 }
 
 /* ========================================
@@ -190,23 +190,23 @@
 }
 
 .shift-matutino {
-  background: #fef3c7;
-  color: #92400e;
+  background: #fff8e1;
+  color: #FBC02D;
 }
 
 .shift-vespertino {
-  background: #ddd6fe;
-  color: #5b21b6;
+  background: #e3f2fd;
+  color: #1565C0;
 }
 
 .shift-nocturno {
-  background: #f3f4f6;
-  color: #374151;
+  background: #F5F5F5;
+  color: #757575;
 }
 
 .shift-flexible {
-  background: #d1fae5;
-  color: #065f46;
+  background: #e8f5e8;
+  color: #2E7D32;
 }
 
 /* ========================================
@@ -227,12 +227,12 @@
 }
 
 .date-input {
-  border: 1px solid var(--color-border);
+  border: 1px solid #757575;
   border-radius: 6px;
   padding: 0.5rem;
   font-size: 0.875rem;
-  background: var(--color-background);
-  color: var(--color-text-primary);
+  background: #FFFFFF;
+  color: #212121;
 }
 
 .attendance-summary {
@@ -243,8 +243,8 @@
 }
 
 .summary-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: #FFFFFF;
+  border: 1px solid #757575;
   border-radius: 8px;
   padding: 1.5rem;
   display: flex;
@@ -269,13 +269,13 @@
 .summary-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--color-primary);
+  color: #2E7D32;
   margin-bottom: 0.25rem;
 }
 
 .summary-label {
   font-size: 0.875rem;
-  color: var(--color-text-secondary);
+  color: #757575;
   font-weight: 500;
 }
 
@@ -288,18 +288,18 @@
 }
 
 .attendance-presente {
-  background: var(--color-success-light);
-  color: var(--color-success);
+  background: #e8f5e8;
+  color: #43A047;
 }
 
 .attendance-tardanza {
-  background: var(--color-warning-light);
-  color: var(--color-warning);
+  background: #fff8e1;
+  color: #FBC02D;
 }
 
 .attendance-falta {
-  background: var(--color-danger-light);
-  color: var(--color-danger);
+  background: #fff8e1;
+  color: #FBC02D;
 }
 
 /* ========================================

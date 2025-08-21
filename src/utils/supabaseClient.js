@@ -186,7 +186,7 @@ class SupabaseClient {
       // Agregar propiedades adicionales para el mapa
       lat: parseFloat(item.gps_latitud) || 4.6097100,
       lng: parseFloat(item.gps_longitud) || -74.0817500,
-      tipoServicio: item.tipo === 'camion' ? 'recoleccion' : 'fumigacion',
+      tipoServicio: item.tipo_servicio || 'recoleccion',
       rutaAsignada: null, // Se puede agregar más tarde
       pesoAcumulado: 0,
       historialPosiciones: item.gps_latitud && item.gps_longitud ? [
@@ -206,6 +206,7 @@ class SupabaseClient {
         modelo: vehicleData.modelo,
         año: vehicleData.año,
         tipo: vehicleData.tipo,
+        tipo_servicio: vehicleData.tipo_servicio || 'recoleccion',
         estado: vehicleData.estado || 'disponible',
         capacidad_carga: vehicleData.capacidad_carga || 0,
         combustible_nivel: vehicleData.combustible_nivel || 100,
@@ -317,6 +318,37 @@ class SupabaseClient {
     
     if (error) throw error;
     return { rows: [] };
+  }
+
+  // Métodos específicos para reportes
+  async getCompletedRoutes(dateRange) {
+    const { data, error } = await this.client
+      .from('rutas')
+      .select(`
+        *,
+        proyecto:proyectos!proyecto_id(nombre),
+        vehiculo:vehiculos!vehiculo_id(placa, marca, modelo),
+        conductor:empleados!conductor_id(nombre, apellido)
+      `)
+      .eq('estado', 'completada')
+      .gte('fecha_programada', dateRange.inicio)
+      .lte('fecha_programada', dateRange.fin)
+      .order('updated_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    // Transformar para coincidir con el formato esperado
+    const transformedData = data.map(item => ({
+      ...item,
+      proyecto_nombre: item.proyecto?.nombre || null,
+      vehiculo_placa: item.vehiculo?.placa || null,
+      vehiculo_info: item.vehiculo ? 
+        `${item.vehiculo.marca} ${item.vehiculo.modelo}` : null,
+      conductor_nombre: item.conductor ? 
+        `${item.conductor.nombre} ${item.conductor.apellido}` : null
+    }));
+    
+    return { rows: transformedData };
   }
 }
 
