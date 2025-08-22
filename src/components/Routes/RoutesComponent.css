@@ -1,78 +1,521 @@
+/* RoutesComponent - Branding Corporativo y Estilo Google Maps */
+
 .routes-component {
-  padding: 16px;
+  padding: var(--space-20);
+  background: linear-gradient(135deg, #F8FCF8, rgba(245, 245, 245, 0.5));
+  min-height: 100vh;
 }
 
 .routes-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-24);
+  padding: var(--space-20) var(--space-24);
+  background: linear-gradient(135deg, #FFFFFF, #F5F5F5);
+  border: 2px solid rgba(46, 125, 50, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(46, 125, 50, 0.1);
 }
 
-.routes-table th,
+.routes-header h3 {
+  color: #1B5E20;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(27, 94, 32, 0.1);
+}
+
+/* Tabla de rutas */
+.routes-table {
+  background: white;
+  border: 2px solid rgba(46, 125, 50, 0.2);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(46, 125, 50, 0.1);
+}
+
+.routes-table th {
+  background: linear-gradient(135deg, #2E7D32, #43A047);
+  color: white;
+  padding: var(--space-16) var(--space-20);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.8px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
 .routes-table td {
-  padding: 8px 12px;
-  text-align: left;
+  padding: var(--space-16) var(--space-20);
+  border-bottom: 1px solid rgba(46, 125, 50, 0.1);
+  vertical-align: middle;
 }
 
-.routes-table tbody tr:nth-child(even) {
-  background-color: rgba(255, 255, 255, 0.03);
+.routes-table tbody tr {
+  transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
-.modal-overlay {
+.routes-table tbody tr:hover {
+  background: rgba(46, 125, 50, 0.05);
+}
+
+.routes-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Modal para rutas - Estilo Google Maps */
+.route-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
+  right: 0;
+  bottom: 0;
+  background: rgba(27, 94, 32, 0.3);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
 }
 
-.modal-content {
-  background: #FFFFFF;
-  padding: 24px;
+.route-modal-content {
+  background: linear-gradient(135deg, #FFFFFF, #F5F5F5);
+  border-radius: 20px;
+  width: 95%;
+  max-width: 1400px;
+  max-height: 95vh;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(46, 125, 50, 0.3);
+  border: 2px solid rgba(46, 125, 50, 0.2);
+  animation: slideUp 0.4s ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header del modal */
+.route-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--space-24) var(--space-32);
+  background: linear-gradient(135deg, #2E7D32, #43A047);
+  color: white;
+  border-radius: 20px 20px 0 0;
+  gap: var(--space-20);
+}
+
+.modal-header-content h4 {
+  margin: 0 0 var(--space-8) 0;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header-content p {
+  margin: 0;
+  font-size: var(--font-size-base);
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.4;
+}
+
+.modal-close {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  cursor: pointer;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast) var(--ease-standard);
+  flex-shrink: 0;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+/* Cuerpo del modal */
+.route-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-24) var(--space-32);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+}
+
+/* Información básica de la ruta */
+.route-basic-info {
+  background: white;
+  border: 2px solid rgba(46, 125, 50, 0.2);
+  border-radius: 16px;
+  padding: var(--space-20);
+  box-shadow: 0 4px 16px rgba(46, 125, 50, 0.1);
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: var(--space-20);
+  margin-bottom: var(--space-20);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.form-group label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: #1B5E20;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.route-input,
+.route-textarea {
+  padding: var(--space-12) var(--space-16);
+  border: 2px solid rgba(46, 125, 50, 0.3);
+  border-radius: 12px;
+  font-size: var(--font-size-base);
+  background: white;
+  color: #212121;
+  transition: all var(--duration-fast) var(--ease-standard);
+  font-family: inherit;
+}
+
+.route-input:focus,
+.route-textarea:focus {
+  outline: none;
+  border-color: #43A047;
+  box-shadow: 0 4px 16px rgba(67, 160, 71, 0.2);
+  transform: translateY(-1px);
+}
+
+.route-input::placeholder,
+.route-textarea::placeholder {
+  color: #757575;
+}
+
+.route-metrics {
+  display: flex;
+  gap: var(--space-16);
+  padding-top: var(--space-16);
+  border-top: 1px solid rgba(46, 125, 50, 0.2);
+}
+
+.metric-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.metric-item label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: #43A047;
+}
+
+.metric-input {
+  padding: var(--space-10) var(--space-12);
+  border: 2px solid rgba(46, 125, 50, 0.3);
   border-radius: 8px;
-  width: 420px;
-  max-width: 95%;
-  border: 2px solid #757575;
+  font-size: var(--font-size-base);
+  background: white;
+  text-align: center;
+  font-weight: var(--font-weight-semibold);
+  transition: all var(--duration-fast) var(--ease-standard);
 }
 
-.modal-header {
+.metric-input:focus {
+  outline: none;
+  border-color: #43A047;
+  box-shadow: 0 2px 8px rgba(67, 160, 71, 0.2);
+}
+
+/* Contenido principal del modal */
+.route-content-main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-24);
+  min-height: 500px;
+}
+
+.route-stops-section {
+  /* Los estilos están en EnhancedStopsManager.css */
+}
+
+.route-preview-section {
+  background: white;
+  border: 2px solid rgba(46, 125, 50, 0.2);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(46, 125, 50, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-header {
+  background: linear-gradient(135deg, rgba(46, 125, 50, 0.1), rgba(67, 160, 71, 0.1));
+  padding: var(--space-16) var(--space-20);
+  border-bottom: 1px solid rgba(46, 125, 50, 0.2);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  gap: var(--space-12);
 }
 
-.modal-body label {
-  display: block;
-  margin-top: 12px;
-  font-weight: 600;
+.preview-header h5 {
+  margin: 0;
+  color: #1B5E20;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
 }
 
-.modal-body input,
-.modal-body textarea {
-  width: 100%;
-  padding: 8px;
-  background: #FFFFFF;
-  border: 1px solid #757575;
-  border-radius: 4px;
-  color: #212121;
-  margin-top: 4px;
-}
-
-.field-row {
+.preview-stats {
   display: flex;
-  gap: 12px;
+  gap: var(--space-8);
+  flex-wrap: wrap;
 }
 
-.modal-actions {
+.stat-chip {
+  background: rgba(67, 160, 71, 0.1);
+  color: #2E7D32;
+  padding: var(--space-4) var(--space-8);
+  border-radius: 20px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  border: 1px solid rgba(67, 160, 71, 0.3);
+}
+
+.route-map-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.map-placeholder {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(245, 245, 245, 0.95), rgba(240, 240, 240, 0.95));
   display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 20px;
-} 
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+}
+
+.map-placeholder-content {
+  text-align: center;
+  padding: var(--space-32);
+  max-width: 400px;
+}
+
+.placeholder-icon {
+  font-size: 4rem;
+  margin-bottom: var(--space-16);
+  opacity: 0.6;
+}
+
+.map-placeholder-content h6 {
+  color: #1B5E20;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--space-8) 0;
+}
+
+.map-placeholder-content p {
+  color: #757575;
+  font-size: var(--font-size-base);
+  margin: 0 0 var(--space-16) 0;
+  line-height: 1.5;
+}
+
+.placeholder-features {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  align-items: center;
+}
+
+.placeholder-features span {
+  background: rgba(67, 160, 71, 0.1);
+  color: #2E7D32;
+  padding: var(--space-4) var(--space-12);
+  border-radius: 20px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border: 1px solid rgba(67, 160, 71, 0.3);
+}
+
+/* Footer del modal */
+.route-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-20) var(--space-32);
+  background: linear-gradient(135deg, rgba(46, 125, 50, 0.05), rgba(67, 160, 71, 0.05));
+  border-top: 2px solid rgba(46, 125, 50, 0.2);
+  gap: var(--space-16);
+}
+
+.footer-info {
+  flex: 1;
+}
+
+.validation-info {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-6) var(--space-12);
+  border-radius: 20px;
+  display: inline-block;
+}
+
+.footer-actions {
+  display: flex;
+  gap: var(--space-12);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Estilos para el mapa de Leaflet */
+.leaflet-container {
+  font-family: inherit;
+}
+
+.leaflet-popup-content {
+  margin: var(--space-8) var(--space-12);
+}
+
+.leaflet-popup-content h6 {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .route-content-main {
+    grid-template-columns: 1fr;
+    gap: var(--space-20);
+  }
+  
+  .route-preview-section {
+    order: 1;
+  }
+  
+  .route-stops-section {
+    order: 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .routes-component {
+    padding: var(--space-16);
+  }
+  
+  .routes-header {
+    flex-direction: column;
+    gap: var(--space-16);
+    text-align: center;
+  }
+  
+  .route-modal-content {
+    width: 98%;
+    max-height: 98vh;
+    border-radius: 12px;
+  }
+  
+  .route-modal-header {
+    padding: var(--space-20);
+    border-radius: 12px 12px 0 0;
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .route-modal-body {
+    padding: var(--space-16) var(--space-20);
+  }
+  
+  .route-modal-footer {
+    padding: var(--space-16) var(--space-20);
+    flex-direction: column;
+    gap: var(--space-12);
+  }
+  
+  .footer-actions {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .route-metrics {
+    flex-direction: column;
+  }
+  
+  .routes-table {
+    font-size: var(--font-size-sm);
+  }
+  
+  .routes-table th,
+  .routes-table td {
+    padding: var(--space-12) var(--space-16);
+  }
+}
+
+@media (max-width: 480px) {
+  .route-modal-header {
+    padding: var(--space-16);
+  }
+  
+  .route-modal-body {
+    padding: var(--space-12) var(--space-16);
+    gap: var(--space-16);
+  }
+  
+  .route-basic-info {
+    padding: var(--space-16);
+  }
+  
+  .modal-header-content h4 {
+    font-size: var(--font-size-xl);
+  }
+  
+  .btn {
+    font-size: var(--font-size-sm);
+    padding: var(--space-8) var(--space-16);
+  }
+}

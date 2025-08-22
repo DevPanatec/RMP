@@ -1,6 +1,322 @@
-/* EnterpriseDashboard utiliza los mismos estilos base que AdminDashboard */
-/* Este archivo puede ser usado para estilos específicos de Enterprise si es necesario */
+/* EnterpriseDashboard - Branding Corporativo */
 
+/* Sidebar Enterprise con branding */
+.sidebar {
+  background: linear-gradient(180deg, #2E7D32, #1B5E20);
+  color: white;
+  padding: var(--space-24);
+  border-radius: 0 16px 16px 0;
+  box-shadow: 4px 0 20px rgba(46, 125, 50, 0.3);
+  border-right: 3px solid rgba(255, 255, 255, 0.2);
+}
+
+.sidebar h2 {
+  color: white;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-8);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+}
+
+.sidebar p {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-24);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Navegación sidebar */
+.sidebar-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+.sidebar-nav li {
+  width: 100%;
+}
+
+.sidebar-nav button {
+  width: 100%;
+  padding: var(--space-12) var(--space-16);
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: left;
+  border-radius: 12px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+  letter-spacing: 0.3px;
+}
+
+.sidebar-nav button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  transform: translateX(4px);
+}
+
+.sidebar-nav button.active {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
+  color: white;
+  font-weight: var(--font-weight-bold);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Header Enterprise */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-20) var(--space-24);
+  background: linear-gradient(135deg, #FFFFFF, #F5F5F5);
+  border-radius: 16px;
+  margin-bottom: var(--space-24);
+  box-shadow: 0 4px 16px rgba(46, 125, 50, 0.1);
+  border: 1px solid rgba(46, 125, 50, 0.2);
+}
+
+.dashboard-header h1 {
+  color: #1B5E20;
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(27, 94, 32, 0.1);
+  letter-spacing: -0.5px;
+}
+
+.logout-btn {
+  background: linear-gradient(135deg, #FBC02D, #F57F17);
+  color: white;
+  padding: var(--space-10) var(--space-20);
+  border: none;
+  border-radius: 25px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+  box-shadow: 0 4px 12px rgba(251, 192, 45, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logout-btn:hover {
+  background: linear-gradient(135deg, #F57F17, #E65100);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(245, 127, 23, 0.4);
+}
+
+/* KPIs Enterprise */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-20);
+  margin-bottom: var(--space-32);
+}
+
+.kpi-card {
+  background: linear-gradient(135deg, #FFFFFF, #F5F5F5);
+  border: 2px solid rgba(46, 125, 50, 0.2);
+  border-radius: 16px;
+  padding: var(--space-24);
+  text-align: center;
+  transition: all var(--duration-normal) var(--ease-standard);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(46, 125, 50, 0.1);
+}
+
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, #2E7D32, #43A047, #1B5E20);
+  border-radius: 16px 16px 0 0;
+}
+
+.kpi-card:hover {
+  transform: translateY(-6px);
+  border-color: #43A047;
+  box-shadow: 0 12px 30px rgba(46, 125, 50, 0.25);
+  background: linear-gradient(135deg, #FFFFFF, rgba(67, 160, 71, 0.05));
+}
+
+.kpi-value {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: #1B5E20;
+  margin-bottom: var(--space-8);
+  text-shadow: 0 2px 4px rgba(27, 94, 32, 0.1);
+  letter-spacing: -0.5px;
+}
+
+.kpi-label {
+  font-size: var(--font-size-sm);
+  color: #757575;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+/* Contenedor principal */
+.dashboard-container {
+  display: flex;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #F8FCF8, rgba(245, 245, 245, 0.5));
+}
+
+.main-content {
+  flex: 1;
+  padding: var(--space-24);
+  background: transparent;
+}
+
+/* Cards Enterprise */
+.card {
+  background: linear-gradient(135deg, #FFFFFF, #F5F5F5);
+  border: 1px solid rgba(46, 125, 50, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(46, 125, 50, 0.1);
+  overflow: hidden;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.card:hover {
+  box-shadow: 0 8px 24px rgba(46, 125, 50, 0.15);
+  border-color: rgba(46, 125, 50, 0.4);
+}
+
+.card__body {
+  padding: var(--space-24);
+}
+
+.card h3 {
+  color: #1B5E20;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-16);
+  letter-spacing: 0.3px;
+}
+
+/* Tablas Enterprise */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(46, 125, 50, 0.1);
+}
+
+.table th {
+  padding: var(--space-16) var(--space-20);
+  text-align: left;
+  font-weight: var(--font-weight-bold);
+  background: linear-gradient(135deg, #2E7D32, #43A047);
+  color: white;
+  text-transform: uppercase;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.8px;
+  border-bottom: none;
+}
+
+.table td {
+  padding: var(--space-16) var(--space-20);
+  border-bottom: 1px solid rgba(46, 125, 50, 0.1);
+  vertical-align: middle;
+}
+
+.table tbody tr {
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.table tbody tr:hover {
+  background: rgba(46, 125, 50, 0.05);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Status badges Enterprise */
+.status {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-6) var(--space-12);
+  border-radius: 20px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status--success {
+  background: linear-gradient(135deg, rgba(67, 160, 71, 0.15), rgba(76, 175, 80, 0.15));
+  border: 1px solid rgba(67, 160, 71, 0.3);
+  color: #2E7D32;
+}
+
+.status--info {
+  background: linear-gradient(135deg, rgba(21, 101, 192, 0.15), rgba(25, 118, 210, 0.15));
+  border: 1px solid rgba(21, 101, 192, 0.3);
+  color: #1565C0;
+}
+
+.status--warning {
+  background: linear-gradient(135deg, rgba(251, 192, 45, 0.15), rgba(245, 127, 23, 0.15));
+  border: 1px solid rgba(251, 192, 45, 0.3);
+  color: #F57F17;
+}
+
+.status--error {
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.15), rgba(229, 57, 53, 0.15));
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  color: #D32F2F;
+}
+
+/* Dashboard content */
+.dashboard-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-container {
+    flex-direction: column;
+  }
+  
+  .sidebar {
+    border-radius: 0 0 16px 16px;
+    border-right: none;
+    border-bottom: 3px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-header {
+    flex-direction: column;
+    gap: var(--space-16);
+  }
+  
+  .dashboard-header h1 {
+    font-size: var(--font-size-2xl);
+  }
+}
+
+/* Enterprise específico */
 .enterprise-specific {
-  /* Estilos específicos para Enterprise si es necesario */
-} 
+  /* Reservado para estilos específicos adicionales */
+}
