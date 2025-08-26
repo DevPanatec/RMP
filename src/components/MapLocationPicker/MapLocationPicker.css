@@ -3,13 +3,14 @@
 .map-location-picker {
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
+  gap: var(--space-20);
   background: linear-gradient(135deg, #FFFFFF, #F5F5F5);
   border: 2px solid rgba(46, 125, 50, 0.2);
   border-radius: 16px;
-  padding: var(--space-20);
+  padding: var(--space-24);
   box-shadow: 0 4px 16px rgba(46, 125, 50, 0.1);
   transition: all var(--duration-fast) var(--ease-standard);
+  height: 100%;
 }
 
 .map-location-picker:hover {
@@ -268,6 +269,8 @@
   overflow: hidden;
   border: 2px solid rgba(46, 125, 50, 0.3);
   box-shadow: 0 4px 16px rgba(46, 125, 50, 0.15);
+  flex: 1;
+  min-height: 350px;
 }
 
 .map-instructions {

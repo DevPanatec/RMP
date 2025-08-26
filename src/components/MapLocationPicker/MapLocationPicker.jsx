@@ -63,7 +63,7 @@ const MapLocationPicker = ({
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [mapCenter, setMapCenter] = useState(initialLocation || [4.6097100, -74.0817500]); // Bogotá por defecto
+  const [mapCenter, setMapCenter] = useState(initialLocation || [8.9824, -79.5199]); // Ciudad de Panamá por defecto
   const [selectedLocation, setSelectedLocation] = useState(initialLocation);
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualCoords, setManualCoords] = useState({ lat: '', lng: '' });
@@ -80,9 +80,9 @@ const MapLocationPicker = ({
     setIsLoading(true);
     
     try {
-      // Usar Nominatim API con enfoque en Colombia
+      // Usar Nominatim API con enfoque en Panamá
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=8&countrycodes=co&addressdetails=1&bounded=1&viewbox=-74.3,-3.8,-73.8,5.2`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=8&countrycodes=pa&addressdetails=1&bounded=1&viewbox=-83.0,7.0,-77.0,10.0`
       );
       
       if (!response.ok) throw new Error('Error en la búsqueda');
@@ -302,13 +302,13 @@ const MapLocationPicker = ({
             type="button"
             className="btn btn--sm btn--secondary"
             onClick={() => {
-              setMapCenter([4.6097100, -74.0817500]);
+              setMapCenter([8.9824, -79.5199]);
               setSelectedLocation(null);
               setQuery('');
             }}
-            title="Centrar en Bogotá"
+            title="Centrar en Ciudad de Panamá"
           >
-            🏠 Bogotá
+            🏠 Panamá
           </button>
         </div>
       </div>
@@ -324,7 +324,7 @@ const MapLocationPicker = ({
                 step="any"
                 value={manualCoords.lat}
                 onChange={(e) => setManualCoords(prev => ({ ...prev, lat: e.target.value }))}
-                placeholder="4.6097"
+                placeholder="8.9824"
                 className="coord-input"
               />
             </div>
@@ -335,7 +335,7 @@ const MapLocationPicker = ({
                 step="any"
                 value={manualCoords.lng}
                 onChange={(e) => setManualCoords(prev => ({ ...prev, lng: e.target.value }))}
-                placeholder="-74.0817"
+                placeholder="-79.5199"
                 className="coord-input"
               />
             </div>
@@ -348,7 +348,7 @@ const MapLocationPicker = ({
             </button>
           </div>
           <div className="coordinate-help">
-            💡 Ingresa las coordenadas en formato decimal (ej: 4.6097, -74.0817)
+            💡 Ingresa las coordenadas en formato decimal (ej: 8.9824, -79.5199)
           </div>
         </div>
       )}

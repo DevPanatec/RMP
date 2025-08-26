@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import EnhancedStopsManager from '../EnhancedStopsManager/EnhancedStopsManager';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
@@ -54,11 +55,11 @@ const emptyRoute = {
 };
 
 const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
-  const [routes, setRoutes] = useState(initialRoutes);
+  const { routes, loading, addRoute, updateRoute, deleteRoute } = useSupabaseRoutes();
   const [showModal, setShowModal] = useState(false);
   const [editingRoute, setEditingRoute] = useState(emptyRoute);
   const [isEditing, setIsEditing] = useState(false);
-  const [mapCenter, setMapCenter] = useState([4.6097100, -74.0817500]); // Bogotá por defecto
+  const [mapCenter, setMapCenter] = useState([8.9824, -79.5199]); // Ciudad de Panamá por defecto
 
   const handleOpenNew = () => {
     setEditingRoute({ ...emptyRoute });
@@ -72,26 +73,46 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
     setShowModal(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('¿Eliminar esta ruta?')) {
-      const updated = routes.filter(r => r.id !== id);
-      setRoutes(updated);
-      onRoutesChange && onRoutesChange(updated);
+      try {
+        await deleteRoute(id);
+        onRoutesChange && onRoutesChange(routes);
+      } catch (error) {
+        alert('Error al eliminar la ruta: ' + error.message);
+      }
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingRoute.nombre.trim()) return alert('Nombre requerido');
-    let updatedRoutes;
-    if (isEditing) {
-      updatedRoutes = routes.map(r => r.id === editingRoute.id ? editingRoute : r);
-    } else {
-      const newRoute = { ...editingRoute, id: generateId(editingRoute.nombre) };
-      updatedRoutes = [...routes, newRoute];
+    
+    try {
+      // Preparar datos para Supabase
+      const routeData = {
+        nombre: editingRoute.nombre,
+        descripcion: editingRoute.descripcion || '',
+        tipo_servicio: 'recoleccion', // Valor por defecto
+        paradas: editingRoute.paradas || [],
+        distancia_total: parseFloat(editingRoute.distanciaTotal) || 0,
+        tiempo_estimado: parseInt(editingRoute.tiempoEstimado) || 60,
+        color: editingRoute.color || '#22c55e',
+        fecha_programada: new Date().toISOString().split('T')[0], // Fecha actual por defecto
+        estado: 'programada'
+      };
+
+      if (isEditing) {
+        await updateRoute(editingRoute.id, routeData);
+      } else {
+        await addRoute(routeData);
+      }
+      onRoutesChange && onRoutesChange(routes);
+      setShowModal(false);
+      setEditingRoute(emptyRoute);
+    } catch (error) {
+      console.error('Error completo:', error);
+      alert('Error al guardar la ruta: ' + error.message);
     }
-    setRoutes(updatedRoutes);
-    onRoutesChange && onRoutesChange(updatedRoutes);
-    setShowModal(false);
   };
 
   const handleChange = (field, value) => {
@@ -110,11 +131,27 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="routes-component">
+        <div className="routes-header">
+          <h3>🗺️ Gestión de Rutas</h3>
+        </div>
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <div>⏳ Cargando rutas...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="routes-component">
       <div className="routes-header">
         <h3>🗺️ Gestión de Rutas</h3>
         <button className="btn btn--primary" onClick={handleOpenNew}>➕ Nueva Ruta</button>
+        <div style={{ fontSize: '14px', color: '#666' }}>
+          Total: {routes.length} rutas
+        </div>
       </div>
       <table className="table routes-table">
         <thead>
@@ -130,11 +167,11 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
         <tbody>
           {routes.map(r => (
             <tr key={r.id}>
-              <td>{r.nombre}</td>
-              <td>{r.descripcion || '-'}</td>
-              <td>{r.distanciaTotal}</td>
-              <td>{r.tiempoEstimado}</td>
-              <td>{r.paradas.length}</td>
+              <td>{r.name || r.nombre}</td>
+              <td>{r.descripcion || r.description || '-'}</td>
+              <td>{r.distanciaTotal || r.distancia_total || 0}</td>
+              <td>{r.tiempoEstimado || r.tiempo_estimado || 0}</td>
+              <td>{(r.paradas || r.stops || []).length}</td>
               <td>
                 <button className="btn btn--sm btn--outline" onClick={() => handleEdit(r)}>✏️ Editar</button>
                 <button className="btn btn--sm btn--danger" onClick={() => handleDelete(r.id)}>🗑️ Eliminar</button>
@@ -239,7 +276,7 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
                     <MapContainer 
                       center={mapCenter} 
                       zoom={13} 
-                      style={{ height: '400px', width: '100%' }}
+                      style={{ height: '100%', width: '100%', minHeight: '450px' }}
                       key={`${mapCenter[0]}-${mapCenter[1]}`}
                     >
                       <TileLayer

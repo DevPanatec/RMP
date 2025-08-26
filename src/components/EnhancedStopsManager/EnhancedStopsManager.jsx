@@ -3,8 +3,8 @@ import MapLocationPicker from '../MapLocationPicker/MapLocationPicker';
 import './EnhancedStopsManager.css';
 
 const EnhancedStopsManager = ({ stops = [], onStopsChange }) => {
-  console.log('🗺️ EnhancedStopsManager se está renderizando!', { stops, showAddForm: showAddForm });
   const [showAddForm, setShowAddForm] = useState(false);
+  console.log('🗺️ EnhancedStopsManager se está renderizando!', { stops, showAddForm });
   const [editingStop, setEditingStop] = useState(null);
 
   const handleLocationSelect = (locationData) => {

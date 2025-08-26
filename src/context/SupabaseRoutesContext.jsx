@@ -162,7 +162,7 @@ export const SupabaseRoutesProvider = ({ children }) => {
           distancia_total: routeData.distanciaTotal || 10,
           tiempo_estimado: routeData.tiempoEstimado || (paradas.length * 30) || 60,
           color: routeData.color || '#22c55e',
-          estado: routeData.status === 'active' ? 'programada' : 'inactiva',
+          estado: routeData.estado || 'programada',
           fecha_programada: routeData.fechaProgramada || new Date().toISOString().split('T')[0]
         }])
         .select()
@@ -235,7 +235,7 @@ export const SupabaseRoutesProvider = ({ children }) => {
       if (updates.tiempoEstimado !== undefined) updateData.tiempo_estimado = updates.tiempoEstimado;
       if (updates.color) updateData.color = updates.color;
       if (updates.status) {
-        updateData.estado = updates.status === 'active' ? 'programada' : 'inactiva';
+        updateData.estado = updates.status === 'active' ? 'programada' : 'cancelada';
       }
       
       updateData.updated_at = new Date().toISOString();
@@ -306,7 +306,7 @@ export const SupabaseRoutesProvider = ({ children }) => {
       if (!route) return;
       
       const newStatus = route.status === 'active' ? 'inactive' : 'active';
-      const newEstado = newStatus === 'active' ? 'activa' : 'inactiva';
+      const newEstado = newStatus === 'active' ? 'programada' : 'cancelada';
       
       const query = `
         UPDATE rutas 
