@@ -2,6 +2,281 @@
    SISTEMA DE INVENTARIO - ESTILOS
 ======================================== */
 
+/* ========================================
+   MODAL Y FORMULARIO
+======================================== */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid #DADADA;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #E0E0E0;
+  background: #FAFAFA;
+}
+
+.modal-header h3 {
+  color: #333333;
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #757575;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+  background: #F5F5F5;
+  color: #1B5E20;
+}
+
+.modal-body {
+  padding: 2rem;
+}
+
+/* Formulario simplificado */
+.material-form-simple {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-info {
+  background: #F8F8F8;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 3px solid #666666;
+  margin-bottom: 0.5rem;
+}
+
+.form-info p {
+  margin: 0;
+  color: #555555;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.form-group-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-row-simple {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  color: #444444;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.form-group input,
+.form-group-main input {
+  padding: 1rem;
+  border: 2px solid #E0E0E0;
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: #FFFFFF;
+}
+
+.input-main {
+  font-size: 1.1rem !important;
+  font-weight: 500;
+  padding: 1.2rem !important;
+}
+
+.form-group input:focus,
+.form-group-main input:focus {
+  outline: none;
+  border-color: #666666;
+  box-shadow: 0 0 0 3px rgba(102, 102, 102, 0.1);
+  transform: translateY(-1px);
+}
+
+.form-group input::placeholder,
+.form-group-main input::placeholder {
+  color: #9E9E9E;
+  font-style: italic;
+}
+
+.form-actions-simple {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #F5F5F5;
+}
+
+.btn-cancel {
+  flex: 1;
+  padding: 1rem;
+  background: #F5F5F5;
+  color: #757575;
+  border: 2px solid #E0E0E0;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: #EEEEEE;
+  color: #424242;
+  border-color: #BDBDBD;
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  flex: 2;
+  padding: 1rem;
+  background: #444444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(68, 68, 68, 0.2);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #333333;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(68, 68, 68, 0.3);
+}
+
+.btn-primary:disabled,
+.btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Botones de acción de la tabla */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #DADADA;
+  border-radius: 6px;
+  background: #FFFFFF;
+  color: #666666;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn--view:hover {
+  background: #F0F8FF;
+  border-color: #4A90E2;
+  color: #4A90E2;
+}
+
+.action-btn--edit:hover {
+  background: #FFF8E1;
+  border-color: #FF9800;
+  color: #FF9800;
+}
+
+.action-btn--delete:hover {
+  background: #FFEBEE;
+  border-color: #F44336;
+  color: #F44336;
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    margin: 1rem;
+    max-width: none;
+  }
+  
+  .modal-body {
+    padding: 1.5rem;
+  }
+  
+  .form-row-simple {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .form-actions-simple {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .btn-cancel,
+  .btn-primary {
+    flex: none;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  
+  .action-btn {
+    padding: 0.5rem;
+    text-align: center;
+  }
+}
+
 .inventory-container {
   padding: 1.5rem;
   background: #FFFFFF;

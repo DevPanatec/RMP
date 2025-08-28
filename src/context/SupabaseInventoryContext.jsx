@@ -92,26 +92,40 @@ export const SupabaseInventoryProvider = ({ children }) => {
       if (error) throw error;
       
       // Formatear datos para que coincidan con la estructura esperada
-      const formattedMaterials = data.map(item => ({
-        id: item.codigo, // Usar código como ID para compatibilidad
-        codigo: item.codigo,
-        nombre: item.nombre,
-        categoria: item.categoria,
-        unidad: item.unidad,
-        stockActual: item.stock_actual,
-        stockMinimo: item.stock_minimo,
-        stockMaximo: item.stock_maximo,
-        precio: parseFloat(item.precio),
-        proveedor: item.proveedor,
-        ubicacion: item.ubicacion,
-        fechaVencimiento: item.fecha_vencimiento,
-        descripcion: item.descripcion,
-        ultimaCompra: item.ultima_compra,
-        consumoMensual: item.consumo_mensual,
-        estado: item.estado,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at
-      }));
+      const formattedMaterials = data.map(item => {
+        // Calcular estado dinámicamente basado en stock
+        let estadoCalculado = item.estado;
+        if (item.stock_actual === 0) {
+          estadoCalculado = 'Agotado';
+        } else if (item.stock_actual < item.stock_minimo * 0.5) {
+          estadoCalculado = 'Stock Crítico';
+        } else if (item.stock_actual <= item.stock_minimo) {
+          estadoCalculado = 'Stock Bajo';
+        } else {
+          estadoCalculado = 'Activo';
+        }
+
+        return {
+          id: item.codigo, // Usar código como ID para compatibilidad
+          codigo: item.codigo,
+          nombre: item.nombre,
+          categoria: item.categoria,
+          unidad: item.unidad,
+          stockActual: item.stock_actual,
+          stockMinimo: item.stock_minimo,
+          stockMaximo: item.stock_maximo,
+          precio: parseFloat(item.precio),
+          proveedor: item.proveedor,
+          ubicacion: item.ubicacion,
+          fechaVencimiento: item.fecha_vencimiento,
+          descripcion: item.descripcion,
+          ultimaCompra: item.ultima_compra,
+          consumoMensual: item.consumo_mensual,
+          estado: estadoCalculado,
+          createdAt: item.created_at,
+          updatedAt: item.updated_at
+        };
+      });
       
       dispatch({ type: ACTIONS.SET_MATERIALS, payload: formattedMaterials });
     } catch (error) {
@@ -261,9 +275,19 @@ export const SupabaseInventoryProvider = ({ children }) => {
   // Función para obtener estadísticas
   const getInventoryStats = () => {
     const total = state.materials.length;
-    const stockBajo = state.materials.filter(m => m.estado === 'Stock Bajo').length;
-    const stockCritico = state.materials.filter(m => m.estado === 'Stock Crítico').length;
-    const agotado = state.materials.filter(m => m.estado === 'Agotado').length;
+    
+    // Calcular estadísticas basadas en niveles de stock dinámicos
+    const stockBajo = state.materials.filter(m => {
+      return m.stockActual > 0 && m.stockActual <= m.stockMinimo && m.stockActual >= m.stockMinimo * 0.5;
+    }).length;
+    
+    const stockCritico = state.materials.filter(m => {
+      return m.stockActual > 0 && m.stockActual < m.stockMinimo * 0.5;
+    }).length;
+    
+    const agotado = state.materials.filter(m => m.stockActual === 0).length;
+    
+    const activos = state.materials.filter(m => m.stockActual > m.stockMinimo).length;
     
     const categorias = state.materials.reduce((acc, material) => {
       acc[material.categoria] = (acc[material.categoria] || 0) + 1;
@@ -276,6 +300,7 @@ export const SupabaseInventoryProvider = ({ children }) => {
 
     return {
       total,
+      activos,
       stockBajo,
       stockCritico,
       agotado,

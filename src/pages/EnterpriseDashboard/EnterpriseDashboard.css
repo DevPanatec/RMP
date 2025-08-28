@@ -2,25 +2,25 @@
 
 /* Sidebar Enterprise con branding */
 .sidebar {
-  background: linear-gradient(180deg, #2E7D32, #1B5E20);
-  color: white;
+  background: #FFFFFF;
+  color: #212121;
   padding: var(--space-24);
   border-radius: 0 16px 16px 0;
   box-shadow: 4px 0 20px rgba(46, 125, 50, 0.3);
-  border-right: 3px solid rgba(255, 255, 255, 0.2);
+  border-right: 3px solid rgba(46, 125, 50, 0.3);
 }
 
 .sidebar h2 {
-  color: white;
+  color: #2E7D32;
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   margin-bottom: var(--space-8);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: none;
   letter-spacing: 0.5px;
 }
 
 .sidebar p {
-  color: rgba(255, 255, 255, 0.8);
+  color: #757575;
   font-size: var(--font-size-sm);
   margin-bottom: var(--space-24);
   font-weight: var(--font-weight-medium);
@@ -45,7 +45,7 @@
   padding: var(--space-12) var(--space-16);
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.8);
+  color: #757575;
   text-align: left;
   border-radius: 12px;
   font-size: var(--font-size-base);
@@ -56,17 +56,17 @@
 }
 
 .sidebar-nav button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: rgba(46, 125, 50, 0.1);
+  color: #2E7D32;
   transform: translateX(4px);
 }
 
 .sidebar-nav button.active {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
-  color: white;
+  background: linear-gradient(135deg, rgba(46, 125, 50, 0.15), rgba(46, 125, 50, 0.05));
+  color: #1B5E20;
   font-weight: var(--font-weight-bold);
-  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.1);
+  border: 1px solid rgba(46, 125, 50, 0.2);
 }
 
 /* Header Enterprise */
