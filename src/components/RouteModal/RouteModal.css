@@ -843,3 +843,11 @@
     align-items: flex-start;
   }
 }
+ 
+/* Dias de operacion */ 
+.days-checkboxes { display: flex; gap: 8px; flex-wrap: wrap; } 
+.day-checkbox { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; cursor: pointer; transition: all 0.2s; background: white; } 
+.day-checkbox:hover { background: #f9fafb; border-color: #22c55e; } 
+.day-checkbox input[type=checkbox] { margin: 0; cursor: pointer; } 
+.day-checkbox input[type=checkbox]:checked + span { color: #22c55e; font-weight: 600; } 
+.day-checkbox span { font-size: 14px; color: #6b7280; user-select: none; }
