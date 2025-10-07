@@ -37,5 +37,12 @@ export {
   Users,
   LogOut,
   TrendingUp,
-  Download
+  Download,
+  Activity,
+  Zap,
+  Fuel,
+  Bell,
+  Wrench,
+  Leaf,
+  Navigation
 } from 'lucide-react';

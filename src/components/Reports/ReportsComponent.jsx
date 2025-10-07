@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSupabaseReports } from '../../context/SupabaseReportsContext';
+import { FileText, BarChart3, Truck, AlertTriangle, Clock, CheckCircle, ClipboardList } from '../Icons';
 import './ReportsComponent.css';
 
 const ReportsComponent = ({ userType = 'admin' }) => {
@@ -84,7 +85,7 @@ const ReportsComponent = ({ userType = 'admin' }) => {
         </div>
         <div className="route-right">
           <span className={`service-badge-compact service-badge--${route.tipo_servicio}`}>
-            {route.tipo_servicio === 'recoleccion' ? '🚛' : '🚐'}
+            <Truck size={16} />
           </span>
         </div>
       </div>
@@ -103,7 +104,7 @@ const ReportsComponent = ({ userType = 'admin' }) => {
           <div className="meta-item">
             <span className="meta-label">Tipo:</span>
             <span className="meta-value">
-              {route.tipo_servicio === 'recoleccion' ? '🚛 Recolección' : '🚐 Fumigación'}
+              <Truck size={14} /> {route.tipo_servicio === 'recoleccion' ? 'Recolección' : 'Fumigación'}
             </span>
           </div>
           <div className="meta-item">
@@ -140,11 +141,11 @@ const ReportsComponent = ({ userType = 'admin' }) => {
                 <div className="stop-address">{parada.direccion}</div>
                 <div className="stop-meta">
                   <span className={`cargo-type cargo--${parada.tipo_carga}`}>
-                    {parada.tipo_carga === 'alta' ? '🔴 Alta' : 
-                     parada.tipo_carga === 'media' ? '🟡 Media' : '🟢 Baja'}
+                    {parada.tipo_carga === 'alta' ? 'Alta' : 
+                     parada.tipo_carga === 'media' ? 'Media' : 'Baja'}
                   </span>
-                  <span className="stop-time">🕔 {parada.hora}</span>
-                  <span className="stop-status">✅ Completada</span>
+                  <span className="stop-time"><Clock size={14} /> {parada.hora}</span>
+                  <span className="stop-status"><CheckCircle size={14} /> Completada</span>
                 </div>
               </div>
             </div>
@@ -158,7 +159,7 @@ const ReportsComponent = ({ userType = 'admin' }) => {
     <div className="reports-container">
       <div className="reports-header">
         <div className="reports-title">
-          <h2>📄 Historial de Rutas Completadas</h2>
+          <h2><FileText size={24} /> Historial de Rutas Completadas</h2>
           <p>Reporte detallado de rutas realizadas con paradas y tipos de carga</p>
         </div>
         
@@ -197,14 +198,14 @@ const ReportsComponent = ({ userType = 'admin' }) => {
               onClick={exportRoutesPDF}
               disabled={completedRoutes.length === 0}
             >
-              📄 Descargar PDF
+              <FileText size={16} /> Descargar PDF
             </button>
             <button 
               className="btn btn--secondary"
               onClick={exportRoutesExcel}
               disabled={completedRoutes.length === 0}
             >
-              📊 Descargar Excel
+              <BarChart3 size={16} /> Descargar Excel
             </button>
           </div>
         </div>
@@ -220,7 +221,7 @@ const ReportsComponent = ({ userType = 'admin' }) => {
       ) : error ? (
         <div className="reports-error">
           <div className="error-message">
-            <div className="error-icon">⚠️</div>
+            <div className="error-icon"><AlertTriangle size={48} /></div>
             <h3>Error al cargar los reportes</h3>
             <p>{error}</p>
             <button className="btn btn--primary" onClick={() => getCompletedRoutes(dateRange)}>
@@ -232,7 +233,7 @@ const ReportsComponent = ({ userType = 'admin' }) => {
         <div className="reports-body">
           {completedRoutes.length === 0 ? (
             <div className="no-data">
-              <div className="no-data-icon">📋</div>
+              <div className="no-data-icon"><ClipboardList size={48} /></div>
               <h3>No hay rutas completadas</h3>
               <p>No se encontraron rutas completadas en el período seleccionado.</p>
             </div>

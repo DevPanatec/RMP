@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSupabaseInventory } from '../../context/SupabaseInventoryContext';
+import { Package, FileText, AlertTriangle, X, Loader, CheckCircle } from '../Icons';
 import './InventoryComponent.css';
 
 const InventoryComponent = ({ userType = 'admin' }) => {
@@ -176,16 +177,16 @@ const InventoryComponent = ({ userType = 'admin' }) => {
   const renderMaterialsTab = () => (
     <div className="inventory-content">
       <div className="inventory-header">
-        <h3>🗂️ Gestión de Materiales e Insumos</h3>
+        <h3><Package size={20} /> Gestión de Materiales e Insumos</h3>
         <div className="inventory-actions">
           <button className="btn btn--secondary">
-            📄 Importar Inventario
+            <FileText size={16} /> Importar Inventario
           </button>
           <button 
             className="btn btn--primary"
             onClick={() => setShowMaterialModal(true)}
           >
-            🗂️ Nuevo Material
+            <Package size={16} /> Nuevo Material
           </button>
         </div>
       </div>
@@ -193,12 +194,12 @@ const InventoryComponent = ({ userType = 'admin' }) => {
       {/* Alertas de inventario */}
       {alerts.length > 0 && (
         <div className="inventory-alerts">
-          <h4>⚠️ Alertas de Inventario</h4>
+          <h4><AlertTriangle size={18} /> Alertas de Inventario</h4>
           <div className="alerts-grid">
             {alerts.slice(0, 3).map(alert => (
               <div key={alert.id} className={`alert-card alert-${alert.tipo}`}>
                 <div className="alert-icon">
-                  {alert.tipo === 'crítico' ? '⚠️' : '⚠️'}
+                  <AlertTriangle size={20} />
                 </div>
                 <div className="alert-content">
                   <div className="alert-material">{alert.material}</div>
@@ -213,14 +214,14 @@ const InventoryComponent = ({ userType = 'admin' }) => {
       {/* Estadísticas de inventario */}
       <div className="inventory-stats">
         <div className="stat-card">
-          <div className="stat-icon">🗂️</div>
+          <div className="stat-icon"><Package size={24} /></div>
           <div className="stat-data">
             <div className="stat-value">{materials.length}</div>
             <div className="stat-label">Total Materiales</div>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon">⚠️</div>
+          <div className="stat-icon"><AlertTriangle size={24} /></div>
           <div className="stat-data">
             <div className="stat-value">
               {materials.filter(m => getStockStatus(m) === 'bajo' || getStockStatus(m) === 'crítico').length}
@@ -311,7 +312,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
     <div className="inventory-container">
       <div className="inventory-header-main">
         <div className="inventory-title">
-          <h2>🗂️ Gestión de Inventario</h2>
+          <h2><Package size={24} /> Gestión de Inventario</h2>
           <p>Control integral de materiales e insumos</p>
         </div>
       </div>
@@ -334,7 +335,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>🗂️ Nuevo Material</h3>
+              <h3><Package size={20} /> Nuevo Material</h3>
               <button 
                 className="modal-close"
                 onClick={() => {
@@ -342,13 +343,13 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                   setShowMaterialModal(false);
                 }}
               >
-                ✕
+                <X size={20} />
               </button>
             </div>
             <div className="modal-body">
               <form onSubmit={handleSubmitMaterial} className="material-form-simple">
                 <div className="form-info">
-                  <p>📝 El código se generará automáticamente</p>
+                  <p><FileText size={16} /> El código se generará automáticamente</p>
                 </div>
 
                 <div className="form-group-main">
@@ -441,7 +442,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                     className="btn-primary"
                     disabled={isSubmitting}
                   >
-                    {isSubmitting ? '⏳ Agregando...' : '✅ Agregar Material'}
+                    {isSubmitting ? <><Loader size={16} /> Agregando...</> : <><CheckCircle size={16} /> Agregar Material</>}
                   </button>
                 </div>
               </form>
@@ -463,13 +464,13 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                   setSelectedMaterial(null);
                 }}
               >
-                ✕
+                <X size={20} />
               </button>
             </div>
             <div className="modal-body">
               <form onSubmit={handleUpdateStock} className="material-form-simple">
                 <div className="form-info">
-                  <p>📝 Código: {selectedMaterial.codigo}</p>
+                  <p><FileText size={16} /> Código: {selectedMaterial.codigo}</p>
                 </div>
 
                 <div className="form-row-simple">

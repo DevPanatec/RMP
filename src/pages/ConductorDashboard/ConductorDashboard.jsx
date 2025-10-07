@@ -6,7 +6,8 @@ import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { 
   Truck, LogOut, Download, Map, Clock, AlertTriangle, 
-  ClipboardList, Package, TrendingUp, FileText 
+  ClipboardList, Package, TrendingUp, FileText, MapPin,
+  CheckCircle, Calendar, Loader, Wrench, AlertOctagon
 } from '../../components/Icons';
 import './ConductorDashboard.css';
 
@@ -407,7 +408,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
             {/* Mapa del conductor */}
             <div className="card">
               <div className="card__body">
-                <h3>📍 Mi Ubicación</h3>
+                <h3><MapPin size={20} /> Mi Ubicación</h3>
                 <MapComponent 
                   camiones={[userTruck]} 
                   userType={user.tipo}
@@ -422,7 +423,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
           <div className="route-stops-section">
             <div className="card">
               <div className="card__body">
-                <h3>🗺️ Paradas de la Ruta</h3>
+                <h3><Map size={20} /> Paradas de la Ruta</h3>
                 <div className="stops-container">
                   {(assignedRoute.paradas || []).map((parada, index) => {
                     const isCompleted = completedStops.some(stop => stop.index === index);
@@ -433,7 +434,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                       <div key={index} className={`step-item ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}>
                         <div className="step-indicator">
                           <div className="step-number">
-                            {isCompleted ? '✅' : index + 1}
+                            {isCompleted ? <CheckCircle size={20} /> : index + 1}
                           </div>
                           {index < (assignedRoute.paradas || []).length - 1 && (
                             <div className="step-line"></div>
@@ -443,16 +444,16 @@ const ConductorDashboard = ({ user, onLogout }) => {
                         <div className="step-content">
                           <div className="step-header">
                             <div className="step-title">{parada.nombre || parada.direccion || `Parada ${index + 1}`}</div>
-                            <div className="step-time">📅 {parada.hora_estimada || parada.estimado || 'N/A'}</div>
+                            <div className="step-time"><Calendar size={14} /> {parada.hora_estimada || parada.estimado || 'N/A'}</div>
                           </div>
                           
                           {isCompleted && completedStop && (
                             <div className="step-completed">
                               <div className="completed-info">
-                                ✅ Completada a las {completedStop.timestamp}
+                                <CheckCircle size={14} /> Completada a las {completedStop.timestamp}
                               </div>
                               <div className="completed-weight">
-                                📦 Categoría: {completedStop.category}
+                                <Package size={14} /> Categoría: {completedStop.category}
                               </div>
                             </div>
                           )}
@@ -460,13 +461,13 @@ const ConductorDashboard = ({ user, onLogout }) => {
                           {isCurrent && (
                             <div className="step-current">
                               <div className="current-indicator">
-                                📍 Parada actual
+                                <MapPin size={14} /> Parada actual
                               </div>
                               <button
                                 className="btn btn--primary btn--full-width"
                                 onClick={() => handleCompleteStop(index)}
                               >
-                                ✅ Completar Parada
+                                <CheckCircle size={16} /> Completar Parada
                               </button>
                             </div>
                           )}
@@ -477,7 +478,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                                 className="btn btn--outline btn--full-width"
                                 disabled
                               >
-                                ⏳ Pendiente
+                                <Clock size={16} /> Pendiente
                               </button>
                             </div>
                           )}
@@ -497,7 +498,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
           <div className="mis-reportes-section">
             <div className="card">
               <div className="card__body">
-                <h3>📋 Mis Reportes de Riesgo</h3>
+                <h3><ClipboardList size={20} /> Mis Reportes de Riesgo</h3>
                 {reportsLoading ? (
                   <div className="loading-reports">
                     <div className="spinner"></div>
@@ -509,7 +510,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                       <div key={reporte.id} className={`reporte-card reporte-${reporte.prioridad}`}>
                         <div className="reporte-header">
                           <div className="reporte-tipo">
-                            {reporte.tipo === 'interno' ? '🔧' : '🚧'} {reporte.tipo.toUpperCase()}
+                            {reporte.tipo === 'interno' ? <Wrench size={16} /> : <AlertOctagon size={16} />} {reporte.tipo.toUpperCase()}
                           </div>
                           <div className="reporte-fecha">
                             {new Date(reporte.fechaCreacion).toLocaleDateString('es-ES')}
@@ -520,14 +521,14 @@ const ConductorDashboard = ({ user, onLogout }) => {
                         </div>
                         <div className="reporte-body">
                           <h4>{reporte.titulo}</h4>
-                          <p className="reporte-categoria">📂 {reporte.categoria}</p>
+                          <p className="reporte-categoria"><FileText size={14} /> {reporte.categoria}</p>
                           <p className="reporte-descripcion">{reporte.descripcion}</p>
                           <div className="reporte-meta">
                             <span className="reporte-prioridad">
-                              ⚠️ Prioridad: {reporte.prioridad.toUpperCase()}
+                              <AlertTriangle size={14} /> Prioridad: {reporte.prioridad.toUpperCase()}
                             </span>
                             <span className="reporte-ubicacion">
-                              📍 {reporte.ubicacion}
+                              <MapPin size={14} /> {reporte.ubicacion}
                             </span>
                           </div>
                         </div>
@@ -535,7 +536,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                     ))}
                     {getReportsByDriver(user.nombre).length === 0 && (
                       <div className="no-reportes">
-                        <div className="no-reportes-icon">📋</div>
+                        <div className="no-reportes-icon"><ClipboardList size={48} /></div>
                         <h4>No tienes reportes de riesgo</h4>
                         <p>Usa el botón "Reportar Riesgo" para crear tu primer reporte</p>
                       </div>

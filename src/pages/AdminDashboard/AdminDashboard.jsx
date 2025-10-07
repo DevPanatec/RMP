@@ -11,7 +11,8 @@ import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
 import { 
   LayoutDashboard, Truck, AlertTriangle, Package, 
-  BarChart3, Users, Map, LogOut, TrendingUp 
+  BarChart3, Users, Map, LogOut, TrendingUp, CheckCircle,
+  MapPin, Radio, Activity, Zap, Fuel, Bell, Wrench, Leaf, Navigation, Clock, Save
 } from '../../components/Icons';
 import './AdminDashboard.css';
 
@@ -507,19 +508,19 @@ const AdminDashboard = ({ user, onLogout }) => {
                       className={`filter-btn ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
                       onClick={() => setServiceTypeFilter('todos')}
                     >
-                      📊 Todos
+                      <BarChart3 size={16} /> Todos
                     </button>
                     <button 
                       className={`filter-btn ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
                       onClick={() => setServiceTypeFilter('recoleccion')}
                     >
-                      🚛 Recolección
+                      <Truck size={16} /> Recolección
                     </button>
                     <button 
                       className={`filter-btn ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
                       onClick={() => setServiceTypeFilter('fumigacion')}
                     >
-                      🚐 Fumigación
+                      <Truck size={16} /> Fumigación
                     </button>
                   </div>
                 </div>
@@ -528,19 +529,19 @@ const AdminDashboard = ({ user, onLogout }) => {
               <div className="fleet-list-container">
                 <div className="fleet-stats">
                   <div className="stat-item">
-                    <span className="stat-icon">🚛</span>
+                    <span className="stat-icon"><Truck size={20} /></span>
                     <span className="stat-value">{filteredVehicles.length}</span>
                     <span className="stat-label">Vehículos</span>
                   </div>
                   <div className="stat-item">
-                    <span className="stat-icon">🟢</span>
+                    <span className="stat-icon"><Activity size={20} /></span>
                     <span className="stat-value">
                       {filteredVehicles.filter(v => v.estado === 'En ruta').length}
                     </span>
                     <span className="stat-label">En Ruta</span>
                   </div>
                   <div className="stat-item">
-                    <span className="stat-icon">🗺️</span>
+                    <span className="stat-icon"><Map size={20} /></span>
                     <span className="stat-value">
                       {routes.filter(r => r.vehiculo_id).length}
                     </span>
@@ -554,7 +555,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                       <div className="vehicle-main-info">
                         <div className="vehicle-indicator">
                           <div className="vehicle-icon-large">
-                            {vehicle.tipoServicio === 'fumigacion' ? '🚐' : '🚛'}
+                            <Truck size={32} />
                           </div>
                           <div className={`status-dot ${vehicle.estado.toLowerCase().replace(' ', '-')}`}></div>
                         </div>
@@ -569,7 +570,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                               <span className={`status-tag ${vehicle.estado.toLowerCase().replace(' ', '-')}`}>
                                 {vehicle.estado}
                               </span>
-                              <span className="fuel-level">⛽ {vehicle.nivelCombustible}%</span>
+                              <span className="fuel-level"><Fuel size={14} /> {vehicle.nivelCombustible}%</span>
                             </div>
                           </div>
                           
@@ -610,7 +611,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                             
                             {getAssignedRoute(vehicle.id) && (
                               <div className="route-info-compact">
-                                <div className="route-name-compact">📍 {getAssignedRoute(vehicle.id).name || getAssignedRoute(vehicle.id).nombre}</div>
+                                <div className="route-name-compact"><MapPin size={14} /> {getAssignedRoute(vehicle.id).name || getAssignedRoute(vehicle.id).nombre}</div>
                                 <div className="route-stops-compact">
                                   {(() => {
                                     const assignedRoute = getAssignedRoute(vehicle.id);
@@ -625,7 +626,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                                     return 'Sin paradas';
                                   })()}
                                 </div>
-                                <div className="route-time-compact">⏱️ {getAssignedRoute(vehicle.id).tiempo_estimado ? `${getAssignedRoute(vehicle.id).tiempo_estimado} min` : (getAssignedRoute(vehicle.id).estimatedTime || 'N/A')}</div>
+                                <div className="route-time-compact"><Clock size={14} /> {getAssignedRoute(vehicle.id).tiempo_estimado ? `${getAssignedRoute(vehicle.id).tiempo_estimado} min` : (getAssignedRoute(vehicle.id).estimatedTime || 'N/A')}</div>
                               </div>
                             )}
                           </div>
@@ -638,13 +639,13 @@ const AdminDashboard = ({ user, onLogout }) => {
                           onClick={() => handleGoToVehicleLocation(vehicle.id)}
                           title="Ver ubicación en mapa"
                         >
-                          📍
+                          <Navigation size={16} />
                         </button>
                         <button className="fleet-action-btn save">
-                          💾
+                          <Save size={16} />
                         </button>
                         <button className="fleet-action-btn map">
-                          🗺️
+                          <Map size={16} />
                         </button>
                       </div>
                     </div>
@@ -652,7 +653,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                   
                   {filteredVehicles.length === 0 && (
                     <div className="empty-fleet">
-                      <div className="empty-icon">🚛</div>
+                      <div className="empty-icon"><Truck size={48} /></div>
                       <h4>No hay vehículos</h4>
                       <p>No se encontraron vehículos para el filtro seleccionado</p>
                     </div>
@@ -686,7 +687,7 @@ const AdminDashboard = ({ user, onLogout }) => {
           <div className="dashboard-content">
             <div className="card">
               <div className="card__body">
-                <h3>🗺️ Monitoreo GPS en Tiempo Real</h3>
+                <h3><Map size={20} /> Monitoreo GPS en Tiempo Real</h3>
                 <p className="section-description">
                   Seguimiento en vivo de {
                     serviceTypeFilter === 'todos' ? 'todos los vehículos' :
@@ -715,26 +716,26 @@ const AdminDashboard = ({ user, onLogout }) => {
                     className={`filter-btn ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
                     onClick={() => setServiceTypeFilter('todos')}
                   >
-                    📊 Todos
+                    <BarChart3 size={16} /> Todos
                   </button>
                   <button 
                     className={`filter-btn ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
                     onClick={() => setServiceTypeFilter('recoleccion')}
                   >
-                    🚛 Recolección
+                    <Truck size={16} /> Recolección
                   </button>
                   <button 
                     className={`filter-btn ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
                     onClick={() => setServiceTypeFilter('fumigacion')}
                   >
-                    🚐 Fumigación
+                    <Truck size={16} /> Fumigación
                   </button>
                 </div>
               </div>
             </div>
             <div className="kpi-grid">
               <div className="kpi-card">
-                <div className="kpi-icon">🚛</div>
+                <div className="kpi-icon"><Truck size={24} /></div>
                 <div className="kpi-content">
                   <div className="kpi-value">
                     {serviceTypeFilter === 'todos' 
@@ -749,7 +750,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 </div>
               </div>
               <div className="kpi-card">
-                <div className="kpi-icon">🟢</div>
+                <div className="kpi-icon"><Activity size={24} /></div>
                 <div className="kpi-content">
                   <div className="kpi-value">
                     {serviceTypeFilter === 'todos' 
@@ -761,7 +762,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 </div>
               </div>
               <div className="kpi-card">
-                <div className="kpi-icon">⚡</div>
+                <div className="kpi-icon"><Zap size={24} /></div>
                 <div className="kpi-content">
                   <div className="kpi-value">
                     {Math.round(operationalStats.eficienciaPromedio)}%
@@ -770,7 +771,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 </div>
               </div>
               <div className="kpi-card">
-                <div className="kpi-icon">⛽</div>
+                <div className="kpi-icon"><Fuel size={24} /></div>
                 <div className="kpi-content">
                   <div className="kpi-value">
                     {Math.round(operationalStats.combustiblePromedio)}%
@@ -779,7 +780,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 </div>
               </div>
               <div className="kpi-card">
-                <div className="kpi-icon">⚠️</div>
+                <div className="kpi-icon"><AlertTriangle size={24} /></div>
                 <div className="kpi-content">
                   <div className="kpi-value">
                     {alerts?.length || 0}
@@ -790,15 +791,15 @@ const AdminDashboard = ({ user, onLogout }) => {
             </div>
             {alerts && alerts.length > 0 && (
               <div className="alerts-section">
-                <h3>🚨 Alertas Recientes</h3>
+                <h3><Bell size={20} /> Alertas Recientes</h3>
                 <div className="alerts-grid">
                   {alerts.slice(0, 3).map(alerta => (
                     <div key={alerta.id} className={`alert-card alert-${alerta.prioridad}`}>
                       <div className="alert-header">
                         <span className="alert-type">
-                          {alerta.tipo === 'combustible' && '⛽'}
-                          {alerta.tipo === 'mantenimiento' && '🔧'}
-                          {alerta.tipo === 'ruta' && '🗺️'}
+                          {alerta.tipo === 'combustible' && <Fuel size={16} />}
+                          {alerta.tipo === 'mantenimiento' && <Wrench size={16} />}
+                          {alerta.tipo === 'ruta' && <Map size={16} />}
                         </span>
                         <span className="alert-priority">{alerta.prioridad.toUpperCase()}</span>
                       </div>
@@ -855,7 +856,7 @@ const AdminDashboard = ({ user, onLogout }) => {
     <div className="dashboard-container">
       <div className="sidebar">
         <div className="sidebar-header">
-          <h2>🌱 RMP Admin</h2>
+          <h2><Leaf size={20} /> RMP Admin</h2>
           <p>Bienvenido, {user.nombre}</p>
         </div>
         <nav className="sidebar-nav">
@@ -905,10 +906,10 @@ const AdminDashboard = ({ user, onLogout }) => {
       </div>
       <div className="main-content">
         <div className="dashboard-header">
-          <h1>🌿 Panel de Administración</h1>
+          <h1><Leaf size={24} /> Panel de Administración</h1>
           <div className="header-actions">
             <div className="realtime-status">
-              🟢 Sistema en Tiempo Real
+              <Activity size={16} /> Sistema en Tiempo Real
             </div>
             <button className="logout-btn" onClick={onLogout}>
               <LogOut size={18} /> Cerrar Sesión
