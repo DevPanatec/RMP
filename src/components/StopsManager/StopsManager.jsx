@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import LocationSearch from '../LocationSearch/LocationSearch';
+import { Plus, X, Lightbulb } from '../Icons';
 import './StopsManager.css';
 
 const StopsManager = ({ stops = [], onStopsChange }) => {
@@ -57,12 +58,12 @@ const StopsManager = ({ stops = [], onStopsChange }) => {
     <div className="stops-manager">
       <div className="stops-header">
         <label>Paradas de la Ruta:</label>
-        <button
+        <button 
           type="button"
           className="btn btn--sm btn--primary"
           onClick={() => setShowAddForm(!showAddForm)}
         >
-          {showAddForm ? '✕ Cancelar' : '➕ Agregar Parada'}
+          {showAddForm ? <><X size={14} /> Cancelar</> : <><Plus size={14} /> Agregar Parada</>}
         </button>
       </div>
 
@@ -73,7 +74,7 @@ const StopsManager = ({ stops = [], onStopsChange }) => {
             onLocationSelect={handleLocationSelect}
           />
           <div className="add-stop-help">
-            💡 Escribe una dirección y selecciona de las sugerencias para agregar coordenadas exactas
+            <Lightbulb size={16} /> Escribe una dirección y selecciona de las sugerencias para agregar coordenadas exactas
           </div>
         </div>
       )}

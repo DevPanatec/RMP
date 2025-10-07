@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle } from 'react-leaflet';
 import L from 'leaflet';
+import { Satellite, Map as MapIcon, MapPin, X, Truck } from '../Icons';
 import 'leaflet/dist/leaflet.css';
 import './MapComponent.css';
 
@@ -20,10 +21,10 @@ const createCustomIcon = (estado, direccion = 0, tipoServicio = 'recoleccion') =
     'En mantenimiento': '#f59e0b'
   };
   
-  // Iconos diferentes según el tipo de servicio
+  // Iconos SVG diferentes según el tipo de servicio
   const serviceIcons = {
-    'recoleccion': '🚛',
-    'fumigacion': '🚐'
+    'recoleccion': `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path><path d="M15 18H9"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle><path d="M15 8h5l3 3v5h-2"></path></svg>`,
+    'fumigacion': `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"></path><path d="M15 18H9"></path><circle cx="7" cy="18" r="2"></circle><circle cx="17" cy="18" r="2"></circle><path d="M15 8h5l3 3v5h-2"></path></svg>`
   };
   
   // Colores específicos para fumigación
@@ -38,9 +39,8 @@ const createCustomIcon = (estado, direccion = 0, tipoServicio = 'recoleccion') =
   const iconHtml = `
     <div class="custom-truck-marker gps-style ${tipoServicio}-vehicle" style="transform: rotate(${direccion}deg)">
       <div class="truck-icon-gps" style="background-color: ${iconColors[estado] || '#6b7280'}">
-        <div class="truck-symbol">${serviceIcons[tipoServicio] || '🚛'}</div>
+        <div class="truck-symbol">${serviceIcons[tipoServicio]}</div>
         <div class="gps-direction-arrow"></div>
-        ${tipoServicio === 'fumigacion' ? '<div class="fumigation-indicator">🦟</div>' : ''}
       </div>
       <div class="truck-pulse-gps" style="border-color: ${iconColors[estado] || '#6b7280'}"></div>
     </div>
@@ -336,7 +336,7 @@ const MapComponent = ({ camiones, rutas = [], userType, showRealTime = true, sel
               checked={realTimeEnabled}
               onChange={(e) => setRealTimeEnabled(e.target.checked)}
             />
-            🛰️ GPS en Tiempo Real
+            <Satellite size={16} /> GPS en Tiempo Real
           </label>
           <label className="control-label gps-control">
             <input
@@ -344,16 +344,16 @@ const MapComponent = ({ camiones, rutas = [], userType, showRealTime = true, sel
               checked={showTrails}
               onChange={(e) => setShowTrails(e.target.checked)}
             />
-            🗺️ Mostrar Rutas Completas
+            <MapIcon size={16} /> Mostrar Rutas Completas
           </label>
           {selectedTruckId && (
             <div className="selected-truck-info gps-info">
-              📍 Rastreando: <strong>{getSelectedTruck()?.conductor}</strong> ({selectedTruckId})
+              <MapPin size={16} /> Rastreando: <strong>{getSelectedTruck()?.conductor}</strong> ({selectedTruckId})
               <button 
                 className="btn btn--sm btn--outline"
                 onClick={() => handleTruckClick(selectedTruckId)}
               >
-                ❌ Dejar de rastrear
+                <X size={14} /> Dejar de rastrear
               </button>
             </div>
           )}
@@ -394,11 +394,11 @@ const MapComponent = ({ camiones, rutas = [], userType, showRealTime = true, sel
             </div>
             <div className="legend-item">
               <span className="legend-color" style={{ backgroundColor: '#3b82f6' }}></span>
-              🚛 Recolección Disponible ({activeCamiones.filter(c => c.estado === 'Disponible').length})
+              <Truck size={14} /> Recolección Disponible ({activeCamiones.filter(c => c.estado === 'Disponible').length})
             </div>
             <div className="legend-item">
               <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
-              🚛 Recolección Mantenimiento ({activeCamiones.filter(c => c.estado === 'En mantenimiento').length})
+              <Truck size={14} /> Recolección Mantenimiento ({activeCamiones.filter(c => c.estado === 'En mantenimiento').length})
             </div>
           </>
         ) : (
@@ -416,12 +416,12 @@ const MapComponent = ({ camiones, rutas = [], userType, showRealTime = true, sel
               Mantenimiento ({activeCamiones.filter(c => c.estado === 'En mantenimiento').length})
             </div>
             <div className="legend-item" style={{ opacity: 0.7, fontSize: '10px' }}>
-              🚛 Recolección | 🚐 Fumigación
+              <Truck size={12} /> Recolección / Fumigación
             </div>
           </>
         )}
         <div className="legend-item" style={{ opacity: 0.6, fontSize: '11px' }}>
-          💡 Solo vehículos activos
+          Solo vehículos activos
         </div>
       </div>
 
@@ -485,7 +485,7 @@ const MapComponent = ({ camiones, rutas = [], userType, showRealTime = true, sel
                       <div className={`truck-popup gps-popup ${camion.tipoServicio === 'fumigacion' ? 'fumigation-popup' : ''}`}>
                         <div className="popup-header">
                           <h4>
-                            {camion.tipoServicio === 'fumigacion' ? '🚐' : '🚛'} {camion.id}
+                            <Truck size={16} /> {camion.id}
                             {camion.tipoServicio === 'fumigacion' && (
                               <span className="service-type">FUMIGACIÓN</span>
                             )}

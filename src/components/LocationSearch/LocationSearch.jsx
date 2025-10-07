@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { MapPin, X } from '../Icons';
 import './LocationSearch.css';
 
 const LocationSearch = ({ onLocationSelect, placeholder = "Buscar ubicación...", initialValue = "" }) => {
@@ -131,7 +132,7 @@ const LocationSearch = ({ onLocationSelect, placeholder = "Buscar ubicación..."
             className="clear-button"
             title="Limpiar búsqueda"
           >
-            ✕
+            <X size={16} />
           </button>
         )}
         
@@ -150,7 +151,7 @@ const LocationSearch = ({ onLocationSelect, placeholder = "Buscar ubicación..."
               className="suggestion-item"
               onClick={() => handleSuggestionClick(suggestion)}
             >
-              <div className="suggestion-icon">📍</div>
+              <div className="suggestion-icon"><MapPin size={16} /></div>
               <div className="suggestion-text">
                 <div className="suggestion-address">{suggestion.address}</div>
                 <div className="suggestion-full-address">{suggestion.full_address}</div>
