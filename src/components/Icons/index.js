@@ -31,5 +31,11 @@ export {
   Loader,
   ClipboardList,
   Radio,
-  Satellite
+  Satellite,
+  LayoutDashboard,
+  BarChart3,
+  Users,
+  LogOut,
+  TrendingUp,
+  Download
 } from 'lucide-react';

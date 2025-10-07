@@ -9,6 +9,10 @@ import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
 import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
+import { 
+  LayoutDashboard, Truck, AlertTriangle, Package, 
+  BarChart3, Users, Map, LogOut, TrendingUp 
+} from '../../components/Icons';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ user, onLogout }) => {
@@ -817,19 +821,19 @@ const AdminDashboard = ({ user, onLogout }) => {
                 className={`sub-tab ${(!activeSubTab || activeSubTab === 'personal') ? 'sub-tab--active' : ''}`}
                 onClick={() => setActiveSubTab('personal')}
               >
-                👥 Personal
+                <Users size={18} /> Personal
               </button>
               <button 
                 className={`sub-tab ${activeSubTab === 'flota' ? 'sub-tab--active' : ''}`}
                 onClick={() => setActiveSubTab('flota')}
               >
-                🚛 Flota
+                <Truck size={18} /> Flota
               </button>
               <button 
                 className={`sub-tab ${activeSubTab === 'rutas' ? 'sub-tab--active' : ''}`}
                 onClick={() => setActiveSubTab('rutas')}
               >
-                🗺️ Rutas
+                <Map size={18} /> Rutas
               </button>
             </div>
             {renderOperationsContent()}
@@ -861,7 +865,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 className={activeTab === 'dashboard' ? 'active' : ''}
                 onClick={() => handleTabChange('dashboard')}
               >
-                📊 Dashboard
+                <LayoutDashboard size={18} /> Dashboard
               </button>
             </li>
             <li>
@@ -869,7 +873,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 className={activeTab === 'operaciones' ? 'active' : ''}
                 onClick={() => handleTabChange('operaciones', 'personal')}
               >
-                🚛 Operaciones
+                <Truck size={18} /> Operaciones
               </button>
             </li>
             <li>
@@ -877,7 +881,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 className={activeTab === 'riesgos' ? 'active' : ''}
                 onClick={() => handleTabChange('riesgos')}
               >
-                ⚠️ Riesgos
+                <AlertTriangle size={18} /> Riesgos
               </button>
             </li>
             <li>
@@ -885,7 +889,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 className={activeTab === 'inventario' ? 'active' : ''}
                 onClick={() => handleTabChange('inventario')}
               >
-                📦 Inventario
+                <Package size={18} /> Inventario
               </button>
             </li>
             <li>
@@ -893,7 +897,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 className={activeTab === 'reportes' ? 'active' : ''}
                 onClick={() => handleTabChange('reportes')}
               >
-                📊 Reportes
+                <BarChart3 size={18} /> Reportes
               </button>
             </li>
           </ul>
@@ -907,7 +911,7 @@ const AdminDashboard = ({ user, onLogout }) => {
               🟢 Sistema en Tiempo Real
             </div>
             <button className="logout-btn" onClick={onLogout}>
-              🚪 Cerrar Sesión
+              <LogOut size={18} /> Cerrar Sesión
             </button>
           </div>
         </div>

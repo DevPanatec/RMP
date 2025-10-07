@@ -4,6 +4,10 @@ import MapComponent from '../../components/Map/MapComponent';
 import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
 import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
+import { 
+  Truck, LogOut, Download, Map, Clock, AlertTriangle, 
+  ClipboardList, Package, TrendingUp, FileText 
+} from '../../components/Icons';
 import './ConductorDashboard.css';
 
 // Hook para PWA
@@ -185,7 +189,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
       <div className="dashboard-container">
         <div className="main-content">
           <div className="dashboard-header">
-            <h1>🚛 Dashboard Conductor</h1>
+            <h1><Truck size={24} /> Dashboard Conductor</h1>
           </div>
           <div className="card">
             <div className="card__body">
@@ -205,9 +209,9 @@ const ConductorDashboard = ({ user, onLogout }) => {
       <div className="dashboard-container">
         <div className="main-content">
           <div className="dashboard-header">
-            <h1>🚛 Dashboard Conductor</h1>
+            <h1><Truck size={24} /> Dashboard Conductor</h1>
             <button className="logout-btn" onClick={onLogout}>
-              🚪 Cerrar Sesión
+              <LogOut size={18} /> Cerrar Sesión
             </button>
           </div>
           <div className="card">
@@ -248,7 +252,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
           <div className="install-content">
             <span>📱 Instala RMP Conductor en tu dispositivo</span>
             <button className="install-btn" onClick={installPWA}>
-              ⬇️ Instalar App
+              <Download size={16} /> Instalar App
             </button>
           </div>
         </div>
@@ -256,26 +260,26 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
       <div className="main-content">
         <div className="dashboard-header">
-          <h1>🚛 Dashboard Conductor</h1>
+          <h1><Truck size={24} /> Dashboard Conductor</h1>
           <div className="header-actions">
             <div className="connection-status">
-              {isOnline ? '🟢 En línea' : '🔴 Sin conexión'}
+              {isOnline ? 'En línea' : 'Sin conexión'}
             </div>
             <div className="route-status">
-              🗺️ {assignedRoute.nombre || assignedRoute.name}
+              <Map size={16} /> {assignedRoute.nombre || assignedRoute.name}
             </div>
             <div className="time-indicator">
-              ⏱️ {formatTime(timeOnRoute)}
+              <Clock size={16} /> {formatTime(timeOnRoute)}
             </div>
             <button 
               className="btn btn--warning"
               onClick={() => setShowRiskModal(true)}
               title="Reportar un riesgo"
             >
-              ⚠️ Reportar Riesgo
+              <AlertTriangle size={16} /> Reportar Riesgo
             </button>
             <button className="logout-btn" onClick={onLogout}>
-              🚪 Cerrar Sesión
+              <LogOut size={18} /> Cerrar Sesión
             </button>
           </div>
         </div>
@@ -286,13 +290,13 @@ const ConductorDashboard = ({ user, onLogout }) => {
             className={`tab-btn ${activeTab === 'ruta' ? 'active' : ''}`}
             onClick={() => setActiveTab('ruta')}
           >
-            🗺️ Mi Ruta
+            <Map size={18} /> Mi Ruta
           </button>
           <button 
             className={`tab-btn ${activeTab === 'reportes' ? 'active' : ''}`}
             onClick={() => setActiveTab('reportes')}
           >
-            📋 Mis Reportes
+            <ClipboardList size={18} /> Mis Reportes
           </button>
         </div>
 
@@ -301,14 +305,14 @@ const ConductorDashboard = ({ user, onLogout }) => {
             {/* KPIs del conductor */}
             <div className="conductor-kpis">
           <div className="kpi-card">
-            <div className="kpi-icon">🚛</div>
+            <div className="kpi-icon"><Truck size={24} /></div>
             <div className="kpi-content">
               <div className="kpi-value">{userTruck.id}</div>
               <div className="kpi-label">Mi Camión</div>
             </div>
           </div>
           <div className="kpi-card">
-            <div className="kpi-icon">📦</div>
+            <div className="kpi-icon"><Package size={24} /></div>
             <div className="kpi-content">
               <div className="kpi-value">{completedStops.length}/{(assignedRoute.paradas || []).length}</div>
               <div className="kpi-label">Paradas Completadas</div>
