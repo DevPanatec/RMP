@@ -60,17 +60,21 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     
-    <!-- Registro del Service Worker -->
+    <!-- Service Worker DESACTIVADO para desarrollo -->
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registrado con éxito:', registration);
-            })
-            .catch((registrationError) => {
-              console.log('SW falló al registrarse:', registrationError);
-            });
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+            console.log('Service Worker desregistrado');
+          }
+        });
+        
+        caches.keys().then(function(names) {
+          for (let name of names) {
+            caches.delete(name);
+            console.log('Caché eliminado:', name);
+          }
         });
       }
     </script>

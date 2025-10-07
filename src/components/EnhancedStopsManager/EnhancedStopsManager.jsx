@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import MapLocationPicker from '../MapLocationPicker/MapLocationPicker';
+import { Map, MapPin, Plus, X, Edit, Trash2, ClipboardList, AlertTriangle, Ruler } from '../Icons';
 import './EnhancedStopsManager.css';
 
-const EnhancedStopsManager = ({ stops = [], onStopsChange }) => {
+const EnhancedStopsManager = ({ stops = [], onStopsChange, showHeader = true }) => {
   const [showAddForm, setShowAddForm] = useState(false);
-  console.log('🗺️ EnhancedStopsManager se está renderizando!', { stops, showAddForm });
+  console.log('EnhancedStopsManager renderizando:', { stops, showAddForm });
   const [editingStop, setEditingStop] = useState(null);
 
   const handleLocationSelect = (locationData) => {
@@ -85,35 +86,61 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange }) => {
 
   return (
     <div className="enhanced-stops-manager">
-      <div className="stops-header">
-        <div className="header-content">
-          <h4>🗺️ Paradas de la Ruta</h4>
-          <p>Agrega y organiza las paradas usando el mapa interactivo</p>
+      {showHeader && (
+        <div className="stops-header">
+          <div className="header-content">
+            <h4><Map size={20} /> Paradas de la Ruta</h4>
+            <p>Agrega y organiza las paradas usando el mapa interactivo</p>
+          </div>
+          <div className="header-actions">
+            <button
+              type="button"
+              className={`btn btn--primary ${showAddForm ? 'btn--active' : ''}`}
+              onClick={() => {
+                setShowAddForm(!showAddForm);
+                setEditingStop(null);
+              }}
+            >
+              {showAddForm ? <><X size={16} /> Cancelar</> : <><Plus size={16} /> Agregar Parada</>}
+            </button>
+          </div>
         </div>
-        <div className="header-actions">
-          <button
-            type="button"
-            className={`btn btn--primary ${showAddForm ? 'btn--active' : ''}`}
-            onClick={() => {
-              setShowAddForm(!showAddForm);
-              setEditingStop(null);
-            }}
-          >
-            {showAddForm ? '✕ Cancelar' : '➕ Agregar Parada'}
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Formulario para agregar nueva parada */}
       {showAddForm && (
         <div className="add-stop-section">
           <div className="add-stop-header">
-            <h5>📍 Nueva Parada</h5>
+            <h5><MapPin size={18} /> Nueva Parada</h5>
             <p>Busca una ubicación o haz clic en el mapa para agregar una parada</p>
           </div>
           <MapLocationPicker
             onLocationSelect={handleLocationSelect}
             placeholder="Buscar ubicación para nueva parada..."
+            showCoordinateInput={true}
+            height="350px"
+          />
+        </div>
+      )}
+
+      {editingStop && (
+        <div className="edit-stop-section">
+          <div className="edit-stop-header">
+            <h5><Edit size={18} /> Editar Parada #{editingStop.orden}</h5>
+            <div className="edit-actions">
+              <button
+                type="button"
+                className="btn btn--sm btn--outline"
+                onClick={cancelEdit}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+          <MapLocationPicker
+            onLocationSelect={handleEditLocationSelect}
+            placeholder="Buscar nueva ubicación..."
+            initialLocation={editingStop.latitud && editingStop.longitud ? [editingStop.latitud, editingStop.longitud] : null}
             showCoordinateInput={true}
             height="350px"
           />
@@ -145,12 +172,25 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange }) => {
         </div>
       )}
 
+      {/* Botón flotante para agregar paradas cuando no hay header */}
+      {!showHeader && !showAddForm && !editingStop && (
+        <button
+          type="button"
+          className="btn btn--primary floating-add-btn"
+          onClick={() => setShowAddForm(true)}
+        >
+          <Plus size={16} /> Agregar Parada
+        </button>
+      )}
+
       {/* Lista de paradas */}
       {stops.length > 0 ? (
         <div className="stops-list">
-          <div className="stops-list-header">
-            <h5>📋 Paradas Definidas ({stops.length})</h5>
-          </div>
+          {showHeader && (
+            <div className="stops-list-header">
+              <h5><ClipboardList size={18} /> Paradas Definidas ({stops.length})</h5>
+            </div>
+          )}
           {stops.map((stop, index) => (
             <div key={stop.id || index} className={`stop-item ${editingStop?.id === stop.id ? 'editing' : ''}`}>
               <div className="stop-order">
@@ -168,11 +208,11 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange }) => {
                 )}
                 {stop.latitud && stop.longitud ? (
                   <div className="stop-coordinates">
-                    📍 {stop.latitud.toFixed(6)}, {stop.longitud.toFixed(6)}
+                    <MapPin size={12} /> {stop.latitud.toFixed(6)}, {stop.longitud.toFixed(6)}
                   </div>
                 ) : (
                   <div className="stop-coordinates missing">
-                    ⚠️ Sin coordenadas - Haz clic en "Editar" para agregar ubicación exacta
+                    <AlertTriangle size={12} /> Sin coordenadas - Haz clic en "Editar" para agregar ubicación exacta
                   </div>
                 )}
               </div>
@@ -202,7 +242,7 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange }) => {
                   onClick={() => handleEditStop(stop)}
                   title="Editar ubicación"
                 >
-                  ✏️
+                  <Edit size={14} />
                 </button>
                 <button
                   type="button"
@@ -210,7 +250,7 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange }) => {
                   onClick={() => handleRemoveStop(stop.id || index)}
                   title="Eliminar parada"
                 >
-                  🗑️
+                  <Trash2 size={14} />
                 </button>
               </div>
             </div>
@@ -219,7 +259,7 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange }) => {
       ) : (
         <div className="no-stops">
           <div className="no-stops-content">
-            <div className="no-stops-icon">🗺️</div>
+            <div className="no-stops-icon"><Map size={64} strokeWidth={1.5} /></div>
             <h4>No hay paradas definidas</h4>
             <p>Agrega paradas usando el buscador de ubicaciones con mapa interactivo</p>
             <button
@@ -227,7 +267,7 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange }) => {
               className="btn btn--primary"
               onClick={() => setShowAddForm(true)}
             >
-              ➕ Agregar Primera Parada
+              <Plus size={16} /> Agregar Primera Parada
             </button>
           </div>
         </div>
@@ -238,21 +278,21 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange }) => {
         <div className="stops-summary">
           <div className="summary-stats">
             <div className="stat-item">
-              <div className="stat-icon">📍</div>
+              <div className="stat-icon"><MapPin size={20} /></div>
               <div className="stat-info">
                 <span className="stat-value">{stops.length}</span>
                 <span className="stat-label">Parada{stops.length !== 1 ? 's' : ''}</span>
               </div>
             </div>
             <div className="stat-item">
-              <div className="stat-icon">🗺️</div>
+              <div className="stat-icon"><Map size={20} /></div>
               <div className="stat-info">
                 <span className="stat-value">{stops.filter(s => s.latitud && s.longitud).length}</span>
                 <span className="stat-label">Con coordenadas</span>
               </div>
             </div>
             <div className="stat-item">
-              <div className="stat-icon">📏</div>
+              <div className="stat-icon"><Ruler size={20} /></div>
               <div className="stat-info">
                 <span className="stat-value">~{Math.round(stops.length * 2.5)} km</span>
                 <span className="stat-label">Distancia est.</span>
@@ -262,7 +302,7 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange }) => {
           
           {stops.filter(s => !s.latitud || !s.longitud).length > 0 && (
             <div className="summary-warning">
-              ⚠️ {stops.filter(s => !s.latitud || !s.longitud).length} parada(s) sin coordenadas exactas. 
+              <AlertTriangle size={16} /> {stops.filter(s => !s.latitud || !s.longitud).length} parada(s) sin coordenadas exactas. 
               Edítalas para mejorar la precisión del mapa.
             </div>
           )}

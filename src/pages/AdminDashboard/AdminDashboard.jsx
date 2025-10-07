@@ -61,7 +61,6 @@ const AdminDashboard = ({ user, onLogout }) => {
   // Estados para drag & drop y modales
   const [draggedEmployee, setDraggedEmployee] = useState(null);
   const [editingRoute, setEditingRoute] = useState(null);
-  const [vehicleRouteAssignments, setVehicleRouteAssignments] = useState({});
   const [showRouteCreator, setShowRouteCreator] = useState(false);
   const [newRoute, setNewRoute] = useState({
     name: '',
@@ -198,17 +197,6 @@ const AdminDashboard = ({ user, onLogout }) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta ruta?')) {
       // Usar función del contexto
       deleteRoute(routeId);
-      
-      // Remove route assignments from vehicles
-      setVehicleRouteAssignments(prev => {
-        const updated = { ...prev };
-        Object.keys(updated).forEach(vehicleId => {
-          if (updated[vehicleId] === routeId) {
-            delete updated[vehicleId];
-          }
-        });
-        return updated;
-      });
     }
   };
 
@@ -269,16 +257,17 @@ const AdminDashboard = ({ user, onLogout }) => {
     addRoute(duplicatedRoute);
   };
 
-  const handleVehicleRouteAssignment = (vehicleId, routeId) => {
-    setVehicleRouteAssignments(prev => ({
-      ...prev,
-      [vehicleId]: routeId || undefined
-    }));
+  const handleVehicleRouteAssignment = async (vehicleId, routeId) => {
+    try {
+      await assignRoute(vehicleId, routeId || null);
+    } catch (error) {
+      console.error('Error al asignar ruta:', error);
+      alert('Error al asignar la ruta. Por favor intenta de nuevo.');
+    }
   };
 
   const getAssignedRoute = (vehicleId) => {
-    const routeId = vehicleRouteAssignments[vehicleId];
-    return routeId ? routes.find(r => r.id === routeId) : null;
+    return routes.find(r => r.vehiculo_id === vehicleId) || null;
   };
 
   const handleGoToVehicleLocation = (vehicleId) => {
@@ -549,7 +538,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                   <div className="stat-item">
                     <span className="stat-icon">🗺️</span>
                     <span className="stat-value">
-                      {Object.keys(vehicleRouteAssignments).length}
+                      {routes.filter(r => r.vehiculo_id).length}
                     </span>
                     <span className="stat-label">Con Ruta</span>
                   </div>
@@ -597,30 +586,42 @@ const AdminDashboard = ({ user, onLogout }) => {
                               <label>Ruta:</label>
                               <select 
                                 className="compact-select"
-                                value={vehicleRouteAssignments[vehicle.id] || ''}
+                                value={getAssignedRoute(vehicle.id)?.id || ''}
                                 onChange={(e) => handleVehicleRouteAssignment(vehicle.id, e.target.value)}
                               >
                                 <option value="">Sin asignar</option>
                                 {availableRoutes
-                                  .filter(route => route.status === 'active')
-                                  .map(route => (
-                                  <option key={route.id} value={route.id}>
-                                    {route.name} ({route.stops.length} paradas)
-                                  </option>
-                                ))}
+                                  .filter(route => route.activa !== false && route.estado !== 'cancelada')
+                                  .map(route => {
+                                    const paradas = route.paradas || route.stops || [];
+                                    const paradasCount = Array.isArray(paradas) ? paradas.length : 0;
+                                    return (
+                                      <option key={route.id} value={route.id}>
+                                        {route.name || route.nombre} ({paradasCount} paradas)
+                                      </option>
+                                    );
+                                  })}
                               </select>
                             </div>
                             
                             {getAssignedRoute(vehicle.id) && (
                               <div className="route-info-compact">
-                                <div className="route-name-compact">📍 {getAssignedRoute(vehicle.id).name}</div>
+                                <div className="route-name-compact">📍 {getAssignedRoute(vehicle.id).name || getAssignedRoute(vehicle.id).nombre}</div>
                                 <div className="route-stops-compact">
-                                  {getAssignedRoute(vehicle.id).stops.slice(0, 2).join(' → ')}
-                                  {getAssignedRoute(vehicle.id).stops.length > 2 && 
-                                    ` → +${getAssignedRoute(vehicle.id).stops.length - 2} más`
-                                  }
+                                  {(() => {
+                                    const assignedRoute = getAssignedRoute(vehicle.id);
+                                    const paradas = assignedRoute.paradas || assignedRoute.stops || [];
+                                    if (Array.isArray(paradas) && paradas.length > 0) {
+                                      const stopNames = paradas.slice(0, 2).map(p => 
+                                        typeof p === 'string' ? p : (p.nombre || p.direccion || 'Parada')
+                                      );
+                                      return stopNames.join(' → ') + 
+                                        (paradas.length > 2 ? ` → +${paradas.length - 2} más` : '');
+                                    }
+                                    return 'Sin paradas';
+                                  })()}
                                 </div>
-                                <div className="route-time-compact">⏱️ {getAssignedRoute(vehicle.id).estimatedTime}</div>
+                                <div className="route-time-compact">⏱️ {getAssignedRoute(vehicle.id).tiempo_estimado ? `${getAssignedRoute(vehicle.id).tiempo_estimado} min` : (getAssignedRoute(vehicle.id).estimatedTime || 'N/A')}</div>
                               </div>
                             )}
                           </div>

@@ -4,14 +4,17 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/cleanCache.js && vite --force",
+    "dev:nocache": "vite --force",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "clean": "node scripts/cleanCache.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.55.0",
     "leaflet": "^1.9.4",
+    "lucide-react": "^0.545.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-leaflet": "^4.2.1"

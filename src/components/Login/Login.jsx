@@ -1,58 +1,71 @@
 import { useState } from 'react';
-import { appData } from '../../data/mockData';
+import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
+import CreateTestUsers from '../CreateTestUsers/CreateTestUsers';
+import { Settings, Building, Truck, Eye, EyeOff, CheckCircle, XCircle } from '../Icons';
 import './Login.css';
 
 const Login = ({ onLogin }) => {
+  const { signIn, loading, error: authError } = useSupabaseAuth();
   const [formData, setFormData] = useState({
-    usuario: '',
+    email: '',
     password: '',
     tipo: 'admin'
   });
 
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showCreateUsers, setShowCreateUsers] = useState(false);
 
-  // Credenciales por tipo de usuario
+  // Credenciales de prueba para auto-llenar
   const credentialsInfo = {
-    admin: { usuario: 'admin', password: 'admin123', nombre: 'Administrador' },
-    enterprise: { usuario: 'empresa1', password: 'emp123', nombre: 'Empresa Demo' },
-    conductor: { usuario: 'conductor1', password: 'cond123', nombre: 'Juan Pérez' }
+    admin: { 
+      email: 'admin@rmp.com', 
+      password: 'admin123', 
+      nombre: 'Administrador del Sistema' 
+    },
+    enterprise: { 
+      email: 'empresa@rmp.com', 
+      password: 'empresa123', 
+      nombre: 'Usuario Enterprise' 
+    },
+    conductor: { 
+      email: 'conductor@rmp.com', 
+      password: 'conductor123', 
+      nombre: 'Juan Pérez - Conductor' 
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     
-    console.log('🔍 Intentando login con:', formData);
-    console.log('👥 Usuarios disponibles:', appData.usuarios);
-    
-    const user = appData.usuarios.find(u => 
-      u.usuario === formData.usuario && 
-      u.password === formData.password &&
-      u.tipo === formData.tipo
-    );
-    
-    if (user) {
-      console.log('✅ Usuario encontrado:', user);
-      onLogin(user);
-    } else {
-      console.log('❌ Credenciales incorrectas');
-      console.log('🔎 Buscando usuario:', formData.usuario);
-      console.log('🔎 Con tipo:', formData.tipo);
-      console.log('🔎 Con password:', formData.password);
+    console.log('Intentando login con:', formData.email);
+
+    try {
+      const result = await signIn(formData.email, formData.password);
       
-      // Verificar qué falta
-      const userByName = appData.usuarios.find(u => u.usuario === formData.usuario);
-      const userByType = appData.usuarios.find(u => u.tipo === formData.tipo);
-      
-      if (!userByName) {
-        setError(`Usuario "${formData.usuario}" no encontrado. Usa: ${credentialsInfo[formData.tipo].usuario}`);
-      } else if (userByName.tipo !== formData.tipo) {
-        setError(`El usuario "${formData.usuario}" no es de tipo ${formData.tipo}. Selecciona el tipo correcto.`);
-      } else if (userByName.password !== formData.password) {
-        setError(`Contraseña incorrecta para ${formData.usuario}. Usa: ${credentialsInfo[formData.tipo].password}`);
+      if (result.success) {
+        console.log('Login exitoso');
+        // El contexto ya cargó el perfil del usuario
+        // Llamar a onLogin para actualizar el estado en App
+        if (onLogin) {
+          onLogin(result.user);
+        }
       } else {
-        setError('Credenciales incorrectas. Verifica usuario, contraseña y tipo.');
+        console.log('Login fallido:', result.error);
+        
+        // Mensajes de error más amigables
+        if (result.error.includes('Invalid login credentials')) {
+          setError('Credenciales incorrectas. Verifica tu email y contraseña.');
+        } else if (result.error.includes('Email not confirmed')) {
+          setError('Por favor confirma tu email antes de iniciar sesión.');
+        } else {
+          setError(result.error || 'Error al iniciar sesión. Intenta de nuevo.');
+        }
       }
+    } catch (err) {
+      console.error('Error en login:', err);
+      setError('Error de conexión. Por favor intenta de nuevo.');
     }
   };
 
@@ -60,17 +73,17 @@ const Login = ({ onLogin }) => {
     setFormData(prev => ({
       ...prev,
       tipo: newType,
-      usuario: '', // Limpiar usuario al cambiar tipo
-      password: '' // Limpiar contraseña al cambiar tipo
+      email: '',
+      password: ''
     }));
-    setError(''); // Limpiar error al cambiar tipo
+    setError('');
   };
 
   const fillCredentials = () => {
     const creds = credentialsInfo[formData.tipo];
     setFormData(prev => ({
       ...prev,
-      usuario: creds.usuario,
+      email: creds.email,
       password: creds.password
     }));
     setError('');
@@ -82,13 +95,13 @@ const Login = ({ onLogin }) => {
     <div className="login-container">
       <div className="login-card">
         <div className="rmp-logo">
-          <h1>RMP</h1>
+          <h1>🌱 RMP</h1>
           <p>Recolecting Manager Pro</p>
         </div>
         
-        {error && (
+        {(error || authError) && (
           <div className="error-message">
-            {error}
+            {error || authError}
           </div>
         )}
         
@@ -99,39 +112,58 @@ const Login = ({ onLogin }) => {
               className="form-control"
               value={formData.tipo}
               onChange={(e) => handleTypeChange(e.target.value)}
+              disabled={loading}
             >
-              <option value="admin">🔧 Administrador</option>
-              <option value="enterprise">🏢 Enterprise</option>
-              <option value="conductor">🚛 Conductor</option>
+              <option value="admin">Administrador</option>
+              <option value="enterprise">Enterprise</option>
+              <option value="conductor">Conductor</option>
             </select>
           </div>
           
           <div className="form-group">
-            <label className="form-label">Usuario</label>
+            <label className="form-label">Email</label>
             <input 
-              type="text"
+              type="email"
               className="form-control"
-              value={formData.usuario}
-              onChange={(e) => setFormData({...formData, usuario: e.target.value})}
-              placeholder={`Ej: ${currentCredentials.usuario}`}
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              placeholder={`Ej: ${currentCredentials.email}`}
               required
+              disabled={loading}
+              autoComplete="email"
             />
           </div>
           
           <div className="form-group">
             <label className="form-label">Contraseña</label>
-            <input 
-              type="password"
-              className="form-control"
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-              placeholder={`Ej: ${currentCredentials.password}`}
-              required
-            />
+            <div className="password-input-wrapper">
+              <input 
+                type={showPassword ? "text" : "password"}
+                className="form-control"
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                placeholder="Ingresa tu contraseña"
+                required
+                disabled={loading}
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={loading}
+              >
+                {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+              </button>
+            </div>
           </div>
           
-          <button type="submit" className="btn btn--primary btn--full-width">
-            Iniciar Sesión
+          <button 
+            type="submit" 
+            className="btn btn--primary btn--full-width"
+            disabled={loading}
+          >
+            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
         
@@ -142,13 +174,14 @@ const Login = ({ onLogin }) => {
               type="button" 
               className="btn btn--outline btn--sm"
               onClick={fillCredentials}
+              disabled={loading}
               style={{ marginLeft: '8px', fontSize: '10px', padding: '4px 8px' }}
             >
               Auto-llenar
             </button>
           </div>
           <div className="credential-item">
-            <strong>Usuario:</strong> {currentCredentials.usuario}<br/>
+            <strong>Email:</strong> {currentCredentials.email}<br/>
             <strong>Contraseña:</strong> {currentCredentials.password}<br/>
             <strong>Nombre:</strong> {currentCredentials.nombre}
           </div>
@@ -156,19 +189,43 @@ const Login = ({ onLogin }) => {
           <div className="all-credentials">
             <details style={{ marginTop: '16px', fontSize: '11px' }}>
               <summary style={{ cursor: 'pointer', color: 'var(--color-text-secondary)' }}>
-                Ver todas las credenciales
+                Ver todas las credenciales de prueba
               </summary>
               <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(var(--color-primary-rgb), 0.05)', borderRadius: '4px' }}>
-                <strong>Admin:</strong> admin / admin123<br/>
-                <strong>Enterprise:</strong> empresa1 / emp123<br/>
-                <strong>Conductor:</strong> conductor1 / cond123
+                <strong>Admin:</strong> admin@rmp.com / admin123<br/>
+                <strong>Enterprise:</strong> empresa@rmp.com / empresa123<br/>
+                <strong>Conductor:</strong> conductor@rmp.com / conductor123
               </div>
             </details>
           </div>
         </div>
+
+        <div className="login-footer">
+          <p style={{ fontSize: '12px', color: '#666', marginTop: '16px', textAlign: 'center' }}>
+            🔒 Autenticación segura con Supabase
+          </p>
+          <button 
+            type="button"
+            className="btn btn--outline btn--sm"
+            onClick={() => setShowCreateUsers(true)}
+            style={{ marginTop: '12px', width: '100%' }}
+          >
+            <Settings size={16} /> Crear Usuarios de Prueba
+          </button>
+        </div>
       </div>
+
+      {showCreateUsers && (
+        <CreateTestUsers 
+          onClose={() => setShowCreateUsers(false)}
+          onSuccess={() => {
+            setShowCreateUsers(false);
+            alert('Usuarios de prueba creados exitosamente. Ahora puedes iniciar sesión.');
+          }}
+        />
+      )}
     </div>
   );
 };
 
-export default Login; 
+export default Login;

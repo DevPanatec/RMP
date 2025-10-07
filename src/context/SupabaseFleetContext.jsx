@@ -129,23 +129,21 @@ export const SupabaseFleetProvider = ({ children }) => {
     try {
       const query = `
         INSERT INTO vehiculos (
-          codigo_vehiculo,
           placa,
           marca,
           modelo,
           año,
-          tipo_vehiculo,
+          tipo,
           tipo_servicio,
           estado,
           capacidad_carga,
-          combustible_actual
+          combustible_nivel
         ) VALUES (
-          '${vehicleData.codigo}',
           '${vehicleData.placa}',
           '${vehicleData.marca}',
           '${vehicleData.modelo}',
           ${vehicleData.año},
-          '${vehicleData.tipoVehiculo}',
+          '${vehicleData.tipo || 'camion'}',
           '${vehicleData.tipoServicio}',
           '${vehicleData.estado || 'disponible'}',
           ${vehicleData.capacidadCarga || 0},
@@ -159,14 +157,14 @@ export const SupabaseFleetProvider = ({ children }) => {
       
       // Formatear para el estado
       const formattedVehicle = {
-        id: newVehicle.codigo_vehiculo,
+        id: newVehicle.id,
         placa: newVehicle.placa,
         marca: newVehicle.marca,
         modelo: newVehicle.modelo,
         tipoServicio: newVehicle.tipo_servicio,
         estado: newVehicle.estado === 'disponible' ? 'Disponible' : newVehicle.estado,
         conductor: 'Sin asignar',
-        nivelCombustible: newVehicle.combustible_actual,
+        nivelCombustible: newVehicle.combustible_nivel,
         lat: 8.9997,
         lng: -79.5178,
         velocidad: 0
@@ -192,11 +190,11 @@ export const SupabaseFleetProvider = ({ children }) => {
                         updates.estado === 'Mantenimiento' ? 'en_mantenimiento' : 'fuera_servicio';
         updateFields.push(`estado = '${dbEstado}'`);
       }
-      if (updates.combustible) updateFields.push(`combustible_actual = ${updates.combustible}`);
-      if (updates.conductor_id) updateFields.push(`conductor_id = '${updates.conductor_id}'`);
+      if (updates.combustible) updateFields.push(`combustible_nivel = ${updates.combustible}`);
+      if (updates.conductor_id) updateFields.push(`conductor_actual_id = '${updates.conductor_id}'`);
       if (updates.lat && updates.lng) {
-        updateFields.push(`ultima_ubicacion_lat = ${updates.lat}`);
-        updateFields.push(`ultima_ubicacion_lng = ${updates.lng}`);
+        updateFields.push(`gps_latitud = ${updates.lat}`);
+        updateFields.push(`gps_longitud = ${updates.lng}`);
       }
       
       updateFields.push(`updated_at = now()`);
@@ -204,7 +202,7 @@ export const SupabaseFleetProvider = ({ children }) => {
       const query = `
         UPDATE vehiculos 
         SET ${updateFields.join(', ')}
-        WHERE codigo_vehiculo = '${vehicleId}' OR id = '${vehicleId}'
+        WHERE id = '${vehicleId}'
         RETURNING *;
       `;
       
@@ -213,11 +211,13 @@ export const SupabaseFleetProvider = ({ children }) => {
       
       // Formatear vehículo actualizado
       const formattedVehicle = {
-        id: updatedVehicle.codigo_vehiculo,
-        estado: updatedVehicle.estado === 'en_ruta' ? 'En ruta' : 'Disponible',
-        nivelCombustible: updatedVehicle.combustible_actual,
-        lat: updatedVehicle.ultima_ubicacion_lat,
-        lng: updatedVehicle.ultima_ubicacion_lng
+        id: updatedVehicle.id,
+        estado: updatedVehicle.estado === 'en_uso' ? 'En ruta' : 
+                updatedVehicle.estado === 'disponible' ? 'Disponible' :
+                updatedVehicle.estado === 'mantenimiento' ? 'Mantenimiento' : 'Fuera de servicio',
+        nivelCombustible: updatedVehicle.combustible_nivel,
+        lat: updatedVehicle.gps_latitud,
+        lng: updatedVehicle.gps_longitud
       };
       
       dispatch({ type: ACTIONS.UPDATE_VEHICLE, payload: formattedVehicle });
@@ -234,8 +234,8 @@ export const SupabaseFleetProvider = ({ children }) => {
     try {
       const query = `
         UPDATE vehiculos 
-        SET activo = false, updated_at = now()
-        WHERE codigo_vehiculo = '${vehicleId}' OR id = '${vehicleId}'
+        SET estado = 'fuera_servicio', updated_at = now()
+        WHERE id = '${vehicleId}'
         RETURNING *;
       `;
       
@@ -251,8 +251,40 @@ export const SupabaseFleetProvider = ({ children }) => {
   // Función para asignar ruta
   const assignRoute = async (vehicleId, routeId) => {
     try {
-      // Esta función se puede implementar cuando se tenga una tabla de asignaciones
-      console.log('Assigning route:', routeId, 'to vehicle:', vehicleId);
+      if (!routeId) {
+        // Desasignar ruta del vehículo
+        const query = `
+          UPDATE rutas 
+          SET vehiculo_id = NULL, updated_at = now()
+          WHERE vehiculo_id = ${vehicleId}
+          RETURNING *;
+        `;
+        await supabaseClient.executeSQL(query);
+        return;
+      }
+
+      // Primero, desasignar cualquier ruta previa de este vehículo
+      await supabaseClient.executeSQL(`
+        UPDATE rutas 
+        SET vehiculo_id = NULL, updated_at = now()
+        WHERE vehiculo_id = ${vehicleId}
+      `);
+
+      // Asignar nueva ruta al vehículo
+      const query = `
+        UPDATE rutas 
+        SET vehiculo_id = ${vehicleId}, updated_at = now()
+        WHERE id = ${routeId}
+        RETURNING *;
+      `;
+      
+      const result = await supabaseClient.executeSQL(query);
+      
+      if (result.rows && result.rows.length > 0) {
+        console.log('Ruta asignada exitosamente:', result.rows[0]);
+        // Recargar vehículos para reflejar cambios
+        await loadVehicles();
+      }
     } catch (error) {
       console.error('Error assigning route:', error);
       throw error;
@@ -264,8 +296,8 @@ export const SupabaseFleetProvider = ({ children }) => {
     try {
       const query = `
         UPDATE vehiculos 
-        SET conductor_id = ${driverId ? `'${driverId}'` : 'NULL'}, updated_at = now()
-        WHERE codigo_vehiculo = '${vehicleId}' OR id = '${vehicleId}'
+        SET conductor_actual_id = ${driverId ? `${driverId}` : 'NULL'}, updated_at = now()
+        WHERE id = ${vehicleId}
         RETURNING *;
       `;
       

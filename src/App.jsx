@@ -3,6 +3,7 @@ import Login from './components/Login/Login';
 import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
 import EnterpriseDashboard from './pages/EnterpriseDashboard/EnterpriseDashboard';
 import ConductorDashboard from './pages/ConductorDashboard/ConductorDashboard';
+import { SupabaseAuthProvider, useSupabaseAuth } from './context/SupabaseAuthContext';
 import { SupabaseRiskReportsProvider } from './context/SupabaseRiskReportsContext';
 import { SupabasePersonnelProvider } from './context/SupabasePersonnelContext';
 import { SupabaseFleetProvider } from './context/SupabaseFleetContext';
@@ -10,33 +11,21 @@ import { SupabaseRoutesProvider } from './context/SupabaseRoutesContext';
 import { SupabaseReportsProvider } from './context/SupabaseReportsContext';
 import { SupabaseInventoryProvider } from './context/SupabaseInventoryContext';
 
-function App() {
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+const AppContent = () => {
+  const { user, loading, signOut } = useSupabaseAuth();
 
-  const handleLogin = (userData) => {
-    setIsLoading(true);
-    
-    // Simular un pequeño delay para mostrar que está procesando
-    setTimeout(() => {
-      console.log('Usuario logueado:', userData);
-      setUser(userData);
-      setIsLoading(false);
-    }, 500);
-  };
-
-  const handleLogout = () => {
-    setUser(null);
+  const handleLogout = async () => {
+    await signOut();
     console.log('Usuario deslogueado');
   };
 
   // Mostrar pantalla de carga
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="loading-container">
         <div className="loading-spinner">
           <div className="rmp-logo">
-            <h1>RMP</h1>
+            <h1>🌱 RMP</h1>
             <p>Cargando...</p>
           </div>
         </div>
@@ -46,7 +35,7 @@ function App() {
 
   // Si no hay usuario logueado, mostrar login
   if (!user) {
-    return <Login onLogin={handleLogin} />;
+    return <Login />;
   }
 
   // Mostrar dashboard según el tipo de usuario
@@ -85,6 +74,14 @@ function App() {
         </SupabaseFleetProvider>
       </SupabasePersonnelProvider>
     </SupabaseRiskReportsProvider>
+  );
+}
+
+function App() {
+  return (
+    <SupabaseAuthProvider>
+      <AppContent />
+    </SupabaseAuthProvider>
   );
 }
 

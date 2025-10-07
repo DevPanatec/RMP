@@ -152,7 +152,7 @@ export const SupabasePersonnelProvider = ({ children }) => {
         RETURNING *;
       `;
       
-      const result = await executeSQL(query);
+      const result = await supabaseClient.executeSQL(query);
       const newEmployee = result.rows[0];
       
       // Formatear empleado para el estado
@@ -201,7 +201,7 @@ export const SupabasePersonnelProvider = ({ children }) => {
         RETURNING *;
       `;
       
-      const result = await executeSQL(query);
+      const result = await supabaseClient.executeSQL(query);
       const updatedEmployee = result.rows[0];
       
       // Formatear empleado actualizado
@@ -237,7 +237,7 @@ export const SupabasePersonnelProvider = ({ children }) => {
         RETURNING *;
       `;
       
-      await executeSQL(query);
+      await supabaseClient.executeSQL(query);
       dispatch({ type: ACTIONS.DELETE_EMPLOYEE, payload: employeeId });
     } catch (error) {
       console.error('Error deleting employee:', error);

@@ -17,7 +17,8 @@
       "mcp__supabase__get_anon_key",
       "Bash(git commit:*)",
       "Bash(npm start)",
-      "Bash(npx kill-port:*)"
+      "Bash(npx kill-port:*)",
+      "Bash(npx:*)"
     ],
     "deny": [],
     "ask": [],

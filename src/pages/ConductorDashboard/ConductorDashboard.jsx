@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { appData } from '../../data/mockData';
 import WeightModal from '../../components/WeightModal/WeightModal';
 import MapComponent from '../../components/Map/MapComponent';
 import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
+import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
+import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import './ConductorDashboard.css';
 
 // Hook para PWA
@@ -40,12 +41,13 @@ const usePWAInstallPrompt = () => {
 const ConductorDashboard = ({ user, onLogout }) => {
   const { isInstallable, installPWA } = usePWAInstallPrompt();
   const { addReport, getReportsByDriver, loading: reportsLoading } = useSupabaseRiskReports();
+  const { vehicles, loading: vehiclesLoading } = useSupabaseFleet();
+  const { routes, loading: routesLoading } = useSupabaseRoutes();
   
   const [completedStops, setCompletedStops] = useState([]);
   const [currentStop, setCurrentStop] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pendingStopIndex, setPendingStopIndex] = useState(null);
-  const [currentData, setCurrentData] = useState(appData);
   const [timeOnRoute, setTimeOnRoute] = useState(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
@@ -90,30 +92,15 @@ const ConductorDashboard = ({ user, onLogout }) => {
     return () => clearInterval(timer);
   }, []);
 
-  // Simular actualizaciones de datos en tiempo real
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentData(prevData => ({
-        ...prevData,
-        camiones: prevData.camiones.map(camion => {
-          if (camion.id === user.camionAsignado && camion.estado === 'En ruta') {
-            return {
-              ...camion,
-              pesoAcumulado: Math.min(1000, camion.pesoAcumulado + Math.floor(Math.random() * 20)),
-              combustible: Math.max(0, camion.combustible - Math.random() * 0.5),
-              ultimaActualizacion: new Date().toISOString()
-            };
-          }
-          return camion;
-        })
-      }));
-    }, 5000);
+  // Obtener vehículo asignado al conductor desde Supabase
+  const userTruck = vehicles.find(v => 
+    v.conductorId === user.id || 
+    v.conductor === user.nombre ||
+    v.id === user.camionAsignado
+  );
 
-    return () => clearInterval(interval);
-  }, [user.camionAsignado]);
-
-  const userTruck = currentData.camiones.find(c => c.id === user.camionAsignado);
-  const assignedRoute = currentData.rutas.find(r => r.nombre === userTruck?.rutaAsignada);
+  // Obtener ruta asignada al vehículo del conductor
+  const assignedRoute = routes.find(r => r.vehiculo_id === userTruck?.id);
 
   const handleCompleteStop = (stopIndex) => {
     setPendingStopIndex(stopIndex);
@@ -155,7 +142,9 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
   const getProgressPercentage = () => {
     if (!assignedRoute) return 0;
-    return Math.round((completedStops.length / assignedRoute.paradas.length) * 100);
+    const paradas = assignedRoute.paradas || [];
+    if (!Array.isArray(paradas) || paradas.length === 0) return 0;
+    return Math.round((completedStops.length / paradas.length) * 100);
   };
 
   const handleSubmitRiskReport = () => {
@@ -191,6 +180,26 @@ const ConductorDashboard = ({ user, onLogout }) => {
     setShowRiskModal(false);
   };
 
+  if (vehiclesLoading || routesLoading) {
+    return (
+      <div className="dashboard-container">
+        <div className="main-content">
+          <div className="dashboard-header">
+            <h1>🚛 Dashboard Conductor</h1>
+          </div>
+          <div className="card">
+            <div className="card__body">
+              <div className="no-assignment">
+                <div className="spinner"></div>
+                <h3>Cargando...</h3>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!userTruck || !assignedRoute) {
     return (
       <div className="dashboard-container">
@@ -207,6 +216,10 @@ const ConductorDashboard = ({ user, onLogout }) => {
                 <div className="no-assignment-icon">🚫</div>
                 <h3>Sin Asignación</h3>
                 <p>No tienes un camión o ruta asignada. Contacta con el administrador.</p>
+                <p className="debug-info">
+                  {!userTruck && '❌ No se encontró vehículo asignado'}
+                  {!assignedRoute && userTruck && '❌ No se encontró ruta asignada al vehículo'}
+                </p>
                 <button className="btn btn--primary" onClick={() => window.location.reload()}>
                   🔄 Actualizar
                 </button>
@@ -249,7 +262,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
               {isOnline ? '🟢 En línea' : '🔴 Sin conexión'}
             </div>
             <div className="route-status">
-              🗺️ {assignedRoute.nombre}
+              🗺️ {assignedRoute.nombre || assignedRoute.name}
             </div>
             <div className="time-indicator">
               ⏱️ {formatTime(timeOnRoute)}
@@ -297,7 +310,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
           <div className="kpi-card">
             <div className="kpi-icon">📦</div>
             <div className="kpi-content">
-              <div className="kpi-value">{completedStops.length}/{assignedRoute.paradas.length}</div>
+              <div className="kpi-value">{completedStops.length}/{(assignedRoute.paradas || []).length}</div>
               <div className="kpi-label">Paradas Completadas</div>
             </div>
           </div>
@@ -319,19 +332,25 @@ const ConductorDashboard = ({ user, onLogout }) => {
                 <div className="progress-details">
                   <div className="detail-item">
                     <span className="detail-label">📍 Paradas:</span>
-                    <span className="detail-value">{completedStops.length} / {assignedRoute.paradas.length}</span>
+                    <span className="detail-value">{completedStops.length} / {(assignedRoute.paradas || []).length}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">🗺️ Ruta:</span>
-                    <span className="detail-value">{assignedRoute.nombre}</span>
+                    <span className="detail-value">{assignedRoute.nombre || assignedRoute.name}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">📏 Distancia:</span>
-                    <span className="detail-value">{assignedRoute.distanciaTotal} km</span>
+                    <span className="detail-value">{assignedRoute.distancia_total || assignedRoute.distanciaTotal || 'N/A'} km</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">⏱️ Tiempo Estimado:</span>
-                    <span className="detail-value">{Math.round(assignedRoute.tiempoEstimado / 60)} hrs</span>
+                    <span className="detail-value">
+                      {assignedRoute.tiempo_estimado 
+                        ? `${Math.round(assignedRoute.tiempo_estimado / 60)} hrs`
+                        : assignedRoute.tiempoEstimado 
+                        ? `${Math.round(assignedRoute.tiempoEstimado / 60)} hrs`
+                        : 'N/A'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -352,7 +371,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   </div>
                   <div className="info-item">
                     <div className="info-label">Camión:</div>
-                    <div className="info-value">{userTruck.id}</div>
+                    <div className="info-value">{userTruck.placa || userTruck.id}</div>
                   </div>
                   <div className="info-item">
                     <div className="info-label">Estado:</div>
@@ -360,7 +379,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   </div>
                   <div className="info-item">
                     <div className="info-label">Velocidad:</div>
-                    <div className="info-value">{userTruck.velocidad} km/h</div>
+                    <div className="info-value">{userTruck.velocidad || 0} km/h</div>
                   </div>
                   <div className="info-item">
                     <div className="info-label">Combustible:</div>
@@ -369,12 +388,12 @@ const ConductorDashboard = ({ user, onLogout }) => {
                         <div 
                           className="fuel-fill"
                           style={{ 
-                            width: `${userTruck.combustible}%`,
-                            backgroundColor: userTruck.combustible < 30 ? '#ef4444' : '#22c55e'
+                            width: `${userTruck.nivelCombustible || userTruck.combustible || 0}%`,
+                            backgroundColor: (userTruck.nivelCombustible || userTruck.combustible || 0) < 30 ? '#ef4444' : '#22c55e'
                           }}
                         ></div>
                       </div>
-                      <span className="fuel-text">{Math.round(userTruck.combustible)}%</span>
+                      <span className="fuel-text">{Math.round(userTruck.nivelCombustible || userTruck.combustible || 0)}%</span>
                     </div>
                   </div>
                 </div>
@@ -401,7 +420,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
               <div className="card__body">
                 <h3>🗺️ Paradas de la Ruta</h3>
                 <div className="stops-container">
-                  {assignedRoute.paradas.map((parada, index) => {
+                  {(assignedRoute.paradas || []).map((parada, index) => {
                     const isCompleted = completedStops.some(stop => stop.index === index);
                     const isCurrent = index === currentStop && !isCompleted;
                     const completedStop = completedStops.find(stop => stop.index === index);
@@ -412,15 +431,15 @@ const ConductorDashboard = ({ user, onLogout }) => {
                           <div className="step-number">
                             {isCompleted ? '✅' : index + 1}
                           </div>
-                          {index < assignedRoute.paradas.length - 1 && (
+                          {index < (assignedRoute.paradas || []).length - 1 && (
                             <div className="step-line"></div>
                           )}
                         </div>
                         
                         <div className="step-content">
                           <div className="step-header">
-                            <div className="step-title">{parada.nombre}</div>
-                            <div className="step-time">📅 {parada.estimado}</div>
+                            <div className="step-title">{parada.nombre || parada.direccion || `Parada ${index + 1}`}</div>
+                            <div className="step-time">📅 {parada.hora_estimada || parada.estimado || 'N/A'}</div>
                           </div>
                           
                           {isCompleted && completedStop && (
@@ -652,7 +671,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onConfirm={handleWeightConfirm}
-          currentStop={pendingStopIndex !== null ? assignedRoute.paradas[pendingStopIndex]?.nombre : ''}
+          currentStop={pendingStopIndex !== null ? (assignedRoute.paradas[pendingStopIndex]?.nombre || assignedRoute.paradas[pendingStopIndex]?.direccion || 'Parada') : ''}
         />
       </div>
     </div>

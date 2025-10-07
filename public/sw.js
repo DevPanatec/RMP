@@ -1,6 +1,6 @@
-const CACHE_NAME = 'rmp-conductor-v2.0';
-const STATIC_CACHE = 'rmp-static-v2.0';
-const DYNAMIC_CACHE = 'rmp-dynamic-v2.0';
+const CACHE_NAME = 'rmp-conductor-v3.0';
+const STATIC_CACHE = 'rmp-static-v3.0';
+const DYNAMIC_CACHE = 'rmp-dynamic-v3.0';
 
 const urlsToCache = [
   '/',
