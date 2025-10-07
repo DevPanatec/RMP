@@ -44,5 +44,8 @@ export {
   Bell,
   Wrench,
   Leaf,
-  Navigation
+  Navigation,
+  Briefcase,
+  Phone,
+  Mail
 } from 'lucide-react';

@@ -5,6 +5,7 @@ import InventoryComponent from '../../components/Inventory/InventoryComponent';
 import RoutesComponent from '../../components/Routes/RoutesComponent';
 import RiskComponent from '../../components/Risk/RiskComponent';
 import ReportsComponent from '../../components/Reports/ReportsComponent';
+import ScheduleComponent from '../../components/Schedule/ScheduleComponent';
 import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
 import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
@@ -12,7 +13,7 @@ import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext
 import { 
   LayoutDashboard, Truck, AlertTriangle, Package, 
   BarChart3, Users, Map, LogOut, TrendingUp, CheckCircle,
-  MapPin, Radio, Activity, Zap, Fuel, Bell, Wrench, Leaf, Navigation, Clock, Save
+  MapPin, Radio, Activity, Zap, Fuel, Bell, Wrench, Leaf, Navigation, Clock, Save, Calendar
 } from '../../components/Icons';
 import './AdminDashboard.css';
 
@@ -63,8 +64,7 @@ const AdminDashboard = ({ user, onLogout }) => {
     getAlertsStats
   } = useSupabaseRiskReports();
   
-  // Estados para drag & drop y modales
-  const [draggedEmployee, setDraggedEmployee] = useState(null);
+  // Estados para modales
   const [editingRoute, setEditingRoute] = useState(null);
   const [showRouteCreator, setShowRouteCreator] = useState(false);
   const [newRoute, setNewRoute] = useState({
@@ -83,18 +83,6 @@ const AdminDashboard = ({ user, onLogout }) => {
   const personnelStats = getPersonnelStats();
   const fleetStats = getFleetStats();
   const routesStats = getRoutesStats();
-  
-  // Transformar personal en estructura esperada para drag & drop
-  const organizedPersonnel = useMemo(() => {
-    // Por ahora, todos los empleados van a "unassigned" 
-    // Se puede modificar más tarde para clasificar por turnos
-    return {
-      unassigned: personnel || [],
-      morning: [],
-      afternoon: [],
-      night: []
-    };
-  }, [personnel]);
 
   // Calcular estadísticas operativas basadas en datos reales
   const operationalStats = useMemo(() => {
@@ -119,43 +107,6 @@ const AdminDashboard = ({ user, onLogout }) => {
   const handleTabChange = (newTab, defaultSubTab = '') => {
     setActiveTab(newTab);
     setActiveSubTab(defaultSubTab);
-  };
-
-  const handleDragStart = (e, employee) => {
-    setDraggedEmployee(employee);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = (e, targetShift) => {
-    e.preventDefault();
-    if (!draggedEmployee) return;
-
-    const sourceShift = findEmployeeShift(draggedEmployee.id);
-    if (sourceShift === targetShift) return;
-
-    // Usar función del contexto
-    moveEmployee(draggedEmployee.id, sourceShift, targetShift);
-    setDraggedEmployee(null);
-  };
-
-  const findEmployeeShift = (employeeId) => {
-    for (const [shift, employees] of Object.entries(organizedPersonnel)) {
-      if (employees.some(emp => emp.id === employeeId)) {
-        return shift;
-      }
-    }
-    return 'unassigned';
-  };
-
-  const calculateShiftAverage = (employees) => {
-    if (employees.length === 0) return 0;
-    const total = employees.reduce((sum, emp) => sum + emp.rating, 0);
-    return (total / employees.length).toFixed(1);
   };
 
   const handleAddStop = () => {
@@ -284,203 +235,7 @@ const AdminDashboard = ({ user, onLogout }) => {
     const currentSubTab = activeSubTab || 'personal';
     switch (currentSubTab) {
       case 'personal':
-        return (
-          <div className="operations-flow">
-            <div className="section-header">
-              <div className="section-title">
-                <h3>Gestión de Personal</h3>
-                <p>Arrastra y suelta empleados para asignar turnos</p>
-              </div>
-              <button className="btn-minimal primary">+ Agregar Empleado</button>
-            </div>
-            
-            <div className="drag-drop-container">
-              <div className="shifts-grid">
-                {/* Personal Sin Asignar */}
-                <div 
-                  className="shift-zone unassigned"
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, 'unassigned')}
-                >
-                  <div className="zone-header">
-                    <div className="zone-title">
-                      <h4>Personal Sin Asignar</h4>
-                      <span className="zone-count">{organizedPersonnel.unassigned.length} empleados</span>
-                    </div>
-                  </div>
-                  
-                  <div className="employees-list">
-                    {organizedPersonnel.unassigned.map(employee => (
-                      <div
-                        key={employee.id}
-                        className="employee-card"
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, employee)}
-                      >
-                        <div className="employee-avatar">{employee.avatar}</div>
-                        <div className="employee-details">
-                          <div className="employee-name">{employee.name}</div>
-                          <div className="employee-meta">
-                            <span className={`position-badge ${employee.position.toLowerCase()}`}>
-                              {employee.position}
-                            </span>
-                            <span className="rating-display">★ {employee.rating}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {organizedPersonnel.unassigned.length === 0 && (
-                      <div className="empty-zone">
-                        <p>No hay personal sin asignar</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Turno Matutino */}
-                <div 
-                  className="shift-zone morning"
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, 'morning')}
-                >
-                  <div className="zone-header">
-                    <div className="zone-title">
-                      <h4>Turno Matutino</h4>
-                      <span className="shift-time">06:00 - 14:00</span>
-                    </div>
-                    <div className="zone-stats">
-                      <span className="employee-count">{organizedPersonnel.morning.length}</span>
-                      <span className="average-rating">
-                        ★ {calculateShiftAverage(organizedPersonnel.morning)}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="employees-list">
-                    {organizedPersonnel.morning.map(employee => (
-                      <div
-                        key={employee.id}
-                        className="employee-card"
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, employee)}
-                      >
-                        <div className="employee-avatar">{employee.avatar}</div>
-                        <div className="employee-details">
-                          <div className="employee-name">{employee.name}</div>
-                          <div className="employee-meta">
-                            <span className={`position-badge ${employee.position.toLowerCase()}`}>
-                              {employee.position}
-                            </span>
-                            <span className="rating-display">★ {employee.rating}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {organizedPersonnel.morning.length === 0 && (
-                      <div className="empty-zone">
-                        <p>Arrastra empleados aquí</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Turno Vespertino */}
-                <div 
-                  className="shift-zone afternoon"
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, 'afternoon')}
-                >
-                  <div className="zone-header">
-                    <div className="zone-title">
-                      <h4>Turno Vespertino</h4>
-                      <span className="shift-time">14:00 - 22:00</span>
-                    </div>
-                    <div className="zone-stats">
-                      <span className="employee-count">{organizedPersonnel.afternoon.length}</span>
-                      <span className="average-rating">
-                        ★ {calculateShiftAverage(organizedPersonnel.afternoon)}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="employees-list">
-                    {organizedPersonnel.afternoon.map(employee => (
-                      <div
-                        key={employee.id}
-                        className="employee-card"
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, employee)}
-                      >
-                        <div className="employee-avatar">{employee.avatar}</div>
-                        <div className="employee-details">
-                          <div className="employee-name">{employee.name}</div>
-                          <div className="employee-meta">
-                            <span className={`position-badge ${employee.position.toLowerCase()}`}>
-                              {employee.position}
-                            </span>
-                            <span className="rating-display">★ {employee.rating}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {organizedPersonnel.afternoon.length === 0 && (
-                      <div className="empty-zone">
-                        <p>Arrastra empleados aquí</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Turno Nocturno */}
-                <div 
-                  className="shift-zone night"
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, 'night')}
-                >
-                  <div className="zone-header">
-                    <div className="zone-title">
-                      <h4>Turno Nocturno</h4>
-                      <span className="shift-time">22:00 - 06:00</span>
-                    </div>
-                    <div className="zone-stats">
-                      <span className="employee-count">{organizedPersonnel.night.length}</span>
-                      <span className="average-rating">
-                        ★ {calculateShiftAverage(organizedPersonnel.night)}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="employees-list">
-                    {organizedPersonnel.night.map(employee => (
-                      <div
-                        key={employee.id}
-                        className="employee-card"
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, employee)}
-                      >
-                        <div className="employee-avatar">{employee.avatar}</div>
-                        <div className="employee-details">
-                          <div className="employee-name">{employee.name}</div>
-                          <div className="employee-meta">
-                            <span className={`position-badge ${employee.position.toLowerCase()}`}>
-                              {employee.position}
-                            </span>
-                            <span className="rating-display">★ {employee.rating}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {organizedPersonnel.night.length === 0 && (
-                      <div className="empty-zone">
-                        <p>Arrastra empleados aquí</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
+        return <PersonnelComponent userType={user.tipo} />;
       case 'flota':
         const filteredVehicles = serviceTypeFilter === 'todos' 
           ? normalizedCamiones 
@@ -674,6 +429,8 @@ const AdminDashboard = ({ user, onLogout }) => {
             }}
           />
         );
+      case 'programacion':
+        return <ScheduleComponent />;
       default:
         return null;
     }
@@ -835,6 +592,12 @@ const AdminDashboard = ({ user, onLogout }) => {
                 onClick={() => setActiveSubTab('rutas')}
               >
                 <Map size={18} /> Rutas
+              </button>
+              <button 
+                className={`sub-tab ${activeSubTab === 'programacion' ? 'sub-tab--active' : ''}`}
+                onClick={() => setActiveSubTab('programacion')}
+              >
+                <Calendar size={18} /> Programación
               </button>
             </div>
             {renderOperationsContent()}

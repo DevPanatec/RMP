@@ -10,6 +10,7 @@ import { SupabaseFleetProvider } from './context/SupabaseFleetContext';
 import { SupabaseRoutesProvider } from './context/SupabaseRoutesContext';
 import { SupabaseReportsProvider } from './context/SupabaseReportsContext';
 import { SupabaseInventoryProvider } from './context/SupabaseInventoryContext';
+import { SupabaseScheduleProvider } from './context/SupabaseScheduleContext';
 
 const AppContent = () => {
   const { user, loading, signOut } = useSupabaseAuth();
@@ -67,7 +68,9 @@ const AppContent = () => {
           <SupabaseRoutesProvider>
             <SupabaseReportsProvider>
               <SupabaseInventoryProvider>
-                {renderDashboard()}
+                <SupabaseScheduleProvider>
+                  {renderDashboard()}
+                </SupabaseScheduleProvider>
               </SupabaseInventoryProvider>
             </SupabaseReportsProvider>
           </SupabaseRoutesProvider>
