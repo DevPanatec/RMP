@@ -197,6 +197,81 @@ const ScheduleComponent = () => {
     setSelectedDate(new Date());
   };
 
+  const nextPeriod = () => {
+    const newDate = new Date(selectedDate);
+    if (viewMode === 'day') {
+      newDate.setDate(newDate.getDate() + 1);
+    } else if (viewMode === 'week') {
+      newDate.setDate(newDate.getDate() + 7);
+    } else if (viewMode === 'month') {
+      newDate.setMonth(newDate.getMonth() + 1);
+    }
+    setSelectedDate(newDate);
+  };
+
+  const prevPeriod = () => {
+    const newDate = new Date(selectedDate);
+    if (viewMode === 'day') {
+      newDate.setDate(newDate.getDate() - 1);
+    } else if (viewMode === 'week') {
+      newDate.setDate(newDate.getDate() - 7);
+    } else if (viewMode === 'month') {
+      newDate.setMonth(newDate.getMonth() - 1);
+    }
+    setSelectedDate(newDate);
+  };
+
+  const getMonthDays = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    const startDay = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+    
+    const days = [];
+    
+    for (let i = 0; i < startDay; i++) {
+      const prevMonthDay = new Date(year, month, -startDay + i + 1);
+      days.push({ date: prevMonthDay, isCurrentMonth: false });
+    }
+    
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push({ date: new Date(year, month, i), isCurrentMonth: true });
+    }
+    
+    const remainingDays = 42 - days.length;
+    for (let i = 1; i <= remainingDays; i++) {
+      days.push({ date: new Date(year, month + 1, i), isCurrentMonth: false });
+    }
+    
+    return days;
+  };
+
+  const monthDays = getMonthDays(selectedDate);
+
+  const getMonthName = (date) => {
+    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    return months[date.getMonth()];
+  };
+
+  const getPeriodLabel = () => {
+    if (viewMode === 'day') {
+      return selectedDate.toLocaleDateString('es-ES', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+    } else if (viewMode === 'week') {
+      return `Semana del ${weekDays[0].toLocaleDateString('es-ES')} al ${weekDays[6].toLocaleDateString('es-ES')}`;
+    } else {
+      return `${getMonthName(selectedDate)} ${selectedDate.getFullYear()}`;
+    }
+  };
+
   return (
     <div className="schedule-container">
       <div className="schedule-header">
@@ -210,20 +285,41 @@ const ScheduleComponent = () => {
       </div>
 
       <div className="schedule-controls">
+        <div className="view-mode-selector">
+          <button 
+            className={`view-mode-btn ${viewMode === 'day' ? 'active' : ''}`}
+            onClick={() => setViewMode('day')}
+          >
+            Día
+          </button>
+          <button 
+            className={`view-mode-btn ${viewMode === 'week' ? 'active' : ''}`}
+            onClick={() => setViewMode('week')}
+          >
+            Semana
+          </button>
+          <button 
+            className={`view-mode-btn ${viewMode === 'month' ? 'active' : ''}`}
+            onClick={() => setViewMode('month')}
+          >
+            Mes
+          </button>
+        </div>
+        
+        <div className="period-label">
+          {getPeriodLabel()}
+        </div>
+        
         <div className="date-navigation">
-          <button className="btn btn--sm btn--outline" onClick={prevWeek}>
+          <button className="btn btn--sm btn--outline" onClick={prevPeriod}>
             ← Anterior
           </button>
           <button className="btn btn--sm" onClick={goToToday}>
             Hoy
           </button>
-          <button className="btn btn--sm btn--outline" onClick={nextWeek}>
+          <button className="btn btn--sm btn--outline" onClick={nextPeriod}>
             Siguiente →
           </button>
-        </div>
-        <div className="week-label">
-          Semana del {weekDays[0].toLocaleDateString('es-ES')} al{' '}
-          {weekDays[6].toLocaleDateString('es-ES')}
         </div>
       </div>
 
@@ -233,25 +329,21 @@ const ScheduleComponent = () => {
           <p>Cargando programación...</p>
         </div>
       ) : (
-        <div className="schedule-grid">
-          {weekDays.map((day, index) => {
-            const dayAssignments = getAssignmentsForDay(day);
-            const isToday = formatDate(day) === formatDate(new Date());
-            
-            return (
-              <div key={index} className={`schedule-day ${isToday ? 'today' : ''}`}>
+        <>
+          {viewMode === 'day' && (
+            <div className="schedule-day-view">
+              <div className="schedule-day single-day">
                 <div className="day-header">
-                  <div className="day-name">{getDayName(day)}</div>
-                  <div className="day-date">{day.getDate()}</div>
+                  <div className="day-name">{getDayName(selectedDate)}</div>
+                  <div className="day-date">{selectedDate.getDate()}</div>
                 </div>
-                
                 <div className="day-assignments">
-                  {dayAssignments.length === 0 ? (
+                  {getAssignmentsForDay(selectedDate).length === 0 ? (
                     <div className="no-assignments">
                       <p>Sin asignaciones</p>
                     </div>
                   ) : (
-                    dayAssignments.map(assignment => (
+                    getAssignmentsForDay(selectedDate).map(assignment => (
                       <div key={assignment.id} className="assignment-card">
                         <div className="assignment-route">
                           <Map size={14} /> {assignment.ruta?.nombre || 'Ruta sin nombre'}
@@ -286,9 +378,104 @@ const ScheduleComponent = () => {
                   )}
                 </div>
               </div>
-            );
-          })}
-        </div>
+            </div>
+          )}
+
+          {viewMode === 'week' && (
+            <div className="schedule-grid week-view">
+              {weekDays.map((day, index) => {
+                const dayAssignments = getAssignmentsForDay(day);
+                const isToday = formatDate(day) === formatDate(new Date());
+                
+                return (
+                  <div key={index} className={`schedule-day ${isToday ? 'today' : ''}`}>
+                    <div className="day-header">
+                      <div className="day-name">{getDayName(day)}</div>
+                      <div className="day-date">{day.getDate()}</div>
+                    </div>
+                    
+                    <div className="day-assignments">
+                      {dayAssignments.length === 0 ? (
+                        <div className="no-assignments">
+                          <p>Sin asignaciones</p>
+                        </div>
+                      ) : (
+                        dayAssignments.map(assignment => (
+                          <div key={assignment.id} className="assignment-card">
+                            <div className="assignment-route">
+                              <Map size={14} /> {assignment.ruta?.nombre || 'Ruta sin nombre'}
+                            </div>
+                            <div className="assignment-time">
+                              <Clock size={12} /> {assignment.hora_inicio} - {assignment.hora_fin}
+                            </div>
+                            <div className="assignment-conductor">
+                              <Users size={12} /> {assignment.conductor_nombre}
+                            </div>
+                            <div className="assignment-vehicle">
+                              <Truck size={12} /> {assignment.vehiculo?.placa}
+                            </div>
+                            <div className="assignment-actions">
+                              <button 
+                                className="btn-icon btn-icon--sm"
+                                onClick={() => handleOpenModal(assignment)}
+                                title="Editar"
+                              >
+                                <Edit size={14} />
+                              </button>
+                              <button 
+                                className="btn-icon btn-icon--sm btn-icon--danger"
+                                onClick={() => handleDelete(assignment.id)}
+                                title="Eliminar"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {viewMode === 'month' && (
+            <div className="schedule-month-view">
+              <div className="month-header">
+                {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, idx) => (
+                  <div key={idx} className="month-weekday">{day}</div>
+                ))}
+              </div>
+              <div className="month-grid">
+                {monthDays.map((dayObj, index) => {
+                  const dayAssignments = assignments.filter(
+                    a => a.fecha === formatDate(dayObj.date)
+                  );
+                  const isToday = formatDate(dayObj.date) === formatDate(new Date());
+                  
+                  return (
+                    <div 
+                      key={index} 
+                      className={`month-day ${!dayObj.isCurrentMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}`}
+                      onClick={() => {
+                        setSelectedDate(dayObj.date);
+                        setViewMode('day');
+                      }}
+                    >
+                      <div className="month-day-number">{dayObj.date.getDate()}</div>
+                      {dayAssignments.length > 0 && (
+                        <div className="month-day-indicator">
+                          <span className="assignments-count">{dayAssignments.length}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {showModal && (
