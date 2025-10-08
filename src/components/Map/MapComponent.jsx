@@ -370,61 +370,6 @@ const MapComponent = ({ camiones, rutas = [], userType, showRealTime = true, sel
         </div>
       </div>
 
-      <div className="map-legend gps-legend">
-        {serviceTypeFilter === 'fumigacion' ? (
-          <>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#ef4444' }}></span>
-              🚐 Fumigación En Ruta ({activeCamiones.filter(c => c.estado === 'En ruta').length})
-            </div>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#8b5cf6' }}></span>
-              🚐 Fumigación Disponible ({activeCamiones.filter(c => c.estado === 'Disponible').length})
-            </div>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
-              🚐 Fumigación Mantenimiento ({activeCamiones.filter(c => c.estado === 'En mantenimiento').length})
-            </div>
-          </>
-        ) : serviceTypeFilter === 'recoleccion' ? (
-          <>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#22c55e' }}></span>
-              🚛 Recolección En Ruta ({activeCamiones.filter(c => c.estado === 'En ruta').length})
-            </div>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#3b82f6' }}></span>
-              <Truck size={14} /> Recolección Disponible ({activeCamiones.filter(c => c.estado === 'Disponible').length})
-            </div>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
-              <Truck size={14} /> Recolección Mantenimiento ({activeCamiones.filter(c => c.estado === 'En mantenimiento').length})
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#22c55e' }}></span>
-              En Ruta ({activeCamiones.filter(c => c.estado === 'En ruta').length})
-            </div>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#3b82f6' }}></span>
-              Disponible ({activeCamiones.filter(c => c.estado === 'Disponible').length})
-            </div>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#f59e0b' }}></span>
-              Mantenimiento ({activeCamiones.filter(c => c.estado === 'En mantenimiento').length})
-            </div>
-            <div className="legend-item" style={{ opacity: 0.7, fontSize: '10px' }}>
-              <Truck size={12} /> Recolección / Fumigación
-            </div>
-          </>
-        )}
-        <div className="legend-item" style={{ opacity: 0.6, fontSize: '11px' }}>
-          Solo vehículos activos
-        </div>
-      </div>
-
       <div style={{ position: 'relative' }}>
         <MapContainer 
           center={centerPosition} 

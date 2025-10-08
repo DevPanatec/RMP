@@ -1,0 +1,117 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border: 1px solid transparent;
+}
+
+.badge__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.badge--default {
+  background: var(--color-secondary);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.badge--success {
+  background: rgba(52, 199, 89, 0.1);
+  color: var(--color-success);
+  border-color: rgba(52, 199, 89, 0.2);
+}
+
+.badge--error {
+  background: rgba(255, 59, 48, 0.1);
+  color: var(--color-error);
+  border-color: rgba(255, 59, 48, 0.2);
+}
+
+.badge--warning {
+  background: rgba(255, 149, 0, 0.1);
+  color: var(--color-warning);
+  border-color: rgba(255, 149, 0, 0.2);
+}
+
+.badge--info {
+  background: rgba(0, 122, 255, 0.1);
+  color: var(--color-info);
+  border-color: rgba(0, 122, 255, 0.2);
+}
+
+.badge--primary {
+  background: rgba(48, 209, 88, 0.1);
+  color: var(--color-primary);
+  border-color: rgba(48, 209, 88, 0.2);
+}
+
+.badge--active {
+  background: rgba(52, 199, 89, 0.1);
+  color: var(--color-success);
+  border-color: rgba(52, 199, 89, 0.2);
+}
+
+.badge--inactive {
+  background: rgba(142, 142, 147, 0.1);
+  color: var(--color-text-secondary);
+  border-color: rgba(142, 142, 147, 0.2);
+}
+
+.badge--en-ruta {
+  background: rgba(0, 122, 255, 0.1);
+  color: var(--color-info);
+  border-color: rgba(0, 122, 255, 0.2);
+}
+
+.badge--disponible {
+  background: rgba(52, 199, 89, 0.1);
+  color: var(--color-success);
+  border-color: rgba(52, 199, 89, 0.2);
+}
+
+.badge--mantenimiento {
+  background: rgba(255, 59, 48, 0.1);
+  color: var(--color-error);
+  border-color: rgba(255, 59, 48, 0.2);
+}
+
+.badge--recoleccion {
+  background: rgba(52, 199, 89, 0.1);
+  color: #059669;
+  border-color: rgba(52, 199, 89, 0.2);
+}
+
+.badge--fumigacion {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.badge--sm {
+  padding: var(--space-4) var(--space-8);
+  font-size: 10px;
+  gap: var(--space-4);
+}
+
+.badge--md {
+  padding: var(--space-4) var(--space-12);
+  font-size: var(--font-size-xs);
+  gap: var(--space-4);
+}
+
+.badge--lg {
+  padding: var(--space-8) var(--space-16);
+  font-size: var(--font-size-sm);
+  gap: var(--space-8);
+}

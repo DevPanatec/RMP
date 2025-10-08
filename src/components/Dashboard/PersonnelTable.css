@@ -1,0 +1,278 @@
+.personnel-table-container {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 2px solid rgba(48, 209, 88, 0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+.personnel-table-wrapper {
+  overflow-x: auto;
+}
+
+.personnel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.personnel-table thead th {
+  background: linear-gradient(135deg, #30d158 0%, #34c759 100%);
+  color: white;
+  padding: 16px 20px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+.personnel-table tbody td {
+  padding: 20px;
+  border-bottom: 1px solid rgba(48, 209, 88, 0.1);
+  vertical-align: middle;
+}
+
+.personnel-table tbody tr {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.personnel-table tbody tr:hover {
+  background: rgba(48, 209, 88, 0.02);
+  transform: scale(1.01);
+}
+
+.employee-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.employee-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #30d158 0%, #34c759 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.employee-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.employee-name {
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+
+.employee-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  border: 1px solid transparent;
+}
+
+.role-badge--conductor {
+  background: rgba(52, 199, 89, 0.1);
+  color: #059669;
+  border-color: rgba(52, 199, 89, 0.2);
+}
+
+.role-badge--ayudante {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.role-badge--supervisor {
+  background: rgba(168, 85, 247, 0.1);
+  color: #7c3aed;
+  border-color: rgba(168, 85, 247, 0.2);
+}
+
+.role-badge--default {
+  background: rgba(142, 142, 147, 0.1);
+  color: #6b7280;
+  border-color: rgba(142, 142, 147, 0.2);
+}
+
+.status-badge-table {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  border: 1px solid transparent;
+}
+
+.status-badge-table--success {
+  background: rgba(52, 199, 89, 0.1);
+  color: #059669;
+  border-color: rgba(52, 199, 89, 0.2);
+}
+
+.status-badge-table--warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.status-badge-table--info {
+  background: rgba(142, 142, 147, 0.1);
+  color: #6b7280;
+  border-color: rgba(142, 142, 147, 0.2);
+}
+
+.status-badge-table--default {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.assignment-info {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+}
+
+.action-btn--edit {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.action-btn--edit:hover {
+  background: #2563eb;
+  color: white;
+  transform: scale(1.1);
+}
+
+.action-btn--delete {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.action-btn--delete:hover {
+  background: #dc2626;
+  color: white;
+  transform: scale(1.1);
+}
+
+.table-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: rgba(48, 209, 88, 0.02);
+  border-top: 1px solid rgba(48, 209, 88, 0.1);
+}
+
+.pagination-btn {
+  padding: 8px 16px;
+  background: #30d158;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #28b049;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(48, 209, 88, 0.3);
+}
+
+.pagination-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .personnel-table {
+    font-size: 12px;
+  }
+
+  .personnel-table thead th,
+  .personnel-table tbody td {
+    padding: 12px 8px;
+  }
+
+  .employee-cell {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .employee-contact {
+    flex-direction: row;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .table-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .table-pagination {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+}

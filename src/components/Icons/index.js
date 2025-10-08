@@ -47,5 +47,6 @@ export {
   Navigation,
   Briefcase,
   Phone,
-  Mail
+  Mail,
+  History
 } from 'lucide-react';
