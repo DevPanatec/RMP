@@ -234,138 +234,204 @@ const AdminDashboard = ({ user, onLogout }) => {
     switch (currentSubTab) {
       case 'personal':
         return (
-          <div className="operations-content">
-            <div className="section-header">
-              <div className="section-title">
-                <h3>Gestión de Personal</h3>
-                <p>Administra conductores, ayudantes y supervisores</p>
+          <div className="operations-content-modern">
+            <div className="ops-header">
+              <div className="ops-header-content">
+                <Users size={28} className="ops-header-icon" />
+                <div className="ops-header-text">
+                  <h2>Gestión de Personal</h2>
+                  <p>Administra conductores, ayudantes y supervisores</p>
+                </div>
               </div>
-            </div>
-            <PersonnelTable
-              personnel={personnel}
-              onEdit={(employee) => {
-                // TODO: Implement edit functionality
-                console.log('Edit employee:', employee);
-              }}
-              onDelete={(employeeId) => {
-                if (window.confirm('¿Estás seguro de que quieres eliminar este empleado?')) {
-                  deleteEmployee(employeeId);
-                }
-              }}
-              currentPage={1}
-              totalPages={Math.ceil((personnel?.length || 0) / 8)}
-              onPageChange={(page) => {
-                // TODO: Implement pagination
-                console.log('Page change:', page);
-              }}
-            />
-          </div>
-        );
-      case 'flota':
-        return (
-          <div className="operations-content">
-            <div className="section-header">
-              <div className="section-title">
-                <h3>Gestión de Flota</h3>
-                <p>Monitorea y administra todos los vehículos</p>
-              </div>
-            </div>
-            <div className="service-filters">
-              <div className="filter-group">
-                <label>Tipo de Servicio:</label>
-                <div className="filter-buttons">
-                  <button
-                    className={`filter-btn ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
-                    onClick={() => setServiceTypeFilter('todos')}
-                  >
-                    <BarChart3 size={16} /> Todos
-                  </button>
-                  <button
-                    className={`filter-btn ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
-                    onClick={() => setServiceTypeFilter('recoleccion')}
-                  >
-                    <Truck size={16} /> Recolección
-                  </button>
-                  <button
-                    className={`filter-btn ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
-                    onClick={() => setServiceTypeFilter('fumigacion')}
-                  >
-                    <Truck size={16} /> Fumigación
-                  </button>
+              <div className="ops-header-stats">
+                <div className="stat-pill">
+                  <span className="stat-value">{personnel?.length || 0}</span>
+                  <span className="stat-label">Total</span>
+                </div>
+                <div className="stat-pill">
+                  <span className="stat-value">{personnel?.filter(p => p.estado === 'activo').length || 0}</span>
+                  <span className="stat-label">Activos</span>
                 </div>
               </div>
             </div>
-            <div className="vehicle-grid">
-              {normalizedCamiones
-                .filter(vehicle => serviceTypeFilter === 'todos' || vehicle.tipoServicio === serviceTypeFilter)
-                .map(vehicle => (
-                  <VehicleCard
-                    key={vehicle.id}
-                    vehicle={vehicle}
-                    onLocationClick={(vehicle) => handleGoToVehicleLocation(vehicle.id)}
-                    onMaintenanceClick={(vehicle) => {
-                      // TODO: Implement maintenance functionality
-                      console.log('Maintenance for vehicle:', vehicle);
-                    }}
-                    onHistoryClick={(vehicle) => {
-                      // TODO: Implement history functionality
-                      console.log('History for vehicle:', vehicle);
-                    }}
-                  />
-                ))}
+            <div className="ops-content-wrapper">
+              <PersonnelTable
+                personnel={personnel}
+                onEdit={(employee) => {
+                  console.log('Edit employee:', employee);
+                }}
+                onDelete={(employeeId) => {
+                  if (window.confirm('¿Estás seguro de que quieres eliminar este empleado?')) {
+                    deleteEmployee(employeeId);
+                  }
+                }}
+                currentPage={1}
+                totalPages={Math.ceil((personnel?.length || 0) / 8)}
+                onPageChange={(page) => {
+                  console.log('Page change:', page);
+                }}
+              />
             </div>
-            {normalizedCamiones.filter(vehicle => serviceTypeFilter === 'todos' || vehicle.tipoServicio === serviceTypeFilter).length === 0 && (
-              <div className="empty-state">
-                <div className="empty-icon"><Truck size={48} /></div>
-                <h4>No hay vehículos</h4>
-                <p>No se encontraron vehículos para el filtro seleccionado</p>
+          </div>
+        );
+      case 'flota':
+        const filteredVehicles = normalizedCamiones.filter(vehicle => 
+          serviceTypeFilter === 'todos' || vehicle.tipoServicio === serviceTypeFilter
+        );
+        return (
+          <div className="operations-content-modern">
+            <div className="ops-header">
+              <div className="ops-header-content">
+                <Truck size={28} className="ops-header-icon" />
+                <div className="ops-header-text">
+                  <h2>Gestión de Flota</h2>
+                  <p>Monitorea y administra todos los vehículos</p>
+                </div>
               </div>
-            )}
+              <div className="ops-header-stats">
+                <div className="stat-pill">
+                  <span className="stat-value">{normalizedCamiones.length}</span>
+                  <span className="stat-label">Total</span>
+                </div>
+                <div className="stat-pill success">
+                  <span className="stat-value">{normalizedCamiones.filter(v => v.estado === 'En ruta' || v.estado === 'en_ruta').length}</span>
+                  <span className="stat-label">En Ruta</span>
+                </div>
+                <div className="stat-pill info">
+                  <span className="stat-value">{normalizedCamiones.filter(v => v.estado === 'Disponible').length}</span>
+                  <span className="stat-label">Disponibles</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="ops-filters-modern">
+              <button
+                className={`ops-filter-chip ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
+                onClick={() => setServiceTypeFilter('todos')}
+              >
+                <BarChart3 size={18} />
+                <span>Todos</span>
+                <span className="chip-badge">{normalizedCamiones.length}</span>
+              </button>
+              <button
+                className={`ops-filter-chip ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
+                onClick={() => setServiceTypeFilter('recoleccion')}
+              >
+                <Truck size={18} />
+                <span>Recolección</span>
+                <span className="chip-badge">{normalizedCamiones.filter(v => v.tipoServicio === 'recoleccion').length}</span>
+              </button>
+              <button
+                className={`ops-filter-chip ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
+                onClick={() => setServiceTypeFilter('fumigacion')}
+              >
+                <Truck size={18} />
+                <span>Fumigación</span>
+                <span className="chip-badge">{normalizedCamiones.filter(v => v.tipoServicio === 'fumigacion').length}</span>
+              </button>
+            </div>
+
+            <div className="ops-content-wrapper">
+              {filteredVehicles.length > 0 ? (
+                <div className="vehicle-grid-modern">
+                  {filteredVehicles.map((vehicle, index) => (
+                    <div key={vehicle.id} style={{ animationDelay: `${index * 50}ms` }}>
+                      <VehicleCard
+                        vehicle={vehicle}
+                        onLocationClick={(vehicle) => handleGoToVehicleLocation(vehicle.id)}
+                        onMaintenanceClick={(vehicle) => {
+                          console.log('Maintenance for vehicle:', vehicle);
+                        }}
+                        onHistoryClick={(vehicle) => {
+                          console.log('History for vehicle:', vehicle);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state-modern">
+                  <div className="empty-icon-modern">
+                    <Truck size={64} />
+                  </div>
+                  <h3>No hay vehículos</h3>
+                  <p>No se encontraron vehículos para el filtro seleccionado</p>
+                </div>
+              )}
+            </div>
           </div>
         );
 
       case 'rutas':
+        const activeRoutes = routes.filter(route => route.activa !== false && route.estado !== 'cancelada');
         return (
-          <div className="operations-content">
-            <div className="section-header">
-              <div className="section-title">
-                <h3>Gestión de Rutas</h3>
-                <p>Visualiza y administra todas las rutas activas</p>
+          <div className="operations-content-modern">
+            <div className="ops-header">
+              <div className="ops-header-content">
+                <Map size={28} className="ops-header-icon" />
+                <div className="ops-header-text">
+                  <h2>Gestión de Rutas</h2>
+                  <p>Visualiza y administra todas las rutas activas</p>
+                </div>
+              </div>
+              <div className="ops-header-stats">
+                <div className="stat-pill">
+                  <span className="stat-value">{activeRoutes.length}</span>
+                  <span className="stat-label">Activas</span>
+                </div>
+                <div className="stat-pill success">
+                  <span className="stat-value">{activeRoutes.filter(r => r.estado === 'en_progreso').length}</span>
+                  <span className="stat-label">En Progreso</span>
+                </div>
               </div>
             </div>
-            <div className="routes-grid">
-              {routes
-                .filter(route => route.activa !== false && route.estado !== 'cancelada')
-                .map(route => (
-                  <RouteTimeline
-                    key={route.id}
-                    route={route}
-                    onViewMap={(route) => {
-                      // TODO: Implement map view
-                      console.log('View map for route:', route);
-                    }}
-                    onEdit={(route) => handleEditRoute(route)}
-                    onPause={(route) => handleToggleRouteStatus(route.id)}
-                    onViewStats={(route) => {
-                      // TODO: Implement stats view
-                      console.log('View stats for route:', route);
-                    }}
-                  />
-                ))}
+
+            <div className="ops-content-wrapper">
+              {activeRoutes.length > 0 ? (
+                <div className="routes-grid-modern">
+                  {activeRoutes.map((route, index) => (
+                    <div key={route.id} style={{ animationDelay: `${index * 50}ms` }}>
+                      <RouteTimeline
+                        route={route}
+                        onViewMap={(route) => {
+                          console.log('View map for route:', route);
+                        }}
+                        onEdit={(route) => handleEditRoute(route)}
+                        onPause={(route) => handleToggleRouteStatus(route.id)}
+                        onViewStats={(route) => {
+                          console.log('View stats for route:', route);
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state-modern">
+                  <div className="empty-icon-modern">
+                    <Map size={64} />
+                  </div>
+                  <h3>No hay rutas activas</h3>
+                  <p>No se encontraron rutas activas en el sistema</p>
+                </div>
+              )}
             </div>
-            {routes.filter(route => route.activa !== false && route.estado !== 'cancelada').length === 0 && (
-              <div className="empty-state">
-                <div className="empty-icon"><Map size={48} /></div>
-                <h4>No hay rutas activas</h4>
-                <p>No se encontraron rutas activas en el sistema</p>
-              </div>
-            )}
           </div>
         );
       case 'programacion':
         return (
-          <div className="operations-content">
-            <ScheduleComponent />
+          <div className="operations-content-modern">
+            <div className="ops-header">
+              <div className="ops-header-content">
+                <Calendar size={28} className="ops-header-icon" />
+                <div className="ops-header-text">
+                  <h2>Programación de Rutas</h2>
+                  <p>Planifica y gestiona horarios de operación</p>
+                </div>
+              </div>
+            </div>
+            <div className="ops-content-wrapper">
+              <ScheduleComponent />
+            </div>
           </div>
         );
       default:
