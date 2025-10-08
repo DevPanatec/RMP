@@ -328,48 +328,6 @@ const MapComponent = ({ camiones, rutas = [], userType, showRealTime = true, sel
 
   return (
     <div className="map-component">
-      <div className="map-controls">
-        <div className="control-group">
-          <label className="control-label gps-control">
-            <input
-              type="checkbox"
-              checked={realTimeEnabled}
-              onChange={(e) => setRealTimeEnabled(e.target.checked)}
-            />
-            <Satellite size={16} /> GPS en Tiempo Real
-          </label>
-          <label className="control-label gps-control">
-            <input
-              type="checkbox"
-              checked={showTrails}
-              onChange={(e) => setShowTrails(e.target.checked)}
-            />
-            <MapIcon size={16} /> Mostrar Rutas Completas
-          </label>
-          {selectedTruckId && (
-            <div className="selected-truck-info gps-info">
-              <MapPin size={16} /> Rastreando: <strong>{getSelectedTruck()?.conductor}</strong> ({selectedTruckId})
-              <button 
-                className="btn btn--sm btn--outline"
-                onClick={() => handleTruckClick(selectedTruckId)}
-              >
-                <X size={14} /> Dejar de rastrear
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="update-info gps-update">
-          <span className="update-time">
-            🕐 Última actualización: {formatTime(lastUpdate)}
-          </span>
-          {realTimeEnabled && (
-            <span className="live-indicator gps-live">
-              🔴 EN VIVO
-            </span>
-          )}
-        </div>
-      </div>
-
       <div style={{ position: 'relative' }}>
         <MapContainer 
           center={centerPosition} 
