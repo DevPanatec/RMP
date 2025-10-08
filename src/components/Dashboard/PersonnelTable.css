@@ -1,6 +1,6 @@
 .personnel-table-container {
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border: 2px solid rgba(48, 209, 88, 0.1);
+  border: 2px solid rgba(61, 82, 41, 0.1);
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
@@ -17,7 +17,7 @@
 }
 
 .personnel-table thead th {
-  background: linear-gradient(135deg, #30d158 0%, #34c759 100%);
+  background: linear-gradient(135deg, #3D5229 0%, #556B2F 100%);
   color: white;
   padding: 16px 20px;
   text-align: left;
@@ -30,7 +30,7 @@
 
 .personnel-table tbody td {
   padding: 20px;
-  border-bottom: 1px solid rgba(48, 209, 88, 0.1);
+  border-bottom: 1px solid rgba(61, 82, 41, 0.1);
   vertical-align: middle;
 }
 
@@ -39,7 +39,7 @@
 }
 
 .personnel-table tbody tr:hover {
-  background: rgba(48, 209, 88, 0.02);
+  background: rgba(61, 82, 41, 0.02);
   transform: scale(1.01);
 }
 
@@ -53,7 +53,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #30d158 0%, #34c759 100%);
+  background: linear-gradient(135deg, #3D5229 0%, #556B2F 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -208,13 +208,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  background: rgba(48, 209, 88, 0.02);
-  border-top: 1px solid rgba(48, 209, 88, 0.1);
+  background: rgba(61, 82, 41, 0.02);
+  border-top: 1px solid rgba(61, 82, 41, 0.1);
 }
 
 .pagination-btn {
   padding: 8px 16px;
-  background: #30d158;
+  background: #3D5229;
   color: white;
   border: none;
   border-radius: 8px;
@@ -227,7 +227,7 @@
 .pagination-btn:hover:not(:disabled) {
   background: #28b049;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(48, 209, 88, 0.3);
+  box-shadow: 0 4px 12px rgba(61, 82, 41, 0.3);
 }
 
 .pagination-btn:disabled {

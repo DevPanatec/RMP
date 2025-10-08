@@ -7,12 +7,12 @@
   --color-text-secondary: #86868b;
   --color-text-tertiary: #afafb0;
   
-  /* Primary Green - Professional & Modern */
-  --color-primary: #30d158;
-  --color-primary-hover: #28b049;
-  --color-primary-active: #20903a;
-  --color-primary-subtle: rgba(48, 209, 88, 0.1);
-  --color-primary-light: rgba(48, 209, 88, 0.05);
+  /* Primary Olive Green - Professional & Corporate */
+  --color-primary: #3D5229;
+  --color-primary-hover: #556B2F;
+  --color-primary-active: #2C3E1F;
+  --color-primary-subtle: rgba(61, 82, 41, 0.1);
+  --color-primary-light: rgba(61, 82, 41, 0.05);
   
   /* Secondary Colors */
   --color-secondary: #f5f5f7;
@@ -26,12 +26,12 @@
   
   /* System Colors */
   --color-error: #ff3b30;
-  --color-success: #34c759;
+  --color-success: #556B2F;
   --color-warning: #ff9500;
   --color-info: #007aff;
   
   /* Focus & Interaction */
-  --color-focus-ring: rgba(48, 209, 88, 0.3);
+  --color-focus-ring: rgba(61, 82, 41, 0.3);
   --color-hover-overlay: rgba(0, 0, 0, 0.04);
   --color-active-overlay: rgba(0, 0, 0, 0.08);
 
@@ -51,11 +51,11 @@
   --select-caret-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 
   /* RGB versions for opacity control */
-  --color-success-rgb: 40, 167, 69;
+  --color-success-rgb: 85, 107, 47;
   --color-error-rgb: 220, 53, 69;
   --color-warning-rgb: 255, 193, 7;
   --color-info-rgb: 23, 162, 184;
-  --color-primary-rgb: 34, 139, 34;
+  --color-primary-rgb: 61, 82, 41;
 
   /* Additional colors for Personnel component */
   --color-text-primary: rgba(27, 69, 35, 1);
@@ -423,7 +423,7 @@ select.form-control {
 }
 
 select.form-control:focus {
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%2330d158' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%233D5229' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .form-label {

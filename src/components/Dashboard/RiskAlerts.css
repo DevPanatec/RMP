@@ -4,7 +4,7 @@
 
 .risk-alerts {
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-  border: 2px solid rgba(48, 209, 88, 0.1);
+  border: 2px solid rgba(61, 82, 41, 0.1);
   border-radius: 20px;
   padding: 32px;
   margin-bottom: 32px;
@@ -32,7 +32,7 @@
   align-items: center;
   margin-bottom: 28px;
   padding-bottom: 20px;
-  border-bottom: 2px solid rgba(48, 209, 88, 0.1);
+  border-bottom: 2px solid rgba(61, 82, 41, 0.1);
 }
 
 .alerts-header h3 {
@@ -72,8 +72,8 @@
 }
 
 .alerts-count.safe {
-  background: rgba(48, 209, 88, 0.1);
-  color: #30d158;
+  background: rgba(61, 82, 41, 0.1);
+  color: #3D5229;
 }
 
 .count-badge {
@@ -98,7 +98,7 @@
 }
 
 .count-badge.safe {
-  background: linear-gradient(135deg, #30d158 0%, #34c759 100%);
+  background: linear-gradient(135deg, #3D5229 0%, #556B2F 100%);
 }
 
 @keyframes pulseDanger {
@@ -321,7 +321,7 @@
 }
 
 .detail-item svg {
-  color: #30d158;
+  color: #3D5229;
   flex-shrink: 0;
 }
 
@@ -354,7 +354,7 @@
   justify-content: center;
   gap: 8px;
   padding: 10px 16px;
-  background: linear-gradient(135deg, #30d158 0%, #34c759 100%);
+  background: linear-gradient(135deg, #3D5229 0%, #556B2F 100%);
   color: white;
   border: none;
   border-radius: 10px;
@@ -362,12 +362,12 @@
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 12px rgba(48, 209, 88, 0.3);
+  box-shadow: 0 4px 12px rgba(61, 82, 41, 0.3);
 }
 
 .view-details-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(48, 209, 88, 0.4);
+  box-shadow: 0 8px 20px rgba(61, 82, 41, 0.4);
 }
 
 .view-details-btn:active {
@@ -383,14 +383,14 @@
   width: 80px;
   height: 80px;
   margin: 0 auto 20px;
-  background: linear-gradient(135deg, #30d158 0%, #34c759 100%);
+  background: linear-gradient(135deg, #3D5229 0%, #556B2F 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 48px;
   color: white;
-  box-shadow: 0 8px 24px rgba(48, 209, 88, 0.3);
+  box-shadow: 0 8px 24px rgba(61, 82, 41, 0.3);
   animation: successPulse 2s ease-in-out infinite;
 }
 
