@@ -1,4 +1,4 @@
-import { AlertTriangle, Truck, MapPin, Clock, Eye, CheckCircle2 } from '../Icons';
+import { AlertTriangle, Truck, MapPin, Clock, Eye, CheckCircle } from '../Icons';
 import './RiskAlerts.css';
 
 const RiskAlerts = ({ alerts = [], onViewDetails }) => {
@@ -21,7 +21,7 @@ const RiskAlerts = ({ alerts = [], onViewDetails }) => {
           </span>
         </div>
         <div className="no-alerts">
-          <div className="no-alerts-icon"><CheckCircle2 strokeWidth={1.5} size={64} color="#22c55e" /></div>
+          <div className="no-alerts-icon"><CheckCircle strokeWidth={1.5} size={64} color="#22c55e" /></div>
           <p>Todo está funcionando correctamente</p>
           <span>No hay riesgos o alertas que requieran atención</span>
         </div>
