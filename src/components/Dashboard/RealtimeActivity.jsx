@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Truck, MapPin, Clock, CheckCircle, Navigation } from '../Icons';
+import { Truck, MapPin, Clock, CheckCircle, Radio } from '../Icons';
 import './RealtimeActivity.css';
 
 const RealtimeActivity = ({ vehicles = [], routes = [], personnel = [] }) => {
@@ -38,14 +38,14 @@ const RealtimeActivity = ({ vehicles = [], routes = [], personnel = [] }) => {
     return (
       <div className="realtime-activity">
         <div className="activity-header">
-          <h3><Navigation size={24} /> Actividad en Tiempo Real</h3>
+          <h3><Radio strokeWidth={1.5} size={22} /> Actividad en Tiempo Real</h3>
           <span className="live-indicator">
             <span className="live-dot"></span>
             EN VIVO
           </span>
         </div>
         <div className="no-activity">
-          <Truck size={48} />
+          <Truck strokeWidth={1.5} size={48} />
           <p>No hay vehículos en ruta actualmente</p>
           <span>La actividad aparecerá cuando los vehículos inicien sus rutas</span>
         </div>
@@ -56,7 +56,7 @@ const RealtimeActivity = ({ vehicles = [], routes = [], personnel = [] }) => {
   return (
     <div className="realtime-activity">
       <div className="activity-header">
-        <h3><Navigation size={24} /> Actividad en Tiempo Real</h3>
+        <h3><Radio strokeWidth={1.5} size={22} /> Actividad en Tiempo Real</h3>
         <span className="live-indicator">
           <span className="live-dot"></span>
           EN VIVO

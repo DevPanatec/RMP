@@ -14,7 +14,8 @@ import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext
 import { 
   LayoutDashboard, Truck, AlertTriangle, Package, 
   BarChart3, Users, Map, LogOut, TrendingUp, CheckCircle,
-  MapPin, Radio, Activity, Zap, Bell, Wrench, Leaf, Navigation, Clock, Save, Calendar
+  MapPin, Radio, Activity, Zap, Bell, Wrench, Leaf, Navigation, Clock, Save, Calendar,
+  Satellite, Briefcase, CheckCircle2
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
 import { DashboardKPI, AlertCard, PersonnelTable, VehicleCard, RouteTimeline, HeroStats, RealtimeActivity, RiskAlerts } from '../../components/Dashboard';
@@ -237,7 +238,7 @@ const AdminDashboard = ({ user, onLogout }) => {
           <div className="operations-content-modern">
             <div className="ops-header">
               <div className="ops-header-content">
-                <Users size={28} className="ops-header-icon" />
+                <Briefcase strokeWidth={1.5} size={26} className="ops-header-icon" />
                 <div className="ops-header-text">
                   <h2>Gestión de Personal</h2>
                   <p>Administra conductores, ayudantes y supervisores</p>
@@ -282,7 +283,7 @@ const AdminDashboard = ({ user, onLogout }) => {
           <div className="operations-content-modern">
             <div className="ops-header">
               <div className="ops-header-content">
-                <Truck size={28} className="ops-header-icon" />
+                <Truck strokeWidth={1.5} size={26} className="ops-header-icon" />
                 <div className="ops-header-text">
                   <h2>Gestión de Flota</h2>
                   <p>Monitorea y administra todos los vehículos</p>
@@ -352,7 +353,7 @@ const AdminDashboard = ({ user, onLogout }) => {
               ) : (
                 <div className="empty-state-modern">
                   <div className="empty-icon-modern">
-                    <Truck size={64} />
+                    <Truck strokeWidth={1.5} size={64} />
                   </div>
                   <h3>No hay vehículos</h3>
                   <p>No se encontraron vehículos para el filtro seleccionado</p>
@@ -368,7 +369,7 @@ const AdminDashboard = ({ user, onLogout }) => {
           <div className="operations-content-modern">
             <div className="ops-header">
               <div className="ops-header-content">
-                <Map size={28} className="ops-header-icon" />
+                <MapPin strokeWidth={1.5} size={26} className="ops-header-icon" />
                 <div className="ops-header-text">
                   <h2>Gestión de Rutas</h2>
                   <p>Visualiza y administra todas las rutas activas</p>
@@ -408,7 +409,7 @@ const AdminDashboard = ({ user, onLogout }) => {
               ) : (
                 <div className="empty-state-modern">
                   <div className="empty-icon-modern">
-                    <Map size={64} />
+                    <MapPin strokeWidth={1.5} size={64} />
                   </div>
                   <h3>No hay rutas activas</h3>
                   <p>No se encontraron rutas activas en el sistema</p>
@@ -422,7 +423,7 @@ const AdminDashboard = ({ user, onLogout }) => {
           <div className="operations-content-modern">
             <div className="ops-header">
               <div className="ops-header-content">
-                <Calendar size={28} className="ops-header-icon" />
+                <Calendar strokeWidth={1.5} size={26} className="ops-header-icon" />
                 <div className="ops-header-text">
                   <h2>Programación de Rutas</h2>
                   <p>Planifica y gestiona horarios de operación</p>
@@ -446,7 +447,7 @@ const AdminDashboard = ({ user, onLogout }) => {
         const heroStatsData = [
           {
             id: 'vehicles',
-            icon: <Truck size={36} />,
+            icon: <Truck strokeWidth={1.5} size={32} />,
             value: serviceTypeFilter === 'todos' 
               ? normalizedCamiones.length 
               : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter).length,
@@ -456,7 +457,7 @@ const AdminDashboard = ({ user, onLogout }) => {
           },
           {
             id: 'active',
-            icon: <Activity size={36} />,
+            icon: <TrendingUp strokeWidth={1.5} size={32} />,
             value: serviceTypeFilter === 'todos' 
               ? normalizedCamiones.filter(c => c.estado === 'En ruta' || c.estado === 'en_ruta').length
               : normalizedCamiones.filter(c => (c.estado === 'En ruta' || c.estado === 'en_ruta') && c.tipoServicio === serviceTypeFilter).length,
@@ -465,14 +466,14 @@ const AdminDashboard = ({ user, onLogout }) => {
           },
           {
             id: 'personnel',
-            icon: <Users size={36} />,
+            icon: <Briefcase strokeWidth={1.5} size={32} />,
             value: personnel?.length || 0,
             label: 'Personal',
             color: 'linear-gradient(135deg, #007aff 0%, #4da3ff 100%)'
           },
           {
             id: 'routes',
-            icon: <Map size={36} />,
+            icon: <MapPin strokeWidth={1.5} size={32} />,
             value: routes.filter(r => r.activa !== false).length,
             label: 'Rutas Activas',
             color: 'linear-gradient(135deg, #00d4ff 0%, #0091ff 100%)'
@@ -485,25 +486,25 @@ const AdminDashboard = ({ user, onLogout }) => {
             
             <div className="map-section">
               <div className="map-header">
-                <h3><Map size={24} /> Monitoreo GPS en Tiempo Real</h3>
+                <h3><Satellite strokeWidth={1.5} size={22} /> Monitoreo GPS en Tiempo Real</h3>
                 <div className="service-filters-modern">
                   <button 
                     className={`filter-chip ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
                     onClick={() => setServiceTypeFilter('todos')}
                   >
-                    <BarChart3 size={16} /> Todos
+                    <BarChart3 strokeWidth={1.5} size={16} /> Todos
                   </button>
                   <button 
                     className={`filter-chip ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
                     onClick={() => setServiceTypeFilter('recoleccion')}
                   >
-                    <Truck size={16} /> Recolección
+                    <Truck strokeWidth={1.5} size={16} /> Recolección
                   </button>
                   <button 
                     className={`filter-chip ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
                     onClick={() => setServiceTypeFilter('fumigacion')}
                   >
-                    <Truck size={16} /> Fumigación
+                    <Truck strokeWidth={1.5} size={16} /> Fumigación
                   </button>
                 </div>
               </div>
@@ -547,28 +548,28 @@ const AdminDashboard = ({ user, onLogout }) => {
                 className={`ops-tab ${(!activeSubTab || activeSubTab === 'personal') ? 'ops-tab-active' : ''}`}
                 onClick={() => setActiveSubTab('personal')}
               >
-                <Users size={20} />
+                <Briefcase strokeWidth={1.5} size={20} />
                 <span>Personal</span>
               </button>
               <button 
                 className={`ops-tab ${activeSubTab === 'flota' ? 'ops-tab-active' : ''}`}
                 onClick={() => setActiveSubTab('flota')}
               >
-                <Truck size={20} />
+                <Truck strokeWidth={1.5} size={20} />
                 <span>Flota</span>
               </button>
               <button 
                 className={`ops-tab ${activeSubTab === 'rutas' ? 'ops-tab-active' : ''}`}
                 onClick={() => setActiveSubTab('rutas')}
               >
-                <Map size={20} />
+                <MapPin strokeWidth={1.5} size={20} />
                 <span>Rutas</span>
               </button>
               <button 
                 className={`ops-tab ${activeSubTab === 'programacion' ? 'ops-tab-active' : ''}`}
                 onClick={() => setActiveSubTab('programacion')}
               >
-                <Calendar size={20} />
+                <Calendar strokeWidth={1.5} size={20} />
                 <span>Programación</span>
               </button>
             </div>
@@ -591,7 +592,7 @@ const AdminDashboard = ({ user, onLogout }) => {
     <div className="dashboard-container">
       <div className="sidebar">
         <div className="sidebar-header">
-          <h2><Leaf size={20} /> RMP Admin</h2>
+          <h2><Leaf strokeWidth={1.5} size={20} /> RMP Admin</h2>
           <p>Bienvenido, {user.nombre}</p>
         </div>
         <nav className="sidebar-nav">
@@ -601,7 +602,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 className={activeTab === 'dashboard' ? 'active' : ''}
                 onClick={() => handleTabChange('dashboard')}
               >
-                <LayoutDashboard size={18} /> Dashboard
+                <LayoutDashboard strokeWidth={1.5} size={18} /> Dashboard
               </button>
             </li>
             <li>
@@ -609,7 +610,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 className={activeTab === 'operaciones' ? 'active' : ''}
                 onClick={() => handleTabChange('operaciones', 'personal')}
               >
-                <Truck size={18} /> Operaciones
+                <Truck strokeWidth={1.5} size={18} /> Operaciones
               </button>
             </li>
             <li>
@@ -617,7 +618,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 className={activeTab === 'riesgos' ? 'active' : ''}
                 onClick={() => handleTabChange('riesgos')}
               >
-                <AlertTriangle size={18} /> Riesgos
+                <AlertTriangle strokeWidth={1.5} size={18} /> Riesgos
               </button>
             </li>
             <li>
@@ -625,7 +626,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 className={activeTab === 'inventario' ? 'active' : ''}
                 onClick={() => handleTabChange('inventario')}
               >
-                <Package size={18} /> Inventario
+                <Package strokeWidth={1.5} size={18} /> Inventario
               </button>
             </li>
             <li>
@@ -633,7 +634,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 className={activeTab === 'reportes' ? 'active' : ''}
                 onClick={() => handleTabChange('reportes')}
               >
-                <BarChart3 size={18} /> Reportes
+                <BarChart3 strokeWidth={1.5} size={18} /> Reportes
               </button>
             </li>
           </ul>
@@ -641,7 +642,7 @@ const AdminDashboard = ({ user, onLogout }) => {
       </div>
       <div className="main-content">
         <div className="dashboard-header">
-          <h1><Leaf size={24} /> Panel de Administración</h1>
+          <h1><Leaf strokeWidth={1.5} size={24} /> Panel de Administración</h1>
           <div className="header-actions">
             <div className="realtime-status">
               <Activity size={16} /> Sistema en Tiempo Real

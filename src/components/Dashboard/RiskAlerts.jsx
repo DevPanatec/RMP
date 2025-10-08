@@ -1,4 +1,4 @@
-import { AlertTriangle, Truck, MapPin, Clock, Eye } from '../Icons';
+import { AlertTriangle, Truck, MapPin, Clock, Eye, CheckCircle2 } from '../Icons';
 import './RiskAlerts.css';
 
 const RiskAlerts = ({ alerts = [], onViewDetails }) => {
@@ -14,14 +14,14 @@ const RiskAlerts = ({ alerts = [], onViewDetails }) => {
     return (
       <div className="risk-alerts">
         <div className="alerts-header">
-          <h3><AlertTriangle size={24} /> Alertas y Riesgos</h3>
+          <h3><AlertTriangle strokeWidth={1.5} size={22} /> Alertas y Riesgos</h3>
           <span className="alerts-count safe">
             <span className="count-badge safe">0</span>
             Sin alertas activas
           </span>
         </div>
         <div className="no-alerts">
-          <div className="no-alerts-icon">✓</div>
+          <div className="no-alerts-icon"><CheckCircle2 strokeWidth={1.5} size={64} color="#22c55e" /></div>
           <p>Todo está funcionando correctamente</p>
           <span>No hay riesgos o alertas que requieran atención</span>
         </div>
@@ -36,7 +36,7 @@ const RiskAlerts = ({ alerts = [], onViewDetails }) => {
   return (
     <div className="risk-alerts">
       <div className="alerts-header">
-        <h3><AlertTriangle size={24} /> Alertas y Riesgos</h3>
+        <h3><AlertTriangle strokeWidth={1.5} size={22} /> Alertas y Riesgos</h3>
         <span className={`alerts-count ${highPriorityCount > 0 ? 'danger' : 'warning'}`}>
           <span className={`count-badge ${highPriorityCount > 0 ? 'danger' : 'warning'}`}>
             {sortedAlerts.length}
