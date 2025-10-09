@@ -9,6 +9,8 @@ import {
   ClipboardList, Package, TrendingUp, FileText, MapPin,
   CheckCircle, Calendar, Loader, Wrench, AlertOctagon
 } from '../../components/Icons';
+import { Badge, ProgressBar } from '../../components/UI';
+import { RouteTimeline } from '../../components/Dashboard';
 import './ConductorDashboard.css';
 
 // Hook para PWA
@@ -259,12 +261,39 @@ const ConductorDashboard = ({ user, onLogout }) => {
         </div>
       )}
 
+      <div className="sidebar">
+        <div className="sidebar-header">
+          <h2><Truck size={20} /> RMP Conductor</h2>
+          <p>Bienvenido, {user.nombre}</p>
+        </div>
+        <nav className="sidebar-nav">
+          <ul>
+            <li>
+              <button
+                className={activeTab === 'ruta' ? 'active' : ''}
+                onClick={() => setActiveTab('ruta')}
+              >
+                <Map size={18} /> Mi Ruta
+              </button>
+            </li>
+            <li>
+              <button
+                className={activeTab === 'reportes' ? 'active' : ''}
+                onClick={() => setActiveTab('reportes')}
+              >
+                <ClipboardList size={18} /> Mis Reportes
+              </button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
       <div className="main-content">
         <div className="dashboard-header">
-          <h1><Truck size={24} /> Dashboard Conductor</h1>
+          <h1><Truck size={24} /> Panel de Conductor</h1>
           <div className="header-actions">
             <div className="connection-status">
-              {isOnline ? 'En línea' : 'Sin conexión'}
+              {isOnline ? '🟢 En línea' : '🔴 Sin conexión'}
             </div>
             <div className="route-status">
               <Map size={16} /> {assignedRoute.nombre || assignedRoute.name}
@@ -272,7 +301,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
             <div className="time-indicator">
               <Clock size={16} /> {formatTime(timeOnRoute)}
             </div>
-            <button 
+            <button
               className="btn btn--warning"
               onClick={() => setShowRiskModal(true)}
               title="Reportar un riesgo"
@@ -285,127 +314,92 @@ const ConductorDashboard = ({ user, onLogout }) => {
           </div>
         </div>
 
-        {/* Navegación por tabs */}
-        <div className="conductor-tabs">
-          <button 
-            className={`tab-btn ${activeTab === 'ruta' ? 'active' : ''}`}
-            onClick={() => setActiveTab('ruta')}
-          >
-            <Map size={18} /> Mi Ruta
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'reportes' ? 'active' : ''}`}
-            onClick={() => setActiveTab('reportes')}
-          >
-            <ClipboardList size={18} /> Mis Reportes
-          </button>
-        </div>
+
 
         {activeTab === 'ruta' && (
           <>
             {/* KPIs del conductor */}
-            <div className="conductor-kpis">
-          <div className="kpi-card">
-            <div className="kpi-icon"><Truck size={24} /></div>
-            <div className="kpi-content">
-              <div className="kpi-value">{userTruck.id}</div>
-              <div className="kpi-label">Mi Camión</div>
-            </div>
-          </div>
-          <div className="kpi-card">
-            <div className="kpi-icon"><Package size={24} /></div>
-            <div className="kpi-content">
-              <div className="kpi-value">{completedStops.length}/{(assignedRoute.paradas || []).length}</div>
-              <div className="kpi-label">Paradas Completadas</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Progreso general */}
-        <div className="progress-section">
-          <div className="card">
-            <div className="card__body">
-              <h3>📊 Progreso de Ruta</h3>
-              <div className="route-progress">
-                <div className="progress-bar-large">
-                  <div 
-                    className="progress-fill-large"
-                    style={{ width: `${progressPercentage}%` }}
-                  ></div>
-                  <span className="progress-percentage">{progressPercentage}%</span>
+            <div className="kpi-grid">
+              <div className="kpi-card">
+                <div className="kpi-icon"><Truck size={28} /></div>
+                <div className="kpi-content">
+                  <div className="kpi-value">{userTruck.id}</div>
+                  <div className="kpi-label">Mi Camión</div>
                 </div>
-                <div className="progress-details">
-                  <div className="detail-item">
-                    <span className="detail-label">📍 Paradas:</span>
-                    <span className="detail-value">{completedStops.length} / {(assignedRoute.paradas || []).length}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">🗺️ Ruta:</span>
-                    <span className="detail-value">{assignedRoute.nombre || assignedRoute.name}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">📏 Distancia:</span>
-                    <span className="detail-value">{assignedRoute.distancia_total || assignedRoute.distanciaTotal || 'N/A'} km</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">⏱️ Tiempo Estimado:</span>
-                    <span className="detail-value">
-                      {assignedRoute.tiempo_estimado 
-                        ? `${Math.round(assignedRoute.tiempo_estimado / 60)} hrs`
-                        : assignedRoute.tiempoEstimado 
-                        ? `${Math.round(assignedRoute.tiempoEstimado / 60)} hrs`
-                        : 'N/A'}
-                    </span>
-                  </div>
+              </div>
+              <div className="kpi-card">
+                <div className="kpi-icon"><Package size={28} /></div>
+                <div className="kpi-content">
+                  <div className="kpi-value">{completedStops.length}/{(assignedRoute.paradas || []).length}</div>
+                  <div className="kpi-label">Paradas Completadas</div>
+                </div>
+              </div>
+              <div className="kpi-card">
+                <div className="kpi-icon"><TrendingUp size={28} /></div>
+                <div className="kpi-content">
+                  <div className="kpi-value">{progressPercentage}%</div>
+                  <div className="kpi-label">Progreso</div>
+                </div>
+              </div>
+              <div className="kpi-card">
+                <div className="kpi-icon"><Clock size={28} /></div>
+                <div className="kpi-content">
+                  <div className="kpi-value">{formatTime(timeOnRoute)}</div>
+                  <div className="kpi-label">Tiempo en Ruta</div>
                 </div>
               </div>
             </div>
-          </div>
+
+        {/* Timeline de la ruta */}
+        <div className="route-timeline-section">
+          <RouteTimeline
+            route={{
+              ...assignedRoute,
+              estado: progressPercentage === 100 ? 'completada' : progressPercentage > 0 ? 'en progreso' : 'activa',
+              paradas: (assignedRoute.paradas || []).map((parada, index) => ({
+                ...parada,
+                completada: completedStops.some(stop => stop.index === index),
+                index: index
+              })),
+              paradaActual: currentStop,
+              duracionEstimada: assignedRoute.tiempo_estimado || assignedRoute.tiempoEstimado,
+              distancia: assignedRoute.distancia_total || assignedRoute.distanciaTotal
+            }}
+            onViewMap={() => {
+              // El mapa ya se muestra abajo, quizás hacer scroll
+              console.log('View map for route');
+            }}
+            onEdit={() => {
+              // Los conductores no pueden editar rutas
+              console.log('Conductors cannot edit routes');
+            }}
+            onPause={() => {
+              // TODO: Implement pause functionality
+              console.log('Pause route');
+            }}
+            onViewStats={() => {
+              // TODO: Implement stats view
+              console.log('View route stats');
+            }}
+          />
         </div>
 
+        {/* Información del conductor y mapa */}
         <div className="conductor-layout">
-          {/* Información del conductor y camión */}
-          <div className="conductor-info">
+          <div className="conductor-info-section">
             <div className="card">
               <div className="card__body">
-                <h3>👨‍💼 Información del Conductor</h3>
-                <div className="info-grid">
-                  <div className="info-item">
-                    <div className="info-label">Nombre:</div>
-                    <div className="info-value">{user.nombre}</div>
-                  </div>
-                  <div className="info-item">
-                    <div className="info-label">Camión:</div>
-                    <div className="info-value">{userTruck.placa || userTruck.id}</div>
-                  </div>
-                  <div className="info-item">
-                    <div className="info-label">Estado:</div>
-                    <span className="status status--success">{userTruck.estado}</span>
-                  </div>
-                  <div className="info-item">
-                    <div className="info-label">Velocidad:</div>
-                    <div className="info-value">{userTruck.velocidad || 0} km/h</div>
-                  </div>
-                  <div className="info-item">
-                    <div className="info-label">Combustible:</div>
-                    <div className="fuel-display">
-                      <div className="fuel-bar-small">
-                        <div 
-                          className="fuel-fill"
-                          style={{ 
-                            width: `${userTruck.nivelCombustible || userTruck.combustible || 0}%`,
-                            backgroundColor: (userTruck.nivelCombustible || userTruck.combustible || 0) < 30 ? '#ef4444' : '#22c55e'
-                          }}
-                        ></div>
-                      </div>
-                      <span className="fuel-text">{Math.round(userTruck.nivelCombustible || userTruck.combustible || 0)}%</span>
-                    </div>
-                  </div>
-                </div>
+                <h3><MapPin size={20} /> Mi Ubicación Actual</h3>
+                <MapComponent
+                  camiones={[userTruck]}
+                  userType={user.tipo}
+                  showRealTime={true}
+                  selectedTruck={userTruck.id}
+                />
               </div>
-            </div>
+        </div>
 
-            {/* Mapa del conductor */}
+        {/* Mapa del conductor */}
             <div className="card">
               <div className="card__body">
                 <h3><MapPin size={20} /> Mi Ubicación</h3>
@@ -418,133 +412,67 @@ const ConductorDashboard = ({ user, onLogout }) => {
               </div>
             </div>
           </div>
-
-          {/* Lista de paradas */}
-          <div className="route-stops-section">
-            <div className="card">
-              <div className="card__body">
-                <h3><Map size={20} /> Paradas de la Ruta</h3>
-                <div className="stops-container">
-                  {(assignedRoute.paradas || []).map((parada, index) => {
-                    const isCompleted = completedStops.some(stop => stop.index === index);
-                    const isCurrent = index === currentStop && !isCompleted;
-                    const completedStop = completedStops.find(stop => stop.index === index);
-                    
-                    return (
-                      <div key={index} className={`step-item ${isCompleted ? 'completed' : ''} ${isCurrent ? 'current' : ''}`}>
-                        <div className="step-indicator">
-                          <div className="step-number">
-                            {isCompleted ? <CheckCircle size={20} /> : index + 1}
-                          </div>
-                          {index < (assignedRoute.paradas || []).length - 1 && (
-                            <div className="step-line"></div>
-                          )}
-                        </div>
-                        
-                        <div className="step-content">
-                          <div className="step-header">
-                            <div className="step-title">{parada.nombre || parada.direccion || `Parada ${index + 1}`}</div>
-                            <div className="step-time"><Calendar size={14} /> {parada.hora_estimada || parada.estimado || 'N/A'}</div>
-                          </div>
-                          
-                          {isCompleted && completedStop && (
-                            <div className="step-completed">
-                              <div className="completed-info">
-                                <CheckCircle size={14} /> Completada a las {completedStop.timestamp}
-                              </div>
-                              <div className="completed-weight">
-                                <Package size={14} /> Categoría: {completedStop.category}
-                              </div>
-                            </div>
-                          )}
-                          
-                          {isCurrent && (
-                            <div className="step-current">
-                              <div className="current-indicator">
-                                <MapPin size={14} /> Parada actual
-                              </div>
-                              <button
-                                className="btn btn--primary btn--full-width"
-                                onClick={() => handleCompleteStop(index)}
-                              >
-                                <CheckCircle size={16} /> Completar Parada
-                              </button>
-                            </div>
-                          )}
-                          
-                          {!isCompleted && !isCurrent && (
-                            <div className="step-pending">
-                              <button
-                                className="btn btn--outline btn--full-width"
-                                disabled
-                              >
-                                <Clock size={16} /> Pendiente
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
-          </>
+        </>
         )}
 
         {activeTab === 'reportes' && (
-          <div className="mis-reportes-section">
-            <div className="card">
-              <div className="card__body">
-                <h3><ClipboardList size={20} /> Mis Reportes de Riesgo</h3>
-                {reportsLoading ? (
-                  <div className="loading-reports">
-                    <div className="spinner"></div>
-                    <p>Cargando reportes...</p>
-                  </div>
-                ) : (
-                  <div className="reportes-grid">
-                    {getReportsByDriver(user.nombre).map(reporte => (
-                      <div key={reporte.id} className={`reporte-card reporte-${reporte.prioridad}`}>
-                        <div className="reporte-header">
-                          <div className="reporte-tipo">
-                            {reporte.tipo === 'interno' ? <Wrench size={16} /> : <AlertOctagon size={16} />} {reporte.tipo.toUpperCase()}
-                          </div>
-                          <div className="reporte-fecha">
-                            {new Date(reporte.fechaCreacion).toLocaleDateString('es-ES')}
-                          </div>
-                          <div className={`reporte-estado estado-${reporte.estado}`}>
-                            {reporte.estado.replace('_', ' ').toUpperCase()}
-                          </div>
-                        </div>
-                        <div className="reporte-body">
-                          <h4>{reporte.titulo}</h4>
-                          <p className="reporte-categoria"><FileText size={14} /> {reporte.categoria}</p>
-                          <p className="reporte-descripcion">{reporte.descripcion}</p>
-                          <div className="reporte-meta">
-                            <span className="reporte-prioridad">
-                              <AlertTriangle size={14} /> Prioridad: {reporte.prioridad.toUpperCase()}
-                            </span>
-                            <span className="reporte-ubicacion">
-                              <MapPin size={14} /> {reporte.ubicacion}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {getReportsByDriver(user.nombre).length === 0 && (
-                      <div className="no-reportes">
-                        <div className="no-reportes-icon"><ClipboardList size={48} /></div>
-                        <h4>No tienes reportes de riesgo</h4>
-                        <p>Usa el botón "Reportar Riesgo" para crear tu primer reporte</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+          <div className="reports-section">
+            <div className="section-header">
+              <div className="section-title">
+                <h3>Mis Reportes de Riesgo</h3>
+                <p>Historial de reportes enviados al administrador</p>
               </div>
             </div>
+
+            {reportsLoading ? (
+              <div className="loading-state">
+                <div className="spinner"></div>
+                <p>Cargando reportes...</p>
+              </div>
+            ) : (
+              <div className="reports-grid">
+                {getReportsByDriver(user.nombre).map(reporte => (
+                  <div key={reporte.id} className="report-card">
+                    <div className="report-header">
+                      <div className="report-type">
+                        {reporte.tipo === 'interno' ? <Wrench size={16} /> : <AlertOctagon size={16} />}
+                        <span>{reporte.tipo.toUpperCase()}</span>
+                      </div>
+                      <div className={`report-priority priority-${reporte.prioridad}`}>
+                        {reporte.prioridad.toUpperCase()}
+                      </div>
+                    </div>
+                    <div className="report-body">
+                      <h4>{reporte.titulo}</h4>
+                      <p className="report-category">{reporte.categoria}</p>
+                      <p className="report-description">{reporte.descripcion}</p>
+                      <div className="report-meta">
+                        <div className="meta-item">
+                          <Calendar size={14} />
+                          <span>{new Date(reporte.fechaCreacion).toLocaleDateString('es-ES')}</span>
+                        </div>
+                        <div className="meta-item">
+                          <MapPin size={14} />
+                          <span>{reporte.ubicacion}</span>
+                        </div>
+                        <div className={`meta-item status-${reporte.estado}`}>
+                          <span>{reporte.estado.replace('_', ' ').toUpperCase()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {getReportsByDriver(user.nombre).length === 0 && !reportsLoading && (
+              <div className="empty-state">
+                <div className="empty-icon"><ClipboardList size={48} /></div>
+                <h4>No tienes reportes de riesgo</h4>
+                <p>Usa el botón "Reportar Riesgo" para crear tu primer reporte</p>
+              </div>
+            )}
           </div>
         )}
 

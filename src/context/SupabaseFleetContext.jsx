@@ -129,6 +129,7 @@ export const SupabaseFleetProvider = ({ children }) => {
     try {
       const query = `
         INSERT INTO vehiculos (
+          nombre,
           placa,
           marca,
           modelo,
@@ -139,6 +140,7 @@ export const SupabaseFleetProvider = ({ children }) => {
           capacidad_carga,
           combustible_nivel
         ) VALUES (
+          '${vehicleData.nombre}',
           '${vehicleData.placa}',
           '${vehicleData.marca}',
           '${vehicleData.modelo}',
@@ -155,12 +157,13 @@ export const SupabaseFleetProvider = ({ children }) => {
       const result = await supabaseClient.executeSQL(query);
       const newVehicle = result.rows[0];
       
-      // Formatear para el estado
       const formattedVehicle = {
         id: newVehicle.id,
+        nombre: newVehicle.nombre,
         placa: newVehicle.placa,
         marca: newVehicle.marca,
         modelo: newVehicle.modelo,
+        año: newVehicle.año,
         tipoServicio: newVehicle.tipo_servicio,
         estado: newVehicle.estado === 'disponible' ? 'Disponible' : newVehicle.estado,
         conductor: 'Sin asignar',
@@ -171,6 +174,7 @@ export const SupabaseFleetProvider = ({ children }) => {
       };
       
       dispatch({ type: ACTIONS.ADD_VEHICLE, payload: formattedVehicle });
+      await loadVehicles();
       return formattedVehicle;
     } catch (error) {
       console.error('Error adding vehicle:', error);
@@ -334,6 +338,59 @@ export const SupabaseFleetProvider = ({ children }) => {
     };
   };
 
+  const getVehicleHistory = async (vehicleId) => {
+    try {
+      const query = `
+        SELECT 
+          hv.*,
+          p.nombre as conductor_nombre,
+          r.nombre as ruta_nombre
+        FROM historial_vehiculos hv
+        LEFT JOIN personal p ON hv.conductor_id = p.id
+        LEFT JOIN rutas r ON hv.ruta_id = r.id
+        WHERE hv.vehiculo_id = '${vehicleId}'
+        ORDER BY hv.fecha DESC, hv.hora_inicio DESC;
+      `;
+      
+      const result = await supabaseClient.executeSQL(query);
+      return result.rows || [];
+    } catch (error) {
+      console.error('Error getting vehicle history:', error);
+      throw error;
+    }
+  };
+
+  const addVehicleHistoryEntry = async (historyData) => {
+    try {
+      const query = `
+        INSERT INTO historial_vehiculos (
+          vehiculo_id,
+          conductor_id,
+          ruta_id,
+          fecha,
+          hora_inicio,
+          hora_fin,
+          kilometraje
+        ) VALUES (
+          '${historyData.vehiculo_id}',
+          ${historyData.conductor_id ? `'${historyData.conductor_id}'` : 'NULL'},
+          ${historyData.ruta_id ? `'${historyData.ruta_id}'` : 'NULL'},
+          '${historyData.fecha}',
+          '${historyData.hora_inicio}',
+          ${historyData.hora_fin ? `'${historyData.hora_fin}'` : 'NULL'},
+          ${historyData.kilometraje || 0}
+        )
+        RETURNING *;
+      `;
+      
+      const result = await supabaseClient.executeSQL(query);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error adding vehicle history entry:', error);
+      throw error;
+    }
+  };
+
   // Valor del contexto
   const value = {
     vehicles: state.vehicles,
@@ -345,7 +402,9 @@ export const SupabaseFleetProvider = ({ children }) => {
     assignRoute,
     assignDriver,
     getFleetStats,
-    loadVehicles
+    loadVehicles,
+    getVehicleHistory,
+    addVehicleHistoryEntry
   };
 
   return (

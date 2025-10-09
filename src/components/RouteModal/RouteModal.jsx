@@ -64,7 +64,11 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
     paradas: [],
     distancia_total: 0,
     tiempo_estimado: 60,
-    auto_calculate: true
+    auto_calculate: true,
+    dias_operacion: [],
+    hora_inicio: '',
+    hora_fin: '',
+    frecuencia: 'semanal'
   });
   const [errors, setErrors] = useState({});
 
@@ -80,7 +84,11 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
         paradas: route.paradas || route.stops || [],
         distancia_total: route.distancia_total || route.distanciaTotal || 0,
         tiempo_estimado: route.tiempo_estimado || route.tiempoEstimado || 60,
-        auto_calculate: true
+        auto_calculate: true,
+        dias_operacion: route.dias_operacion || [],
+        hora_inicio: route.hora_inicio || '',
+        hora_fin: route.hora_fin || '',
+        frecuencia: route.frecuencia || 'semanal'
       });
     } else {
       setFormData({
@@ -93,7 +101,11 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
         paradas: [],
         distancia_total: 0,
         tiempo_estimado: 60,
-        auto_calculate: true
+        auto_calculate: true,
+        dias_operacion: [],
+        hora_inicio: '',
+        hora_fin: '',
+        frecuencia: 'semanal'
       });
     }
     setActiveTab(TABS.INFO);
@@ -195,7 +207,11 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
       tiempo_estimado: parseInt(formData.tiempo_estimado) || 60,
       color: formData.color || '#22c55e',
       fecha_programada: formData.fecha_programada,
-      estado: formData.estado
+      estado: formData.estado,
+      dias_operacion: formData.dias_operacion || [],
+      hora_inicio: formData.hora_inicio || null,
+      hora_fin: formData.hora_fin || null,
+      frecuencia: formData.frecuencia || 'semanal'
     };
 
     onSave(routeData);
@@ -333,6 +349,69 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
                         ))}
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                <div className="form-section">
+                  <h5><Clock size={18} /> Horarios y Frecuencia</h5>
+                  
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Hora de Inicio</label>
+                      <input
+                        type="time"
+                        value={formData.hora_inicio}
+                        onChange={e => handleChange('hora_inicio', e.target.value)}
+                        className="route-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Hora de Fin</label>
+                      <input
+                        type="time"
+                        value={formData.hora_fin}
+                        onChange={e => handleChange('hora_fin', e.target.value)}
+                        className="route-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Días de Operación</label>
+                    <div className="days-checkboxes">
+                      {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => (
+                        <label key={day} className="day-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={formData.dias_operacion?.includes(day.toLowerCase()) || false}
+                            onChange={e => {
+                              const dayLower = day.toLowerCase();
+                              const newDias = e.target.checked
+                                ? [...(formData.dias_operacion || []), dayLower]
+                                : (formData.dias_operacion || []).filter(d => d !== dayLower);
+                              handleChange('dias_operacion', newDias);
+                            }}
+                          />
+                          <span>{day.slice(0, 3)}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Frecuencia</label>
+                    <select
+                      value={formData.frecuencia}
+                      onChange={e => handleChange('frecuencia', e.target.value)}
+                      className="route-select"
+                    >
+                      <option value="diaria">Diaria</option>
+                      <option value="semanal">Semanal</option>
+                      <option value="quincenal">Quincenal</option>
+                      <option value="mensual">Mensual</option>
+                      <option value="personalizada">Personalizada</option>
+                    </select>
                   </div>
                 </div>
               </div>
