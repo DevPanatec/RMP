@@ -1,0 +1,327 @@
+import { createContext, useContext, useReducer, useEffect } from 'react';
+import supabaseClient from '../utils/supabaseClient';
+
+// Crear el contexto
+const SupabaseCleaningContext = createContext();
+
+// Tipos de acciones
+const ACTIONS = {
+  SET_SALAS: 'SET_SALAS',
+  SET_AREAS: 'SET_AREAS',
+  SET_ASSIGNMENTS: 'SET_ASSIGNMENTS',
+  ADD_ASSIGNMENT: 'ADD_ASSIGNMENT',
+  UPDATE_ASSIGNMENT: 'UPDATE_ASSIGNMENT',
+  DELETE_ASSIGNMENT: 'DELETE_ASSIGNMENT',
+  SET_LOADING: 'SET_LOADING',
+  SET_ERROR: 'SET_ERROR'
+};
+
+// Reducer para manejar el estado
+const cleaningReducer = (state, action) => {
+  switch (action.type) {
+    case ACTIONS.SET_SALAS:
+      return {
+        ...state,
+        salas: action.payload,
+        loading: false
+      };
+
+    case ACTIONS.SET_AREAS:
+      return {
+        ...state,
+        areas: action.payload
+      };
+
+    case ACTIONS.SET_ASSIGNMENTS:
+      return {
+        ...state,
+        assignments: action.payload,
+        loading: false,
+        error: null
+      };
+
+    case ACTIONS.ADD_ASSIGNMENT:
+      return {
+        ...state,
+        assignments: [...state.assignments, action.payload]
+      };
+
+    case ACTIONS.UPDATE_ASSIGNMENT:
+      return {
+        ...state,
+        assignments: state.assignments.map(a =>
+          a.id === action.payload.id ? action.payload : a
+        )
+      };
+
+    case ACTIONS.DELETE_ASSIGNMENT:
+      return {
+        ...state,
+        assignments: state.assignments.filter(a => a.id !== action.payload)
+      };
+
+    case ACTIONS.SET_LOADING:
+      return {
+        ...state,
+        loading: action.payload
+      };
+
+    case ACTIONS.SET_ERROR:
+      return {
+        ...state,
+        loading: false,
+        error: action.payload
+      };
+
+    default:
+      return state;
+  }
+};
+
+// Estado inicial
+const initialState = {
+  salas: [],
+  areas: [],
+  assignments: [],
+  loading: true,
+  error: null
+};
+
+// Provider del contexto
+export const SupabaseCleaningProvider = ({ children }) => {
+  const [state, dispatch] = useReducer(cleaningReducer, initialState);
+
+  // Cargar salas al iniciar
+  useEffect(() => {
+    loadSalas();
+    loadAreas();
+    loadAssignments();
+  }, []);
+
+  // Cargar salas desde Supabase
+  const loadSalas = async () => {
+    try {
+      const { data, error } = await supabaseClient.supabase
+        .from('salas')
+        .select('*')
+        .eq('activo', true)
+        .order('nombre', { ascending: true });
+
+      if (error) throw error;
+
+      dispatch({ type: ACTIONS.SET_SALAS, payload: data || [] });
+    } catch (error) {
+      console.error('Error loading salas:', error);
+      dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+    }
+  };
+
+  // Cargar áreas desde Supabase
+  const loadAreas = async () => {
+    try {
+      const { data, error } = await supabaseClient.supabase
+        .from('areas')
+        .select('*')
+        .eq('activo', true)
+        .order('nombre', { ascending: true });
+
+      if (error) throw error;
+
+      dispatch({ type: ACTIONS.SET_AREAS, payload: data || [] });
+    } catch (error) {
+      console.error('Error loading areas:', error);
+      dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+    }
+  };
+
+  // Cargar asignaciones con sus relaciones
+  const loadAssignments = async () => {
+    try {
+      dispatch({ type: ACTIONS.SET_LOADING, payload: true });
+
+      const { data, error } = await supabaseClient.supabase
+        .from('cleaning_assignments')
+        .select(`
+          *,
+          sala:salas(id, nombre),
+          area:areas(id, nombre),
+          fotos:cleaning_photos(*)
+        `)
+        .order('fecha', { ascending: false })
+        .order('hora', { ascending: false });
+
+      if (error) throw error;
+
+      dispatch({ type: ACTIONS.SET_ASSIGNMENTS, payload: data || [] });
+    } catch (error) {
+      console.error('Error loading assignments:', error);
+      dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+    }
+  };
+
+  // Crear una nueva asignación
+  const addAssignment = async (assignmentData) => {
+    try {
+      const { data, error } = await supabaseClient.supabase
+        .from('cleaning_assignments')
+        .insert([{
+          sala_id: assignmentData.sala_id,
+          area_id: assignmentData.area_id,
+          fecha: assignmentData.fecha,
+          hora: assignmentData.hora,
+          estado: 'pendiente',
+          notas: assignmentData.notas || null
+        }])
+        .select(`
+          *,
+          sala:salas(id, nombre),
+          area:areas(id, nombre)
+        `)
+        .single();
+
+      if (error) throw error;
+
+      dispatch({ type: ACTIONS.ADD_ASSIGNMENT, payload: data });
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error adding assignment:', error);
+      dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Actualizar una asignación
+  const updateAssignment = async (id, updates) => {
+    try {
+      const { data, error } = await supabaseClient.supabase
+        .from('cleaning_assignments')
+        .update(updates)
+        .eq('id', id)
+        .select(`
+          *,
+          sala:salas(id, nombre),
+          area:areas(id, nombre),
+          fotos:cleaning_photos(*)
+        `)
+        .single();
+
+      if (error) throw error;
+
+      dispatch({ type: ACTIONS.UPDATE_ASSIGNMENT, payload: data });
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error updating assignment:', error);
+      dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Eliminar una asignación
+  const deleteAssignment = async (id) => {
+    try {
+      const { error } = await supabaseClient.supabase
+        .from('cleaning_assignments')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      dispatch({ type: ACTIONS.DELETE_ASSIGNMENT, payload: id });
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Subir una foto
+  const uploadPhoto = async (assignmentId, etapa, file) => {
+    try {
+      // Generar nombre único para el archivo
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${assignmentId}_${etapa}_${Date.now()}.${fileExt}`;
+      const filePath = `cleaning-photos/${fileName}`;
+
+      // Subir archivo a Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabaseClient.supabase.storage
+        .from('cleaning-evidences')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Guardar referencia en la tabla cleaning_photos
+      const { data, error } = await supabaseClient.supabase
+        .from('cleaning_photos')
+        .insert([{
+          assignment_id: assignmentId,
+          etapa,
+          file_name: fileName,
+          file_path: filePath,
+          file_size: file.size,
+          mime_type: file.type
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return { success: true, data };
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Obtener áreas por sala
+  const getAreasBySala = (salaId) => {
+    return state.areas.filter(area => area.sala_id === salaId);
+  };
+
+  // Obtener estadísticas
+  const getStats = () => {
+    return {
+      totalAssignments: state.assignments.length,
+      pendientes: state.assignments.filter(a => a.estado === 'pendiente').length,
+      completados: state.assignments.filter(a => a.estado === 'completado').length,
+      enProgreso: state.assignments.filter(a => a.estado === 'en_progreso').length
+    };
+  };
+
+  const value = {
+    salas: state.salas,
+    areas: state.areas,
+    assignments: state.assignments,
+    loading: state.loading,
+    error: state.error,
+    loadSalas,
+    loadAreas,
+    loadAssignments,
+    addAssignment,
+    updateAssignment,
+    deleteAssignment,
+    uploadPhoto,
+    getAreasBySala,
+    getStats
+  };
+
+  return (
+    <SupabaseCleaningContext.Provider value={value}>
+      {children}
+    </SupabaseCleaningContext.Provider>
+  );
+};
+
+// Hook personalizado para usar el contexto
+export const useSupabaseCleaning = () => {
+  const context = useContext(SupabaseCleaningContext);
+  if (!context) {
+    throw new Error('useSupabaseCleaning must be used within a SupabaseCleaningProvider');
+  }
+  return context;
+};
+
+export default SupabaseCleaningContext;
