@@ -135,3 +135,59 @@
     justify-content: center;
   }
 }
+
+/* Notice for Reports */
+.cleaning-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(0, 122, 255, 0.1), rgba(0, 122, 255, 0.05));
+  border: 1px solid rgba(0, 122, 255, 0.2);
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  animation: slideInDown 0.4s ease-out;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cleaning-notice svg {
+  color: #007AFF;
+  flex-shrink: 0;
+}
+
+.cleaning-notice strong {
+  color: #007AFF;
+  font-weight: 600;
+}
+
+/* Embedded Mode - Integration in Operations */
+.cleaning-container--embedded {
+  padding: 0;
+}
+
+.cleaning-container--embedded .cleaning-header {
+  display: none;
+}
+
+.cleaning-container--embedded .cleaning-content {
+  animation: none;
+}
+
+.cleaning-container--embedded .cleaning-assignments {
+  padding: 0;
+}
+
+.cleaning-container--embedded .cleaning-assignments__header {
+  margin-bottom: 20px;
+}

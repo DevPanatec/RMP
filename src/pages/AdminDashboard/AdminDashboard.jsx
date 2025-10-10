@@ -7,6 +7,7 @@ import RiskComponent from '../../components/Risk/RiskComponent';
 import ReportsComponent from '../../components/Reports/ReportsComponent';
 import ScheduleComponent from '../../components/Schedule/ScheduleComponent';
 import FleetManagement from '../../components/Fleet/FleetManagement';
+import CalendarComponent from '../../components/Calendar/CalendarComponent';
 import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
 import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
@@ -15,7 +16,7 @@ import {
   LayoutDashboard, Truck, AlertTriangle, Package, 
   BarChart3, Users, Map, LogOut, TrendingUp, CheckCircle,
   MapPin, Radio, Activity, Zap, Bell, Wrench, Leaf, Navigation, Clock, Save, Calendar,
-  Satellite, Briefcase
+  Satellite, Briefcase, Sparkles
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
 import { DashboardKPI, AlertCard, PersonnelTable, VehicleCard, RouteTimeline, HeroStats, RealtimeActivity, RiskAlerts } from '../../components/Dashboard';
@@ -421,18 +422,7 @@ const AdminDashboard = ({ user, onLogout }) => {
       case 'programacion':
         return (
           <div className="operations-content-modern">
-            <div className="ops-header">
-              <div className="ops-header-content">
-                <Calendar strokeWidth={1.5} size={26} className="ops-header-icon" />
-                <div className="ops-header-text">
-                  <h2>Programación de Rutas</h2>
-                  <p>Planifica y gestiona horarios de operación</p>
-                </div>
-              </div>
-            </div>
-            <div className="ops-content-wrapper">
-              <ScheduleComponent />
-            </div>
+            <ScheduleComponent />
           </div>
         );
       default:
@@ -576,6 +566,8 @@ const AdminDashboard = ({ user, onLogout }) => {
             {renderOperationsContent()}
           </div>
         );
+      case 'calendario':
+        return <CalendarComponent />;
       case 'riesgos':
         return <RiskComponent userType={user.tipo} />;
       case 'inventario':
@@ -611,6 +603,14 @@ const AdminDashboard = ({ user, onLogout }) => {
                 onClick={() => handleTabChange('operaciones', 'personal')}
               >
                 <Truck strokeWidth={1.5} size={18} /> Operaciones
+              </button>
+            </li>
+            <li>
+              <button 
+                className={activeTab === 'calendario' ? 'active' : ''}
+                onClick={() => handleTabChange('calendario')}
+              >
+                <Calendar strokeWidth={1.5} size={18} /> Calendario
               </button>
             </li>
             <li>

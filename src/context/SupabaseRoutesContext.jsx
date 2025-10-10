@@ -123,6 +123,9 @@ export const SupabaseRoutesProvider = ({ children }) => {
           color: route.color || '#22c55e',
           status: route.estado === 'programada' ? 'active' : 'inactive',
           estado: route.estado,
+          fecha_programada: route.fecha_programada,
+          hora_inicio: route.hora_inicio,
+          hora_fin: route.hora_fin,
           proyecto: route.proyecto_nombre,
           proyectoId: route.proyecto_id,
           createdAt: route.created_at,
@@ -187,6 +190,9 @@ export const SupabaseRoutesProvider = ({ children }) => {
         color: data.color || '#22c55e',
         status: data.estado === 'programada' ? 'active' : 'inactive',
         estado: data.estado,
+        fecha_programada: data.fecha_programada,
+        hora_inicio: data.hora_inicio,
+        hora_fin: data.hora_fin,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };
@@ -267,6 +273,9 @@ export const SupabaseRoutesProvider = ({ children }) => {
         color: data.color || '#22c55e',
         status: data.estado === 'programada' ? 'active' : 'inactive',
         estado: data.estado,
+        fecha_programada: data.fecha_programada,
+        hora_inicio: data.hora_inicio,
+        hora_fin: data.hora_fin,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };

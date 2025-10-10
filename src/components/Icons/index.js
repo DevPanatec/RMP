@@ -48,5 +48,14 @@ export {
   Briefcase,
   Phone,
   Mail,
-  History
+  History,
+  Sparkles,
+  Image,
+  Search,
+  Filter,
+  Upload,
+  Camera,
+  ChevronRight,
+  ChevronLeft,
+  ChevronDown
 } from 'lucide-react';

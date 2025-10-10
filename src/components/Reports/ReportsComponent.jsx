@@ -1,268 +1,271 @@
-import { useState, useEffect } from 'react';
-import { useSupabaseReports } from '../../context/SupabaseReportsContext';
-import { FileText, BarChart3, Truck, AlertTriangle, Clock, CheckCircle, ClipboardList } from '../Icons';
+import { useState } from 'react';
+import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
+import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
+import { BarChart3, Truck, Zap, Sparkles, ChevronRight, MapPin, Calendar, Camera } from '../Icons';
+import { Card, Badge } from '../UI';
+import ReportsDashboard from './ReportsDashboard';
+import RouteHistory from './RouteHistory';
 import './ReportsComponent.css';
 
 const ReportsComponent = ({ userType = 'admin' }) => {
-  const { completedRoutes, loading, error, getCompletedRoutes, exportRoutes, getReportsStats } = useSupabaseReports();
+  const [activeCategory, setActiveCategory] = useState('dashboard');
+  const [selectedRouteType, setSelectedRouteType] = useState(null);
   
-  const [dateRange, setDateRange] = useState({
-    inicio: '2024-01-01', // Fecha más amplia para incluir todos los reportes
-    fin: new Date().toISOString().split('T')[0]
-  });
-  const [selectedRoutes, setSelectedRoutes] = useState([]);
-  const [expandedRoutes, setExpandedRoutes] = useState([]);
+  const { routes } = useSupabaseRoutes();
+  const { assignments, loading: cleaningLoading } = useSupabaseCleaning();
 
-  // Cargar rutas completadas
-  useEffect(() => {
-    getCompletedRoutes(dateRange);
-  }, [dateRange]);
+  const rutasRecoleccion = routes.filter(r => r.type === 'recoleccion' || r.tipoServicio === 'recoleccion');
+  const rutasFumigacion = routes.filter(r => r.type === 'fumigacion' || r.tipoServicio === 'fumigacion');
 
-  const exportRoutesPDF = () => {
-    const selectedData = selectedRoutes.length > 0 
-      ? completedRoutes.filter(r => selectedRoutes.includes(r.id))
-      : completedRoutes;
-      
-    const reportContent = exportRoutes(selectedData, 'text');
-    const blob = new Blob([reportContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `historial-rutas-${dateRange.inicio}-${dateRange.fin}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const categories = [
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'recoleccion', label: 'Recolección', icon: Truck },
+    { id: 'fumigacion', label: 'Fumigación', icon: Zap },
+    { id: 'limpieza', label: 'Limpieza', icon: Sparkles }
+  ];
+
+  const getStatusVariant = (estado) => {
+    switch (estado) {
+      case 'completado': return 'success';
+      case 'en_progreso': return 'primary';
+      case 'pendiente': return 'warning';
+      case 'cancelado': return 'error';
+      default: return 'default';
+    }
   };
 
-  const exportRoutesExcel = () => {
-    const selectedData = selectedRoutes.length > 0 
-      ? completedRoutes.filter(r => selectedRoutes.includes(r.id))
-      : completedRoutes;
-      
-    const csvContent = exportRoutes(selectedData, 'csv');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `historial-rutas-detallado-${dateRange.inicio}-${dateRange.fin}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const getPhotoUrl = (filePath) => {
+    return `https://your-supabase-url.supabase.co/storage/v1/object/public/${filePath}`;
   };
 
-  const toggleRouteSelection = (routeId) => {
-    setSelectedRoutes(prev => 
-      prev.includes(routeId) 
-        ? prev.filter(id => id !== routeId)
-        : [...prev, routeId]
-    );
-  };
-  
-  const selectAllRoutes = () => {
-    setSelectedRoutes(completedRoutes.map(r => r.id));
-  };
-  
-  const clearSelection = () => {
-    setSelectedRoutes([]);
-  };
-  
-  const toggleRouteExpansion = (routeId) => {
-    setExpandedRoutes(prev => 
-      prev.includes(routeId) 
-        ? prev.filter(id => id !== routeId)
-        : [...prev, routeId]
-    );
-  };
+  const renderRecoleccion = () => {
+    if (selectedRouteType === 'recoleccion') {
+      return (
+        <RouteHistory 
+          routeType="recoleccion"
+          onBack={() => setSelectedRouteType(null)}
+        />
+      );
+    }
 
-  const renderRouteHeader = (route) => (
-    <div className="route-header" onClick={() => toggleRouteExpansion(route.id)}>
-      <div className="route-compact-info">
-        <div className="route-left">
-          <span className="route-date">{route.fecha_completada}</span>
-          <span className="route-name">{route.nombre}</span>
+    return (
+      <div className="reports-category">
+        <div className="category-header">
+          <h3>Rutas de Recolección</h3>
+          <p>Selecciona una ruta para ver su historial completo</p>
         </div>
-        <div className="route-center">
-          <span className="route-conductor">{route.conductor}</span>
-          <span className="route-stops">{route.paradas.length} paradas</span>
-        </div>
-        <div className="route-right">
-          <span className={`service-badge-compact service-badge--${route.tipo_servicio}`}>
-            <Truck size={16} />
-          </span>
-        </div>
-      </div>
-      <div className="route-expand">
-        <span className={`expand-icon ${expandedRoutes.includes(route.id) ? 'expanded' : ''}`}>
-          ▼
-        </span>
-      </div>
-    </div>
-  );
-  
-  const renderRouteDetails = (route) => (
-    <div className={`route-details ${expandedRoutes.includes(route.id) ? 'expanded' : ''}`}>
-      <div className="route-expanded-info">
-        <div className="route-meta-grid">
-          <div className="meta-item">
-            <span className="meta-label">Tipo:</span>
-            <span className="meta-value">
-              <Truck size={14} /> {route.tipo_servicio === 'recoleccion' ? 'Recolección' : 'Fumigación'}
-            </span>
-          </div>
-          <div className="meta-item">
-            <span className="meta-label">Vehículo:</span>
-            <span className="meta-value">{route.vehiculo}</span>
-          </div>
-          <div className="meta-item">
-            <span className="meta-label">Horario:</span>
-            <span className="meta-value">{route.hora_inicio} - {route.hora_fin}</span>
-          </div>
-          {route.proyecto && (
-            <div className="meta-item">
-              <span className="meta-label">Proyecto:</span>
-              <span className="meta-value">{route.proyecto}</span>
+
+        <div className="routes-grid">
+          {rutasRecoleccion.length === 0 ? (
+            <div className="empty-state">
+              <Truck size={48} />
+              <p>No hay rutas de recolección configuradas</p>
             </div>
+          ) : (
+            rutasRecoleccion.map(ruta => (
+              <Card 
+                key={ruta.id} 
+                className="route-card"
+                hoverable
+                onClick={() => setSelectedRouteType('recoleccion')}
+              >
+                <div className="route-card-content">
+                  <div className="route-card-header">
+                    <MapPin size={24} strokeWidth={1.5} />
+                    <h4>{ruta.nombre || ruta.name}</h4>
+                  </div>
+                  <div className="route-card-stats">
+                    <span className="route-stat">
+                      {ruta.paradas?.length || 0} paradas
+                    </span>
+                    <span className={`route-status route-status--${ruta.estado}`}>
+                      {ruta.estado}
+                    </span>
+                  </div>
+                  <div className="route-card-action">
+                    <span>Ver historial</span>
+                    <ChevronRight size={16} />
+                  </div>
+                </div>
+              </Card>
+            ))
           )}
         </div>
-        
-        {route.observaciones && (
-          <div className="route-observations">
-            <span className="meta-label">Observaciones:</span>
-            <span className="meta-value">{route.observaciones}</span>
+      </div>
+    );
+  };
+
+  const renderFumigacion = () => {
+    if (selectedRouteType === 'fumigacion') {
+      return (
+        <RouteHistory 
+          routeType="fumigacion"
+          onBack={() => setSelectedRouteType(null)}
+        />
+      );
+    }
+
+    return (
+      <div className="reports-category">
+        <div className="category-header">
+          <h3>Rutas de Fumigación</h3>
+          <p>Selecciona una ruta para ver su historial completo</p>
+        </div>
+
+        <div className="routes-grid">
+          {rutasFumigacion.length === 0 ? (
+            <div className="empty-state">
+              <Zap size={48} />
+              <p>No hay rutas de fumigación configuradas</p>
+            </div>
+          ) : (
+            rutasFumigacion.map(ruta => (
+              <Card 
+                key={ruta.id} 
+                className="route-card"
+                hoverable
+                onClick={() => setSelectedRouteType('fumigacion')}
+              >
+                <div className="route-card-content">
+                  <div className="route-card-header">
+                    <Zap size={24} strokeWidth={1.5} />
+                    <h4>{ruta.nombre || ruta.name}</h4>
+                  </div>
+                  <div className="route-card-stats">
+                    <span className="route-stat">
+                      {ruta.paradas?.length || 0} paradas
+                    </span>
+                    <span className={`route-status route-status--${ruta.estado}`}>
+                      {ruta.estado}
+                    </span>
+                  </div>
+                  <div className="route-card-action">
+                    <span>Ver historial</span>
+                    <ChevronRight size={16} />
+                  </div>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderLimpieza = () => {
+    return (
+      <div className="reports-category reports-limpieza">
+        <div className="category-header">
+          <h3>Reportes de Limpieza</h3>
+          <p>Asignaciones completadas con evidencias fotográficas</p>
+        </div>
+
+        {cleaningLoading ? (
+          <div className="loading-state">
+            <div className="loading-spinner"></div>
+            <p>Cargando reportes de limpieza...</p>
+          </div>
+        ) : assignments.length === 0 ? (
+          <div className="empty-state">
+            <Sparkles size={48} />
+            <p>No hay asignaciones de limpieza registradas</p>
+          </div>
+        ) : (
+          <div className="limpieza-reports">
+            {assignments.map(assignment => (
+              <Card key={assignment.id} className="assignment-report-card">
+                <div className="assignment-header">
+                  <div className="assignment-info">
+                    <h4>{assignment.sala?.nombre} - {assignment.area?.nombre}</h4>
+                    <span className="assignment-date">
+                      <Calendar size={14} />
+                      {assignment.fecha} - {assignment.hora}
+                    </span>
+                  </div>
+                  <Badge 
+                    variant={getStatusVariant(assignment.estado)}
+                    text={assignment.estado}
+                  />
+                </div>
+
+                {assignment.fotos && assignment.fotos.length > 0 && (
+                  <div className="assignment-photos">
+                    <h5>
+                      <Camera size={16} />
+                      Evidencias Fotográficas ({assignment.fotos.length})
+                    </h5>
+                    <div className="photos-grid">
+                      {assignment.fotos.map(foto => (
+                        <div key={foto.id} className="photo-item">
+                          <img 
+                            src={getPhotoUrl(foto.file_path)} 
+                            alt={foto.etapa}
+                          />
+                          <span className="photo-label">{foto.etapa}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {assignment.notas && (
+                  <div className="assignment-notes">
+                    <strong>Notas:</strong> {assignment.notas}
+                  </div>
+                )}
+              </Card>
+            ))}
           </div>
         )}
       </div>
-      
-      <div className="stops-section">
-        <h5>Paradas realizadas ({route.paradas.length}):</h5>
-        <div className="stops-list">
-          {route.paradas.map((parada, index) => (
-            <div key={index} className="stop-item">
-              <div className="stop-number">{parada.orden}</div>
-              <div className="stop-details">
-                <div className="stop-address">{parada.direccion}</div>
-                <div className="stop-meta">
-                  <span className={`cargo-type cargo--${parada.tipo_carga}`}>
-                    {parada.tipo_carga === 'alta' ? 'Alta' : 
-                     parada.tipo_carga === 'media' ? 'Media' : 'Baja'}
-                  </span>
-                  <span className="stop-time"><Clock size={14} /> {parada.hora}</span>
-                  <span className="stop-status"><CheckCircle size={14} /> Completada</span>
-                </div>
-              </div>
-            </div>
+    );
+  };
+
+  const renderCategoryContent = () => {
+    switch (activeCategory) {
+      case 'dashboard':
+        return <ReportsDashboard />;
+      case 'recoleccion':
+        return renderRecoleccion();
+      case 'fumigacion':
+        return renderFumigacion();
+      case 'limpieza':
+        return renderLimpieza();
+      default:
+        return <ReportsDashboard />;
+    }
+  };
+
+  return (
+    <div className="reports-container-new">
+      <div className="reports-header-new">
+        <div className="reports-title-section">
+          <h2>Reportes del Sistema</h2>
+          <p>Vista integral de todas las operaciones</p>
+        </div>
+        
+        <div className="reports-categories">
+          {categories.map(category => (
+            <button
+              key={category.id}
+              className={`category-tab ${activeCategory === category.id ? 'category-tab--active' : ''}`}
+              onClick={() => {
+                setActiveCategory(category.id);
+                setSelectedRouteType(null);
+              }}
+            >
+              <category.icon size={20} strokeWidth={1.5} />
+              <span>{category.label}</span>
+            </button>
           ))}
         </div>
       </div>
-    </div>
-  );
 
-  return (
-    <div className="reports-container">
-      <div className="reports-header">
-        <div className="reports-title">
-          <h2><FileText size={24} /> Historial de Rutas Completadas</h2>
-          <p>Reporte detallado de rutas realizadas con paradas y tipos de carga</p>
-        </div>
-        
-        <div className="reports-controls">
-          <div className="date-range">
-            <label>Desde:</label>
-            <input 
-              type="date" 
-              value={dateRange.inicio}
-              onChange={(e) => setDateRange(prev => ({ ...prev, inicio: e.target.value }))}
-            />
-            <label>Hasta:</label>
-            <input 
-              type="date" 
-              value={dateRange.fin}
-              onChange={(e) => setDateRange(prev => ({ ...prev, fin: e.target.value }))}
-            />
-            <div className="quick-range">
-              <button className="btn btn--sm" onClick={() => setDateRange({ inicio: new Date().toISOString().split('T')[0], fin: new Date().toISOString().split('T')[0] })}>Hoy</button>
-              <button className="btn btn--sm" onClick={() => setDateRange({ inicio: new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0], fin: new Date().toISOString().split('T')[0] })}>7d</button>
-              <button className="btn btn--sm" onClick={() => setDateRange({ inicio: new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0], fin: new Date().toISOString().split('T')[0] })}>30d</button>
-            </div>
-          </div>
-          
-          <div className="selection-controls">
-            <span className="selection-info">
-              {selectedRoutes.length > 0 && `${selectedRoutes.length} ruta(s) seleccionada(s)`}
-            </span>
-            <button className="btn btn--sm" onClick={selectAllRoutes}>Seleccionar Todas</button>
-            <button className="btn btn--sm" onClick={clearSelection}>Limpiar Selección</button>
-          </div>
-          
-          <div className="export-actions">
-            <button 
-              className="btn btn--secondary"
-              onClick={exportRoutesPDF}
-              disabled={completedRoutes.length === 0}
-            >
-              <FileText size={16} /> Descargar PDF
-            </button>
-            <button 
-              className="btn btn--secondary"
-              onClick={exportRoutesExcel}
-              disabled={completedRoutes.length === 0}
-            >
-              <BarChart3 size={16} /> Descargar Excel
-            </button>
-          </div>
-        </div>
+      <div className="reports-content-new">
+        {renderCategoryContent()}
       </div>
-
-      {loading ? (
-        <div className="reports-loading">
-          <div className="loading-spinner">
-            <div className="spinner"></div>
-            <p>Cargando rutas completadas...</p>
-          </div>
-        </div>
-      ) : error ? (
-        <div className="reports-error">
-          <div className="error-message">
-            <div className="error-icon"><AlertTriangle size={48} /></div>
-            <h3>Error al cargar los reportes</h3>
-            <p>{error}</p>
-            <button className="btn btn--primary" onClick={() => getCompletedRoutes(dateRange)}>
-              Reintentar
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="reports-body">
-          {completedRoutes.length === 0 ? (
-            <div className="no-data">
-              <div className="no-data-icon"><ClipboardList size={48} /></div>
-              <h3>No hay rutas completadas</h3>
-              <p>No se encontraron rutas completadas en el período seleccionado.</p>
-            </div>
-          ) : (
-            <div className="routes-list">
-              {completedRoutes.map(route => (
-                <div key={route.id} className={`route-accordion ${selectedRoutes.includes(route.id) ? 'route-accordion--selected' : ''}`}>
-                  <div className="route-accordion-header">
-                    <input
-                      type="checkbox"
-                      checked={selectedRoutes.includes(route.id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        toggleRouteSelection(route.id);
-                      }}
-                      className="route-checkbox"
-                    />
-                    {renderRouteHeader(route)}
-                  </div>
-                  {renderRouteDetails(route)}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
     </div>
   );
 };
 
-export default ReportsComponent; 
+export default ReportsComponent;

@@ -26,15 +26,7 @@ export const SupabaseScheduleProvider = ({ children }) => {
           ruta:rutas(id, nombre, tipo_servicio, paradas, hora_inicio, hora_fin),
           vehiculo:vehiculos(id, placa, nombre, tipo_servicio)
         `)
-        .order('fecha', { ascending: true })
-        .order('hora_inicio', { ascending: true });
-
-      if (startDate) {
-        query = query.gte('fecha', startDate);
-      }
-      if (endDate) {
-        query = query.lte('fecha', endDate);
-      }
+        .order('created_at', { ascending: false });
 
       const { data, error: fetchError } = await query;
 
@@ -111,42 +103,20 @@ export const SupabaseScheduleProvider = ({ children }) => {
     }
   };
 
-  const checkConflicts = (conductorNombre, vehiculoId, fecha, horaInicio, horaFin, excludeId = null) => {
-    const conflicts = assignments.filter(assignment => {
-      if (excludeId && assignment.id === excludeId) return false;
-      if (assignment.fecha !== fecha) return false;
-
-      const conductorConflict = assignment.conductor_nombre === conductorNombre;
-      const vehiculoConflict = assignment.vehiculo_id === vehiculoId;
-
-      if (!conductorConflict && !vehiculoConflict) return false;
-
-      const existingStart = assignment.hora_inicio;
-      const existingEnd = assignment.hora_fin;
-
-      const timeOverlap =
-        (horaInicio >= existingStart && horaInicio < existingEnd) ||
-        (horaFin > existingStart && horaFin <= existingEnd) ||
-        (horaInicio <= existingStart && horaFin >= existingEnd);
-
-      return timeOverlap && (conductorConflict || vehiculoConflict);
-    });
-
-    return {
-      hasConflict: conflicts.length > 0,
-      conflicts: conflicts.map(c => ({
-        id: c.id,
-        ruta: c.ruta?.nombre,
-        conductor: c.conductor_nombre,
-        vehiculo: c.vehiculo?.placa,
-        hora: `${c.hora_inicio} - ${c.hora_fin}`,
-        type: c.conductor_nombre === conductorNombre ? 'conductor' : 'vehiculo'
-      }))
-    };
+  const getDayNameFromDate = (date) => {
+    const dayNames = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    const d = new Date(date);
+    return dayNames[d.getDay()];
   };
 
   const getAssignmentsByDate = (fecha) => {
-    return assignments.filter(a => a.fecha === fecha);
+    const dayName = getDayNameFromDate(fecha);
+    return assignments.filter(a => {
+      if (a.dias_semana && Array.isArray(a.dias_semana)) {
+        return a.dias_semana.includes(dayName);
+      }
+      return false;
+    });
   };
 
   const getAssignmentsByConductor = (conductorNombre) => {
@@ -161,17 +131,6 @@ export const SupabaseScheduleProvider = ({ children }) => {
     return assignments.filter(a => a.ruta_id === rutaId);
   };
 
-  const getAssignmentsForWeek = (startDate) => {
-    const start = new Date(startDate);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 7);
-
-    return assignments.filter(a => {
-      const assignmentDate = new Date(a.fecha);
-      return assignmentDate >= start && assignmentDate < end;
-    });
-  };
-
   useEffect(() => {
     fetchAssignments();
   }, []);
@@ -184,12 +143,11 @@ export const SupabaseScheduleProvider = ({ children }) => {
     addAssignment,
     updateAssignment,
     deleteAssignment,
-    checkConflicts,
     getAssignmentsByDate,
     getAssignmentsByConductor,
     getAssignmentsByVehicle,
     getAssignmentsByRoute,
-    getAssignmentsForWeek
+    getDayNameFromDate
   };
 
   return (

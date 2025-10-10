@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Plus, Calendar, MapPin, Image as ImageIcon } from '../Icons';
+import { Plus, Calendar, MapPin, Image as ImageIcon, Camera } from '../Icons';
 import { Button, Card } from '../UI';
 import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
 import PhotosModal from './PhotosModal';
+import PhotoUploadField from './PhotoUploadField';
 import './CleaningAssignments.css';
 
 const CleaningAssignments = ({ userRole }) => {
-  const { salas, areas, assignments, loading, addAssignment, getAreasBySala } = useSupabaseCleaning();
+  const { salas, areas, assignments, loading, addAssignment, getAreasBySala, uploadPhoto } = useSupabaseCleaning();
 
   const [showForm, setShowForm] = useState(false);
   const [showPhotosModal, setShowPhotosModal] = useState(false);
@@ -16,6 +17,12 @@ const CleaningAssignments = ({ userRole }) => {
     area_id: '',
     fecha: '',
     hora: '',
+  });
+
+  const [photos, setPhotos] = useState({
+    before: [],
+    during: [],
+    after: []
   });
 
   const [errors, setErrors] = useState({});
@@ -33,13 +40,10 @@ const CleaningAssignments = ({ userRole }) => {
     const areaId = e.target.value;
     setFormData({ ...formData, area_id: areaId });
     setErrors({ ...errors, area_id: '' });
+  };
 
-    // Abrir modal de fotos automáticamente después de seleccionar área
-    if (areaId && formData.sala_id) {
-      setTimeout(() => {
-        setShowPhotosModal(true);
-      }, 300);
-    }
+  const handlePhotosChange = (type, newPhotos) => {
+    setPhotos({ ...photos, [type]: newPhotos });
   };
 
   const validateForm = () => {
@@ -49,6 +53,12 @@ const CleaningAssignments = ({ userRole }) => {
     if (!formData.area_id) newErrors.area_id = 'Seleccione un área';
     if (!formData.fecha) newErrors.fecha = 'Seleccione una fecha';
     if (!formData.hora) newErrors.hora = 'Seleccione una hora';
+
+    if (formData.area_id) {
+      if (photos.before.length === 0) newErrors.photos = 'Debe agregar al menos una foto de "Antes"';
+      else if (photos.during.length === 0) newErrors.photos = 'Debe agregar al menos una foto de "Durante"';
+      else if (photos.after.length === 0) newErrors.photos = 'Debe agregar al menos una foto de "Después"';
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -67,16 +77,36 @@ const CleaningAssignments = ({ userRole }) => {
       const result = await addAssignment(formData);
 
       if (result.success) {
-        // Guardar el ID de la asignación para el modal de fotos
-        setCurrentAssignmentId(result.data.id);
+        const assignmentId = result.data.id;
 
-        // Resetear formulario
+        const allPhotos = [
+          ...photos.before.map(p => ({ file: p.file, etapa: 'antes' })),
+          ...photos.during.map(p => ({ file: p.file, etapa: 'durante' })),
+          ...photos.after.map(p => ({ file: p.file, etapa: 'despues' }))
+        ];
+
+        let uploadedCount = 0;
+        const uploadErrors = [];
+
+        for (const photo of allPhotos) {
+          const uploadResult = await uploadPhoto(assignmentId, photo.etapa, photo.file);
+          if (uploadResult.success) {
+            uploadedCount++;
+          } else {
+            uploadErrors.push(uploadResult.error);
+          }
+        }
+
+        if (uploadErrors.length > 0) {
+          alert(`Asignación creada pero hubo errores al subir ${uploadErrors.length} foto(s)`);
+        } else {
+          alert(`Asignación creada exitosamente con ${uploadedCount} foto(s)`);
+        }
+
         setFormData({ sala_id: '', area_id: '', fecha: '', hora: '' });
+        setPhotos({ before: [], during: [], after: [] });
         setAvailableAreas([]);
         setShowForm(false);
-
-        // Mostrar mensaje de éxito
-        alert('Asignación creada con éxito');
       } else {
         alert(`Error al crear asignación: ${result.error}`);
       }
@@ -186,48 +216,77 @@ const CleaningAssignments = ({ userRole }) => {
                 )}
               </div>
 
-              {/* Fecha */}
+              {/* Fecha y Hora */}
               <div className="cleaning-form__field">
                 <label className="cleaning-form__label">
                   <Calendar size={16} />
-                  <span>Fecha</span>
+                  <span>Fecha y Hora</span>
                 </label>
                 <input
-                  type="date"
-                  value={formData.fecha}
+                  type="datetime-local"
+                  value={formData.fecha && formData.hora ? `${formData.fecha}T${formData.hora}` : ''}
                   onChange={(e) => {
-                    setFormData({ ...formData, fecha: e.target.value });
-                    setErrors({ ...errors, fecha: '' });
+                    const value = e.target.value;
+                    if (value) {
+                      const [date, time] = value.split('T');
+                      setFormData({ ...formData, fecha: date, hora: time });
+                      setErrors({ ...errors, fecha: '', hora: '' });
+                    }
                   }}
-                  className={`cleaning-form__input ${errors.fecha ? 'cleaning-form__input--error' : ''}`}
+                  className={`cleaning-form__input ${errors.fecha || errors.hora ? 'cleaning-form__input--error' : ''}`}
                   disabled={submitting}
+                  step="900"
                 />
-                {errors.fecha && (
-                  <span className="cleaning-form__error">{errors.fecha}</span>
-                )}
-              </div>
-
-              {/* Hora */}
-              <div className="cleaning-form__field">
-                <label className="cleaning-form__label">
-                  <Calendar size={16} />
-                  <span>Hora</span>
-                </label>
-                <input
-                  type="time"
-                  value={formData.hora}
-                  onChange={(e) => {
-                    setFormData({ ...formData, hora: e.target.value });
-                    setErrors({ ...errors, hora: '' });
-                  }}
-                  className={`cleaning-form__input ${errors.hora ? 'cleaning-form__input--error' : ''}`}
-                  disabled={submitting}
-                />
-                {errors.hora && (
-                  <span className="cleaning-form__error">{errors.hora}</span>
+                {(errors.fecha || errors.hora) && (
+                  <span className="cleaning-form__error">{errors.fecha || errors.hora}</span>
                 )}
               </div>
             </div>
+
+            {/* Sección de Fotos - Se expande al seleccionar área */}
+            {formData.area_id && (
+              <div className="cleaning-form__photos-section">
+                <div className="photos-section__header">
+                  <div className="photos-header-content">
+                    <Camera size={20} />
+                    <h3>Evidencias Fotográficas</h3>
+                  </div>
+                  <span className="photos-required-badge">Requeridas</span>
+                </div>
+
+                <div className="photos-grid">
+                  <PhotoUploadField
+                    label="Antes de Limpiar"
+                    type="before"
+                    photos={photos.before}
+                    onPhotosChange={(newPhotos) => handlePhotosChange('before', newPhotos)}
+                    maxPhotos={3}
+                  />
+
+                  <PhotoUploadField
+                    label="Durante la Limpieza"
+                    type="during"
+                    photos={photos.during}
+                    onPhotosChange={(newPhotos) => handlePhotosChange('during', newPhotos)}
+                    maxPhotos={3}
+                  />
+
+                  <PhotoUploadField
+                    label="Después de Limpiar"
+                    type="after"
+                    photos={photos.after}
+                    onPhotosChange={(newPhotos) => handlePhotosChange('after', newPhotos)}
+                    maxPhotos={3}
+                  />
+                </div>
+
+                {errors.photos && (
+                  <div className="photos-error">
+                    <span>{errors.photos}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Botones */}
             <div className="cleaning-form__actions">
@@ -237,6 +296,7 @@ const CleaningAssignments = ({ userRole }) => {
                 onClick={() => {
                   setShowForm(false);
                   setFormData({ sala_id: '', area_id: '', fecha: '', hora: '' });
+                  setPhotos({ before: [], during: [], after: [] });
                   setErrors({});
                   setAvailableAreas([]);
                 }}
