@@ -1,163 +1,163 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSupabaseSchedule } from '../../context/SupabaseScheduleContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
 import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
+import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
 import { 
   Calendar, Plus, Edit, Trash2, AlertTriangle, CheckCircle,
-  Truck, Users, Map, Clock, X
+  Truck, Users, Map, Clock, X, Sparkles, Camera
 } from '../Icons';
+import { CustomSelect } from '../UI';
+import PhotoUploadField from '../Cleaning/PhotoUploadField';
+import HelperManager from './HelperManager';
+import WeekdayPicker from './WeekdayPicker';
 import './ScheduleComponent.css';
 
 const ScheduleComponent = () => {
   const { 
-    assignments, 
-    loading, 
-    addAssignment, 
-    updateAssignment, 
-    deleteAssignment,
-    checkConflicts,
-    getAssignmentsForWeek
+    assignments: scheduleAssignments, 
+    loading: scheduleLoading, 
+    addAssignment: addScheduleAssignment, 
+    updateAssignment: updateScheduleAssignment, 
+    deleteAssignment: deleteScheduleAssignment
   } = useSupabaseSchedule();
   
   const { routes } = useSupabaseRoutes();
   const { personnel } = useSupabasePersonnel();
   const { vehicles } = useSupabaseFleet();
+  const { 
+    salas, 
+    areas, 
+    assignments: cleaningAssignments, 
+    loading: cleaningLoading, 
+    addAssignment: addCleaningAssignment,
+    getAreasBySala,
+    uploadPhoto 
+  } = useSupabaseCleaning();
 
-  const [viewMode, setViewMode] = useState('week'); // 'day', 'week', 'month'
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [activeTab, setActiveTab] = useState('routes');
   const [showModal, setShowModal] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
-  const [formData, setFormData] = useState({
+  
+  const [routeFormData, setRouteFormData] = useState({
     ruta_id: '',
     conductor_nombre: '',
+    ayudantes: [],
+    dias_semana: [],
     vehiculo_id: '',
-    fecha: new Date().toISOString().split('T')[0],
-    hora_inicio: '',
-    hora_fin: '',
     observaciones: ''
   });
-  const [conflicts, setConflicts] = useState({ hasConflict: false, conflicts: [] });
+
+  const [cleaningFormData, setCleaningFormData] = useState({
+    sala_id: '',
+    area_id: '',
+    fecha: '',
+    hora: '',
+  });
+
+  const [photos, setPhotos] = useState({
+    before: [],
+    during: [],
+    after: []
+  });
+
+  const [availableAreas, setAvailableAreas] = useState([]);
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
   const activeRoutes = routes.filter(r => r.activa !== false);
   const activePersonnel = personnel.filter(p => p.estado === 'Activo');
   const activeVehicles = vehicles.filter(v => v.estado === 'activo' || v.estado === 'Disponible');
+  const loading = scheduleLoading || cleaningLoading;
 
-  const getWeekDays = (date) => {
-    const start = new Date(date);
-    start.setDate(start.getDate() - start.getDay() + 1); // Lunes
-    
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(start);
-      day.setDate(start.getDate() + i);
-      days.push(day);
-    }
-    return days;
-  };
-
-  const weekDays = getWeekDays(selectedDate);
-  const weekAssignments = getAssignmentsForWeek(weekDays[0].toISOString().split('T')[0]);
-
-  const getDayName = (date) => {
-    const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    return days[date.getDay()];
-  };
-
-  const formatDate = (date) => {
-    return date.toISOString().split('T')[0];
-  };
-
-  const handleOpenModal = (assignment = null) => {
+  const handleOpenRouteModal = (assignment = null) => {
     if (assignment) {
       setEditingAssignment(assignment);
-      setFormData({
+      setRouteFormData({
         ruta_id: assignment.ruta_id,
         conductor_nombre: assignment.conductor_nombre,
+        ayudantes: assignment.ayudantes || [],
+        dias_semana: assignment.dias_semana || [],
         vehiculo_id: assignment.vehiculo_id,
-        fecha: assignment.fecha,
-        hora_inicio: assignment.hora_inicio,
-        hora_fin: assignment.hora_fin,
         observaciones: assignment.observaciones || ''
       });
     } else {
       setEditingAssignment(null);
-      setFormData({
+      setRouteFormData({
         ruta_id: '',
         conductor_nombre: '',
+        ayudantes: [],
+        dias_semana: [],
         vehiculo_id: '',
-        fecha: formatDate(selectedDate),
-        hora_inicio: '',
-        hora_fin: '',
         observaciones: ''
       });
     }
-    setConflicts({ hasConflict: false, conflicts: [] });
+    setActiveTab('routes');
+    setShowModal(true);
+  };
+
+  const handleOpenCleaningModal = () => {
+    setCleaningFormData({
+      sala_id: '',
+      area_id: '',
+      fecha: '',
+      hora: '',
+    });
+    setPhotos({ before: [], during: [], after: [] });
+    setAvailableAreas([]);
+    setErrors({});
+    setActiveTab('cleaning');
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingAssignment(null);
-    setFormData({
+    setRouteFormData({
       ruta_id: '',
       conductor_nombre: '',
+      ayudantes: [],
+      dias_semana: [],
       vehiculo_id: '',
-      fecha: new Date().toISOString().split('T')[0],
-      hora_inicio: '',
-      hora_fin: '',
       observaciones: ''
     });
-    setConflicts({ hasConflict: false, conflicts: [] });
+    setCleaningFormData({
+      sala_id: '',
+      area_id: '',
+      fecha: '',
+      hora: '',
+    });
+    setPhotos({ before: [], during: [], after: [] });
+    setAvailableAreas([]);
+    setErrors({});
   };
 
-  const handleInputChange = (field, value) => {
-    const newFormData = { ...formData, [field]: value };
-    setFormData(newFormData);
-
-    if (field === 'ruta_id' && value) {
-      const selectedRoute = routes.find(r => r.id === parseInt(value));
-      if (selectedRoute && selectedRoute.hora_inicio && selectedRoute.hora_fin) {
-        newFormData.hora_inicio = selectedRoute.hora_inicio;
-        newFormData.hora_fin = selectedRoute.hora_fin;
-        setFormData(newFormData);
-      }
-    }
-
-    if (newFormData.conductor_nombre && newFormData.vehiculo_id && 
-        newFormData.fecha && newFormData.hora_inicio && newFormData.hora_fin) {
-      const conflictCheck = checkConflicts(
-        newFormData.conductor_nombre,
-        parseInt(newFormData.vehiculo_id),
-        newFormData.fecha,
-        newFormData.hora_inicio,
-        newFormData.hora_fin,
-        editingAssignment?.id
-      );
-      setConflicts(conflictCheck);
-    }
+  const handleRouteInputChange = (field, value) => {
+    const newFormData = { ...routeFormData, [field]: value };
+    setRouteFormData(newFormData);
   };
 
-  const handleSubmit = async (e) => {
+  const handleRouteSubmit = async (e) => {
     e.preventDefault();
 
-    if (conflicts.hasConflict) {
-      alert('No se puede guardar. Hay conflictos de horario.');
+    if (routeFormData.dias_semana.length === 0) {
+      alert('Debe seleccionar al menos un día de la semana');
       return;
     }
 
     const assignmentData = {
-      ...formData,
-      ruta_id: parseInt(formData.ruta_id),
-      vehiculo_id: parseInt(formData.vehiculo_id),
+      ...routeFormData,
+      ruta_id: parseInt(routeFormData.ruta_id),
+      vehiculo_id: parseInt(routeFormData.vehiculo_id),
       estado: 'programada'
     };
 
     let result;
     if (editingAssignment) {
-      result = await updateAssignment(editingAssignment.id, assignmentData);
+      result = await updateScheduleAssignment(editingAssignment.id, assignmentData);
     } else {
-      result = await addAssignment(assignmentData);
+      result = await addScheduleAssignment(assignmentData);
     }
 
     if (result.success) {
@@ -167,442 +167,598 @@ const ScheduleComponent = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDeleteRoute = async (id) => {
     if (window.confirm('¿Estás seguro de eliminar esta asignación?')) {
-      const result = await deleteAssignment(id);
+      const result = await deleteScheduleAssignment(id);
       if (!result.success) {
         alert(`Error: ${result.error}`);
       }
     }
   };
 
-  const getAssignmentsForDay = (date) => {
-    const dateStr = formatDate(date);
-    return weekAssignments.filter(a => a.fecha === dateStr);
+  const handleSalaChange = (e) => {
+    const salaId = e.target.value;
+    setCleaningFormData({ ...cleaningFormData, sala_id: salaId, area_id: '' });
+    setAvailableAreas(getAreasBySala(salaId));
+    setErrors({ ...errors, sala_id: '' });
   };
 
-  const nextWeek = () => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + 7);
-    setSelectedDate(newDate);
+  const handleAreaChange = (e) => {
+    const areaId = e.target.value;
+    setCleaningFormData({ ...cleaningFormData, area_id: areaId });
+    setErrors({ ...errors, area_id: '' });
   };
 
-  const prevWeek = () => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() - 7);
-    setSelectedDate(newDate);
+  const handlePhotosChange = (type, newPhotos) => {
+    setPhotos({ ...photos, [type]: newPhotos });
   };
 
-  const goToToday = () => {
-    setSelectedDate(new Date());
-  };
+  const validateCleaningForm = () => {
+    const newErrors = {};
 
-  const nextPeriod = () => {
-    const newDate = new Date(selectedDate);
-    if (viewMode === 'day') {
-      newDate.setDate(newDate.getDate() + 1);
-    } else if (viewMode === 'week') {
-      newDate.setDate(newDate.getDate() + 7);
-    } else if (viewMode === 'month') {
-      newDate.setMonth(newDate.getMonth() + 1);
+    if (!cleaningFormData.sala_id) newErrors.sala_id = 'Seleccione una sala';
+    if (!cleaningFormData.area_id) newErrors.area_id = 'Seleccione un área';
+    if (!cleaningFormData.fecha) newErrors.fecha = 'Seleccione una fecha';
+    if (!cleaningFormData.hora) newErrors.hora = 'Seleccione una hora';
+
+    if (cleaningFormData.area_id) {
+      if (photos.before.length === 0) newErrors.photos = 'Debe agregar al menos una foto de "Antes"';
+      else if (photos.during.length === 0) newErrors.photos = 'Debe agregar al menos una foto de "Durante"';
+      else if (photos.after.length === 0) newErrors.photos = 'Debe agregar al menos una foto de "Después"';
     }
-    setSelectedDate(newDate);
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const prevPeriod = () => {
-    const newDate = new Date(selectedDate);
-    if (viewMode === 'day') {
-      newDate.setDate(newDate.getDate() - 1);
-    } else if (viewMode === 'week') {
-      newDate.setDate(newDate.getDate() - 7);
-    } else if (viewMode === 'month') {
-      newDate.setMonth(newDate.getMonth() - 1);
+  const handleCleaningSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateCleaningForm()) {
+      return;
     }
-    setSelectedDate(newDate);
+
+    setSubmitting(true);
+
+    try {
+      const result = await addCleaningAssignment(cleaningFormData);
+
+      if (result.success) {
+        const assignmentId = result.data.id;
+
+        const allPhotos = [
+          ...photos.before.map(p => ({ file: p.file, etapa: 'antes' })),
+          ...photos.during.map(p => ({ file: p.file, etapa: 'durante' })),
+          ...photos.after.map(p => ({ file: p.file, etapa: 'despues' }))
+        ];
+
+        let uploadedCount = 0;
+        const uploadErrors = [];
+
+        for (const photo of allPhotos) {
+          const uploadResult = await uploadPhoto(assignmentId, photo.etapa, photo.file);
+          if (uploadResult.success) {
+            uploadedCount++;
+          } else {
+            uploadErrors.push(uploadResult.error);
+          }
+        }
+
+        if (uploadErrors.length > 0) {
+          alert(`Asignación creada pero hubo errores al subir ${uploadErrors.length} foto(s)`);
+        } else {
+          alert(`Asignación creada exitosamente con ${uploadedCount} foto(s)`);
+        }
+
+        handleCloseModal();
+      } else {
+        alert(`Error al crear asignación: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al crear la asignación');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const getMonthDays = (date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    
-    const startDay = firstDay.getDay();
-    const daysInMonth = lastDay.getDate();
-    
-    const days = [];
-    
-    for (let i = 0; i < startDay; i++) {
-      const prevMonthDay = new Date(year, month, -startDay + i + 1);
-      days.push({ date: prevMonthDay, isCurrentMonth: false });
-    }
-    
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push({ date: new Date(year, month, i), isCurrentMonth: true });
-    }
-    
-    const remainingDays = 42 - days.length;
-    for (let i = 1; i <= remainingDays; i++) {
-      days.push({ date: new Date(year, month + 1, i), isCurrentMonth: false });
-    }
-    
-    return days;
+  const getSalaNombre = (salaId) => {
+    const sala = salas.find(s => s.id === salaId);
+    return sala ? sala.nombre : '';
   };
 
-  const monthDays = getMonthDays(selectedDate);
-
-  const getMonthName = (date) => {
-    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    return months[date.getMonth()];
+  const getAreaNombre = (areaId) => {
+    const area = areas.find(a => a.id === areaId);
+    return area ? area.nombre : '';
   };
 
-  const getPeriodLabel = () => {
-    if (viewMode === 'day') {
-      return selectedDate.toLocaleDateString('es-ES', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
-    } else if (viewMode === 'week') {
-      return `Semana del ${weekDays[0].toLocaleDateString('es-ES')} al ${weekDays[6].toLocaleDateString('es-ES')}`;
-    } else {
-      return `${getMonthName(selectedDate)} ${selectedDate.getFullYear()}`;
-    }
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', { 
+      weekday: 'short', 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
   };
 
   return (
-    <div className="schedule-container">
+    <div className="schedule-unified">
       <div className="schedule-header">
         <div className="schedule-title">
-          <h2><Calendar size={24} /> Programación de Rutas</h2>
-          <p>Asigna conductores y vehículos a las rutas programadas</p>
+          <h2><Calendar size={24} /> Programación Unificada</h2>
+          <p>Gestiona todas las asignaciones de rutas y limpieza en un solo lugar</p>
         </div>
-        <button className="btn btn--primary" onClick={() => handleOpenModal()}>
-          <Plus size={16} /> Nueva Asignación
-        </button>
+        <div className="schedule-actions">
+          <button className="btn btn--primary" onClick={() => handleOpenRouteModal()}>
+            <Truck size={16} /> Nueva Ruta
+          </button>
+          <button className="btn btn--primary" onClick={handleOpenCleaningModal}>
+            <Sparkles size={16} /> Nueva Limpieza
+          </button>
+        </div>
       </div>
 
-      <div className="schedule-controls">
-        <div className="view-mode-selector">
-          <button 
-            className={`view-mode-btn ${viewMode === 'day' ? 'active' : ''}`}
-            onClick={() => setViewMode('day')}
-          >
-            Día
-          </button>
-          <button 
-            className={`view-mode-btn ${viewMode === 'week' ? 'active' : ''}`}
-            onClick={() => setViewMode('week')}
-          >
-            Semana
-          </button>
-          <button 
-            className={`view-mode-btn ${viewMode === 'month' ? 'active' : ''}`}
-            onClick={() => setViewMode('month')}
-          >
-            Mes
-          </button>
-        </div>
-        
-        <div className="period-label">
-          {getPeriodLabel()}
-        </div>
-        
-        <div className="date-navigation">
-          <button className="btn btn--sm btn--outline" onClick={prevPeriod}>
-            ← Anterior
-          </button>
-          <button className="btn btn--sm" onClick={goToToday}>
-            Hoy
-          </button>
-          <button className="btn btn--sm btn--outline" onClick={nextPeriod}>
-            Siguiente →
-          </button>
-        </div>
+      <div className="schedule-tabs-unified">
+        <button 
+          className={`tab-unified ${activeTab === 'routes' ? 'active' : ''}`}
+          onClick={() => setActiveTab('routes')}
+        >
+          <Truck size={18} />
+          <span>Rutas Programadas</span>
+          <span className="tab-badge">{scheduleAssignments.length}</span>
+        </button>
+        <button 
+          className={`tab-unified ${activeTab === 'cleaning' ? 'active' : ''}`}
+          onClick={() => setActiveTab('cleaning')}
+        >
+          <Sparkles size={18} />
+          <span>Limpieza Programada</span>
+          <span className="tab-badge">{cleaningAssignments.length}</span>
+        </button>
       </div>
 
       {loading ? (
         <div className="schedule-loading">
           <div className="spinner"></div>
-          <p>Cargando programación...</p>
+          <p>Cargando asignaciones...</p>
         </div>
       ) : (
-        <>
-          {viewMode === 'day' && (
-            <div className="schedule-day-view">
-              <div className="schedule-day single-day">
-                <div className="day-header">
-                  <div className="day-name">{getDayName(selectedDate)}</div>
-                  <div className="day-date">{selectedDate.getDate()}</div>
+        <div className="schedule-content-unified">
+          {activeTab === 'routes' && (
+            <div className="assignments-list">
+              {scheduleAssignments.length === 0 ? (
+                <div className="empty-state">
+                  <Truck size={48} />
+                  <h3>No hay rutas programadas</h3>
+                  <p>Comienza agregando una nueva asignación de ruta</p>
+                  <button className="btn btn--primary" onClick={() => handleOpenRouteModal()}>
+                    <Plus size={16} /> Nueva Ruta
+                  </button>
                 </div>
-                <div className="day-assignments">
-                  {getAssignmentsForDay(selectedDate).length === 0 ? (
-                    <div className="no-assignments">
-                      <p>Sin asignaciones</p>
-                    </div>
-                  ) : (
-                    getAssignmentsForDay(selectedDate).map(assignment => (
-                      <div key={assignment.id} className="assignment-card">
-                        <div className="assignment-route">
-                          <Map size={14} /> {assignment.ruta?.nombre || 'Ruta sin nombre'}
+              ) : (
+                <div className="assignments-grid">
+                  {scheduleAssignments.map(assignment => (
+                    <div key={assignment.id} className="assignment-card-unified">
+                      <div className="assignment-header-unified">
+                        <div className="assignment-type-icon route">
+                          <Truck size={20} />
                         </div>
-                        <div className="assignment-time">
-                          <Clock size={12} /> {assignment.hora_inicio} - {assignment.hora_fin}
+                        <div className="assignment-title-unified">
+                          <h4>{assignment.ruta?.nombre || 'Ruta sin nombre'}</h4>
+                          <p className="assignment-date">{formatDate(assignment.fecha)}</p>
                         </div>
-                        <div className="assignment-conductor">
-                          <Users size={12} /> {assignment.conductor_nombre}
-                        </div>
-                        <div className="assignment-vehicle">
-                          <Truck size={12} /> {assignment.vehiculo?.placa}
-                        </div>
-                        <div className="assignment-actions">
+                        <div className="assignment-actions-unified">
                           <button 
                             className="btn-icon btn-icon--sm"
-                            onClick={() => handleOpenModal(assignment)}
+                            onClick={() => handleOpenRouteModal(assignment)}
                             title="Editar"
                           >
                             <Edit size={14} />
                           </button>
                           <button 
                             className="btn-icon btn-icon--sm btn-icon--danger"
-                            onClick={() => handleDelete(assignment.id)}
+                            onClick={() => handleDeleteRoute(assignment.id)}
                             title="Eliminar"
                           >
                             <Trash2 size={14} />
                           </button>
                         </div>
                       </div>
-                    ))
-                  )}
+                      <div className="assignment-details-unified">
+                        <div className="detail-item">
+                          <Clock size={14} />
+                          <span>{assignment.hora_inicio} - {assignment.hora_fin}</span>
+                        </div>
+                        <div className="detail-item">
+                          <Users size={14} />
+                          <span>{assignment.conductor_nombre}</span>
+                        </div>
+                        <div className="detail-item">
+                          <Truck size={14} />
+                          <span>{assignment.vehiculo?.placa}</span>
+                        </div>
+                      </div>
+                      {assignment.observaciones && (
+                        <div className="assignment-notes">
+                          <p>{assignment.observaciones}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
           )}
 
-          {viewMode === 'week' && (
-            <div className="schedule-grid week-view">
-              {weekDays.map((day, index) => {
-                const dayAssignments = getAssignmentsForDay(day);
-                const isToday = formatDate(day) === formatDate(new Date());
-                
-                return (
-                  <div key={index} className={`schedule-day ${isToday ? 'today' : ''}`}>
-                    <div className="day-header">
-                      <div className="day-name">{getDayName(day)}</div>
-                      <div className="day-date">{day.getDate()}</div>
-                    </div>
-                    
-                    <div className="day-assignments">
-                      {dayAssignments.length === 0 ? (
-                        <div className="no-assignments">
-                          <p>Sin asignaciones</p>
+          {activeTab === 'cleaning' && (
+            <div className="assignments-list">
+              {cleaningAssignments.length === 0 ? (
+                <div className="empty-state">
+                  <Sparkles size={48} />
+                  <h3>No hay tareas de limpieza programadas</h3>
+                  <p>Comienza agregando una nueva asignación de limpieza</p>
+                  <button className="btn btn--primary" onClick={handleOpenCleaningModal}>
+                    <Plus size={16} /> Nueva Limpieza
+                  </button>
+                </div>
+              ) : (
+                <div className="assignments-grid">
+                  {cleaningAssignments.map(assignment => (
+                    <div key={assignment.id} className="assignment-card-unified">
+                      <div className="assignment-header-unified">
+                        <div className="assignment-type-icon cleaning">
+                          <Sparkles size={20} />
                         </div>
-                      ) : (
-                        dayAssignments.map(assignment => (
-                          <div key={assignment.id} className="assignment-card">
-                            <div className="assignment-route">
-                              <Map size={14} /> {assignment.ruta?.nombre || 'Ruta sin nombre'}
-                            </div>
-                            <div className="assignment-time">
-                              <Clock size={12} /> {assignment.hora_inicio} - {assignment.hora_fin}
-                            </div>
-                            <div className="assignment-conductor">
-                              <Users size={12} /> {assignment.conductor_nombre}
-                            </div>
-                            <div className="assignment-vehicle">
-                              <Truck size={12} /> {assignment.vehiculo?.placa}
-                            </div>
-                            <div className="assignment-actions">
-                              <button 
-                                className="btn-icon btn-icon--sm"
-                                onClick={() => handleOpenModal(assignment)}
-                                title="Editar"
-                              >
-                                <Edit size={14} />
-                              </button>
-                              <button 
-                                className="btn-icon btn-icon--sm btn-icon--danger"
-                                onClick={() => handleDelete(assignment.id)}
-                                title="Eliminar"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
+                        <div className="assignment-title-unified">
+                          <h4>{getSalaNombre(assignment.sala_id)} - {getAreaNombre(assignment.area_id)}</h4>
+                          <p className="assignment-date">{formatDate(assignment.fecha)}</p>
+                        </div>
+                        <span className={`status-badge status-${assignment.estado}`}>
+                          {assignment.estado}
+                        </span>
+                      </div>
+                      <div className="assignment-details-unified">
+                        <div className="detail-item">
+                          <Clock size={14} />
+                          <span>{assignment.hora}</span>
+                        </div>
+                        {assignment.fotos && assignment.fotos.length > 0 && (
+                          <div className="detail-item">
+                            <Camera size={14} />
+                            <span>{assignment.fotos.length} foto(s)</span>
                           </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {viewMode === 'month' && (
-            <div className="schedule-month-view">
-              <div className="month-header">
-                {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, idx) => (
-                  <div key={idx} className="month-weekday">{day}</div>
-                ))}
-              </div>
-              <div className="month-grid">
-                {monthDays.map((dayObj, index) => {
-                  const dayAssignments = assignments.filter(
-                    a => a.fecha === formatDate(dayObj.date)
-                  );
-                  const isToday = formatDate(dayObj.date) === formatDate(new Date());
-                  
-                  return (
-                    <div 
-                      key={index} 
-                      className={`month-day ${!dayObj.isCurrentMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}`}
-                      onClick={() => {
-                        setSelectedDate(dayObj.date);
-                        setViewMode('day');
-                      }}
-                    >
-                      <div className="month-day-number">{dayObj.date.getDate()}</div>
-                      {dayAssignments.length > 0 && (
-                        <div className="month-day-indicator">
-                          <span className="assignments-count">{dayAssignments.length}</span>
+                        )}
+                      </div>
+                      {assignment.notas && (
+                        <div className="assignment-notes">
+                          <p>{assignment.notas}</p>
                         </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
-        </>
+        </div>
       )}
 
-      {showModal && (
+      {showModal && activeTab === 'routes' && (
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="modal-content modal-large" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="header-content">
+                <div className="header-icon">
+                  {editingAssignment ? <Edit size={28} /> : <Plus size={28} />}
+                </div>
+                <div className="header-text">
+                  <h3 className="modal-title">
+                    {editingAssignment ? 'Editar Asignación de Ruta' : 'Nueva Asignación de Ruta'}
+                  </h3>
+                  <p className="modal-subtitle">
+                    {editingAssignment ? 'Actualice los detalles de la asignación' : 'Complete los detalles para crear la asignación'}
+                  </p>
+                </div>
+              </div>
+              <button className="modal-close" onClick={handleCloseModal}>
+                <X size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleRouteSubmit}>
+              <div className="modal-body">
+                <div className="form-grid-2col">
+                  <div className="form-group-card">
+                    <div className="card-label">
+                      <Map size={18} />
+                      <span>Ruta & Vehículo</span>
+                    </div>
+                    
+                    <CustomSelect
+                      label="Ruta"
+                      required
+                      value={routeFormData.ruta_id}
+                      onChange={(value) => handleRouteInputChange('ruta_id', value)}
+                      options={activeRoutes.map(route => ({
+                        value: route.id,
+                        label: `${route.nombre} - ${route.tipo_servicio}`
+                      }))}
+                      placeholder="Seleccionar ruta"
+                      searchable
+                    />
+
+                    <CustomSelect
+                      label="Vehículo"
+                      required
+                      value={routeFormData.vehiculo_id}
+                      onChange={(value) => handleRouteInputChange('vehiculo_id', value)}
+                      options={activeVehicles.map(vehicle => ({
+                        value: vehicle.id,
+                        label: `${vehicle.placa} - ${vehicle.nombre || vehicle.marca}`
+                      }))}
+                      placeholder="Seleccionar vehículo"
+                      searchable
+                    />
+                  </div>
+
+                  <div className="form-group-card">
+                    <div className="card-label">
+                      <Users size={18} />
+                      <span>Personal Asignado</span>
+                    </div>
+                    
+                    <CustomSelect
+                      label="Conductor"
+                      required
+                      value={routeFormData.conductor_nombre}
+                      onChange={(value) => handleRouteInputChange('conductor_nombre', value)}
+                      options={activePersonnel.map(person => ({
+                        value: person.nombre,
+                        label: `${person.nombre} - ${person.puesto}`
+                      }))}
+                      placeholder="Seleccionar conductor"
+                      searchable
+                    />
+
+                    <HelperManager
+                      helpers={routeFormData.ayudantes}
+                      onChange={(newHelpers) => handleRouteInputChange('ayudantes', newHelpers)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group-card form-full-width">
+                  <div className="card-label">
+                    <Calendar size={18} />
+                    <span>Horarios Semanales</span>
+                  </div>
+                  <WeekdayPicker
+                    selectedDays={routeFormData.dias_semana}
+                    onChange={(newDays) => handleRouteInputChange('dias_semana', newDays)}
+                  />
+                </div>
+
+                <div className="form-group-card form-full-width">
+                  <div className="card-label">
+                    <AlertTriangle size={18} />
+                    <span>Observaciones (Opcional)</span>
+                  </div>
+                  <div className="form-group">
+                    <textarea
+                      value={routeFormData.observaciones}
+                      onChange={(e) => handleRouteInputChange('observaciones', e.target.value)}
+                      rows="3"
+                      placeholder="Notas adicionales..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <div className="footer-actions">
+                  <button type="button" className="btn btn--outline" onClick={handleCloseModal}>
+                    <X size={16} />
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="btn btn--primary"
+                  >
+                    <CheckCircle size={16} /> 
+                    {editingAssignment ? 'Actualizar' : 'Crear'} Asignación
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showModal && activeTab === 'cleaning' && (
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-content modal-large" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3>
-                {editingAssignment ? <><Edit size={20} /> Editar Asignación</> : <><Plus size={20} /> Nueva Asignación</>}
+                <Plus size={20} /> Nueva Asignación de Limpieza
               </h3>
               <button className="modal-close" onClick={handleCloseModal}>
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="modal-body">
-              {conflicts.hasConflict && (
-                <div className="conflict-alert">
-                  <AlertTriangle size={20} />
-                  <div>
-                    <strong>Conflicto de horario detectado:</strong>
-                    <ul>
-                      {conflicts.conflicts.map((conflict, idx) => (
-                        <li key={idx}>
-                          {conflict.type === 'conductor' 
-                            ? `El conductor ${conflict.conductor}` 
-                            : `El vehículo ${conflict.vehiculo}`} 
-                          ya está asignado a {conflict.ruta} de {conflict.hora}
-                        </li>
-                      ))}
-                    </ul>
+            <form onSubmit={handleCleaningSubmit} className="modal-body">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Sala *</label>
+                  <select
+                    value={cleaningFormData.sala_id}
+                    onChange={handleSalaChange}
+                    className={errors.sala_id ? 'error' : ''}
+                    required
+                  >
+                    <option value="">Seleccionar sala</option>
+                    {salas.map(sala => (
+                      <option key={sala.id} value={sala.id}>
+                        {sala.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.sala_id && <span className="error-text">{errors.sala_id}</span>}
+                </div>
+
+                <div className="form-group">
+                  <label>Área *</label>
+                  <select
+                    value={cleaningFormData.area_id}
+                    onChange={handleAreaChange}
+                    disabled={!cleaningFormData.sala_id}
+                    className={errors.area_id ? 'error' : ''}
+                    required
+                  >
+                    <option value="">Seleccionar área</option>
+                    {availableAreas.map(area => (
+                      <option key={area.id} value={area.id}>
+                        {area.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.area_id && <span className="error-text">{errors.area_id}</span>}
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Fecha y Hora *</label>
+                  <input
+                    type="datetime-local"
+                    value={`${cleaningFormData.fecha}T${cleaningFormData.hora}`}
+                    onChange={(e) => {
+                      const [date, time] = e.target.value.split('T');
+                      setCleaningFormData({ 
+                        ...cleaningFormData, 
+                        fecha: date, 
+                        hora: time 
+                      });
+                      setErrors({ ...errors, fecha: '', hora: '' });
+                    }}
+                    step="900"
+                    className={errors.fecha || errors.hora ? 'error' : ''}
+                    required
+                  />
+                  {(errors.fecha || errors.hora) && (
+                    <span className="error-text">{errors.fecha || errors.hora}</span>
+                  )}
+                </div>
+              </div>
+
+              {cleaningFormData.area_id && (
+                <div className="photos-section-enhanced">
+                  <div className="photos-header">
+                    <div className="photos-header-icon">
+                      <Camera size={20} />
+                    </div>
+                    <div className="photos-header-content">
+                      <h4>Evidencia Fotográfica Requerida</h4>
+                      <p>Sube fotos de cada etapa para documentar el trabajo realizado</p>
+                    </div>
+                    <div className="photos-progress-indicator">
+                      <div className="progress-count">
+                        <span className="progress-number">
+                          {(photos.before.length > 0 ? 1 : 0) + 
+                           (photos.during.length > 0 ? 1 : 0) + 
+                           (photos.after.length > 0 ? 1 : 0)}
+                        </span>
+                        <span className="progress-total">/3</span>
+                      </div>
+                      <span className="progress-label">Completadas</span>
+                    </div>
                   </div>
+
+                  <div className="photos-progress-bar">
+                    <div 
+                      className="progress-fill" 
+                      style={{ 
+                        width: `${((photos.before.length > 0 ? 1 : 0) + 
+                                  (photos.during.length > 0 ? 1 : 0) + 
+                                  (photos.after.length > 0 ? 1 : 0)) * 33.33}%` 
+                      }}
+                    />
+                  </div>
+
+                  <div className="photos-grid-enhanced">
+                    <div className="photo-card-enhanced">
+                      <div className="photo-card-header">
+                        <div className={`photo-step-badge ${photos.before.length > 0 ? 'completed' : ''}`}>
+                          {photos.before.length > 0 ? <CheckCircle size={16} /> : '1'}
+                        </div>
+                        <h5>Fotos Antes</h5>
+                      </div>
+                      <div className="photo-card-body">
+                        <PhotoUploadField
+                          label=""
+                          photos={photos.before}
+                          onChange={(newPhotos) => handlePhotosChange('before', newPhotos)}
+                        />
+                      </div>
+                      {photos.before.length > 0 && (
+                        <div className="photo-card-footer">
+                          <span className="photo-count">{photos.before.length} foto(s) subida(s)</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="photo-card-enhanced">
+                      <div className="photo-card-header">
+                        <div className={`photo-step-badge ${photos.during.length > 0 ? 'completed' : ''}`}>
+                          {photos.during.length > 0 ? <CheckCircle size={16} /> : '2'}
+                        </div>
+                        <h5>Fotos Durante</h5>
+                      </div>
+                      <div className="photo-card-body">
+                        <PhotoUploadField
+                          label=""
+                          photos={photos.during}
+                          onChange={(newPhotos) => handlePhotosChange('during', newPhotos)}
+                        />
+                      </div>
+                      {photos.during.length > 0 && (
+                        <div className="photo-card-footer">
+                          <span className="photo-count">{photos.during.length} foto(s) subida(s)</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="photo-card-enhanced">
+                      <div className="photo-card-header">
+                        <div className={`photo-step-badge ${photos.after.length > 0 ? 'completed' : ''}`}>
+                          {photos.after.length > 0 ? <CheckCircle size={16} /> : '3'}
+                        </div>
+                        <h5>Fotos Después</h5>
+                      </div>
+                      <div className="photo-card-body">
+                        <PhotoUploadField
+                          label=""
+                          photos={photos.after}
+                          onChange={(newPhotos) => handlePhotosChange('after', newPhotos)}
+                        />
+                      </div>
+                      {photos.after.length > 0 && (
+                        <div className="photo-card-footer">
+                          <span className="photo-count">{photos.after.length} foto(s) subida(s)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {errors.photos && (
+                    <div className="error-message-enhanced">
+                      <AlertTriangle size={16} />
+                      <span>{errors.photos}</span>
+                    </div>
+                  )}
                 </div>
               )}
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Ruta *</label>
-                  <select
-                    value={formData.ruta_id}
-                    onChange={(e) => handleInputChange('ruta_id', e.target.value)}
-                    required
-                  >
-                    <option value="">Seleccionar ruta</option>
-                    {activeRoutes.map(route => (
-                      <option key={route.id} value={route.id}>
-                        {route.nombre} - {route.tipo_servicio}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Fecha *</label>
-                  <input
-                    type="date"
-                    value={formData.fecha}
-                    onChange={(e) => handleInputChange('fecha', e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Hora Inicio *</label>
-                  <input
-                    type="time"
-                    value={formData.hora_inicio}
-                    onChange={(e) => handleInputChange('hora_inicio', e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Hora Fin *</label>
-                  <input
-                    type="time"
-                    value={formData.hora_fin}
-                    onChange={(e) => handleInputChange('hora_fin', e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Conductor *</label>
-                  <select
-                    value={formData.conductor_nombre}
-                    onChange={(e) => handleInputChange('conductor_nombre', e.target.value)}
-                    required
-                  >
-                    <option value="">Seleccionar conductor</option>
-                    {activePersonnel.map(person => (
-                      <option key={person.id} value={person.nombre}>
-                        {person.nombre} - {person.puesto}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Vehículo *</label>
-                  <select
-                    value={formData.vehiculo_id}
-                    onChange={(e) => handleInputChange('vehiculo_id', e.target.value)}
-                    required
-                  >
-                    <option value="">Seleccionar vehículo</option>
-                    {activeVehicles.map(vehicle => (
-                      <option key={vehicle.id} value={vehicle.id}>
-                        {vehicle.placa} - {vehicle.nombre || vehicle.marca}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Observaciones</label>
-                <textarea
-                  value={formData.observaciones}
-                  onChange={(e) => handleInputChange('observaciones', e.target.value)}
-                  rows="3"
-                  placeholder="Notas adicionales..."
-                />
-              </div>
 
               <div className="modal-footer">
                 <button type="button" className="btn btn--outline" onClick={handleCloseModal}>
@@ -611,9 +767,9 @@ const ScheduleComponent = () => {
                 <button 
                   type="submit" 
                   className="btn btn--primary"
-                  disabled={conflicts.hasConflict}
+                  disabled={submitting}
                 >
-                  <CheckCircle size={16} /> {editingAssignment ? 'Actualizar' : 'Crear'} Asignación
+                  <CheckCircle size={16} /> {submitting ? 'Creando...' : 'Crear Asignación'}
                 </button>
               </div>
             </form>
