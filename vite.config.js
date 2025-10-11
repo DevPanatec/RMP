@@ -1,26 +1,28 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
   server: {
     port: 3000,
     open: false,
     hmr: {
-      overlay: true
+      overlay: false
     },
     watch: {
       usePolling: true,
       interval: 100
     },
-    headers: {
+    headers: mode === 'development' ? {
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0'
+    } : {
+      'Cache-Control': 'public, max-age=31536000'
     }
   },
   optimizeDeps: {
-    force: true
+    force: false
   },
   build: {
     rollupOptions: {
@@ -30,4 +32,4 @@ export default defineConfig({
     }
   },
   cacheDir: 'node_modules/.vite'
-})
+}))

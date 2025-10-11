@@ -60,22 +60,44 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     
-    <!-- Service Worker DESACTIVADO para desarrollo -->
+    <!-- Service Worker DESACTIVADO en desarrollo, ACTIVADO en producción -->
     <script>
+      // Función para detectar si estamos en desarrollo
+      const isDevelopment = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for(let registration of registrations) {
-            registration.unregister();
-            console.log('Service Worker desregistrado');
+        if (isDevelopment) {
+          // En desarrollo: Eliminar Service Workers existentes
+          navigator.serviceWorker.getRegistrations().then(registrations => {
+            registrations.forEach(registration => {
+              registration.unregister();
+              console.log('🔄 [DEV] Service Worker desregistrado:', registration.scope);
+            });
+          });
+
+          // Limpiar todos los caches en desarrollo
+          if ('caches' in window) {
+            caches.keys().then(cacheNames => {
+              cacheNames.forEach(cacheName => {
+                caches.delete(cacheName);
+                console.log('🗑️ [DEV] Cache eliminado:', cacheName);
+              });
+            });
           }
-        });
-        
-        caches.keys().then(function(names) {
-          for (let name of names) {
-            caches.delete(name);
-            console.log('Caché eliminado:', name);
-          }
-        });
+
+          console.log('✅ [DEV] Modo desarrollo: Service Worker desactivado');
+        } else {
+          // En producción: Registrar Service Worker
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+              .then(registration => {
+                console.log('✅ [PROD] Service Worker registrado:', registration.scope);
+              })
+              .catch(error => {
+                console.error('❌ [PROD] Error registrando Service Worker:', error);
+              });
+          });
+        }
       }
     </script>
   </body>

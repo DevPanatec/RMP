@@ -17,28 +17,54 @@ export const SupabaseAuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    const savedAuthState = localStorage.getItem('rmp_auth_state');
+    if (savedAuthState) {
+      try {
+        const { user: savedUser, session: savedSession, timestamp } = JSON.parse(savedAuthState);
+        const isExpired = Date.now() - timestamp > 3600000;
+        
+        if (!isExpired && savedUser && savedSession) {
+          console.log('🔄 Restaurando estado de autenticación desde localStorage');
+          setUser(savedUser);
+          setSession(savedSession);
+          setLoading(false);
+          return;
+        } else {
+          console.log('⏰ Estado guardado expirado, verificando sesión');
+          localStorage.removeItem('rmp_auth_state');
+        }
+      } catch (err) {
+        console.error('❌ Error restaurando estado:', err);
+        localStorage.removeItem('rmp_auth_state');
+      }
+    }
+
     checkSession();
     
     const { data: authListener } = supabaseClient.supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔐 Auth state changed:', event, session?.user?.id);
+        console.log('🔐 Auth state changed:', event, session?.user?.id, 'User loaded:', !!user, 'User ID:', user?.id);
         setSession(session);
-        setLoading(true);
-        
+
         try {
           if (session?.user) {
-            console.log('📥 Cargando perfil...');
-            await loadUserProfile(session.user.id);
-            console.log('✅ Perfil cargado');
+            if (!user || user.id !== session.user.id) {
+              console.log('📥 Cargando perfil...');
+              setLoading(true);
+              await loadUserProfile(session.user.id);
+              console.log('✅ Perfil cargado');
+              setLoading(false);
+            } else {
+              console.log('✅ Usuario ya cargado, saltando carga de perfil');
+            }
           } else {
             console.log('❌ Sin sesión, limpiando usuario');
             setUser(null);
+            localStorage.removeItem('rmp_auth_state');
           }
         } catch (err) {
           console.error('❌ Error en auth state change:', err);
           setError(err.message);
-        } finally {
-          console.log('🏁 Finalizando carga de auth');
           setLoading(false);
         }
       }
@@ -54,16 +80,7 @@ export const SupabaseAuthProvider = ({ children }) => {
       console.log('Verificando sesión...');
       setLoading(true);
       
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout al verificar sesión')), 10000)
-      );
-      
-      const sessionPromise = supabaseClient.supabase.auth.getSession();
-      
-      const { data: { session }, error } = await Promise.race([
-        sessionPromise,
-        timeoutPromise
-      ]);
+      const { data: { session }, error } = await supabaseClient.supabase.auth.getSession();
       
       if (error) throw error;
       
@@ -88,20 +105,11 @@ export const SupabaseAuthProvider = ({ children }) => {
     try {
       console.log('📋 Cargando perfil de usuario:', userId);
       
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout al cargar perfil')), 5000)
-      );
-      
-      const profilePromise = supabaseClient.supabase
+      const { data: profile, error } = await supabaseClient.supabase
         .from('perfiles_usuarios')
         .select('*')
         .eq('id', userId)
         .single();
-      
-      const { data: profile, error } = await Promise.race([
-        profilePromise,
-        timeoutPromise
-      ]);
 
       if (error) {
         console.error('Error cargando perfil:', error);
@@ -166,7 +174,7 @@ export const SupabaseAuthProvider = ({ children }) => {
         }
         
         console.log('👤 Estableciendo usuario final...');
-        setUser({
+        const userData = {
           id: profile.id,
           email: profile.email,
           nombre: profile.nombre_completo,
@@ -180,7 +188,8 @@ export const SupabaseAuthProvider = ({ children }) => {
           proyecto_id: profile.proyecto_id,
           proyecto_nombre: proyectoNombre,
           activo: profile.activo
-        });
+        };
+        setUser(userData);
         console.log('✅ Usuario establecido correctamente');
       }
     } catch (err) {
@@ -189,6 +198,53 @@ export const SupabaseAuthProvider = ({ children }) => {
       setUser(null);
     }
   };
+
+  useEffect(() => {
+    if (user && session) {
+      const authState = {
+        user,
+        session,
+        timestamp: Date.now()
+      };
+      localStorage.setItem('rmp_auth_state', JSON.stringify(authState));
+      console.log('💾 Estado de autenticación guardado en localStorage');
+    }
+  }, [user, session]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('👁️ Pestaña visible, verificando sesión...');
+        const savedAuthState = localStorage.getItem('rmp_auth_state');
+        
+        if (!user && savedAuthState) {
+          try {
+            const { user: savedUser, session: savedSession, timestamp } = JSON.parse(savedAuthState);
+            const isExpired = Date.now() - timestamp > 3600000;
+            
+            if (!isExpired && savedUser && savedSession) {
+              console.log('🔄 Restaurando sesión desde localStorage');
+              setUser(savedUser);
+              setSession(savedSession);
+              setLoading(false);
+            } else {
+              console.log('⏰ Sesión expirada, verificando con servidor');
+              localStorage.removeItem('rmp_auth_state');
+              checkSession();
+            }
+          } catch (err) {
+            console.error('❌ Error restaurando sesión:', err);
+          }
+        } else if (!user && !loading) {
+          console.log('🔍 Sin usuario, verificando sesión con servidor');
+          checkSession();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user, loading]);
 
   const signIn = async (email, password) => {
     try {
@@ -269,6 +325,8 @@ export const SupabaseAuthProvider = ({ children }) => {
       
       setUser(null);
       setSession(null);
+      localStorage.removeItem('rmp_auth_state');
+      console.log('🚪 Sesión cerrada y estado limpiado');
       
       return { success: true };
     } catch (err) {
