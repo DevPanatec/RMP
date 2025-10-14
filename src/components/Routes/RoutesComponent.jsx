@@ -76,40 +76,85 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
           Nueva Ruta
         </button>
       </div>
-      <table className="table routes-table">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Descripción</th>
-            <th>Distancia (km)</th>
-            <th>Tiempo Est. (min)</th>
-            <th>Paradas</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {routes.map(r => (
-            <tr key={r.id}>
-              <td>{r.name || r.nombre}</td>
-              <td>{r.descripcion || r.description || '-'}</td>
-              <td>{r.distanciaTotal || r.distancia_total || 0}</td>
-              <td>{r.tiempoEstimado || r.tiempo_estimado || 0}</td>
-              <td>{(r.paradas || r.stops || []).length}</td>
-              <td>
-                <button className="btn btn--sm btn--outline" onClick={() => handleEdit(r)}>
-                  <Edit size={14} /> Editar
-                </button>
-                <button className="btn btn--sm btn--danger" onClick={() => handleDelete(r.id)}>
-                  <Trash2 size={14} /> Eliminar
-                </button>
-              </td>
-            </tr>
-          ))}
-          {routes.length === 0 && (
-            <tr><td colSpan="6" style={{ textAlign: 'center' }}>No hay rutas registradas</td></tr>
-          )}
-        </tbody>
-      </table>
+
+      {routes.length > 0 ? (
+        <div className="routes-grid">
+          {routes.map((route, index) => {
+            const paradas = route.paradas || route.stops || [];
+            const paradasArray = typeof paradas === 'string' ? JSON.parse(paradas) : paradas;
+            const tipoServicio = route.tipo_servicio || route.tipoServicio || 'recoleccion';
+
+            return (
+              <div key={route.id} className="route-card" style={{ animationDelay: `${index * 50}ms` }}>
+                <div className="route-card-header">
+                  <div className="route-icon">
+                    <Map size={24} />
+                  </div>
+                  <div className="route-info">
+                    <h4>{route.name || route.nombre}</h4>
+                    <span className={`route-type-badge type-${tipoServicio}`}>
+                      {tipoServicio === 'recoleccion' ? '🚛 Recolección' : '🦟 Fumigación'}
+                    </span>
+                  </div>
+                </div>
+
+                {route.descripcion && (
+                  <p className="route-description">{route.descripcion}</p>
+                )}
+
+                <div className="route-stats">
+                  <div className="route-stat">
+                    <span className="stat-icon">📍</span>
+                    <div>
+                      <span className="stat-value">{paradasArray.length}</span>
+                      <span className="stat-label">Paradas</span>
+                    </div>
+                  </div>
+                  <div className="route-stat">
+                    <span className="stat-icon">⏱️</span>
+                    <div>
+                      <span className="stat-value">{route.tiempo_estimado || route.tiempoEstimado || 0}</span>
+                      <span className="stat-label">Min</span>
+                    </div>
+                  </div>
+                  <div className="route-stat">
+                    <span className="stat-icon">📏</span>
+                    <div>
+                      <span className="stat-value">{route.distancia_total || route.distanciaTotal || 0}</span>
+                      <span className="stat-label">Km</span>
+                    </div>
+                  </div>
+                </div>
+
+                {route.hora_inicio && (
+                  <div className="route-schedule">
+                    <span className="schedule-icon">🕐</span>
+                    <span>{route.hora_inicio}</span>
+                    {route.hora_fin && <span> - {route.hora_fin}</span>}
+                  </div>
+                )}
+
+                <div className="route-actions">
+                  <button className="btn-route-edit" onClick={() => handleEdit(route)}>
+                    <Edit size={16} />
+                    <span>Editar</span>
+                  </button>
+                  <button className="btn-route-delete" onClick={() => handleDelete(route.id)}>
+                    <Trash2 size={16} />
+                    <span>Eliminar</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="empty-routes">
+          <Map size={64} />
+          <h3>No hay rutas registradas</h3>
+          <p>Crea tu primera ruta para comenzar</p>
+        </div>
+      )}
 
       <RouteModal
         isOpen={showModal}

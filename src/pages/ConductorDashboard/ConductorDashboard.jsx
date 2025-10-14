@@ -4,8 +4,9 @@ import MapComponent from '../../components/Map/MapComponent';
 import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
 import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
-import { 
-  Truck, LogOut, Download, Map, Clock, AlertTriangle, 
+import { useSupabaseSchedule } from '../../context/SupabaseScheduleContext';
+import {
+  Truck, LogOut, Download, Map, Clock, AlertTriangle,
   ClipboardList, Package, TrendingUp, FileText, MapPin,
   CheckCircle, Calendar, Loader, Wrench, AlertOctagon
 } from '../../components/Icons';
@@ -50,7 +51,8 @@ const ConductorDashboard = ({ user, onLogout }) => {
   const { addReport, getReportsByDriver, loading: reportsLoading } = useSupabaseRiskReports();
   const { vehicles, loading: vehiclesLoading } = useSupabaseFleet();
   const { routes, loading: routesLoading } = useSupabaseRoutes();
-  
+  const { assignments, loading: assignmentsLoading, getAssignmentsByConductor, getDayNameFromDate } = useSupabaseSchedule();
+
   const [completedStops, setCompletedStops] = useState([]);
   const [currentStop, setCurrentStop] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -99,15 +101,21 @@ const ConductorDashboard = ({ user, onLogout }) => {
     return () => clearInterval(timer);
   }, []);
 
-  // Obtener vehículo asignado al conductor desde Supabase
-  const userTruck = vehicles.find(v => 
-    v.conductorId === user.id || 
-    v.conductor === user.nombre ||
-    v.id === user.camionAsignado
-  );
+  // Obtener asignaciones del conductor
+  const conductorAssignments = getAssignmentsByConductor(user.nombre || user.nombre_completo);
 
-  // Obtener ruta asignada al vehículo del conductor
-  const assignedRoute = routes.find(r => r.vehiculo_id === userTruck?.id);
+  // Obtener asignación de hoy (si existe)
+  const today = new Date().toISOString().split('T')[0];
+  const todayDayName = getDayNameFromDate(today);
+
+  const todayAssignment = conductorAssignments.find(assignment => {
+    if (!assignment.dias_semana || !Array.isArray(assignment.dias_semana)) return false;
+    return assignment.dias_semana.includes(todayDayName);
+  });
+
+  // Obtener vehículo y ruta de la asignación de hoy
+  const userTruck = todayAssignment ? vehicles.find(v => v.id === todayAssignment.vehiculo_id) : null;
+  const assignedRoute = todayAssignment?.ruta || null;
 
   const handleCompleteStop = (stopIndex) => {
     setPendingStopIndex(stopIndex);
@@ -187,7 +195,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
     setShowRiskModal(false);
   };
 
-  if (vehiclesLoading || routesLoading) {
+  if (vehiclesLoading || routesLoading || assignmentsLoading) {
     return (
       <div className="dashboard-container">
         <div className="main-content">
@@ -207,7 +215,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
     );
   }
 
-  if (!userTruck || !assignedRoute) {
+  if (!todayAssignment) {
     return (
       <div className="dashboard-container">
         <div className="main-content">
@@ -220,14 +228,30 @@ const ConductorDashboard = ({ user, onLogout }) => {
           <div className="card">
             <div className="card__body">
               <div className="no-assignment">
-                <div className="no-assignment-icon">🚫</div>
-                <h3>Sin Asignación</h3>
-                <p>No tienes un camión o ruta asignada. Contacta con el administrador.</p>
-                <p className="debug-info">
-                  {!userTruck && '❌ No se encontró vehículo asignado'}
-                  {!assignedRoute && userTruck && '❌ No se encontró ruta asignada al vehículo'}
-                </p>
-                <button className="btn btn--primary" onClick={() => window.location.reload()}>
+                <div className="no-assignment-icon">📅</div>
+                <h3>Sin Asignación para Hoy</h3>
+                <p>No tienes ruta asignada para {todayDayName}. Disfruta tu día libre!</p>
+
+                {conductorAssignments.length > 0 && (
+                  <div style={{ marginTop: '20px', textAlign: 'left' }}>
+                    <h4>📋 Tus Asignaciones de la Semana:</h4>
+                    <ul style={{ listStyle: 'none', padding: 0 }}>
+                      {conductorAssignments.map(assignment => (
+                        <li key={assignment.id} style={{ marginBottom: '10px', padding: '10px', background: '#f3f4f6', borderRadius: '8px' }}>
+                          <strong>{assignment.ruta?.nombre || 'Ruta sin nombre'}</strong>
+                          <br />
+                          📍 Días: {assignment.dias_semana?.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')}
+                          <br />
+                          🚛 Vehículo: {vehicles.find(v => v.id === assignment.vehiculo_id)?.placa || 'No asignado'}
+                          <br />
+                          ⏰ Horario: {assignment.ruta?.hora_inicio || 'N/A'} - {assignment.ruta?.hora_fin || 'N/A'}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <button className="btn btn--primary" onClick={() => window.location.reload()} style={{ marginTop: '20px' }}>
                   🔄 Actualizar
                 </button>
               </div>
@@ -356,11 +380,15 @@ const ConductorDashboard = ({ user, onLogout }) => {
             route={{
               ...assignedRoute,
               estado: progressPercentage === 100 ? 'completada' : progressPercentage > 0 ? 'en progreso' : 'activa',
-              paradas: (assignedRoute.paradas || []).map((parada, index) => ({
-                ...parada,
-                completada: completedStops.some(stop => stop.index === index),
-                index: index
-              })),
+              paradas: (() => {
+                const paradas = assignedRoute.paradas || [];
+                const paradasArray = typeof paradas === 'string' ? JSON.parse(paradas) : paradas;
+                return Array.isArray(paradasArray) ? paradasArray.map((parada, index) => ({
+                  ...parada,
+                  completada: completedStops.some(stop => stop.index === index),
+                  index: index
+                })) : [];
+              })(),
               paradaActual: currentStop,
               duracionEstimada: assignedRoute.tiempo_estimado || assignedRoute.tiempoEstimado,
               distancia: assignedRoute.distancia_total || assignedRoute.distanciaTotal

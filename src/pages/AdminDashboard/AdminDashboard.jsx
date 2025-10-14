@@ -12,14 +12,14 @@ import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
 import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
-import { 
-  LayoutDashboard, Truck, AlertTriangle, Package, 
+import {
+  LayoutDashboard, Truck, AlertTriangle, Package,
   BarChart3, Users, Map, LogOut, TrendingUp, CheckCircle,
   MapPin, Radio, Activity, Zap, Bell, Wrench, Leaf, Navigation, Clock, Save, Calendar,
-  Satellite, Briefcase, Sparkles
+  Satellite, Briefcase, Sparkles, Plus
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
-import { DashboardKPI, AlertCard, PersonnelTable, VehicleCard, RouteTimeline, HeroStats, RealtimeActivity, RiskAlerts } from '../../components/Dashboard';
+import { DashboardKPI, AlertCard, PersonnelTable, VehicleCard, HeroStats, RealtimeActivity, RiskAlerts } from '../../components/Dashboard';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ user, onLogout }) => {
@@ -27,6 +27,15 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [activeSubTab, setActiveSubTab] = useState('');
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [serviceTypeFilter, setServiceTypeFilter] = useState('todos');
+  const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
+  const [vehicleFormData, setVehicleFormData] = useState({
+    nombre: '',
+    placa: '',
+    marca: '',
+    modelo: '',
+    año: new Date().getFullYear(),
+    tipoServicio: 'recoleccion'
+  });
   
   // Hooks de contextos reales
   const { 
@@ -39,25 +48,19 @@ const AdminDashboard = ({ user, onLogout }) => {
     getPersonnelStats 
   } = useSupabasePersonnel();
   
-  const { 
-    vehicles, 
-    loading: fleetLoading, 
-    updateVehicle, 
-    addVehicle, 
-    deleteVehicle, 
-    assignRoute, 
-    assignDriver,
-    getFleetStats 
+  const {
+    vehicles,
+    loading: fleetLoading,
+    updateVehicle,
+    addVehicle,
+    deleteVehicle,
+    getFleetStats
   } = useSupabaseFleet();
-  
-  const { 
-    routes, 
-    loading: routesLoading, 
-    addRoute, 
-    updateRoute, 
-    deleteRoute, 
-    toggleRouteStatus,
-    getRoutesStats 
+
+  const {
+    routes,
+    loading: routesLoading,
+    getRoutesStats
   } = useSupabaseRoutes();
 
   const {
@@ -68,16 +71,6 @@ const AdminDashboard = ({ user, onLogout }) => {
     deleteAlert,
     getAlertsStats
   } = useSupabaseRiskReports();
-  
-  // Estados para modales
-  const [editingRoute, setEditingRoute] = useState(null);
-  const [showRouteCreator, setShowRouteCreator] = useState(false);
-  const [newRoute, setNewRoute] = useState({
-    name: '',
-    type: 'recoleccion',
-    stops: [''],
-    color: '#22c55e'
-  });
 
   // Usar datos reales de los contextos
   const normalizedCamiones = vehicles.map(camion => (
@@ -109,122 +102,6 @@ const AdminDashboard = ({ user, onLogout }) => {
     setActiveSubTab(defaultSubTab);
   };
 
-  const handleAddStop = () => {
-    setNewRoute(prev => ({
-      ...prev,
-      stops: [...prev.stops, '']
-    }));
-  };
-
-  const handleRemoveStop = (index) => {
-    if (newRoute.stops.length > 1) {
-      setNewRoute(prev => ({
-        ...prev,
-        stops: prev.stops.filter((_, i) => i !== index)
-      }));
-    }
-  };
-
-  const handleStopChange = (index, value) => {
-    setNewRoute(prev => ({
-      ...prev,
-      stops: prev.stops.map((stop, i) => i === index ? value : stop)
-    }));
-  };
-
-  const handleSaveRoute = () => {
-    const validStops = newRoute.stops.filter(stop => typeof stop === 'string' && stop.trim());
-    if (newRoute.name && validStops.length > 0) {
-      const routeData = {
-        ...newRoute,
-        stops: validStops,
-        estimatedTime: `${Math.ceil(validStops.length * 0.5)}h`,
-        status: 'active'
-      };
-      
-      // Usar función del contexto
-      addRoute(routeData);
-      setNewRoute({ name: '', type: 'recoleccion', stops: [''], color: '#22c55e' });
-      setShowRouteCreator(false);
-    }
-  };
-
-  const handleDeleteRoute = (routeId) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar esta ruta?')) {
-      // Usar función del contexto
-      deleteRoute(routeId);
-    }
-  };
-
-  const handleEditRoute = (route) => {
-    setEditingRoute(route);
-    
-    // Convertir paradas de Supabase a formato de stops para edición
-    const stops = route.paradas ? 
-      route.paradas.map(parada => parada.direccion || `Parada ${parada.orden || 1}`) :
-      [...(route.stops || [''])];
-      
-    setNewRoute({
-      name: route.name || route.nombre,
-      type: route.type || route.tipoServicio,
-      stops: stops,
-      color: route.color || '#22c55e'
-    });
-    setShowRouteCreator(true);
-  };
-
-  const handleUpdateRoute = () => {
-    const validStops = newRoute.stops.filter(stop => typeof stop === 'string' && stop.trim());
-    if (newRoute.name && validStops.length > 0) {
-      const updatedRoute = {
-        ...editingRoute,
-        name: newRoute.name,
-        type: newRoute.type,
-        stops: validStops,
-        color: newRoute.color,
-        estimatedTime: `${Math.ceil(validStops.length * 0.5)}h`
-      };
-      
-      // Usar función del contexto para actualizar
-      updateRoute(editingRoute.id, updatedRoute);
-      
-      setNewRoute({ name: '', type: 'recoleccion', stops: [''], color: '#22c55e' });
-      setEditingRoute(null);
-      setShowRouteCreator(false);
-    }
-  };
-
-  const handleToggleRouteStatus = (routeId) => {
-    // Usar función del contexto
-    toggleRouteStatus(routeId);
-  };
-
-  const handleDuplicateRoute = (route) => {
-    const duplicatedRoute = {
-      name: `${route.name || route.nombre} (Copia)`,
-      type: route.type || route.tipoServicio,
-      stops: route.paradas ? 
-        route.paradas.map(p => p.direccion || `Parada ${p.orden}`) : 
-        route.stops || [''],
-      color: route.color || '#22c55e',
-      status: 'inactive'
-    };
-    // Usar función del contexto
-    addRoute(duplicatedRoute);
-  };
-
-  const handleVehicleRouteAssignment = async (vehicleId, routeId) => {
-    try {
-      await assignRoute(vehicleId, routeId || null);
-    } catch (error) {
-      console.error('Error al asignar ruta:', error);
-      alert('Error al asignar la ruta. Por favor intenta de nuevo.');
-    }
-  };
-
-  const getAssignedRoute = (vehicleId) => {
-    return routes.find(r => r.vehiculo_id === vehicleId) || null;
-  };
 
   const handleGoToVehicleLocation = (vehicleId) => {
     setSelectedTruck(vehicleId);
@@ -277,9 +154,34 @@ const AdminDashboard = ({ user, onLogout }) => {
           </div>
         );
       case 'flota':
-        const filteredVehicles = normalizedCamiones.filter(vehicle => 
+        const filteredVehicles = normalizedCamiones.filter(vehicle =>
           serviceTypeFilter === 'todos' || vehicle.tipoServicio === serviceTypeFilter
         );
+
+        const handleVehicleInputChange = (e) => {
+          const { name, value } = e.target;
+          setVehicleFormData(prev => ({ ...prev, [name]: value }));
+        };
+
+        const handleAddVehicle = async (e) => {
+          e.preventDefault();
+          try {
+            await addVehicle(vehicleFormData);
+            setShowAddVehicleModal(false);
+            setVehicleFormData({
+              nombre: '',
+              placa: '',
+              marca: '',
+              modelo: '',
+              año: new Date().getFullYear(),
+              tipoServicio: 'recoleccion'
+            });
+          } catch (error) {
+            console.error('Error adding vehicle:', error);
+            alert('Error al agregar vehículo');
+          }
+        };
+
         return (
           <div className="operations-content-modern">
             <div className="ops-header">
@@ -290,19 +192,25 @@ const AdminDashboard = ({ user, onLogout }) => {
                   <p>Monitorea y administra todos los vehículos</p>
                 </div>
               </div>
-              <div className="ops-header-stats">
-                <div className="stat-pill">
-                  <span className="stat-value">{normalizedCamiones.length}</span>
-                  <span className="stat-label">Total</span>
+              <div className="ops-header-actions">
+                <div className="ops-header-stats">
+                  <div className="stat-pill">
+                    <span className="stat-value">{normalizedCamiones.length}</span>
+                    <span className="stat-label">Total</span>
+                  </div>
+                  <div className="stat-pill success">
+                    <span className="stat-value">{normalizedCamiones.filter(v => v.estado === 'En ruta' || v.estado === 'en_ruta').length}</span>
+                    <span className="stat-label">En Ruta</span>
+                  </div>
+                  <div className="stat-pill info">
+                    <span className="stat-value">{normalizedCamiones.filter(v => v.estado === 'Disponible').length}</span>
+                    <span className="stat-label">Disponibles</span>
+                  </div>
                 </div>
-                <div className="stat-pill success">
-                  <span className="stat-value">{normalizedCamiones.filter(v => v.estado === 'En ruta' || v.estado === 'en_ruta').length}</span>
-                  <span className="stat-label">En Ruta</span>
-                </div>
-                <div className="stat-pill info">
-                  <span className="stat-value">{normalizedCamiones.filter(v => v.estado === 'Disponible').length}</span>
-                  <span className="stat-label">Disponibles</span>
-                </div>
+                <button className="btn-add-modern" onClick={() => setShowAddVehicleModal(true)}>
+                  <Plus size={20} />
+                  <span>Agregar Vehículo</span>
+                </button>
               </div>
             </div>
             
@@ -361,11 +269,110 @@ const AdminDashboard = ({ user, onLogout }) => {
                 </div>
               )}
             </div>
+
+            {/* Modal Agregar Vehículo */}
+            {showAddVehicleModal && (
+              <div className="modal-overlay" onClick={() => setShowAddVehicleModal(false)}>
+                <div className="modal-content" onClick={e => e.stopPropagation()}>
+                  <div className="modal-header">
+                    <h2>Agregar Vehículo</h2>
+                    <button className="btn-close" onClick={() => setShowAddVehicleModal(false)}>
+                      ✕
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleAddVehicle} className="vehicle-form">
+                    <div className="form-group">
+                      <label>Nombre *</label>
+                      <input
+                        type="text"
+                        name="nombre"
+                        value={vehicleFormData.nombre}
+                        onChange={handleVehicleInputChange}
+                        placeholder="Ej: Camión Recolector 1"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Placa *</label>
+                      <input
+                        type="text"
+                        name="placa"
+                        value={vehicleFormData.placa}
+                        onChange={handleVehicleInputChange}
+                        placeholder="Ej: ABC-123"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Marca</label>
+                        <input
+                          type="text"
+                          name="marca"
+                          value={vehicleFormData.marca}
+                          onChange={handleVehicleInputChange}
+                          placeholder="Ej: Ford"
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Modelo</label>
+                        <input
+                          type="text"
+                          name="modelo"
+                          value={vehicleFormData.modelo}
+                          onChange={handleVehicleInputChange}
+                          placeholder="Ej: F-350"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label>Año</label>
+                        <input
+                          type="number"
+                          name="año"
+                          value={vehicleFormData.año}
+                          onChange={handleVehicleInputChange}
+                          min="1990"
+                          max={new Date().getFullYear() + 1}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label>Tipo de Servicio *</label>
+                        <select
+                          name="tipoServicio"
+                          value={vehicleFormData.tipoServicio}
+                          onChange={handleVehicleInputChange}
+                          required
+                        >
+                          <option value="recoleccion">🚛 Recolección</option>
+                          <option value="fumigacion">🦟 Fumigación</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="modal-actions">
+                      <button type="button" className="btn-cancel" onClick={() => setShowAddVehicleModal(false)}>
+                        Cancelar
+                      </button>
+                      <button type="submit" className="btn-submit">
+                        Agregar Vehículo
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         );
 
       case 'rutas':
-        const activeRoutes = routes.filter(route => route.activa !== false && route.estado !== 'cancelada');
         return (
           <div className="operations-content-modern">
             <div className="ops-header">
@@ -373,49 +380,28 @@ const AdminDashboard = ({ user, onLogout }) => {
                 <MapPin strokeWidth={1.5} size={26} className="ops-header-icon" />
                 <div className="ops-header-text">
                   <h2>Gestión de Rutas</h2>
-                  <p>Visualiza y administra todas las rutas activas</p>
+                  <p>Define y administra plantillas de rutas</p>
                 </div>
               </div>
               <div className="ops-header-stats">
                 <div className="stat-pill">
-                  <span className="stat-value">{activeRoutes.length}</span>
-                  <span className="stat-label">Activas</span>
+                  <span className="stat-value">{routes.filter(r => r.tipo_servicio === 'recoleccion').length}</span>
+                  <span className="stat-label">Recolección</span>
                 </div>
-                <div className="stat-pill success">
-                  <span className="stat-value">{activeRoutes.filter(r => r.estado === 'en_progreso').length}</span>
-                  <span className="stat-label">En Progreso</span>
+                <div className="stat-pill info">
+                  <span className="stat-value">{routes.filter(r => r.tipo_servicio === 'fumigacion').length}</span>
+                  <span className="stat-label">Fumigación</span>
                 </div>
               </div>
             </div>
 
             <div className="ops-content-wrapper">
-              {activeRoutes.length > 0 ? (
-                <div className="routes-grid-modern">
-                  {activeRoutes.map((route, index) => (
-                    <div key={route.id} style={{ animationDelay: `${index * 50}ms` }}>
-                      <RouteTimeline
-                        route={route}
-                        onViewMap={(route) => {
-                          console.log('View map for route:', route);
-                        }}
-                        onEdit={(route) => handleEditRoute(route)}
-                        onPause={(route) => handleToggleRouteStatus(route.id)}
-                        onViewStats={(route) => {
-                          console.log('View stats for route:', route);
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-state-modern">
-                  <div className="empty-icon-modern">
-                    <MapPin strokeWidth={1.5} size={64} />
-                  </div>
-                  <h3>No hay rutas activas</h3>
-                  <p>No se encontraron rutas activas en el sistema</p>
-                </div>
-              )}
+              <RoutesComponent
+                initialRoutes={routes}
+                onRoutesChange={(updatedRoutes) => {
+                  console.log('Routes updated:', updatedRoutes);
+                }}
+              />
             </div>
           </div>
         );
@@ -598,7 +584,7 @@ const AdminDashboard = ({ user, onLogout }) => {
               </button>
             </li>
             <li>
-              <button 
+              <button
                 className={activeTab === 'operaciones' ? 'active' : ''}
                 onClick={() => handleTabChange('operaciones', 'personal')}
               >
@@ -606,7 +592,7 @@ const AdminDashboard = ({ user, onLogout }) => {
               </button>
             </li>
             <li>
-              <button 
+              <button
                 className={activeTab === 'calendario' ? 'active' : ''}
                 onClick={() => handleTabChange('calendario')}
               >

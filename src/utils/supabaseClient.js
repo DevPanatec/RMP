@@ -170,18 +170,16 @@ class SupabaseClient {
       .from('vehiculos')
       .select(`
         *,
-        conductor_actual:empleados!conductor_actual_id(nombre, apellido),
         proyecto_asignado:proyectos!proyecto_asignado_id(nombre)
       `)
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
-    
+
     // Transformar para coincidir con el formato esperado
     const transformedData = data.map(item => ({
       ...item,
-      conductor_nombre: item.conductor_actual ? 
-        `${item.conductor_actual.nombre} ${item.conductor_actual.apellido}` : null,
+      conductor_nombre: null, // Conductores ya no están asignados directamente
       proyecto_nombre: item.proyecto_asignado?.nombre || null,
       // Agregar propiedades adicionales para el mapa
       lat: parseFloat(item.gps_latitud) || 4.6097100,
@@ -193,7 +191,7 @@ class SupabaseClient {
         { lat: parseFloat(item.gps_latitud), lng: parseFloat(item.gps_longitud), timestamp: new Date().toISOString() }
       ] : []
     }));
-    
+
     return { rows: transformedData };
   }
 
@@ -248,47 +246,43 @@ class SupabaseClient {
       .from('rutas')
       .select(`
         *,
-        proyecto:proyectos!proyecto_id(nombre),
-        vehiculo:vehiculos!vehiculo_id(placa),
-        conductor:empleados!conductor_id(nombre, apellido)
+        proyecto:proyectos!proyecto_id(nombre)
       `)
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
-    
+
     // Transformar para coincidir con el formato esperado
     const transformedData = data.map(item => ({
       ...item,
       proyecto_nombre: item.proyecto?.nombre || null,
-      vehiculo_placa: item.vehiculo?.placa || null,
-      conductor_nombre: item.conductor ? 
-        `${item.conductor.nombre} ${item.conductor.apellido}` : null
+      vehiculo_placa: null, // Vehículos ya no están asignados directamente
+      conductor_nombre: null // Conductores ya no están asignados directamente
     }));
-    
+
     return { rows: transformedData };
   }
 
   async addRoute(routeData) {
     const paradas = JSON.stringify(routeData.stops || routeData.paradas || []);
-    
+
     const { data, error } = await this.client
       .from('rutas')
       .insert([{
         nombre: routeData.name || routeData.nombre,
         proyecto_id: routeData.proyecto_id || null,
-        vehiculo_id: routeData.vehiculo_id || null,
-        conductor_id: routeData.conductor_id || null,
         tipo_servicio: routeData.tipo_servicio || 'recoleccion',
         paradas: paradas,
         fecha_programada: routeData.fecha_programada || new Date().toISOString().split('T')[0],
         hora_inicio: routeData.hora_inicio || null,
+        hora_fin: routeData.hora_fin || null,
         distancia_total: routeData.distancia_total || null,
         combustible_estimado: routeData.combustible_estimado || null,
         observaciones: routeData.observaciones || ''
       }])
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -326,28 +320,24 @@ class SupabaseClient {
       .from('rutas')
       .select(`
         *,
-        proyecto:proyectos!proyecto_id(nombre),
-        vehiculo:vehiculos!vehiculo_id(placa, marca, modelo),
-        conductor:empleados!conductor_id(nombre, apellido)
+        proyecto:proyectos!proyecto_id(nombre)
       `)
       .eq('estado', 'completada')
       .gte('fecha_programada', dateRange.inicio)
       .lte('fecha_programada', dateRange.fin)
       .order('updated_at', { ascending: false });
-    
+
     if (error) throw error;
-    
+
     // Transformar para coincidir con el formato esperado
     const transformedData = data.map(item => ({
       ...item,
       proyecto_nombre: item.proyecto?.nombre || null,
-      vehiculo_placa: item.vehiculo?.placa || null,
-      vehiculo_info: item.vehiculo ? 
-        `${item.vehiculo.marca} ${item.vehiculo.modelo}` : null,
-      conductor_nombre: item.conductor ? 
-        `${item.conductor.nombre} ${item.conductor.apellido}` : null
+      vehiculo_placa: null, // Vehículos ya no están asignados directamente
+      vehiculo_info: null,
+      conductor_nombre: null // Conductores ya no están asignados directamente
     }));
-    
+
     return { rows: transformedData };
   }
 }
