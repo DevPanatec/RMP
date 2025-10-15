@@ -15,11 +15,11 @@ const TABS = {
 };
 
 const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
-  const { salas, areas, getAreasBySala, uploadPhoto } = useSupabaseCleaning();
-  
+  const { lugares, areas, getAreasByLugar, uploadPhoto } = useSupabaseCleaning();
+
   const [activeTab, setActiveTab] = useState(TABS.INFO);
   const [formData, setFormData] = useState({
-    sala_id: '',
+    lugar_id: '',
     area_id: '',
     fecha: '',
     hora: '',
@@ -39,18 +39,18 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
   useEffect(() => {
     if (assignment && isEditing) {
       setFormData({
-        sala_id: assignment.sala_id || '',
+        lugar_id: assignment.lugar_id || '',
         area_id: assignment.area_id || '',
         fecha: assignment.fecha || '',
         hora: assignment.hora || '',
         tipo_limpieza: assignment.tipo_limpieza || 'regular'
       });
-      if (assignment.sala_id) {
-        setAvailableAreas(getAreasBySala(assignment.sala_id));
+      if (assignment.lugar_id) {
+        setAvailableAreas(getAreasByLugar(assignment.lugar_id));
       }
     } else {
       setFormData({
-        sala_id: '',
+        lugar_id: '',
         area_id: '',
         fecha: '',
         hora: '',
@@ -61,7 +61,7 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
     setActiveTab(TABS.INFO);
     setErrors({});
     setPhotos({ before: [], during: [], after: [] });
-  }, [assignment, isEditing, isOpen, getAreasBySala]);
+  }, [assignment, isEditing, isOpen, getAreasByLugar]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -70,10 +70,10 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
     }
   };
 
-  const handleSalaChange = (value) => {
-    handleChange('sala_id', value);
+  const handleLugarChange = (value) => {
+    handleChange('lugar_id', value);
     handleChange('area_id', '');
-    setAvailableAreas(getAreasBySala(value));
+    setAvailableAreas(getAreasByLugar(value));
   };
 
   const handlePhotosChange = (type, newPhotos) => {
@@ -86,8 +86,8 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.sala_id) {
-      newErrors.sala_id = 'Seleccione una sala';
+    if (!formData.lugar_id) {
+      newErrors.lugar_id = 'Seleccione un lugar';
     }
     
     if (!formData.area_id) {
@@ -118,7 +118,7 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
 
   const handleSave = async () => {
     if (!validateForm()) {
-      const firstErrorTab = errors.sala_id || errors.area_id || errors.fecha || errors.hora 
+      const firstErrorTab = errors.lugar_id || errors.area_id || errors.fecha || errors.hora 
         ? TABS.INFO 
         : errors.photos 
           ? TABS.EVIDENCE 
@@ -131,7 +131,7 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
 
     try {
       const assignmentData = {
-        sala_id: formData.sala_id,
+        lugar_id: formData.lugar_id,
         area_id: formData.area_id,
         fecha: formData.fecha,
         hora: formData.hora,
@@ -153,7 +153,7 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
           await uploadPhoto(assignmentId, photo.etapa, photo.file);
         }
 
-        setFormData({ sala_id: '', area_id: '', fecha: '', hora: '', tipo_limpieza: 'regular' });
+        setFormData({ lugar_id: '', area_id: '', fecha: '', hora: '', tipo_limpieza: 'regular' });
         setPhotos({ before: [], during: [], after: [] });
         setAvailableAreas([]);
         onClose();
@@ -169,7 +169,7 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
   if (!isOpen) return null;
 
   const getValidationStatus = () => {
-    if (!formData.sala_id) return { icon: AlertTriangle, text: 'Selecciona una sala', type: 'error' };
+    if (!formData.lugar_id) return { icon: AlertTriangle, text: 'Selecciona un lugar', type: 'error' };
     if (!formData.area_id) return { icon: AlertTriangle, text: 'Selecciona un área', type: 'error' };
     if (!formData.fecha || !formData.hora) return { icon: AlertTriangle, text: 'Completa fecha y hora', type: 'error' };
     if (photos.before.length === 0 || photos.during.length === 0 || photos.after.length === 0) {
@@ -180,9 +180,9 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
 
   const validationStatus = getValidationStatus();
 
-  const getSalaNombre = (salaId) => {
-    const sala = salas.find(s => s.id === salaId);
-    return sala ? sala.nombre : '';
+  const getLugarNombre = (lugarId) => {
+    const lugar = lugares.find(l => l.id === lugarId);
+    return lugar ? lugar.nombre : '';
   };
 
   const getAreaNombre = (areaId) => {
@@ -241,21 +241,21 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
                 <h5><MapPin size={18} /> Ubicación</h5>
                 
                 <div className="form-group">
-                  <label>Sala *</label>
+                  <label>Lugar *</label>
                   <select
-                    value={formData.sala_id}
-                    onChange={e => handleSalaChange(e.target.value)}
-                    className={`cleaning-input ${errors.sala_id ? 'error' : ''}`}
+                    value={formData.lugar_id}
+                    onChange={e => handleLugarChange(e.target.value)}
+                    className={`cleaning-input ${errors.lugar_id ? 'error' : ''}`}
                     disabled={submitting}
                   >
-                    <option value="">Seleccionar sala...</option>
-                    {salas.map((sala) => (
-                      <option key={sala.id} value={sala.id}>
-                        {sala.nombre}
+                    <option value="">Seleccionar lugar...</option>
+                    {lugares.map((lugar) => (
+                      <option key={lugar.id} value={lugar.id}>
+                        {lugar.nombre}
                       </option>
                     ))}
                   </select>
-                  {errors.sala_id && <span className="error-text">{errors.sala_id}</span>}
+                  {errors.lugar_id && <span className="error-text">{errors.lugar_id}</span>}
                 </div>
 
                 <div className="form-group">
@@ -263,7 +263,7 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
                   <select
                     value={formData.area_id}
                     onChange={e => handleChange('area_id', e.target.value)}
-                    disabled={!formData.sala_id || submitting}
+                    disabled={!formData.lugar_id || submitting}
                     className={`cleaning-input ${errors.area_id ? 'error' : ''}`}
                   >
                     <option value="">Seleccionar área...</option>
@@ -387,8 +387,8 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
                 
                 <div className="summary-grid">
                   <div className="summary-item">
-                    <span className="summary-label">Sala</span>
-                    <span className="summary-value">{getSalaNombre(formData.sala_id) || '-'}</span>
+                    <span className="summary-label">Lugar</span>
+                    <span className="summary-value">{getLugarNombre(formData.lugar_id) || '-'}</span>
                   </div>
                   
                   <div className="summary-item">

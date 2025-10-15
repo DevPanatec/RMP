@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
 import { useSupabaseSchedule } from '../../context/SupabaseScheduleContext';
+import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter } from '../Icons';
 import CalendarDay from './CalendarDay';
 import DayDetailsModal from './DayDetailsModal';
@@ -19,18 +20,20 @@ const CalendarComponent = () => {
   const { routes, loading: routesLoading } = useSupabaseRoutes();
   const { assignments: cleaningAssignments, loading: cleaningLoading } = useSupabaseCleaning();
   const { assignments: scheduleAssignments, loading: scheduleLoading, getDayNameFromDate } = useSupabaseSchedule();
+  const { tasks: maintenanceTasks, loading: maintenanceLoading } = useSupabaseMaintenance();
 
   const [viewMode, setViewMode] = useState('month');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [filters, setFilters] = useState({
     recoleccion: true,
     fumigacion: true,
-    limpieza: true
+    limpieza: true,
+    mantenimiento: true
   });
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  const loading = routesLoading || cleaningLoading || scheduleLoading;
+  const loading = routesLoading || cleaningLoading || scheduleLoading || maintenanceLoading;
 
   const getActivityTypeIcon = (type) => {
     switch (type) {
@@ -40,6 +43,8 @@ const CalendarComponent = () => {
         return '🦟';
       case 'limpieza':
         return '🧹';
+      case 'mantenimiento':
+        return '🔧';
       default:
         return '📌';
     }
@@ -101,10 +106,26 @@ const CalendarComponent = () => {
         activities.push({
           id: `cleaning-${assignment.id}`,
           type: 'limpieza',
-          title: `${assignment.sala?.nombre || 'Sala'} - ${assignment.area?.nombre || 'Área'}`,
+          title: `${assignment.lugar?.nombre || 'Lugar'} - ${assignment.area?.nombre || 'Área'}`,
           time: assignment.hora || '10:00',
           status: assignment.estado,
           data: assignment
+        });
+      });
+    }
+
+    if (filters.mantenimiento) {
+      const maintenanceForDate = maintenanceTasks.filter(
+        task => task.scheduled_date === dateStr
+      );
+      maintenanceForDate.forEach(task => {
+        activities.push({
+          id: `maintenance-${task.id}`,
+          type: 'mantenimiento',
+          title: `Mantenimiento ${task.type} - ${task.observations?.substring(0, 30) || 'Tarea'}`,
+          time: task.scheduled_time || '08:00',
+          status: task.status,
+          data: task
         });
       });
     }
@@ -306,6 +327,12 @@ const CalendarComponent = () => {
               onClick={() => toggleFilter('limpieza')}
             >
               🧹 Limpieza
+            </button>
+            <button
+              className={`filter-btn ${filters.mantenimiento ? 'active' : ''}`}
+              onClick={() => toggleFilter('mantenimiento')}
+            >
+              🔧 Mantenimiento
             </button>
           </div>
         </div>

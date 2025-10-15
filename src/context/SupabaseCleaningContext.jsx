@@ -6,7 +6,7 @@ const SupabaseCleaningContext = createContext();
 
 // Tipos de acciones
 const ACTIONS = {
-  SET_SALAS: 'SET_SALAS',
+  SET_LUGARES: 'SET_LUGARES',
   SET_AREAS: 'SET_AREAS',
   SET_ASSIGNMENTS: 'SET_ASSIGNMENTS',
   ADD_ASSIGNMENT: 'ADD_ASSIGNMENT',
@@ -19,10 +19,10 @@ const ACTIONS = {
 // Reducer para manejar el estado
 const cleaningReducer = (state, action) => {
   switch (action.type) {
-    case ACTIONS.SET_SALAS:
+    case ACTIONS.SET_LUGARES:
       return {
         ...state,
-        salas: action.payload,
+        lugares: action.payload,
         loading: false
       };
 
@@ -80,7 +80,7 @@ const cleaningReducer = (state, action) => {
 
 // Estado inicial
 const initialState = {
-  salas: [],
+  lugares: [],
   areas: [],
   assignments: [],
   loading: true,
@@ -91,27 +91,27 @@ const initialState = {
 export const SupabaseCleaningProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cleaningReducer, initialState);
 
-  // Cargar salas al iniciar
+  // Cargar lugares al iniciar
   useEffect(() => {
-    loadSalas();
+    loadLugares();
     loadAreas();
     loadAssignments();
   }, []);
 
-  // Cargar salas desde Supabase
-  const loadSalas = async () => {
+  // Cargar lugares desde Supabase
+  const loadLugares = async () => {
     try {
       const { data, error } = await supabaseClient.supabase
-        .from('salas')
+        .from('lugares')
         .select('*')
         .eq('activo', true)
         .order('nombre', { ascending: true });
 
       if (error) throw error;
 
-      dispatch({ type: ACTIONS.SET_SALAS, payload: data || [] });
+      dispatch({ type: ACTIONS.SET_LUGARES, payload: data || [] });
     } catch (error) {
-      console.error('Error loading salas:', error);
+      console.error('Error loading lugares:', error);
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
     }
   };
@@ -143,7 +143,7 @@ export const SupabaseCleaningProvider = ({ children }) => {
         .from('cleaning_assignments')
         .select(`
           *,
-          sala:salas(id, nombre),
+          lugar:lugares(id, nombre),
           area:areas(id, nombre),
           fotos:cleaning_photos(*)
         `)
@@ -165,7 +165,7 @@ export const SupabaseCleaningProvider = ({ children }) => {
       const { data, error } = await supabaseClient.supabase
         .from('cleaning_assignments')
         .insert([{
-          sala_id: assignmentData.sala_id,
+          lugar_id: assignmentData.lugar_id,
           area_id: assignmentData.area_id,
           fecha: assignmentData.fecha,
           hora: assignmentData.hora,
@@ -174,7 +174,7 @@ export const SupabaseCleaningProvider = ({ children }) => {
         }])
         .select(`
           *,
-          sala:salas(id, nombre),
+          lugar:lugares(id, nombre),
           area:areas(id, nombre)
         `)
         .single();
@@ -199,7 +199,7 @@ export const SupabaseCleaningProvider = ({ children }) => {
         .eq('id', id)
         .select(`
           *,
-          sala:salas(id, nombre),
+          lugar:lugares(id, nombre),
           area:areas(id, nombre),
           fotos:cleaning_photos(*)
         `)
@@ -276,9 +276,9 @@ export const SupabaseCleaningProvider = ({ children }) => {
     }
   };
 
-  // Obtener áreas por sala
-  const getAreasBySala = (salaId) => {
-    return state.areas.filter(area => area.sala_id === salaId);
+  // Obtener áreas por lugar
+  const getAreasByLugar = (lugarId) => {
+    return state.areas.filter(area => area.lugar_id === lugarId);
   };
 
   // Obtener estadísticas
@@ -292,19 +292,19 @@ export const SupabaseCleaningProvider = ({ children }) => {
   };
 
   const value = {
-    salas: state.salas,
+    lugares: state.lugares,
     areas: state.areas,
     assignments: state.assignments,
     loading: state.loading,
     error: state.error,
-    loadSalas,
+    loadLugares,
     loadAreas,
     loadAssignments,
     addAssignment,
     updateAssignment,
     deleteAssignment,
     uploadPhoto,
-    getAreasBySala,
+    getAreasByLugar,
     getStats
   };
 

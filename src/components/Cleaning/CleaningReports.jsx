@@ -85,7 +85,7 @@ const CleaningReports = ({ userRole }) => {
     });
   }, [reports, filters]);
 
-  // Obtener salas y áreas únicas para los filtros
+  // Obtener lugares y áreas únicas para los filtros
   const uniqueSalas = useMemo(() => [...new Set(reports.map((r) => r.sala))], [reports]);
   const uniqueAreas = useMemo(() => [...new Set(reports.map((r) => r.area))], [reports]);
 
@@ -139,7 +139,7 @@ const CleaningReports = ({ userRole }) => {
             onChange={(e) => handleFilterChange('sala', e.target.value)}
             className="cleaning-filters__select"
           >
-            <option value="">Todas las salas</option>
+            <option value="">Todas las lugares</option>
             {uniqueSalas.map((sala) => (
               <option key={sala} value={sala}>
                 {sala}

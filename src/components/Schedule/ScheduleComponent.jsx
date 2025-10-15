@@ -27,12 +27,12 @@ const ScheduleComponent = () => {
   const { personnel } = useSupabasePersonnel();
   const { vehicles } = useSupabaseFleet();
   const { 
-    salas, 
+    lugares, 
     areas, 
     assignments: cleaningAssignments, 
     loading: cleaningLoading, 
     addAssignment: addCleaningAssignment,
-    getAreasBySala,
+    getAreasByLugar,
     uploadPhoto 
   } = useSupabaseCleaning();
 
@@ -50,7 +50,7 @@ const ScheduleComponent = () => {
   });
 
   const [cleaningFormData, setCleaningFormData] = useState({
-    sala_id: '',
+    lugar_id: '',
     area_id: '',
     fecha: '',
     hora: '',
@@ -99,7 +99,7 @@ const ScheduleComponent = () => {
 
   const handleOpenCleaningModal = () => {
     setCleaningFormData({
-      sala_id: '',
+      lugar_id: '',
       area_id: '',
       fecha: '',
       hora: '',
@@ -123,7 +123,7 @@ const ScheduleComponent = () => {
       observaciones: ''
     });
     setCleaningFormData({
-      sala_id: '',
+      lugar_id: '',
       area_id: '',
       fecha: '',
       hora: '',
@@ -178,9 +178,9 @@ const ScheduleComponent = () => {
 
   const handleSalaChange = (e) => {
     const salaId = e.target.value;
-    setCleaningFormData({ ...cleaningFormData, sala_id: salaId, area_id: '' });
-    setAvailableAreas(getAreasBySala(salaId));
-    setErrors({ ...errors, sala_id: '' });
+    setCleaningFormData({ ...cleaningFormData, lugar_id: salaId, area_id: '' });
+    setAvailableAreas(getAreasByLugar(salaId));
+    setErrors({ ...errors, lugar_id: '' });
   };
 
   const handleAreaChange = (e) => {
@@ -196,7 +196,7 @@ const ScheduleComponent = () => {
   const validateCleaningForm = () => {
     const newErrors = {};
 
-    if (!cleaningFormData.sala_id) newErrors.sala_id = 'Seleccione una sala';
+    if (!cleaningFormData.lugar_id) newErrors.lugar_id = 'Seleccione una sala';
     if (!cleaningFormData.area_id) newErrors.area_id = 'Seleccione un área';
     if (!cleaningFormData.fecha) newErrors.fecha = 'Seleccione una fecha';
     if (!cleaningFormData.hora) newErrors.hora = 'Seleccione una hora';
@@ -263,7 +263,7 @@ const ScheduleComponent = () => {
   };
 
   const getSalaNombre = (salaId) => {
-    const sala = salas.find(s => s.id === salaId);
+    const sala = lugares.find(s => s.id === salaId);
     return sala ? sala.nombre : '';
   };
 
@@ -411,7 +411,7 @@ const ScheduleComponent = () => {
                           <Sparkles size={20} />
                         </div>
                         <div className="assignment-title-unified">
-                          <h4>{getSalaNombre(assignment.sala_id)} - {getAreaNombre(assignment.area_id)}</h4>
+                          <h4>{getSalaNombre(assignment.lugar_id)} - {getAreaNombre(assignment.area_id)}</h4>
                           <p className="assignment-date">{formatDate(assignment.fecha)}</p>
                         </div>
                         <span className={`status-badge status-${assignment.estado}`}>
@@ -592,19 +592,19 @@ const ScheduleComponent = () => {
                 <div className="form-group">
                   <label>Sala *</label>
                   <select
-                    value={cleaningFormData.sala_id}
+                    value={cleaningFormData.lugar_id}
                     onChange={handleSalaChange}
-                    className={errors.sala_id ? 'error' : ''}
+                    className={errors.lugar_id ? 'error' : ''}
                     required
                   >
                     <option value="">Seleccionar sala</option>
-                    {salas.map(sala => (
+                    {lugares.map(sala => (
                       <option key={sala.id} value={sala.id}>
                         {sala.nombre}
                       </option>
                     ))}
                   </select>
-                  {errors.sala_id && <span className="error-text">{errors.sala_id}</span>}
+                  {errors.lugar_id && <span className="error-text">{errors.lugar_id}</span>}
                 </div>
 
                 <div className="form-group">
@@ -612,7 +612,7 @@ const ScheduleComponent = () => {
                   <select
                     value={cleaningFormData.area_id}
                     onChange={handleAreaChange}
-                    disabled={!cleaningFormData.sala_id}
+                    disabled={!cleaningFormData.lugar_id}
                     className={errors.area_id ? 'error' : ''}
                     required
                   >

@@ -30,7 +30,8 @@ const MaintenanceTasks = ({ userRole }) => {
 
   const handleEdit = (task) => {
     setSelectedTask(task);
-    setViewMode(false);
+    // Enterprise siempre en viewMode
+    setViewMode(isAdmin ? false : true);
     setShowModal(true);
   };
 
@@ -87,7 +88,7 @@ const MaintenanceTasks = ({ userRole }) => {
             onClick={() => setFilter('programada')}
             style={{
               background: filter === 'programada'
-                ? 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)'
+                ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)'
                 : 'var(--color-secondary)',
               color: filter === 'programada' ? 'white' : 'var(--color-text-secondary)',
               padding: '16px',
@@ -95,34 +96,13 @@ const MaintenanceTasks = ({ userRole }) => {
               border: 'none',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
-              boxShadow: filter === 'programada' ? '0 4px 12px rgba(14, 165, 233, 0.2)' : 'none'
+              boxShadow: filter === 'programada' ? '0 4px 12px rgba(61, 82, 41, 0.3)' : 'none'
             }}
           >
             <div style={{ fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>
               {tasks.filter(t => t.status === 'programada').length}
             </div>
             <div style={{ fontSize: '13px', opacity: 0.9 }}>📅 Programadas</div>
-          </button>
-          <button
-            className={`maintenance-subtab ${filter === 'en_proceso' ? 'maintenance-subtab--active' : ''}`}
-            onClick={() => setFilter('en_proceso')}
-            style={{
-              background: filter === 'en_proceso'
-                ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
-                : 'var(--color-secondary)',
-              color: filter === 'en_proceso' ? 'white' : 'var(--color-text-secondary)',
-              padding: '16px',
-              borderRadius: '12px',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: filter === 'en_proceso' ? '0 4px 12px rgba(245, 158, 11, 0.2)' : 'none'
-            }}
-          >
-            <div style={{ fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>
-              {tasks.filter(t => t.status === 'en_proceso').length}
-            </div>
-            <div style={{ fontSize: '13px', opacity: 0.9 }}>⚙️ En Proceso</div>
           </button>
           <button
             className={`maintenance-subtab ${filter === 'completada' ? 'maintenance-subtab--active' : ''}`}
@@ -248,6 +228,7 @@ const MaintenanceTasks = ({ userRole }) => {
         <MaintenanceTaskModal
           task={selectedTask}
           viewMode={viewMode}
+          userRole={userRole}
           onClose={handleCloseModal}
         />
       )}

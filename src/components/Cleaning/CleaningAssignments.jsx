@@ -7,7 +7,7 @@ import CleaningModal from './CleaningModal';
 import './CleaningAssignments.css';
 
 const CleaningAssignments = ({ userRole }) => {
-  const { salas, areas, assignments, loading, addAssignment } = useSupabaseCleaning();
+  const { lugares, areas, assignments, loading, addAssignment } = useSupabaseCleaning();
 
   const [showModal, setShowModal] = useState(false);
   const [showPhotosModal, setShowPhotosModal] = useState(false);
