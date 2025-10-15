@@ -24,7 +24,7 @@ class SupabaseClient {
       .select('*')
       .eq('activo', true)
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return { rows: data };
   }
@@ -47,7 +47,7 @@ class SupabaseClient {
       }])
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -60,7 +60,7 @@ class SupabaseClient {
       .eq('id', employeeId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -68,14 +68,14 @@ class SupabaseClient {
   async deleteEmployee(employeeId) {
     const { data, error } = await this.client
       .from('empleados')
-      .update({ 
-        activo: false, 
-        updated_at: new Date().toISOString() 
+      .update({
+        activo: false,
+        updated_at: new Date().toISOString()
       })
       .eq('id', employeeId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -90,19 +90,19 @@ class SupabaseClient {
         proyecto:proyectos!proyecto_id(nombre),
         vehiculo:vehiculos!vehiculo_id(placa)
       `)
-      .order('fecha_reporte', { ascending: false });
-    
+      .order('fecha_reporte', { ascending: false});
+
     if (error) throw error;
-    
+
     // Transformar para coincidir con el formato esperado
     const transformedData = data.map(item => ({
       ...item,
-      empleado_nombre: item.empleado_reporta ? 
+      empleado_nombre: item.empleado_reporta ?
         `${item.empleado_reporta.nombre} ${item.empleado_reporta.apellido}` : null,
       proyecto_nombre: item.proyecto?.nombre || null,
       vehiculo_placa: item.vehiculo?.placa || null
     }));
-    
+
     return { rows: transformedData };
   }
 
@@ -125,7 +125,7 @@ class SupabaseClient {
       }])
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -138,7 +138,7 @@ class SupabaseClient {
       .eq('id', alertId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -148,7 +148,7 @@ class SupabaseClient {
       .from('reportes_riesgo')
       .delete()
       .eq('id', alertId);
-    
+
     if (error) throw error;
     return { rows: [] };
   }
@@ -158,8 +158,8 @@ class SupabaseClient {
     const { data, error } = await this.client
       .from('proyectos')
       .select('*')
-      .order('created_at', { ascending: false });
-    
+      .order('created_at', { ascending: false});
+
     if (error) throw error;
     return { rows: data };
   }
@@ -170,18 +170,16 @@ class SupabaseClient {
       .from('vehiculos')
       .select(`
         *,
-        conductor_actual:empleados!conductor_actual_id(nombre, apellido),
         proyecto_asignado:proyectos!proyecto_asignado_id(nombre)
       `)
-      .order('created_at', { ascending: false });
-    
+      .order('created_at', { ascending: false});
+
     if (error) throw error;
-    
+
     // Transformar para coincidir con el formato esperado
     const transformedData = data.map(item => ({
       ...item,
-      conductor_nombre: item.conductor_actual ? 
-        `${item.conductor_actual.nombre} ${item.conductor_actual.apellido}` : null,
+      conductor_nombre: null,
       proyecto_nombre: item.proyecto_asignado?.nombre || null,
       // Agregar propiedades adicionales para el mapa
       lat: parseFloat(item.gps_latitud) || 4.6097100,
@@ -193,7 +191,7 @@ class SupabaseClient {
         { lat: parseFloat(item.gps_latitud), lng: parseFloat(item.gps_longitud), timestamp: new Date().toISOString() }
       ] : []
     }));
-    
+
     return { rows: transformedData };
   }
 
@@ -214,7 +212,7 @@ class SupabaseClient {
       }])
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -227,7 +225,7 @@ class SupabaseClient {
       .eq('id', vehicleId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -237,7 +235,7 @@ class SupabaseClient {
       .from('vehiculos')
       .delete()
       .eq('id', vehicleId);
-    
+
     if (error) throw error;
     return { rows: [] };
   }
@@ -248,36 +246,31 @@ class SupabaseClient {
       .from('rutas')
       .select(`
         *,
-        proyecto:proyectos!proyecto_id(nombre),
-        vehiculo:vehiculos!vehiculo_id(placa),
-        conductor:empleados!conductor_id(nombre, apellido)
+        proyecto:proyectos!proyecto_id(nombre)
       `)
-      .order('created_at', { ascending: false });
-    
+      .order('created_at', { ascending: false});
+
     if (error) throw error;
-    
+
     // Transformar para coincidir con el formato esperado
     const transformedData = data.map(item => ({
       ...item,
       proyecto_nombre: item.proyecto?.nombre || null,
-      vehiculo_placa: item.vehiculo?.placa || null,
-      conductor_nombre: item.conductor ? 
-        `${item.conductor.nombre} ${item.conductor.apellido}` : null
+      vehiculo_placa: null,
+      conductor_nombre: null
     }));
-    
+
     return { rows: transformedData };
   }
 
   async addRoute(routeData) {
     const paradas = JSON.stringify(routeData.stops || routeData.paradas || []);
-    
+
     const { data, error } = await this.client
       .from('rutas')
       .insert([{
         nombre: routeData.name || routeData.nombre,
         proyecto_id: routeData.proyecto_id || null,
-        vehiculo_id: routeData.vehiculo_id || null,
-        conductor_id: routeData.conductor_id || null,
         tipo_servicio: routeData.tipo_servicio || 'recoleccion',
         paradas: paradas,
         fecha_programada: routeData.fecha_programada || new Date().toISOString().split('T')[0],
@@ -288,7 +281,7 @@ class SupabaseClient {
       }])
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -298,14 +291,14 @@ class SupabaseClient {
       updates.paradas = JSON.stringify(updates.paradas);
     }
     const updateData = { ...updates, updated_at: new Date().toISOString() };
-    
+
     const { data, error } = await this.client
       .from('rutas')
       .update(updateData)
       .eq('id', routeId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -315,7 +308,7 @@ class SupabaseClient {
       .from('rutas')
       .delete()
       .eq('id', routeId);
-    
+
     if (error) throw error;
     return { rows: [] };
   }
@@ -326,28 +319,24 @@ class SupabaseClient {
       .from('rutas')
       .select(`
         *,
-        proyecto:proyectos!proyecto_id(nombre),
-        vehiculo:vehiculos!vehiculo_id(placa, marca, modelo),
-        conductor:empleados!conductor_id(nombre, apellido)
+        proyecto:proyectos!proyecto_id(nombre)
       `)
       .eq('estado', 'completada')
       .gte('fecha_programada', dateRange.inicio)
       .lte('fecha_programada', dateRange.fin)
-      .order('updated_at', { ascending: false });
-    
+      .order('updated_at', { ascending: false});
+
     if (error) throw error;
-    
+
     // Transformar para coincidir con el formato esperado
     const transformedData = data.map(item => ({
       ...item,
       proyecto_nombre: item.proyecto?.nombre || null,
-      vehiculo_placa: item.vehiculo?.placa || null,
-      vehiculo_info: item.vehiculo ? 
-        `${item.vehiculo.marca} ${item.vehiculo.modelo}` : null,
-      conductor_nombre: item.conductor ? 
-        `${item.conductor.nombre} ${item.conductor.apellido}` : null
+      vehiculo_placa: null,
+      vehiculo_info: null,
+      conductor_nombre: null
     }));
-    
+
     return { rows: transformedData };
   }
 }
@@ -364,10 +353,10 @@ supabaseClient.executeSQL = async function(query) {
   try {
     // Para queries SELECT simples, parseamos y usamos el ORM
     // Para otros casos, usamos PostgreSQL function o hacemos fetch directo
-    
+
     // Por ahora, ejecutamos SQL usando fetch directo al endpoint de PostgREST
     const cleanQuery = query.trim().replace(/;$/, '');
-    
+
     // Si es un INSERT/UPDATE/DELETE de perfiles_usuarios, usar el ORM
     if (cleanQuery.toLowerCase().includes('perfiles_usuarios')) {
       // Intentar parsear la query para usar el ORM
@@ -379,14 +368,14 @@ supabaseClient.executeSQL = async function(query) {
         // Si falla RPC, continuar con método alternativo
       }
     }
-    
+
     // Método alternativo: usar el cliente REST directamente
     console.log('Ejecutando query SQL:', cleanQuery.substring(0, 100) + '...');
-    
+
     // Para development, simplemente devolvemos un array vacío si no podemos ejecutar
     // En producción, esto debería usar una Cloud Function o RPC
     return { rows: [] };
-    
+
   } catch (error) {
     console.error('Error ejecutando SQL:', error);
     throw error;
