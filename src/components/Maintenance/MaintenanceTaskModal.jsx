@@ -189,28 +189,49 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
     e.stopPropagation();
 
     const files = [];
+    const uniqueFiles = new Set();
 
     // Manejar archivos desde file explorer
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      files.push(...Array.from(e.dataTransfer.files));
+      Array.from(e.dataTransfer.files).forEach(file => {
+        const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
+        if (!uniqueFiles.has(fileKey)) {
+          uniqueFiles.add(fileKey);
+          files.push(file);
+        }
+      });
     }
 
-    // Manejar imágenes desde WhatsApp Web o navegador
-    if (e.dataTransfer.items) {
+    // Manejar imágenes desde WhatsApp Web o navegador (solo si no hay archivos ya)
+    if (files.length === 0 && e.dataTransfer.items) {
       for (let i = 0; i < e.dataTransfer.items.length; i++) {
         const item = e.dataTransfer.items[i];
 
         if (item.type.startsWith('image/') || item.type.startsWith('video/')) {
           const file = item.getAsFile();
-          if (file) files.push(file);
+          if (file) {
+            const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
+            if (!uniqueFiles.has(fileKey)) {
+              uniqueFiles.add(fileKey);
+              files.push(file);
+            }
+          }
         }
       }
     }
 
-    // Subir todos los archivos a la categoría seleccionada
-    for (const file of files) {
-      if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
-        await handlePhotoUpload(file, selectedCategory);
+    // Distribución automática: Si son 3 archivos, distribuir automáticamente
+    if (files.length === 3) {
+      await handlePhotoUpload(files[0], 'before');
+      await handlePhotoUpload(files[1], 'during');
+      await handlePhotoUpload(files[2], 'after');
+    }
+    // Si no son 3, subir a la categoría seleccionada
+    else {
+      for (const file of files) {
+        if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+          await handlePhotoUpload(file, selectedCategory);
+        }
       }
     }
   };
@@ -345,7 +366,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   transition: 'all 0.2s'
                 }}
               >
-                <option value="">Personalizar manualmente</option>
+                <option value="">Seleccionar paquete predefinido o personalizar...</option>
                 {MAINTENANCE_PRESETS.maintenancePackages.map(pkg => (
                   <option key={pkg.id} value={pkg.id}>
                     {pkg.label} - {(pkg.estimatedDuration / 60).toFixed(1)}h
@@ -526,7 +547,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                     cursor: 'pointer'
                   }}
                 >
-                  <option value="">Seleccionar preset...</option>
+                  <option value="">Seleccionar volumen predefinido...</option>
                   {MAINTENANCE_PRESETS.volumeAndCost.map(preset => (
                     <option key={preset.id} value={preset.id}>
                       {preset.label} - {preset.volume_gallons.toLocaleString()} gal - B/.{preset.total_cost.toFixed(2)}
@@ -971,58 +992,141 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
 
           {/* Imágenes - mostrar si existen */}
           {viewMode && task && (task.images_before?.length > 0 || task.images_during?.length > 0 || task.images_after?.length > 0) && (
-            <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '20px', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>Imágenes</h3>
+            <div style={{
+              borderTop: '2px solid #e2e8f0',
+              paddingTop: '24px',
+              marginBottom: '20px',
+              background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+              padding: '24px',
+              borderRadius: '16px'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '700',
+                marginBottom: '20px',
+                color: '#0f172a',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                📸 Evidencia Fotográfica del Mantenimiento
+              </h3>
 
+              {/* Sección Antes */}
               {task.images_before && task.images_before.length > 0 && (
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
-                    Antes
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px' }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '12px',
+                    padding: '8px 12px',
+                    background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                    borderRadius: '8px',
+                    width: 'fit-content'
+                  }}>
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#92400e' }}>📷 Antes</span>
+                    <span style={{
+                      fontSize: '12px',
+                      background: '#92400e',
+                      color: 'white',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontWeight: '600'
+                    }}>
+                      {task.images_before.length}
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
                     {task.images_before.map((url, index) => (
-                      <img
-                        key={index}
-                        src={url}
-                        alt={`Antes ${index + 1}`}
-                        style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--color-border)' }}
-                      />
+                      <div key={index} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                        <img
+                          src={url}
+                          alt={`Antes ${index + 1}`}
+                          style={{ width: '100%', height: '140px', objectFit: 'cover', cursor: 'pointer' }}
+                          onClick={() => window.open(url, '_blank')}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
 
+              {/* Sección Durante */}
               {task.images_during && task.images_during.length > 0 && (
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
-                    Durante
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px' }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '12px',
+                    padding: '8px 12px',
+                    background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+                    borderRadius: '8px',
+                    width: 'fit-content'
+                  }}>
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#1e3a8a' }}>📷 Durante</span>
+                    <span style={{
+                      fontSize: '12px',
+                      background: '#1e3a8a',
+                      color: 'white',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontWeight: '600'
+                    }}>
+                      {task.images_during.length}
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
                     {task.images_during.map((url, index) => (
-                      <img
-                        key={index}
-                        src={url}
-                        alt={`Durante ${index + 1}`}
-                        style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--color-border)' }}
-                      />
+                      <div key={index} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                        <img
+                          src={url}
+                          alt={`Durante ${index + 1}`}
+                          style={{ width: '100%', height: '140px', objectFit: 'cover', cursor: 'pointer' }}
+                          onClick={() => window.open(url, '_blank')}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
               )}
 
+              {/* Sección Después */}
               {task.images_after && task.images_after.length > 0 && (
-                <div style={{ marginBottom: '16px' }}>
-                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
-                    Después
-                  </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px' }}>
+                <div style={{ marginBottom: '0' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '12px',
+                    padding: '8px 12px',
+                    background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+                    borderRadius: '8px',
+                    width: 'fit-content'
+                  }}>
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#065f46' }}>📷 Después</span>
+                    <span style={{
+                      fontSize: '12px',
+                      background: '#065f46',
+                      color: 'white',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontWeight: '600'
+                    }}>
+                      {task.images_after.length}
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
                     {task.images_after.map((url, index) => (
-                      <img
-                        key={index}
-                        src={url}
-                        alt={`Después ${index + 1}`}
-                        style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--color-border)' }}
-                      />
+                      <div key={index} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                        <img
+                          src={url}
+                          alt={`Después ${index + 1}`}
+                          style={{ width: '100%', height: '140px', objectFit: 'cover', cursor: 'pointer' }}
+                          onClick={() => window.open(url, '_blank')}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>
