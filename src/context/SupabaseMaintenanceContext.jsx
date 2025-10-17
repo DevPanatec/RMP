@@ -13,7 +13,10 @@ export const SupabaseMaintenanceProvider = ({ children }) => {
     try {
       const { data, error } = await supabaseClient.supabase
         .from('maintenance_tasks')
-        .select('*')
+        .select(`
+          *,
+          lugar:lugares(id, nombre, latitud, longitud)
+        `)
         .order('scheduled_date', { ascending: true });
 
       if (error) throw error;

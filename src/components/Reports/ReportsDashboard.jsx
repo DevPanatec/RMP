@@ -1,12 +1,14 @@
+import { useState, useMemo } from 'react';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
-import { Truck, Zap, Sparkles, TrendingUp, CheckCircle, Clock } from '../Icons';
+import { Truck, Zap, Sparkles, TrendingUp, CheckCircle, Clock, Download, ChevronRight, Calendar } from '../Icons';
 import { Card } from '../UI';
 import './ReportsDashboard.css';
 
-const ReportsDashboard = () => {
+const ReportsDashboard = ({ onNavigate }) => {
   const { routes } = useSupabaseRoutes();
   const { assignments } = useSupabaseCleaning();
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const rutasRecoleccion = routes.filter(r => r.type === 'recoleccion' || r.tipoServicio === 'recoleccion');
   const rutasFumigacion = routes.filter(r => r.type === 'fumigacion' || r.tipoServicio === 'fumigacion');
@@ -15,15 +17,77 @@ const ReportsDashboard = () => {
   const limpiezaCompletada = assignments.filter(a => a.estado === 'completado').length;
   const limpiezaTotal = assignments.length;
 
+  // Calcular métricas de últimos 7 días
+  const last7Days = useMemo(() => {
+    const today = new Date();
+    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const recoleccionRecent = assignments.filter(a => {
+      const aDate = new Date(a.fecha);
+      return aDate >= sevenDaysAgo && (a.tipo === 'recoleccion' || a.tipoServicio === 'recoleccion');
+    }).length;
+
+    const fumigacionRecent = assignments.filter(a => {
+      const aDate = new Date(a.fecha);
+      return aDate >= sevenDaysAgo && (a.tipo === 'fumigacion' || a.tipoServicio === 'fumigacion');
+    }).length;
+
+    const limpiezaRecent = assignments.filter(a => {
+      const aDate = new Date(a.fecha);
+      return aDate >= sevenDaysAgo && a.estado === 'completado';
+    }).length;
+
+    return { recoleccionRecent, fumigacionRecent, limpiezaRecent };
+  }, [assignments]);
+
+  // Última actualización
+  const lastUpdate = useMemo(() => {
+    if (assignments.length === 0) return 'Sin datos';
+    const dates = assignments.map(a => new Date(a.fecha || a.created_at)).filter(d => !isNaN(d));
+    if (dates.length === 0) return 'Sin datos';
+    const maxDate = new Date(Math.max(...dates));
+    return maxDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }, [assignments]);
+
+  // Función para descargar reportes masivos
+  const handleMassiveDownload = async () => {
+    setIsDownloading(true);
+    try {
+      // TODO: Implementar descarga masiva real con ZIP
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulación
+      console.log('Descargando reportes masivos...');
+      alert('Función de descarga masiva en desarrollo. Se descargará un ZIP con todos los reportes.');
+    } catch (error) {
+      console.error('Error descargando reportes:', error);
+      alert('Error al descargar reportes');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div className="reports-dashboard">
       <div className="dashboard-header">
-        <h2>Dashboard de Reportes</h2>
-        <p>Vista general de todas las operaciones</p>
+        <div>
+          <h2>Dashboard de Reportes</h2>
+          <p>Vista general de todas las operaciones</p>
+        </div>
+        <button
+          className="btn-new btn-new--primary"
+          onClick={handleMassiveDownload}
+          disabled={isDownloading}
+        >
+          <Download size={18} />
+          {isDownloading ? 'Descargando...' : 'Descargar Reportes Masivos'}
+        </button>
       </div>
 
       <div className="dashboard-metrics">
-        <Card className="metric-card metric-card--recoleccion">
+        <Card
+          className="metric-card metric-card--recoleccion"
+          hoverable
+          onClick={() => onNavigate?.('recoleccion')}
+        >
           <div className="metric-icon">
             <Truck size={32} strokeWidth={1.5} />
           </div>
@@ -32,23 +96,28 @@ const ReportsDashboard = () => {
             <div className="metric-stats">
               <div className="stat-item">
                 <span className="stat-value">{rutasRecoleccion.length}</span>
-                <span className="stat-label">Rutas Activas</span>
+                <span className="stat-label">Total de Reportes</span>
               </div>
               <div className="stat-item">
-                <span className="stat-value">
-                  {rutasRecoleccion.filter(r => r.estado === 'activo').length}
-                </span>
-                <span className="stat-label">En Operación</span>
+                <span className="stat-value">{last7Days.recoleccionRecent}</span>
+                <span className="stat-label">Últimos 7 días</span>
               </div>
             </div>
+            <div className="metric-update">
+              <Calendar size={14} />
+              <span>Actualizado: {lastUpdate}</span>
+            </div>
           </div>
-          <div className="metric-trend">
-            <TrendingUp size={20} />
-            <span>85%</span>
+          <div className="metric-action">
+            <ChevronRight size={24} />
           </div>
         </Card>
 
-        <Card className="metric-card metric-card--fumigacion">
+        <Card
+          className="metric-card metric-card--fumigacion"
+          hoverable
+          onClick={() => onNavigate?.('fumigacion')}
+        >
           <div className="metric-icon">
             <Zap size={32} strokeWidth={1.5} />
           </div>
@@ -57,23 +126,28 @@ const ReportsDashboard = () => {
             <div className="metric-stats">
               <div className="stat-item">
                 <span className="stat-value">{rutasFumigacion.length}</span>
-                <span className="stat-label">Rutas Activas</span>
+                <span className="stat-label">Total de Reportes</span>
               </div>
               <div className="stat-item">
-                <span className="stat-value">
-                  {rutasFumigacion.filter(r => r.estado === 'activo').length}
-                </span>
-                <span className="stat-label">En Operación</span>
+                <span className="stat-value">{last7Days.fumigacionRecent}</span>
+                <span className="stat-label">Últimos 7 días</span>
               </div>
             </div>
+            <div className="metric-update">
+              <Calendar size={14} />
+              <span>Actualizado: {lastUpdate}</span>
+            </div>
           </div>
-          <div className="metric-trend">
-            <TrendingUp size={20} />
-            <span>92%</span>
+          <div className="metric-action">
+            <ChevronRight size={24} />
           </div>
         </Card>
 
-        <Card className="metric-card metric-card--limpieza">
+        <Card
+          className="metric-card metric-card--limpieza"
+          hoverable
+          onClick={() => onNavigate?.('limpieza')}
+        >
           <div className="metric-icon">
             <Sparkles size={32} strokeWidth={1.5} />
           </div>
@@ -82,17 +156,20 @@ const ReportsDashboard = () => {
             <div className="metric-stats">
               <div className="stat-item">
                 <span className="stat-value">{limpiezaTotal}</span>
-                <span className="stat-label">Total Asignaciones</span>
+                <span className="stat-label">Total de Reportes</span>
               </div>
               <div className="stat-item">
-                <span className="stat-value">{limpiezaCompletada}</span>
-                <span className="stat-label">Completadas</span>
+                <span className="stat-value">{last7Days.limpiezaRecent}</span>
+                <span className="stat-label">Últimos 7 días</span>
               </div>
             </div>
+            <div className="metric-update">
+              <Calendar size={14} />
+              <span>Actualizado: {lastUpdate}</span>
+            </div>
           </div>
-          <div className="metric-trend">
-            <CheckCircle size={20} />
-            <span>{limpiezaTotal > 0 ? Math.round((limpiezaCompletada / limpiezaTotal) * 100) : 0}%</span>
+          <div className="metric-action">
+            <ChevronRight size={24} />
           </div>
         </Card>
       </div>

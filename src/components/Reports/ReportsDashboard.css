@@ -4,6 +4,10 @@
 
 .dashboard-header {
   margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
 }
 
 .dashboard-header h2 {
@@ -33,11 +37,38 @@
   padding: 24px !important;
   transition: all 0.3s ease;
   border-left: 4px solid transparent;
+  cursor: pointer;
 }
 
 .metric-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.metric-update {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.metric-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--color-text-secondary);
+  transition: all 0.2s ease;
+}
+
+.metric-card:hover .metric-action {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--color-text-primary);
 }
 
 .metric-card--recoleccion {
