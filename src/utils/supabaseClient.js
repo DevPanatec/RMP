@@ -24,7 +24,7 @@ class SupabaseClient {
       .select('*')
       .eq('activo', true)
       .order('created_at', { ascending: false });
-    
+
     if (error) throw error;
     return { rows: data };
   }
@@ -47,7 +47,7 @@ class SupabaseClient {
       }])
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -60,7 +60,7 @@ class SupabaseClient {
       .eq('id', employeeId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -68,14 +68,14 @@ class SupabaseClient {
   async deleteEmployee(employeeId) {
     const { data, error } = await this.client
       .from('empleados')
-      .update({ 
-        activo: false, 
-        updated_at: new Date().toISOString() 
+      .update({
+        activo: false,
+        updated_at: new Date().toISOString()
       })
       .eq('id', employeeId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -90,19 +90,19 @@ class SupabaseClient {
         proyecto:proyectos!proyecto_id(nombre),
         vehiculo:vehiculos!vehiculo_id(placa)
       `)
-      .order('fecha_reporte', { ascending: false });
-    
+      .order('fecha_reporte', { ascending: false});
+
     if (error) throw error;
-    
+
     // Transformar para coincidir con el formato esperado
     const transformedData = data.map(item => ({
       ...item,
-      empleado_nombre: item.empleado_reporta ? 
+      empleado_nombre: item.empleado_reporta ?
         `${item.empleado_reporta.nombre} ${item.empleado_reporta.apellido}` : null,
       proyecto_nombre: item.proyecto?.nombre || null,
       vehiculo_placa: item.vehiculo?.placa || null
     }));
-    
+
     return { rows: transformedData };
   }
 
@@ -125,7 +125,7 @@ class SupabaseClient {
       }])
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -138,7 +138,7 @@ class SupabaseClient {
       .eq('id', alertId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -148,7 +148,7 @@ class SupabaseClient {
       .from('reportes_riesgo')
       .delete()
       .eq('id', alertId);
-    
+
     if (error) throw error;
     return { rows: [] };
   }
@@ -158,8 +158,8 @@ class SupabaseClient {
     const { data, error } = await this.client
       .from('proyectos')
       .select('*')
-      .order('created_at', { ascending: false });
-    
+      .order('created_at', { ascending: false});
+
     if (error) throw error;
     return { rows: data };
   }
@@ -212,7 +212,7 @@ class SupabaseClient {
       }])
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -225,7 +225,7 @@ class SupabaseClient {
       .eq('id', vehicleId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -235,7 +235,7 @@ class SupabaseClient {
       .from('vehiculos')
       .delete()
       .eq('id', vehicleId);
-    
+
     if (error) throw error;
     return { rows: [] };
   }
@@ -292,14 +292,14 @@ class SupabaseClient {
       updates.paradas = JSON.stringify(updates.paradas);
     }
     const updateData = { ...updates, updated_at: new Date().toISOString() };
-    
+
     const { data, error } = await this.client
       .from('rutas')
       .update(updateData)
       .eq('id', routeId)
       .select()
       .single();
-    
+
     if (error) throw error;
     return { rows: [data] };
   }
@@ -309,7 +309,7 @@ class SupabaseClient {
       .from('rutas')
       .delete()
       .eq('id', routeId);
-    
+
     if (error) throw error;
     return { rows: [] };
   }

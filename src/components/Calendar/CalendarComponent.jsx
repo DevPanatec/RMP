@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
 import { useSupabaseSchedule } from '../../context/SupabaseScheduleContext';
+import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter } from '../Icons';
 import CalendarDay from './CalendarDay';
 import DayDetailsModal from './DayDetailsModal';
@@ -28,12 +29,13 @@ const CalendarComponent = () => {
   const [filters, setFilters] = useState({
     recoleccion: true,
     fumigacion: true,
-    limpieza: true
+    limpieza: true,
+    mantenimiento: true
   });
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  const loading = routesLoading || cleaningLoading || scheduleLoading;
+  const loading = routesLoading || cleaningLoading || scheduleLoading || maintenanceLoading;
 
   const getActivityTypeIcon = (type) => {
     switch (type) {
@@ -43,6 +45,8 @@ const CalendarComponent = () => {
         return '🦟';
       case 'limpieza':
         return '🧹';
+      case 'mantenimiento':
+        return '🔧';
       default:
         return '📌';
     }
@@ -126,6 +130,22 @@ const CalendarComponent = () => {
 
         console.log('🗓️ DEBUG Calendario - Actividad agregada:', activity);
         activities.push(activity);
+      });
+    }
+
+    if (filters.mantenimiento) {
+      const maintenanceForDate = maintenanceTasks.filter(
+        task => task.scheduled_date === dateStr
+      );
+      maintenanceForDate.forEach(task => {
+        activities.push({
+          id: `maintenance-${task.id}`,
+          type: 'mantenimiento',
+          title: `Mantenimiento ${task.type} - ${task.observations?.substring(0, 30) || 'Tarea'}`,
+          time: task.scheduled_time || '08:00',
+          status: task.status,
+          data: task
+        });
       });
     }
 
@@ -327,6 +347,12 @@ const CalendarComponent = () => {
               onClick={() => toggleFilter('limpieza')}
             >
               🧹 Limpieza
+            </button>
+            <button
+              className={`filter-btn ${filters.mantenimiento ? 'active' : ''}`}
+              onClick={() => toggleFilter('mantenimiento')}
+            >
+              🔧 Mantenimiento
             </button>
           </div>
         </div>

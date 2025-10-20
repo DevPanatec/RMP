@@ -733,11 +733,11 @@
 }
 
 .reports-header-new {
-  margin-bottom: 32px;
+  margin-bottom: 8px;
 }
 
 .reports-title-section {
-  margin-bottom: 24px;
+  margin-bottom: 0;
 }
 
 .reports-title-section h2 {
@@ -755,36 +755,51 @@
 
 .reports-categories {
   display: flex;
-  gap: 12px;
-  border-bottom: 2px solid var(--color-border);
-  padding-bottom: 2px;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  background: linear-gradient(135deg, #f8fdf8, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(61, 82, 41, 0.08);
+  margin-bottom: 32px;
 }
 
 .category-tab {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  background: transparent;
-  border: none;
-  border-bottom: 3px solid transparent;
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--color-text-secondary);
+  gap: 10px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, rgba(61, 82, 41, 0.85), rgba(42, 58, 29, 0.85));
+  border: 2px solid rgba(61, 82, 41, 0.3);
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  margin-bottom: -2px;
+  box-shadow: 0 2px 8px rgba(61, 82, 41, 0.2);
 }
 
 .category-tab:hover {
-  color: var(--color-text-primary);
-  background: rgba(0, 122, 255, 0.05);
+  background: linear-gradient(135deg, rgba(61, 82, 41, 0.95), rgba(42, 58, 29, 0.95));
+  border-color: rgba(61, 82, 41, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(61, 82, 41, 0.3);
+  color: #ffffff;
 }
 
 .category-tab--active {
-  color: #007AFF;
-  border-bottom-color: #007AFF;
+  color: #ffffff;
+  background: linear-gradient(135deg, #3D5229, #2a3a1d);
+  border-color: #3D5229;
+  box-shadow: 0 4px 16px rgba(61, 82, 41, 0.4);
+}
+
+.category-tab--active:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(61, 82, 41, 0.5);
 }
 
 .reports-content-new {
@@ -1047,6 +1062,280 @@
   color: var(--color-text-primary);
 }
 
+/* Location Cards Grid */
+.locations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+/* Grid de 3 columnas para recolección y fumigación */
+.reports-recoleccion .locations-grid,
+.reports-fumigacion .locations-grid {
+  grid-template-columns: repeat(3, 1fr) !important;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Grid especial para limpieza: 2 arriba centradas, 3 abajo */
+.limpieza-grid-3col {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  max-width: 1300px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  gap: 24px !important;
+}
+
+/* Primera fila: centrar las 2 primeras tarjetas */
+.limpieza-grid-3col > *:nth-child(1) {
+  grid-column: 1 / 2;
+  justify-self: end;
+  width: 100%;
+  max-width: 420px;
+}
+
+.limpieza-grid-3col > *:nth-child(2) {
+  grid-column: 2 / 4;
+  justify-self: start;
+  width: 100%;
+  max-width: 420px;
+}
+
+/* Segunda fila: 3 tarjetas normales */
+.limpieza-grid-3col > *:nth-child(3),
+.limpieza-grid-3col > *:nth-child(4),
+.limpieza-grid-3col > *:nth-child(5) {
+  width: 100%;
+  max-width: 420px;
+  justify-self: center;
+}
+
+/* Grid más grande para mantenimiento (solo un lugar) */
+.reports-mantenimiento .locations-grid {
+  grid-template-columns: 1fr;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.reports-mantenimiento .location-map-card {
+  min-height: 400px;
+}
+
+.location-card {
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 2px solid #e5e7eb !important;
+  background: white !important;
+  padding: 24px !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.location-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3D5229, #556B2F);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.location-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(61, 82, 41, 0.15);
+  border-color: #3D5229 !important;
+}
+
+.location-card:hover::before {
+  transform: scaleX(1);
+}
+
+.location-card-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.location-card-header svg {
+  color: #3D5229;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+}
+
+.location-card-header h4 {
+  font-size: 19px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.location-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.location-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  background: linear-gradient(135deg, rgba(61, 82, 41, 0.08), rgba(61, 82, 41, 0.03));
+  border-radius: 12px;
+  border: 1px solid rgba(61, 82, 41, 0.1);
+  transition: all 0.2s ease;
+}
+
+.location-card:hover .location-stat {
+  background: linear-gradient(135deg, rgba(61, 82, 41, 0.12), rgba(61, 82, 41, 0.06));
+  border-color: rgba(61, 82, 41, 0.2);
+}
+
+.location-stat .stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #3D5229;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.location-stat .stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  text-align: center;
+}
+
+.location-card-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3D5229;
+  padding-top: 20px;
+  border-top: 1px solid #f3f4f6;
+  transition: all 0.2s ease;
+}
+
+.location-card:hover .location-card-action {
+  color: #556B2F;
+  transform: translateX(4px);
+}
+
+.location-card-action svg {
+  transition: transform 0.2s ease;
+}
+
+.location-card:hover .location-card-action svg {
+  transform: translateX(4px);
+}
+
+/* Map Thumbnail Cards */
+.location-map-card {
+  position: relative;
+  height: 280px;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.location-map-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(61, 82, 41, 0.2);
+}
+
+.location-image-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.location-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.location-map-card:hover .location-image {
+  transform: scale(1.05);
+}
+
+.location-image-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+}
+
+.location-image-fallback svg {
+  color: #9ca3af;
+}
+
+.map-card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 20px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+}
+
+.map-card-overlay h4 {
+  font-size: 20px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  letter-spacing: -0.02em;
+}
+
+.map-card-overlay .report-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #3D5229;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  width: fit-content;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(8px);
+}
+
 @media (max-width: 768px) {
   .reports-categories {
     flex-wrap: wrap;
@@ -1058,11 +1347,20 @@
     justify-content: center;
   }
 
-  .routes-grid {
+  .routes-grid,
+  .locations-grid {
     grid-template-columns: 1fr;
   }
 
   .assignment-photos .photos-grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+
+  .location-card-stats {
+    gap: 12px;
+  }
+
+  .location-map-card {
+    height: 240px;
   }
 }

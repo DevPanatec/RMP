@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { appData } from '../../data/mockData';
 import MapComponent from '../../components/Map/MapComponent';
 import { VehicleCard } from '../../components/Dashboard';
+import MaintenanceComponent from '../../components/Maintenance/MaintenanceComponent';
 import {
   LayoutDashboard, TrendingUp, BarChart3, Map, LogOut,
-  Truck, Activity, Package, Calendar, Building
+  Truck, Activity, Package, Calendar, Building, Wrench
 } from '../../components/Icons';
 import './EnterpriseDashboard.css';
 
@@ -171,6 +172,9 @@ const EnterpriseDashboard = ({ user, onLogout }) => {
           </div>
         );
         
+      case 'mantenimiento':
+        return <MaintenanceComponent userRole="enterprise" />;
+
       case 'reports':
         return (
           <div className="reports-section">
@@ -290,6 +294,14 @@ const EnterpriseDashboard = ({ user, onLogout }) => {
                 onClick={() => setActiveTab('tracking')}
               >
                 <Map size={18} /> Seguimiento
+              </button>
+            </li>
+            <li>
+              <button
+                className={activeTab === 'mantenimiento' ? 'active' : ''}
+                onClick={() => setActiveTab('mantenimiento')}
+              >
+                <Wrench size={18} /> Mantenimiento
               </button>
             </li>
             <li>

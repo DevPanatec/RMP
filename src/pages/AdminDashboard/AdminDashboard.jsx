@@ -8,6 +8,7 @@ import ReportsComponent from '../../components/Reports/ReportsComponent';
 import ScheduleComponent from '../../components/Schedule/ScheduleComponent';
 import FleetManagement from '../../components/Fleet/FleetManagement';
 import CalendarComponent from '../../components/Calendar/CalendarComponent';
+import MaintenanceComponent from '../../components/Maintenance/MaintenanceComponent';
 import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
 import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
@@ -554,6 +555,8 @@ const AdminDashboard = ({ user, onLogout }) => {
         );
       case 'calendario':
         return <CalendarComponent />;
+      case 'mantenimiento':
+        return <MaintenanceComponent userRole={user.tipo} />;
       case 'riesgos':
         return <RiskComponent userType={user.tipo} />;
       case 'inventario':
@@ -600,7 +603,15 @@ const AdminDashboard = ({ user, onLogout }) => {
               </button>
             </li>
             <li>
-              <button 
+              <button
+                className={activeTab === 'mantenimiento' ? 'active' : ''}
+                onClick={() => handleTabChange('mantenimiento')}
+              >
+                <Wrench strokeWidth={1.5} size={18} /> Mantenimiento
+              </button>
+            </li>
+            <li>
+              <button
                 className={activeTab === 'riesgos' ? 'active' : ''}
                 onClick={() => handleTabChange('riesgos')}
               >
