@@ -51,13 +51,21 @@ const ReportsComponent = ({ userType = 'admin' }) => {
       !lugar.nombre.includes('Planta de tratamiento')
     );
 
-    return recoleccionPlaces.map(lugar => ({
-      ...lugar,
-      assignmentsCount: 0, // Por ahora, se puede conectar con historial de rutas después
-      completedCount: 0,
-      assignments: [] // Aquí irían los reportes de recolección
-    }));
-  }, [lugares]);
+    return recoleccionPlaces.map(lugar => {
+      const lugarAssignments = assignments.filter(a => {
+        const matchLocation = a.lugar?.id === lugar.id || a.lugar_id === lugar.id;
+        const matchType = a.tipo === 'recoleccion' || a.tipoServicio === 'recoleccion';
+        return matchLocation && matchType;
+      });
+
+      return {
+        ...lugar,
+        assignmentsCount: lugarAssignments.length,
+        completedCount: lugarAssignments.filter(a => a.estado === 'completado').length,
+        assignments: lugarAssignments
+      };
+    });
+  }, [lugares, assignments]);
 
   const renderRecoleccion = () => {
     return (
@@ -122,7 +130,7 @@ const ReportsComponent = ({ userType = 'admin' }) => {
                   </div>
                   <div className="map-card-overlay">
                     <h4>{location.nombre}</h4>
-                    <span className="report-badge">Próximamente</span>
+                    <span className="report-badge">{location.assignmentsCount} reportes</span>
                   </div>
                 </div>
               );
@@ -136,13 +144,14 @@ const ReportsComponent = ({ userType = 'admin' }) => {
             onClose={() => setSelectedLocation(null)}
             getPhotoUrl={getPhotoUrl}
             getStatusVariant={getStatusVariant}
+            modalType="recoleccion"
           />
         )}
       </div>
     );
   };
 
-  // Filtrar lugares para fumigación (mismos que recolección)
+  // Filtrar lugares para fumigación
   const fumigacionLocations = useMemo(() => {
     const fumigacionPlaces = lugares.filter(lugar =>
       lugar.nombre.includes('Mercado') || lugar.nombre.includes('Complejo')
@@ -150,13 +159,21 @@ const ReportsComponent = ({ userType = 'admin' }) => {
       !lugar.nombre.includes('Planta de tratamiento')
     );
 
-    return fumigacionPlaces.map(lugar => ({
-      ...lugar,
-      assignmentsCount: 0, // Por ahora, se puede conectar con historial de fumigaciones después
-      completedCount: 0,
-      assignments: [] // Aquí irían los reportes de fumigación
-    }));
-  }, [lugares]);
+    return fumigacionPlaces.map(lugar => {
+      const lugarAssignments = assignments.filter(a => {
+        const matchLocation = a.lugar?.id === lugar.id || a.lugar_id === lugar.id;
+        const matchType = a.tipo === 'fumigacion' || a.tipoServicio === 'fumigacion';
+        return matchLocation && matchType;
+      });
+
+      return {
+        ...lugar,
+        assignmentsCount: lugarAssignments.length,
+        completedCount: lugarAssignments.filter(a => a.estado === 'completado').length,
+        assignments: lugarAssignments
+      };
+    });
+  }, [lugares, assignments]);
 
   const renderFumigacion = () => {
     return (
@@ -221,7 +238,7 @@ const ReportsComponent = ({ userType = 'admin' }) => {
                   </div>
                   <div className="map-card-overlay">
                     <h4>{location.nombre}</h4>
-                    <span className="report-badge">Próximamente</span>
+                    <span className="report-badge">{location.assignmentsCount} reportes</span>
                   </div>
                 </div>
               );
@@ -235,6 +252,7 @@ const ReportsComponent = ({ userType = 'admin' }) => {
             onClose={() => setSelectedLocation(null)}
             getPhotoUrl={getPhotoUrl}
             getStatusVariant={getStatusVariant}
+            modalType="fumigacion"
           />
         )}
       </div>
@@ -335,6 +353,7 @@ const ReportsComponent = ({ userType = 'admin' }) => {
             onClose={() => setSelectedLocation(null)}
             getPhotoUrl={getPhotoUrl}
             getStatusVariant={getStatusVariant}
+            modalType="limpieza"
           />
         )}
       </div>
@@ -445,16 +464,35 @@ const ReportsComponent = ({ userType = 'admin' }) => {
             onClose={() => setSelectedLocation(null)}
             getPhotoUrl={getPhotoUrl}
             getStatusVariant={getStatusVariant}
+            modalType="mantenimiento"
           />
         )}
       </div>
     );
   };
 
+  const renderCategoriesNav = () => (
+    <div className="reports-categories">
+      {categories.map(category => (
+        <button
+          key={category.id}
+          className={`category-tab ${activeCategory === category.id ? 'category-tab--active' : ''}`}
+          onClick={() => {
+            setActiveCategory(category.id);
+            setSelectedRouteType(null);
+          }}
+        >
+          <category.icon size={20} strokeWidth={1.5} />
+          <span>{category.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+
   const renderCategoryContent = () => {
     switch (activeCategory) {
       case 'dashboard':
-        return <ReportsDashboard onNavigate={setActiveCategory} />;
+        return <ReportsDashboard onNavigate={setActiveCategory} categoriesNav={renderCategoriesNav()} />;
       case 'recoleccion':
         return renderRecoleccion();
       case 'fumigacion':
@@ -464,38 +502,22 @@ const ReportsComponent = ({ userType = 'admin' }) => {
       case 'mantenimiento':
         return renderMantenimiento();
       default:
-        return <ReportsDashboard onNavigate={setActiveCategory} />;
+        return <ReportsDashboard onNavigate={setActiveCategory} categoriesNav={renderCategoriesNav()} />;
     }
   };
 
   return (
     <div className="reports-container-new">
-      <div className="reports-header-new">
-        <div className="reports-title-section">
-          <h2>Reportes del Sistema</h2>
-          <p>Vista integral de todas las operaciones</p>
-        </div>
-        
-        <div className="reports-categories">
-          {categories.map(category => (
-            <button
-              key={category.id}
-              className={`category-tab ${activeCategory === category.id ? 'category-tab--active' : ''}`}
-              onClick={() => {
-                setActiveCategory(category.id);
-                setSelectedRouteType(null);
-              }}
-            >
-              <category.icon size={20} strokeWidth={1.5} />
-              <span>{category.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="reports-content-new">
-        {renderCategoryContent()}
-      </div>
+      {activeCategory === 'dashboard' ? (
+        renderCategoryContent()
+      ) : (
+        <>
+          {renderCategoriesNav()}
+          <div className="reports-content-new">
+            {renderCategoryContent()}
+          </div>
+        </>
+      )}
     </div>
   );
 };

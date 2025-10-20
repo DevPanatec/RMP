@@ -1,17 +1,21 @@
 import { useState, useMemo } from 'react';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
-import { Truck, Zap, Sparkles, TrendingUp, CheckCircle, Clock, Download, ChevronRight, Calendar } from '../Icons';
+import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
+import { Truck, Zap, Sparkles, Wrench, TrendingUp, CheckCircle, Clock, Download, ChevronRight, Calendar } from '../Icons';
 import { Card } from '../UI';
 import './ReportsDashboard.css';
 
-const ReportsDashboard = ({ onNavigate }) => {
+const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
   const { routes } = useSupabaseRoutes();
   const { assignments } = useSupabaseCleaning();
+  const { tasks: maintenanceTasks } = useSupabaseMaintenance();
   const [isDownloading, setIsDownloading] = useState(false);
 
   const rutasRecoleccion = routes.filter(r => r.type === 'recoleccion' || r.tipoServicio === 'recoleccion');
   const rutasFumigacion = routes.filter(r => r.type === 'fumigacion' || r.tipoServicio === 'fumigacion');
+
+  const mantenimientoTotal = maintenanceTasks?.length || 0;
 
   const limpiezaPendiente = assignments.filter(a => a.estado === 'pendiente').length;
   const limpiezaCompletada = assignments.filter(a => a.estado === 'completado').length;
@@ -37,8 +41,13 @@ const ReportsDashboard = ({ onNavigate }) => {
       return aDate >= sevenDaysAgo && a.estado === 'completado';
     }).length;
 
-    return { recoleccionRecent, fumigacionRecent, limpiezaRecent };
-  }, [assignments]);
+    const mantenimientoRecent = (maintenanceTasks || []).filter(t => {
+      const tDate = new Date(t.scheduled_date || t.created_at);
+      return tDate >= sevenDaysAgo;
+    }).length;
+
+    return { recoleccionRecent, fumigacionRecent, limpiezaRecent, mantenimientoRecent };
+  }, [assignments, maintenanceTasks]);
 
   // Última actualización
   const lastUpdate = useMemo(() => {
@@ -82,6 +91,8 @@ const ReportsDashboard = ({ onNavigate }) => {
         </button>
       </div>
 
+      {categoriesNav}
+
       <div className="dashboard-metrics">
         <Card
           className="metric-card metric-card--recoleccion"
@@ -89,7 +100,7 @@ const ReportsDashboard = ({ onNavigate }) => {
           onClick={() => onNavigate?.('recoleccion')}
         >
           <div className="metric-icon">
-            <Truck size={32} strokeWidth={1.5} />
+            <img src="/icons/modules/RECOLECCION.png" alt="Recolección" className="metric-logo" />
           </div>
           <div className="metric-content">
             <h3>Recolección</h3>
@@ -119,7 +130,7 @@ const ReportsDashboard = ({ onNavigate }) => {
           onClick={() => onNavigate?.('fumigacion')}
         >
           <div className="metric-icon">
-            <Zap size={32} strokeWidth={1.5} />
+            <img src="/icons/modules/FUMIGACION.png" alt="Fumigación" className="metric-logo" />
           </div>
           <div className="metric-content">
             <h3>Fumigación</h3>
@@ -149,7 +160,7 @@ const ReportsDashboard = ({ onNavigate }) => {
           onClick={() => onNavigate?.('limpieza')}
         >
           <div className="metric-icon">
-            <Sparkles size={32} strokeWidth={1.5} />
+            <img src="/icons/modules/limpieza.png" alt="Limpieza" className="metric-logo" />
           </div>
           <div className="metric-content">
             <h3>Limpieza</h3>
@@ -172,24 +183,36 @@ const ReportsDashboard = ({ onNavigate }) => {
             <ChevronRight size={24} />
           </div>
         </Card>
-      </div>
 
-      <div className="dashboard-quick-stats">
-        <div className="quick-stat">
-          <Clock size={24} />
-          <div className="quick-stat-content">
-            <span className="quick-stat-value">{limpiezaPendiente}</span>
-            <span className="quick-stat-label">Limpiezas Pendientes</span>
+        <Card
+          className="metric-card metric-card--mantenimiento"
+          hoverable
+          onClick={() => onNavigate?.('mantenimiento')}
+        >
+          <div className="metric-icon">
+            <img src="/icons/modules/mantenimiento.png" alt="Mantenimiento" className="metric-logo" />
           </div>
-        </div>
-
-        <div className="quick-stat">
-          <CheckCircle size={24} />
-          <div className="quick-stat-content">
-            <span className="quick-stat-value">{rutasRecoleccion.length + rutasFumigacion.length}</span>
-            <span className="quick-stat-label">Rutas Totales</span>
+          <div className="metric-content">
+            <h3>Mantenimiento</h3>
+            <div className="metric-stats">
+              <div className="stat-item">
+                <span className="stat-value">{mantenimientoTotal}</span>
+                <span className="stat-label">Total de Reportes</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-value">{last7Days.mantenimientoRecent}</span>
+                <span className="stat-label">Últimos 7 días</span>
+              </div>
+            </div>
+            <div className="metric-update">
+              <Calendar size={14} />
+              <span>Actualizado: {lastUpdate}</span>
+            </div>
           </div>
-        </div>
+          <div className="metric-action">
+            <ChevronRight size={24} />
+          </div>
+        </Card>
       </div>
     </div>
   );

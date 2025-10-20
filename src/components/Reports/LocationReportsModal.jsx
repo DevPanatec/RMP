@@ -1,10 +1,24 @@
 import { useState, useMemo } from 'react';
-import { X, Calendar, Download, FileText, Camera, Check, Eye } from '../Icons';
+import { X, Calendar, Download, FileText, Camera, Check, Eye, Truck, Zap, Sparkles, Wrench } from '../Icons';
 import { Card, Badge } from '../UI';
 import ReportDetailModal from '../Cleaning/ReportDetailModal';
+import pdfMake from 'pdfmake/build/pdfmake';
+import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import './LocationReportsModal.css';
 
-const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant }) => {
+pdfMake.vfs = pdfFonts.vfs;
+
+const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant, modalType = 'limpieza' }) => {
+  // Determinar el logo según el tipo de modal
+  const getModalLogo = () => {
+    const logoMap = {
+      'recoleccion': '/icons/modules/RECOLECCION.png',
+      'fumigacion': '/icons/modules/FUMIGACION.png',
+      'limpieza': '/icons/modules/limpieza.png',
+      'mantenimiento': '/icons/modules/mantenimiento.png'
+    };
+    return logoMap[modalType] || logoMap['limpieza'];
+  };
   const [dateRange, setDateRange] = useState({
     inicio: new Date(Date.now() - 365*24*60*60*1000).toISOString().split('T')[0],
     fin: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0]
@@ -58,10 +72,120 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
   };
 
   // Descargar reporte individual
-  const handleDownloadReport = (e, report) => {
-    e.stopPropagation();
-    console.log('📥 Descargando reporte:', report);
-    alert(`Generando PDF para: ${report.area?.nombre}\nFecha: ${report.fecha}`);
+  const handleDownloadReport = async (e, report) => {
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
+
+    try {
+      // Preparar información de fotos
+      const fotosByEtapa = report.fotos?.reduce((acc, foto) => {
+        const etapa = foto.etapa || 'sin_etapa';
+        acc[etapa] = (acc[etapa] || 0) + 1;
+        return acc;
+      }, {}) || {};
+
+      const fotosContent = Object.entries(fotosByEtapa).map(([etapa, count]) => ({
+        text: `  - ${etapa}: ${count} foto(s)`,
+        fontSize: 10,
+        margin: [5, 2, 0, 2]
+      }));
+
+      // Definir documento PDF
+      const docDefinition = {
+        content: [
+          // Header
+          {
+            text: 'REPORTE DE SERVICIO',
+            style: 'header',
+            alignment: 'center',
+            margin: [0, 0, 0, 10]
+          },
+          {
+            canvas: [
+              {
+                type: 'line',
+                x1: 0, y1: 0,
+                x2: 515, y2: 0,
+                lineWidth: 1
+              }
+            ],
+            margin: [0, 0, 0, 15]
+          },
+          // Información del reporte
+          {
+            columns: [
+              { text: 'Ubicación:', bold: true, width: 80 },
+              { text: location.nombre, width: '*' }
+            ],
+            margin: [0, 0, 0, 8]
+          },
+          {
+            columns: [
+              { text: 'Área:', bold: true, width: 80 },
+              { text: report.area?.nombre || 'No especificada', width: '*' }
+            ],
+            margin: [0, 0, 0, 8]
+          },
+          {
+            columns: [
+              { text: 'Fecha:', bold: true, width: 80 },
+              { text: report.fecha || 'No especificada', width: '*' }
+            ],
+            margin: [0, 0, 0, 8]
+          },
+          {
+            columns: [
+              { text: 'Hora:', bold: true, width: 80 },
+              { text: report.hora || 'No especificada', width: '*' }
+            ],
+            margin: [0, 0, 0, 8]
+          },
+          {
+            columns: [
+              { text: 'Estado:', bold: true, width: 80 },
+              { text: report.estado || 'pendiente', width: '*' }
+            ],
+            margin: [0, 0, 0, 15]
+          },
+          // Observaciones
+          ...(report.notas ? [
+            { text: 'Observaciones:', bold: true, margin: [0, 0, 0, 5] },
+            { text: report.notas, fontSize: 10, margin: [0, 0, 0, 15] }
+          ] : []),
+          // Evidencias fotográficas
+          ...(report.fotos && report.fotos.length > 0 ? [
+            { text: `Evidencias fotográficas: ${report.fotos.length}`, bold: true, margin: [0, 0, 0, 5] },
+            ...fotosContent
+          ] : [])
+        ],
+        footer: (currentPage, pageCount) => ({
+          text: `Generado: ${new Date().toLocaleString('es-ES')} | Página ${currentPage} de ${pageCount}`,
+          alignment: 'center',
+          fontSize: 8,
+          italics: true,
+          margin: [0, 10, 0, 0]
+        }),
+        styles: {
+          header: {
+            fontSize: 18,
+            bold: true
+          }
+        },
+        defaultStyle: {
+          fontSize: 12
+        }
+      };
+
+      // Generar y descargar PDF
+      const fileName = `Reporte_${location.nombre.replace(/\s+/g, '_')}_${report.fecha}_${report.hora?.replace(/:/g, '-') || 'sin-hora'}.pdf`;
+      pdfMake.createPdf(docDefinition).download(fileName);
+
+      console.log('✅ PDF generado exitosamente:', fileName);
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      alert('Error al generar el PDF. Por favor intenta nuevamente.');
+    }
   };
 
   // Descargar reportes seleccionados como ZIP
@@ -102,15 +226,23 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
     });
   };
 
-  // Generar URL del mapa de Google Maps embed
-  const mapUrl = location.latitud && location.longitud
-    ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${location.latitud},${location.longitud}&zoom=16`
+  // Generar URL del mapa interactivo de Google Maps Embed
+  const mapEmbedUrl = location.latitud && location.longitud
+    ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${location.latitud},${location.longitud}&zoom=17&maptype=satellite`
+    : null;
+
+  // URL para abrir en Google Maps
+  const googleMapsUrl = location.latitud && location.longitud
+    ? `https://www.google.com/maps/search/?api=1&query=${location.latitud},${location.longitud}`
     : null;
 
   // Debug log
-  console.log('🗺️ NUEVO MODAL CARGADO - Con mapa de Google Maps', {
+  console.log('🗺️ NUEVO MODAL CARGADO - Con mapa interactivo', {
     location: location.nombre,
-    mapUrl,
+    latitud: location.latitud,
+    longitud: location.longitud,
+    mapEmbedUrl,
+    googleMapsUrl,
     reportes: location.assignments?.length
   });
 
@@ -119,10 +251,10 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
       <div className="location-modal-new" onClick={(e) => e.stopPropagation()}>
 
         {/* Mapa Grande Arriba */}
-        {mapUrl && (
+        {mapEmbedUrl && (
           <div className="location-map-container">
             <iframe
-              src={mapUrl}
+              src={mapEmbedUrl}
               width="100%"
               height="100%"
               style={{ border: 0 }}
@@ -133,12 +265,30 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
             />
             <div className="map-overlay">
               <div className="map-location-name">
-                <h2>{location.nombre}</h2>
+                <h2>
+                  <span className="modal-icon-badge">
+                    <img src={getModalLogo()} alt={modalType} className="modal-logo-img" />
+                  </span>
+                  {location.nombre}
+                </h2>
                 <span>{filteredReports.length} reportes</span>
               </div>
-              <button className="close-button-map" onClick={onClose}>
-                <X size={20} />
-              </button>
+              <div className="map-overlay-actions">
+                {googleMapsUrl && (
+                  <a
+                    href={googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="open-maps-btn"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Abrir en Google Maps
+                  </a>
+                )}
+                <button className="close-button-map" onClick={onClose}>
+                  <X size={20} />
+                </button>
+              </div>
             </div>
           </div>
         )}
