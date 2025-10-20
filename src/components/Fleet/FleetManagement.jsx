@@ -5,13 +5,14 @@ import './FleetManagement.css';
 
 const FleetManagement = () => {
   const { vehicles, addVehicle, getVehicleHistory } = useSupabaseFleet();
-  
+
   const [showAddModal, setShowAddModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [vehicleHistory, setVehicleHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  
+  const [filterType, setFilterType] = useState('all'); // 'all', 'recoleccion', 'fumigacion'
+
   const [formData, setFormData] = useState({
     nombre: '',
     placa: '',
@@ -20,6 +21,16 @@ const FleetManagement = () => {
     año: new Date().getFullYear(),
     tipoServicio: 'recoleccion'
   });
+
+  // Filtrar vehículos por tipo
+  const filteredVehicles = vehicles.filter(v => {
+    if (filterType === 'all') return true;
+    return v.tipo_servicio === filterType;
+  });
+
+  // Contadores
+  const recoleccionCount = vehicles.filter(v => v.tipo_servicio === 'recoleccion').length;
+  const fumigacionCount = vehicles.filter(v => v.tipo_servicio === 'fumigacion').length;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -71,15 +82,43 @@ const FleetManagement = () => {
   return (
     <div className="fleet-management">
       <div className="fleet-header">
-        <h2>Gestión de Flota</h2>
+        <div>
+          <h2>Gestión de Flota</h2>
+          <div className="fleet-stats">
+            <span className="stat-badge">Total: {vehicles.length}</span>
+            <span className="stat-badge stat-recoleccion">🚛 Recolección: {recoleccionCount}</span>
+            <span className="stat-badge stat-fumigacion">🦟 Fumigación: {fumigacionCount}</span>
+          </div>
+        </div>
         <button className="btn-add-vehicle" onClick={() => setShowAddModal(true)}>
           <Plus size={20} />
           Agregar Vehículo
         </button>
       </div>
 
+      <div className="fleet-filters">
+        <button
+          className={`filter-btn ${filterType === 'all' ? 'active' : ''}`}
+          onClick={() => setFilterType('all')}
+        >
+          Todos ({vehicles.length})
+        </button>
+        <button
+          className={`filter-btn filter-recoleccion ${filterType === 'recoleccion' ? 'active' : ''}`}
+          onClick={() => setFilterType('recoleccion')}
+        >
+          🚛 Recolección ({recoleccionCount})
+        </button>
+        <button
+          className={`filter-btn filter-fumigacion ${filterType === 'fumigacion' ? 'active' : ''}`}
+          onClick={() => setFilterType('fumigacion')}
+        >
+          🦟 Fumigación ({fumigacionCount})
+        </button>
+      </div>
+
       <div className="vehicles-grid">
-        {vehicles.map(vehicle => (
+        {filteredVehicles.map(vehicle => (
           <div key={vehicle.id} className="vehicle-card">
             <div className="vehicle-icon">
               <Truck size={32} />
@@ -87,12 +126,14 @@ const FleetManagement = () => {
             <div className="vehicle-info">
               <h3>{vehicle.nombre || vehicle.placa}</h3>
               <p className="vehicle-placa">{vehicle.placa}</p>
-              <p className="vehicle-type">
-                {vehicle.tipoServicio === 'recoleccion' ? 'Recolección' : 'Fumigación'}
-              </p>
-              <span className={`vehicle-status status-${vehicle.estado.toLowerCase().replace(' ', '-')}`}>
-                {vehicle.estado}
-              </span>
+              <div className="vehicle-badges">
+                <span className={`vehicle-type-badge type-${vehicle.tipo_servicio || vehicle.tipoServicio}`}>
+                  {vehicle.tipo_servicio === 'recoleccion' || vehicle.tipoServicio === 'recoleccion' ? '🚛 Recolección' : '🦟 Fumigación'}
+                </span>
+                <span className={`vehicle-status status-${vehicle.estado.toLowerCase().replace(' ', '-')}`}>
+                  {vehicle.estado}
+                </span>
+              </div>
             </div>
             <button 
               className="btn-history"

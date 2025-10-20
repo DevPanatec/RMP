@@ -6,7 +6,8 @@ export const RouteTimeline = ({
   onViewMap,
   onEdit,
   onPause,
-  onViewStats
+  onViewStats,
+  onCompleteStop
 }) => {
   const getStatusColor = (estado) => {
     switch (estado?.toLowerCase()) {
@@ -85,8 +86,10 @@ export const RouteTimeline = ({
       <div className="route-timeline-stops">
         <h5>Paradas:</h5>
         <div className="stops-timeline">
-          {route.paradas?.slice(0, 6).map((stop, index) => {
+          {route.paradas?.map((stop, index) => {
             const status = getStopStatus(stop, route.paradaActual);
+            const canComplete = onCompleteStop && !stop.completada && status === 'current';
+
             return (
               <div key={index} className={`stop-item stop-item--${status}`}>
                 <div className="stop-connector">
@@ -94,20 +97,41 @@ export const RouteTimeline = ({
                   <div className="stop-dot">{getStopIcon(status)}</div>
                 </div>
                 <div className="stop-content">
-                  <div className="stop-name">{stop.nombre || `Parada ${index + 1}`}</div>
-                  <div className="stop-time">{stop.horaEstimada || '00:00'}</div>
-                  {status === 'current' && (
-                    <div className="stop-current-indicator">← Actual</div>
+                  <div className="stop-header">
+                    <div className="stop-info">
+                      <div className="stop-name">{stop.direccion || stop.nombre || `Parada ${stop.orden || index + 1}`}</div>
+                      <div className="stop-time">{stop.horaEstimada || stop.hora || '00:00'}</div>
+                    </div>
+                    {canComplete && (
+                      <button
+                        className="btn-complete-stop"
+                        onClick={() => onCompleteStop(index)}
+                        title="Completar parada"
+                      >
+                        ✅ Completar
+                      </button>
+                    )}
+                  </div>
+                  {status === 'current' && !stop.completada && (
+                    <div className="stop-current-indicator">← Parada Actual</div>
+                  )}
+                  {stop.completada && stop.category && (
+                    <div className="stop-completed-info">
+                      <span className="completed-badge">
+                        {stop.category === 'baja' && '📄 Carga Baja'}
+                        {stop.category === 'intermedia' && '🗑️ Carga Intermedia'}
+                        {stop.category === 'alta' && '♻️ Carga Alta'}
+                        {stop.category === 'muy alta' && '🚚 Carga Muy Alta'}
+                      </span>
+                      {stop.timestamp && (
+                        <span className="completed-time">⏰ {stop.timestamp}</span>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
             );
           })}
-          {route.paradas && route.paradas.length > 6 && (
-            <div className="stops-more">
-              +{route.paradas.length - 6} más
-            </div>
-          )}
         </div>
       </div>
 

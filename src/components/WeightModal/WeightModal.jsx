@@ -86,9 +86,10 @@ const WeightModal = ({ isOpen, onClose, onConfirm, currentStop }) => {
             <h4>Selecciona la categoría de carga:</h4>
             <div className="weight-grid">
               {['baja', 'intermedia', 'alta', 'muy alta'].map((cat) => (
-                <div 
+                <div
                   key={cat}
                   className={`weight-option ${selectedCategory === cat ? 'selected' : ''}`}
+                  data-category={cat}
                   onClick={() => handleCategorySelect(cat)}
                 >
                   <div className="weight-icon">{getCategoryIcon(cat)}</div>

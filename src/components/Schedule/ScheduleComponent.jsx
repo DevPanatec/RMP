@@ -15,35 +15,88 @@ import WeekdayPicker from './WeekdayPicker';
 import './ScheduleComponent.css';
 
 const ScheduleComponent = () => {
-  const { 
-    assignments: scheduleAssignments, 
-    loading: scheduleLoading, 
-    addAssignment: addScheduleAssignment, 
-    updateAssignment: updateScheduleAssignment, 
+  const {
+    assignments: scheduleAssignments,
+    loading: scheduleLoading,
+    addAssignment: addScheduleAssignment,
+    updateAssignment: updateScheduleAssignment,
     deleteAssignment: deleteScheduleAssignment
   } = useSupabaseSchedule();
-  
+
   const { routes } = useSupabaseRoutes();
   const { personnel } = useSupabasePersonnel();
   const { vehicles } = useSupabaseFleet();
-  const { 
-    lugares, 
-    areas, 
-    assignments: cleaningAssignments, 
-    loading: cleaningLoading, 
+  const {
+    lugares,
+    areas,
+    assignments: cleaningAssignments,
+    loading: cleaningLoading,
     addAssignment: addCleaningAssignment,
     getAreasByLugar,
-    uploadPhoto 
+    uploadPhoto
   } = useSupabaseCleaning();
+
+  console.log('🎯 DEBUG Schedule Component - scheduleAssignments:', scheduleAssignments);
+  console.log('🎯 DEBUG Schedule Component - routes:', routes);
+
+  // Helper: obtener el lunes de la semana actual
+  const getStartOfWeek = () => {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = day === 0 ? -6 : 1 - day; // Si es domingo (0), retroceder 6 días
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diff);
+    // Formatear en zona horaria local, no UTC
+    return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+  };
+
+  // Helper: ajustar cualquier fecha al lunes de esa semana
+  const adjustToMonday = (dateString) => {
+    const date = new Date(dateString + 'T12:00:00'); // Agregar hora para evitar problemas de timezone
+    const day = date.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const monday = new Date(date);
+    monday.setDate(date.getDate() + diff);
+    // Formatear en zona horaria local, no UTC
+    return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+  };
+
+  // Helper: obtener el domingo de la semana (fin de semana)
+  const getEndOfWeek = (dateString) => {
+    const monday = new Date(dateString + 'T12:00:00');
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    // Formatear en zona horaria local, no UTC
+    return `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`;
+  };
+
+  // Helper: formatear rango de semana
+  const formatWeekRange = (dateString) => {
+    const start = new Date(dateString + 'T12:00:00');
+    const end = new Date(getEndOfWeek(dateString) + 'T12:00:00');
+
+    const startDay = start.getDate();
+    const endDay = end.getDate();
+    const startMonth = start.toLocaleDateString('es-ES', { month: 'long' });
+    const endMonth = end.toLocaleDateString('es-ES', { month: 'long' });
+    const year = start.getFullYear();
+
+    if (startMonth === endMonth) {
+      return `Semana del ${startDay} al ${endDay} de ${startMonth}, ${year}`;
+    } else {
+      return `Semana del ${startDay} de ${startMonth} al ${endDay} de ${endMonth}, ${year}`;
+    }
+  };
 
   const [activeTab, setActiveTab] = useState('routes');
   const [showModal, setShowModal] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
-  
+
   const [routeFormData, setRouteFormData] = useState({
     ruta_id: '',
     conductor_nombre: '',
     ayudantes: [],
+    fecha: getStartOfWeek(),
     dias_semana: [],
     vehiculo_id: '',
     observaciones: ''
@@ -67,9 +120,26 @@ const ScheduleComponent = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const activeRoutes = routes.filter(r => r.activa !== false);
-  const activePersonnel = personnel.filter(p => p.estado === 'Activo');
-  const activeVehicles = vehicles.filter(v => v.estado === 'activo' || v.estado === 'Disponible');
+  const activePersonnel = personnel.filter(p => p.active === true);
+  const activeVehicles = vehicles.filter(v =>
+    v.estado === 'activo' ||
+    v.estado === 'Disponible' ||
+    v.estado === 'disponible'
+  );
   const loading = scheduleLoading || cleaningLoading;
+
+  // Filtrar vehículos por tipo de ruta seleccionada
+  const getCompatibleVehicles = () => {
+    if (!routeFormData.ruta_id) return activeVehicles;
+
+    const selectedRoute = routes.find(r => r.id === parseInt(routeFormData.ruta_id));
+    if (!selectedRoute) return activeVehicles;
+
+    const routeType = selectedRoute.tipo_servicio;
+    return activeVehicles.filter(v => v.tipo_servicio === routeType);
+  };
+
+  const compatibleVehicles = getCompatibleVehicles();
 
   const handleOpenRouteModal = (assignment = null) => {
     if (assignment) {
@@ -78,6 +148,7 @@ const ScheduleComponent = () => {
         ruta_id: assignment.ruta_id,
         conductor_nombre: assignment.conductor_nombre,
         ayudantes: assignment.ayudantes || [],
+        fecha: assignment.fecha || getStartOfWeek(),
         dias_semana: assignment.dias_semana || [],
         vehiculo_id: assignment.vehiculo_id,
         observaciones: assignment.observaciones || ''
@@ -88,6 +159,7 @@ const ScheduleComponent = () => {
         ruta_id: '',
         conductor_nombre: '',
         ayudantes: [],
+        fecha: getStartOfWeek(),
         dias_semana: [],
         vehiculo_id: '',
         observaciones: ''
@@ -118,6 +190,7 @@ const ScheduleComponent = () => {
       ruta_id: '',
       conductor_nombre: '',
       ayudantes: [],
+      fecha: getStartOfWeek(),
       dias_semana: [],
       vehiculo_id: '',
       observaciones: ''
@@ -133,7 +206,136 @@ const ScheduleComponent = () => {
     setErrors({});
   };
 
+  // Helper: obtener días bloqueados para una ruta en una semana específica
+  const getBlockedDays = () => {
+    const blockedDaysMap = {};
+
+    if (!routeFormData.ruta_id) {
+      return blockedDaysMap;
+    }
+
+    // Obtener la ruta seleccionada
+    const selectedRoute = routes.find(r => r.id === parseInt(routeFormData.ruta_id));
+
+    console.log('🔍 DEBUG - Ruta seleccionada:', selectedRoute);
+    console.log('🔍 DEBUG - dias_operacion:', selectedRoute?.dias_operacion);
+    console.log('🔍 DEBUG - tipo:', typeof selectedRoute?.dias_operacion, Array.isArray(selectedRoute?.dias_operacion));
+
+    // Bloquear días que NO están en dias_operacion de la ruta
+    if (selectedRoute && selectedRoute.dias_operacion) {
+      const allDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+
+      // Parsear dias_operacion si viene como string o asegurarse que es array
+      let allowedDays = selectedRoute.dias_operacion;
+      if (typeof allowedDays === 'string') {
+        try {
+          allowedDays = JSON.parse(allowedDays);
+        } catch (e) {
+          console.error('Error parseando dias_operacion:', e);
+          allowedDays = [];
+        }
+      }
+
+      console.log('🔍 DEBUG - Días permitidos (parsed):', allowedDays);
+
+      allDays.forEach(day => {
+        if (!allowedDays.includes(day)) {
+          blockedDaysMap[day] = 'No disponible';
+        }
+      });
+
+      console.log('🔍 DEBUG - Días bloqueados:', blockedDaysMap);
+    }
+
+    // Bloquear días ya asignados a otros conductores
+    if (routeFormData.fecha) {
+      const conflictos = scheduleAssignments.filter(assignment =>
+        assignment.ruta_id === parseInt(routeFormData.ruta_id) &&
+        assignment.fecha === routeFormData.fecha &&
+        assignment.id !== editingAssignment?.id
+      );
+
+      console.log('🔍 DEBUG - Asignaciones en conflicto:', conflictos);
+
+      conflictos.forEach(assignment => {
+        if (assignment.dias_semana && Array.isArray(assignment.dias_semana)) {
+          assignment.dias_semana.forEach(dia => {
+            blockedDaysMap[dia] = assignment.conductor_nombre;
+          });
+        }
+      });
+    }
+
+    console.log('🔍 DEBUG - Resultado final blockedDaysMap:', blockedDaysMap);
+    return blockedDaysMap;
+  };
+
+  // Función para verificar conflictos de vehículos por horario
+  const checkVehicleConflicts = (vehiculoId, dias, fecha, selectedRouteId) => {
+    if (!vehiculoId || !dias || dias.length === 0 || !fecha) {
+      return { hasConflict: false, conflicts: [] };
+    }
+
+    const selectedRoute = routes.find(r => r.id === parseInt(selectedRouteId));
+    if (!selectedRoute || !selectedRoute.hora_inicio || !selectedRoute.hora_fin) {
+      return { hasConflict: false, conflicts: [] };
+    }
+
+    // Buscar otras asignaciones del mismo vehículo en la misma semana
+    const vehicleAssignments = scheduleAssignments.filter(assignment =>
+      assignment.vehiculo_id === parseInt(vehiculoId) &&
+      assignment.fecha === fecha &&
+      assignment.id !== editingAssignment?.id
+    );
+
+    const conflicts = [];
+
+    vehicleAssignments.forEach(assignment => {
+      if (!assignment.ruta || !assignment.dias_semana) return;
+
+      const assignedRoute = assignment.ruta;
+      if (!assignedRoute.hora_inicio || !assignedRoute.hora_fin) return;
+
+      // Verificar si hay solapamiento de días
+      const overlappingDays = dias.filter(dia =>
+        assignment.dias_semana.includes(dia)
+      );
+
+      if (overlappingDays.length > 0) {
+        // Verificar si hay solapamiento de horarios
+        const selectedStart = selectedRoute.hora_inicio;
+        const selectedEnd = selectedRoute.hora_fin;
+        const assignedStart = assignedRoute.hora_inicio;
+        const assignedEnd = assignedRoute.hora_fin;
+
+        const hasTimeOverlap = (
+          (selectedStart >= assignedStart && selectedStart < assignedEnd) ||
+          (selectedEnd > assignedStart && selectedEnd <= assignedEnd) ||
+          (selectedStart <= assignedStart && selectedEnd >= assignedEnd)
+        );
+
+        if (hasTimeOverlap) {
+          conflicts.push({
+            dias: overlappingDays,
+            ruta: assignedRoute.nombre,
+            horario: `${assignedStart} - ${assignedEnd}`,
+            conductor: assignment.conductor_nombre
+          });
+        }
+      }
+    });
+
+    return {
+      hasConflict: conflicts.length > 0,
+      conflicts
+    };
+  };
+
   const handleRouteInputChange = (field, value) => {
+    // Si están cambiando la fecha, ajustar al lunes de esa semana
+    if (field === 'fecha') {
+      value = adjustToMonday(value);
+    }
     const newFormData = { ...routeFormData, [field]: value };
     setRouteFormData(newFormData);
   };
@@ -141,16 +343,75 @@ const ScheduleComponent = () => {
   const handleRouteSubmit = async (e) => {
     e.preventDefault();
 
+    // Validar campos requeridos
+    if (!routeFormData.ruta_id) {
+      alert('❌ Debe seleccionar una ruta');
+      return;
+    }
+    if (!routeFormData.conductor_nombre) {
+      alert('❌ Debe seleccionar un conductor');
+      return;
+    }
+    if (!routeFormData.vehiculo_id) {
+      alert('❌ Debe seleccionar un vehículo');
+      return;
+    }
     if (routeFormData.dias_semana.length === 0) {
-      alert('Debe seleccionar al menos un día de la semana');
+      alert('❌ Debe seleccionar al menos un día de la semana');
       return;
     }
 
+    // Validar compatibilidad vehículo-ruta
+    const selectedRoute = routes.find(r => r.id === parseInt(routeFormData.ruta_id));
+    const selectedVehicle = vehicles.find(v => v.id === parseInt(routeFormData.vehiculo_id));
+
+    if (selectedRoute && selectedVehicle) {
+      if (selectedRoute.tipo_servicio !== selectedVehicle.tipo_servicio) {
+        alert(`❌ Incompatibilidad de tipo de servicio\n\nLa ruta seleccionada es de tipo: ${selectedRoute.tipo_servicio}\nEl vehículo seleccionado es de tipo: ${selectedVehicle.tipo_servicio}\n\nDebe seleccionar un vehículo del mismo tipo que la ruta.`);
+        return;
+      }
+    }
+
+    // Validar conflictos de ruta (mismo día y ruta ya asignada a otro conductor)
+    const blockedDays = getBlockedDays();
+    const conflictingDays = routeFormData.dias_semana.filter(dia => dia in blockedDays);
+
+    if (conflictingDays.length > 0) {
+      const conflictDetails = conflictingDays.map(dia => {
+        const diaCapitalizado = dia.charAt(0).toUpperCase() + dia.slice(1);
+        return `${diaCapitalizado} (asignado a ${blockedDays[dia]})`;
+      }).join(', ');
+
+      alert(`❌ No se puede guardar la asignación\n\nLos siguientes días ya están asignados:\n${conflictDetails}\n\nPor favor, selecciona solo días disponibles.`);
+      return;
+    }
+
+    // Validar conflictos de vehículo (mismo vehículo en el mismo horario)
+    const vehicleConflictCheck = checkVehicleConflicts(
+      routeFormData.vehiculo_id,
+      routeFormData.dias_semana,
+      routeFormData.fecha,
+      routeFormData.ruta_id
+    );
+
+    if (vehicleConflictCheck.hasConflict) {
+      const conflictMessages = vehicleConflictCheck.conflicts.map(conflict => {
+        const diasCapitalizados = conflict.dias.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ');
+        return `• ${diasCapitalizados}: ${conflict.ruta} (${conflict.horario}) - Conductor: ${conflict.conductor}`;
+      }).join('\n');
+
+      alert(`❌ Conflicto de vehículo detectado\n\nEl vehículo seleccionado ya está asignado en los siguientes horarios:\n\n${conflictMessages}\n\nPor favor, selecciona otro vehículo o cambia los días/horarios.`);
+      return;
+    }
+
+    // Crear assignmentData con horarios copiados de la ruta
     const assignmentData = {
       ...routeFormData,
       ruta_id: parseInt(routeFormData.ruta_id),
       vehiculo_id: parseInt(routeFormData.vehiculo_id),
-      estado: 'programada'
+      estado: 'programada',
+      hora_inicio: selectedRoute?.hora_inicio || null,
+      hora_fin: selectedRoute?.hora_fin || null
     };
 
     let result;
@@ -176,10 +437,10 @@ const ScheduleComponent = () => {
     }
   };
 
-  const handleSalaChange = (e) => {
-    const salaId = e.target.value;
-    setCleaningFormData({ ...cleaningFormData, lugar_id: salaId, area_id: '' });
-    setAvailableAreas(getAreasByLugar(salaId));
+  const handleLugarChange = (e) => {
+    const lugarId = e.target.value;
+    setCleaningFormData({ ...cleaningFormData, lugar_id: lugarId, area_id: '' });
+    setAvailableAreas(getAreasByLugar(lugarId));
     setErrors({ ...errors, lugar_id: '' });
   };
 
@@ -196,7 +457,7 @@ const ScheduleComponent = () => {
   const validateCleaningForm = () => {
     const newErrors = {};
 
-    if (!cleaningFormData.lugar_id) newErrors.lugar_id = 'Seleccione una sala';
+    if (!cleaningFormData.lugar_id) newErrors.lugar_id = 'Seleccione un lugar';
     if (!cleaningFormData.area_id) newErrors.area_id = 'Seleccione un área';
     if (!cleaningFormData.fecha) newErrors.fecha = 'Seleccione una fecha';
     if (!cleaningFormData.hora) newErrors.hora = 'Seleccione una hora';
@@ -262,9 +523,9 @@ const ScheduleComponent = () => {
     }
   };
 
-  const getSalaNombre = (salaId) => {
-    const sala = lugares.find(s => s.id === salaId);
-    return sala ? sala.nombre : '';
+  const getLugarNombre = (lugarId) => {
+    const lugar = lugares.find(l => l.id === lugarId);
+    return lugar ? lugar.nombre : '';
   };
 
   const getAreaNombre = (areaId) => {
@@ -411,7 +672,7 @@ const ScheduleComponent = () => {
                           <Sparkles size={20} />
                         </div>
                         <div className="assignment-title-unified">
-                          <h4>{getSalaNombre(assignment.lugar_id)} - {getAreaNombre(assignment.area_id)}</h4>
+                          <h4>{getLugarNombre(assignment.lugar_id)} - {getAreaNombre(assignment.area_id)}</h4>
                           <p className="assignment-date">{formatDate(assignment.fecha)}</p>
                         </div>
                         <span className={`status-badge status-${assignment.estado}`}>
@@ -488,17 +749,39 @@ const ScheduleComponent = () => {
                       searchable
                     />
 
+                    {routeFormData.ruta_id && (() => {
+                      const selectedRoute = routes.find(r => r.id === parseInt(routeFormData.ruta_id));
+                      return selectedRoute && selectedRoute.hora_inicio && selectedRoute.hora_fin ? (
+                        <div style={{
+                          marginTop: '12px',
+                          padding: '12px 16px',
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          borderRadius: '10px',
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '10px',
+                          fontSize: '14px',
+                          fontWeight: '500'
+                        }}>
+                          <Clock size={18} />
+                          <span>Horario de la ruta: {selectedRoute.hora_inicio} - {selectedRoute.hora_fin}</span>
+                        </div>
+                      ) : null;
+                    })()}
+
                     <CustomSelect
                       label="Vehículo"
                       required
                       value={routeFormData.vehiculo_id}
                       onChange={(value) => handleRouteInputChange('vehiculo_id', value)}
-                      options={activeVehicles.map(vehicle => ({
+                      options={compatibleVehicles.map(vehicle => ({
                         value: vehicle.id,
-                        label: `${vehicle.placa} - ${vehicle.nombre || vehicle.marca}`
+                        label: `${vehicle.tipo_servicio === 'recoleccion' ? '🚛' : '🦟'} ${vehicle.placa} - ${vehicle.nombre || vehicle.marca}`
                       }))}
-                      placeholder="Seleccionar vehículo"
+                      placeholder={routeFormData.ruta_id ? "Seleccionar vehículo compatible" : "Primero selecciona una ruta"}
                       searchable
+                      disabled={!routeFormData.ruta_id}
                     />
                   </div>
 
@@ -514,8 +797,8 @@ const ScheduleComponent = () => {
                       value={routeFormData.conductor_nombre}
                       onChange={(value) => handleRouteInputChange('conductor_nombre', value)}
                       options={activePersonnel.map(person => ({
-                        value: person.nombre,
-                        label: `${person.nombre} - ${person.puesto}`
+                        value: person.name,
+                        label: `${person.name} - ${person.position}`
                       }))}
                       placeholder="Seleccionar conductor"
                       searchable
@@ -531,11 +814,109 @@ const ScheduleComponent = () => {
                 <div className="form-group-card form-full-width">
                   <div className="card-label">
                     <Calendar size={18} />
-                    <span>Horarios Semanales</span>
+                    <span>Programación Recurrente</span>
                   </div>
+
+                  {/* Banner informativo */}
+                  <div style={{
+                    padding: '14px 18px',
+                    background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                    border: '1.5px solid #0ea5e9',
+                    borderRadius: '10px',
+                    marginBottom: '16px',
+                    display: 'flex',
+                    gap: '12px',
+                    alignItems: 'flex-start'
+                  }}>
+                    <div style={{
+                      color: '#0369a1',
+                      fontSize: '20px',
+                      lineHeight: '1',
+                      marginTop: '2px'
+                    }}>
+                      ℹ️
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        fontWeight: '600',
+                        color: '#0c4a6e',
+                        marginBottom: '6px',
+                        fontSize: '13px'
+                      }}>
+                        Reglas de Asignación
+                      </div>
+                      <ul style={{
+                        margin: 0,
+                        paddingLeft: '18px',
+                        color: '#0369a1',
+                        fontSize: '12px',
+                        lineHeight: '1.6'
+                      }}>
+                        <li>Solo puedes asignar en los días permitidos por la ruta seleccionada</li>
+                        <li>El horario se toma automáticamente de la configuración de la ruta</li>
+                        <li>No se pueden duplicar asignaciones en la misma semana</li>
+                        <li>Puedes asignar la misma ruta en semanas diferentes</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    marginBottom: '16px',
+                    padding: '16px',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    borderRadius: '12px',
+                    color: 'white'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '12px'
+                    }}>
+                      <div style={{ fontSize: '13px', opacity: 0.9 }}>
+                        Semana de inicio
+                      </div>
+                      <input
+                        type="date"
+                        value={routeFormData.fecha}
+                        onChange={(e) => handleRouteInputChange('fecha', e.target.value)}
+                        required
+                        style={{
+                          padding: '6px 10px',
+                          border: '1.5px solid rgba(255, 255, 255, 0.3)',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                          background: 'rgba(255, 255, 255, 0.15)',
+                          color: 'white',
+                          backdropFilter: 'blur(10px)',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      />
+                    </div>
+                    <div style={{
+                      fontSize: '18px',
+                      fontWeight: '600',
+                      letterSpacing: '-0.3px',
+                      lineHeight: '1.3'
+                    }}>
+                      {formatWeekRange(routeFormData.fecha)}
+                    </div>
+                    <div style={{
+                      fontSize: '12px',
+                      opacity: 0.8,
+                      marginTop: '8px',
+                      fontStyle: 'italic'
+                    }}>
+                      Selecciona los días de esta semana en que se realizará la ruta
+                    </div>
+                  </div>
+
                   <WeekdayPicker
                     selectedDays={routeFormData.dias_semana}
                     onChange={(newDays) => handleRouteInputChange('dias_semana', newDays)}
+                    blockedDays={getBlockedDays()}
                   />
                 </div>
 
@@ -547,10 +928,15 @@ const ScheduleComponent = () => {
                   <div className="form-group">
                     <textarea
                       value={routeFormData.observaciones}
-                      onChange={(e) => handleRouteInputChange('observaciones', e.target.value)}
+                      onChange={(e) => handleRouteInputChange('observaciones', e.target.value.slice(0, 500))}
                       rows="3"
                       placeholder="Notas adicionales..."
+                      maxLength={500}
+                      style={{ maxHeight: '150px', resize: 'vertical' }}
                     />
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px', textAlign: 'right' }}>
+                      {routeFormData.observaciones.length}/500 caracteres
+                    </div>
                   </div>
                 </div>
               </div>
@@ -590,17 +976,17 @@ const ScheduleComponent = () => {
             <form onSubmit={handleCleaningSubmit} className="modal-body">
               <div className="form-row">
                 <div className="form-group">
-                  <label>Sala *</label>
+                  <label>Lugar *</label>
                   <select
                     value={cleaningFormData.lugar_id}
-                    onChange={handleSalaChange}
+                    onChange={handleLugarChange}
                     className={errors.lugar_id ? 'error' : ''}
                     required
                   >
-                    <option value="">Seleccionar sala</option>
-                    {lugares.map(sala => (
-                      <option key={sala.id} value={sala.id}>
-                        {sala.nombre}
+                    <option value="">Seleccionar lugar</option>
+                    {lugares.map(lugar => (
+                      <option key={lugar.id} value={lugar.id}>
+                        {lugar.nombre}
                       </option>
                     ))}
                   </select>

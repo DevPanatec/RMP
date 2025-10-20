@@ -102,8 +102,8 @@ const CleaningAssignments = ({ userRole }) => {
               {assignments.slice(0, 5).map((assignment) => (
                 <div key={assignment.id} className="assignment-card">
                   <div className="assignment-card__header">
-                    <span className="assignment-card__sala">
-                      {assignment.sala?.nombre}
+                    <span className="assignment-card__lugar">
+                      {assignment.lugar?.nombre}
                     </span>
                     <span className={`assignment-card__status assignment-card__status--${assignment.estado}`}>
                       {assignment.estado}

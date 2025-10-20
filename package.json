@@ -12,6 +12,7 @@
     "clean": "node scripts/cleanCache.js"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.0",
     "@supabase/supabase-js": "^2.55.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.545.0",

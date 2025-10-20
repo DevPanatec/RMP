@@ -9,7 +9,7 @@ const CleaningReports = ({ userRole }) => {
   const { assignments, loading, deleteAssignment } = useSupabaseCleaning();
   const [filters, setFilters] = useState({
     fecha: '',
-    sala: '',
+    lugar: '',
     area: '',
     search: '',
   });
@@ -28,7 +28,7 @@ const CleaningReports = ({ userRole }) => {
   const handleDownloadPDF = (report) => {
     // Aquí se generaría y descargaría el PDF
     console.log('Descargar PDF del reporte:', report.id);
-    alert(`Descargando reporte de ${report.sala} - ${report.area}`);
+    alert(`Descargando reporte de ${report.lugar} - ${report.area}`);
   };
 
   const handleDeleteReport = async (reportId) => {
@@ -55,7 +55,7 @@ const CleaningReports = ({ userRole }) => {
         id: assignment.id,
         fecha: assignment.fecha,
         hora: assignment.hora,
-        sala: assignment.sala?.nombre || '',
+        lugar: assignment.lugar?.nombre || '',
         area: assignment.area?.nombre || '',
         fotos: {
           antes: photos.filter((p) => p.etapa === 'antes').length,
@@ -72,12 +72,12 @@ const CleaningReports = ({ userRole }) => {
   const filteredReports = useMemo(() => {
     return reports.filter((report) => {
       if (filters.fecha && report.fecha !== filters.fecha) return false;
-      if (filters.sala && report.sala !== filters.sala) return false;
+      if (filters.lugar && report.lugar !== filters.lugar) return false;
       if (filters.area && report.area !== filters.area) return false;
       if (filters.search) {
         const searchLower = filters.search.toLowerCase();
         return (
-          report.sala.toLowerCase().includes(searchLower) ||
+          report.lugar.toLowerCase().includes(searchLower) ||
           report.area.toLowerCase().includes(searchLower)
         );
       }
@@ -85,8 +85,8 @@ const CleaningReports = ({ userRole }) => {
     });
   }, [reports, filters]);
 
-  // Obtener lugares y áreas únicas para los filtros
-  const uniqueSalas = useMemo(() => [...new Set(reports.map((r) => r.sala))], [reports]);
+  // Obtener lugars y áreas únicas para los filtros
+  const uniqueLugars = useMemo(() => [...new Set(reports.map((r) => r.lugar))], [reports]);
   const uniqueAreas = useMemo(() => [...new Set(reports.map((r) => r.area))], [reports]);
 
   if (loading) {
@@ -110,7 +110,7 @@ const CleaningReports = ({ userRole }) => {
             <Search size={18} color="#999" />
             <input
               type="text"
-              placeholder="Buscar por sala o área..."
+              placeholder="Buscar por lugar o área..."
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
               className="cleaning-filters__search-input"
@@ -135,14 +135,14 @@ const CleaningReports = ({ userRole }) => {
           </select>
 
           <select
-            value={filters.sala}
-            onChange={(e) => handleFilterChange('sala', e.target.value)}
+            value={filters.lugar}
+            onChange={(e) => handleFilterChange('lugar', e.target.value)}
             className="cleaning-filters__select"
           >
-            <option value="">Todas las lugares</option>
-            {uniqueSalas.map((sala) => (
-              <option key={sala} value={sala}>
-                {sala}
+            <option value="">Todas las lugars</option>
+            {uniqueLugars.map((lugar) => (
+              <option key={lugar} value={lugar}>
+                {lugar}
               </option>
             ))}
           </select>
@@ -160,12 +160,12 @@ const CleaningReports = ({ userRole }) => {
             ))}
           </select>
 
-          {(filters.fecha || filters.sala || filters.area || filters.search) && (
+          {(filters.fecha || filters.lugar || filters.area || filters.search) && (
             <Button
               variant="secondary"
               size="sm"
               onClick={() =>
-                setFilters({ fecha: '', sala: '', area: '', search: '' })
+                setFilters({ fecha: '', lugar: '', area: '', search: '' })
               }
             >
               Limpiar filtros
@@ -205,7 +205,7 @@ const CleaningReports = ({ userRole }) => {
               <thead>
                 <tr>
                   <th>Fecha</th>
-                  <th>Sala</th>
+                  <th>Lugar</th>
                   <th>Área</th>
                   <th>Evidencias</th>
                   <th>Acciones</th>
@@ -228,7 +228,7 @@ const CleaningReports = ({ userRole }) => {
                       </div>
                     </td>
                     <td>
-                      <div className="cleaning-table__sala">{report.sala}</div>
+                      <div className="cleaning-table__lugar">{report.lugar}</div>
                     </td>
                     <td>
                       <div className="cleaning-table__area">{report.area}</div>

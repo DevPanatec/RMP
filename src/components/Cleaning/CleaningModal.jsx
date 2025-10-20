@@ -85,15 +85,15 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.lugar_id) {
       newErrors.lugar_id = 'Seleccione un lugar';
     }
-    
+
     if (!formData.area_id) {
       newErrors.area_id = 'Seleccione un área';
     }
-    
+
     if (!formData.fecha) {
       newErrors.fecha = 'Seleccione una fecha';
     }
@@ -118,10 +118,10 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
 
   const handleSave = async () => {
     if (!validateForm()) {
-      const firstErrorTab = errors.lugar_id || errors.area_id || errors.fecha || errors.hora 
-        ? TABS.INFO 
-        : errors.photos 
-          ? TABS.EVIDENCE 
+      const firstErrorTab = errors.lugar_id || errors.area_id || errors.fecha || errors.hora
+        ? TABS.INFO
+        : errors.photos
+          ? TABS.EVIDENCE
           : TABS.SUMMARY;
       setActiveTab(firstErrorTab);
       return;
@@ -139,7 +139,7 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
       };
 
       const result = await onSave(assignmentData);
-      
+
       if (result.success && result.data?.id) {
         const assignmentId = result.data.id;
 
@@ -390,7 +390,7 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
                     <span className="summary-label">Lugar</span>
                     <span className="summary-value">{getLugarNombre(formData.lugar_id) || '-'}</span>
                   </div>
-                  
+
                   <div className="summary-item">
                     <span className="summary-label">Área</span>
                     <span className="summary-value">{getAreaNombre(formData.area_id) || '-'}</span>
