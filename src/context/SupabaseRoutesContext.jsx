@@ -101,7 +101,12 @@ export const SupabaseRoutesProvider = ({ children }) => {
       // Formatear datos para que coincidan con la estructura esperada
       const formattedRoutes = (result.rows || []).map(route => {
         const paradas = Array.isArray(route.paradas) ? route.paradas : JSON.parse(route.paradas || '[]');
-        
+
+        // Normalizar dias_operacion de la misma manera que paradas
+        const diasOperacion = Array.isArray(route.dias_operacion)
+          ? route.dias_operacion
+          : (route.dias_operacion ? JSON.parse(route.dias_operacion) : []);
+
         // Convertir paradas a coordenadas para compatibilidad con MapComponent
         const coordenadasCompletas = paradas
           .filter(parada => parada.latitud && parada.longitud)
@@ -114,11 +119,14 @@ export const SupabaseRoutesProvider = ({ children }) => {
           descripcion: route.descripcion,
           type: route.tipo_servicio,
           tipoServicio: route.tipo_servicio,
+          tipo_servicio: route.tipo_servicio,
           stops: paradas,
           paradas: paradas,
           coordenadasCompletas: coordenadasCompletas,
           distanciaTotal: route.distancia_total || 0,
+          distancia_total: route.distancia_total || 0,
           tiempoEstimado: route.tiempo_estimado || 0,
+          tiempo_estimado: route.tiempo_estimado || 0,
           estimatedTime: route.tiempo_estimado ? `${Math.ceil(route.tiempo_estimado / 60)}h` : '1h',
           color: route.color || '#22c55e',
           status: route.estado === 'programada' ? 'active' : 'inactive',
@@ -126,6 +134,7 @@ export const SupabaseRoutesProvider = ({ children }) => {
           fecha_programada: route.fecha_programada,
           hora_inicio: route.hora_inicio,
           hora_fin: route.hora_fin,
+          dias_operacion: diasOperacion,
           proyecto: route.proyecto_nombre,
           proyectoId: route.proyecto_id,
           createdAt: route.created_at,
@@ -160,20 +169,27 @@ export const SupabaseRoutesProvider = ({ children }) => {
         .insert([{
           nombre: routeData.name || routeData.nombre,
           descripcion: routeData.descripcion || '',
-          tipo_servicio: routeData.type || routeData.tipoServicio || 'recoleccion',
+          tipo_servicio: routeData.tipo_servicio || routeData.type || routeData.tipoServicio || 'recoleccion',
           paradas: JSON.stringify(paradas),
-          distancia_total: routeData.distanciaTotal || 10,
-          tiempo_estimado: routeData.tiempoEstimado || (paradas.length * 30) || 60,
+          distancia_total: routeData.distancia_total || routeData.distanciaTotal || 10,
+          tiempo_estimado: routeData.tiempo_estimado || routeData.tiempoEstimado || (paradas.length * 30) || 60,
           color: routeData.color || '#22c55e',
           estado: routeData.estado || 'programada',
-          fecha_programada: routeData.fechaProgramada || new Date().toISOString().split('T')[0]
+          hora_inicio: routeData.hora_inicio || null,
+          hora_fin: routeData.hora_fin || null,
+          dias_operacion: routeData.dias_operacion || []
         }])
         .select()
         .single();
         
       if (error) throw error;
-      
-      // Formatear para el estado  
+
+      // Normalizar dias_operacion
+      const diasOperacion = Array.isArray(data.dias_operacion)
+        ? data.dias_operacion
+        : (data.dias_operacion ? JSON.parse(data.dias_operacion) : []);
+
+      // Formatear para el estado
       const formattedRoute = {
         id: data.id,
         name: data.nombre,
@@ -181,11 +197,14 @@ export const SupabaseRoutesProvider = ({ children }) => {
         descripcion: data.descripcion,
         type: data.tipo_servicio,
         tipoServicio: data.tipo_servicio,
+        tipo_servicio: data.tipo_servicio,
         stops: routeData.stops || [],
         paradas: JSON.parse(data.paradas || '[]'),
         coordenadasCompletas: paradas.map(p => [p.latitud, p.longitud]),
         distanciaTotal: data.distancia_total || 0,
+        distancia_total: data.distancia_total || 0,
         tiempoEstimado: data.tiempo_estimado || 0,
+        tiempo_estimado: data.tiempo_estimado || 0,
         estimatedTime: `${Math.ceil((data.tiempo_estimado || 60) / 60)}h`,
         color: data.color || '#22c55e',
         status: data.estado === 'programada' ? 'active' : 'inactive',
@@ -193,6 +212,7 @@ export const SupabaseRoutesProvider = ({ children }) => {
         fecha_programada: data.fecha_programada,
         hora_inicio: data.hora_inicio,
         hora_fin: data.hora_fin,
+        dias_operacion: diasOperacion,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };
@@ -209,12 +229,18 @@ export const SupabaseRoutesProvider = ({ children }) => {
   // Función para actualizar ruta
   const updateRoute = async (routeId, updates) => {
     try {
+      console.log('🔍 DEBUG SupabaseRoutesContext - updateRoute() llamado');
+      console.log('🔍 DEBUG SupabaseRoutesContext - routeId:', routeId);
+      console.log('🔍 DEBUG SupabaseRoutesContext - updates recibidos:', updates);
+
       const updateData = {};
-      
+
       if (updates.name || updates.nombre) updateData.nombre = updates.name || updates.nombre;
-      if (updates.descripcion) updateData.descripcion = updates.descripcion;
-      if (updates.type || updates.tipoServicio) updateData.tipo_servicio = updates.type || updates.tipoServicio;
-      
+      if (updates.descripcion !== undefined) updateData.descripcion = updates.descripcion;
+      if (updates.type || updates.tipoServicio || updates.tipo_servicio) {
+        updateData.tipo_servicio = updates.tipo_servicio || updates.type || updates.tipoServicio;
+      }
+
       if (updates.stops || updates.paradas) {
         // Usar las paradas directamente si ya tienen el formato correcto
         const paradas = Array.isArray(updates.paradas) && updates.paradas.length > 0
@@ -236,15 +262,30 @@ export const SupabaseRoutesProvider = ({ children }) => {
             });
         updateData.paradas = JSON.stringify(paradas);
       }
-      
+
+      // Soportar tanto camelCase como snake_case
       if (updates.distanciaTotal !== undefined) updateData.distancia_total = updates.distanciaTotal;
+      if (updates.distancia_total !== undefined) updateData.distancia_total = updates.distancia_total;
       if (updates.tiempoEstimado !== undefined) updateData.tiempo_estimado = updates.tiempoEstimado;
+      if (updates.tiempo_estimado !== undefined) updateData.tiempo_estimado = updates.tiempo_estimado;
+
+      // Nuevos campos obligatorios
+      if (updates.hora_inicio !== undefined) updateData.hora_inicio = updates.hora_inicio;
+      if (updates.hora_fin !== undefined) updateData.hora_fin = updates.hora_fin;
+      if (updates.dias_operacion !== undefined) {
+        updateData.dias_operacion = updates.dias_operacion;
+        console.log('🔍 DEBUG SupabaseRoutesContext - dias_operacion a guardar:', updateData.dias_operacion);
+      }
+
       if (updates.color) updateData.color = updates.color;
+      if (updates.estado) updateData.estado = updates.estado;
       if (updates.status) {
         updateData.estado = updates.status === 'active' ? 'programada' : 'cancelada';
       }
-      
+
       updateData.updated_at = new Date().toISOString();
+
+      console.log('🔍 DEBUG SupabaseRoutesContext - updateData final a enviar a BD:', updateData);
       
       const { data, error } = await supabaseClient.client
         .from('rutas')
@@ -254,9 +295,15 @@ export const SupabaseRoutesProvider = ({ children }) => {
         .single();
       
       if (error) throw error;
-      
+
       // Formatear ruta actualizada
       const paradas = JSON.parse(data.paradas || '[]');
+
+      // Normalizar dias_operacion
+      const diasOperacion = Array.isArray(data.dias_operacion)
+        ? data.dias_operacion
+        : (data.dias_operacion ? JSON.parse(data.dias_operacion) : []);
+
       const formattedRoute = {
         id: data.id,
         name: data.nombre,
@@ -264,11 +311,14 @@ export const SupabaseRoutesProvider = ({ children }) => {
         descripcion: data.descripcion,
         type: data.tipo_servicio,
         tipoServicio: data.tipo_servicio,
+        tipo_servicio: data.tipo_servicio,
         stops: updates.stops || paradas.map(p => p.direccion),
         paradas: paradas,
         coordenadasCompletas: paradas.map(p => [p.latitud, p.longitud]),
         distanciaTotal: data.distancia_total || 0,
+        distancia_total: data.distancia_total || 0,
         tiempoEstimado: data.tiempo_estimado || 0,
+        tiempo_estimado: data.tiempo_estimado || 0,
         estimatedTime: `${Math.ceil((data.tiempo_estimado || 60) / 60)}h`,
         color: data.color || '#22c55e',
         status: data.estado === 'programada' ? 'active' : 'inactive',
@@ -276,6 +326,7 @@ export const SupabaseRoutesProvider = ({ children }) => {
         fecha_programada: data.fecha_programada,
         hora_inicio: data.hora_inicio,
         hora_fin: data.hora_fin,
+        dias_operacion: diasOperacion,
         createdAt: data.created_at,
         updatedAt: data.updated_at
       };
