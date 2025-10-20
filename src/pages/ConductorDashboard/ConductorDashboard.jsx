@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import WeightModal from '../../components/WeightModal/WeightModal';
+import RouteCompletionModal from '../../components/RouteCompletionModal/RouteCompletionModal';
 import MapComponent from '../../components/Map/MapComponent';
 import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
 import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseSchedule } from '../../context/SupabaseScheduleContext';
+import { useSupabaseReports } from '../../context/SupabaseReportsContext';
 import {
   Truck, LogOut, Download, Map, Clock, AlertTriangle,
   ClipboardList, Package, TrendingUp, FileText, MapPin,
@@ -48,20 +50,34 @@ const usePWAInstallPrompt = () => {
 
 const ConductorDashboard = ({ user, onLogout }) => {
   const { isInstallable, installPWA } = usePWAInstallPrompt();
-  const { addReport, getReportsByDriver, loading: reportsLoading } = useSupabaseRiskReports();
+  const { addReport, getReportsByDriver, loading: reportsLoading, reports } = useSupabaseRiskReports();
   const { vehicles, loading: vehiclesLoading } = useSupabaseFleet();
   const { routes, loading: routesLoading } = useSupabaseRoutes();
   const { assignments, loading: assignmentsLoading, getAssignmentsByConductor, getDayNameFromDate } = useSupabaseSchedule();
+  const { saveCompletedRoute } = useSupabaseReports();
 
+  // Helper: parsear array de paradas desde JSONB
+  const getParadasArray = (paradas) => {
+    if (!paradas) return [];
+    const paradasArray = typeof paradas === 'string' ? JSON.parse(paradas) : paradas;
+    return Array.isArray(paradasArray) ? paradasArray : [];
+  };
+
+  const [routeStarted, setRouteStarted] = useState(false);
   const [completedStops, setCompletedStops] = useState([]);
   const [currentStop, setCurrentStop] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [pendingStopIndex, setPendingStopIndex] = useState(null);
   const [timeOnRoute, setTimeOnRoute] = useState(0);
+  const [routeStartTime, setRouteStartTime] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
   const [activeTab, setActiveTab] = useState('ruta');
   const [showRiskModal, setShowRiskModal] = useState(false);
+  const [restorationAttempted, setRestorationAttempted] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [completionReportData, setCompletionReportData] = useState(null);
+  const [reportGenerated, setReportGenerated] = useState(false);
   const [riskReport, setRiskReport] = useState({
     tipo: 'interno',
     categoria: '',
@@ -70,13 +86,116 @@ const ConductorDashboard = ({ user, onLogout }) => {
     prioridad: 'media'
   });
 
+  // Obtener asignaciones del conductor
+  const conductorAssignments = getAssignmentsByConductor(user.nombre || user.nombre_completo);
+
+  // Obtener asignación de hoy (si existe) - formato en zona horaria local
+  const today = (() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  })();
+  const todayDayName = getDayNameFromDate(today);
+
+  const todayAssignment = conductorAssignments.find(assignment => {
+    if (!assignment.dias_semana || !Array.isArray(assignment.dias_semana)) return false;
+    return assignment.dias_semana.includes(todayDayName);
+  });
+
+  // Obtener vehículo y ruta de la asignación de hoy
+  const userTruck = todayAssignment ? vehicles.find(v => v.id === todayAssignment.vehiculo_id) : null;
+  const assignedRoute = todayAssignment?.ruta || null;
+
+  // Cargar estado de ruta desde localStorage - SOLO cuando todayAssignment esté disponible y solo UNA vez
+  useEffect(() => {
+    // Solo intentar restaurar si:
+    // 1. No se ha intentado antes
+    // 2. todayAssignment está disponible
+    if (restorationAttempted || !todayAssignment) {
+      return;
+    }
+
+    const savedRouteState = localStorage.getItem('conductorRouteState');
+
+    if (savedRouteState) {
+      try {
+        const state = JSON.parse(savedRouteState);
+
+        // Solo restaurar si es el mismo día y misma asignación
+        if (state.date === today && state.assignmentId === todayAssignment.id) {
+          setRouteStarted(state.routeStarted || false);
+          setCompletedStops(state.completedStops || []);
+          setTimeOnRoute(state.timeOnRoute || 0);
+          setCurrentStop(state.currentStop || 0);
+          setRouteStartTime(state.routeStartTime || null);
+          setReportGenerated(state.reportGenerated || false);
+        } else {
+          localStorage.removeItem('conductorRouteState');
+        }
+      } catch (err) {
+        console.error('Error al cargar estado de ruta:', err);
+        localStorage.removeItem('conductorRouteState');
+      }
+    }
+
+    // Marcar que ya se intentó restaurar (esto evita que se ejecute de nuevo)
+    setRestorationAttempted(true);
+  }, [todayAssignment, today, restorationAttempted]);
+
+  // Persistir estado de ruta en localStorage cuando cambia (SIN timeOnRoute para evitar guardar cada segundo)
+  useEffect(() => {
+    if (todayAssignment && routeStarted) {
+      const routeState = {
+        date: today,
+        assignmentId: todayAssignment.id,
+        routeStarted,
+        completedStops,
+        timeOnRoute,
+        currentStop,
+        routeStartTime,
+        reportGenerated
+      };
+      localStorage.setItem('conductorRouteState', JSON.stringify(routeState));
+    }
+  }, [routeStarted, completedStops, currentStop, routeStartTime, reportGenerated, todayAssignment?.id, today]);
+
+  // Guardar timeOnRoute periódicamente (cada 30 segundos) para evitar bucle infinito
+  useEffect(() => {
+    if (!todayAssignment || !routeStarted) return;
+
+    const saveInterval = setInterval(() => {
+      const routeState = {
+        date: today,
+        assignmentId: todayAssignment.id,
+        routeStarted,
+        completedStops,
+        timeOnRoute,
+        currentStop,
+        routeStartTime,
+        reportGenerated
+      };
+      localStorage.setItem('conductorRouteState', JSON.stringify(routeState));
+    }, 30000); // Guardar cada 30 segundos
+
+    return () => clearInterval(saveInterval);
+  }, [todayAssignment, routeStarted, today, completedStops, timeOnRoute, currentStop, routeStartTime, reportGenerated]);
+
+  // Detectar completación de ruta al 100% y generar reporte
+  useEffect(() => {
+    const progressPercentage = assignedRoute ?
+      Math.round((completedStops.length / getParadasArray(assignedRoute.paradas).length) * 100) : 0;
+
+    if (progressPercentage === 100 && !reportGenerated && routeStarted) {
+      generateRouteCompletionReport();
+    }
+  }, [completedStops, assignedRoute, reportGenerated, routeStarted]);
+
   // Detectar estado de conexión
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
       setShowOfflineBanner(false);
     };
-    
+
     const handleOffline = () => {
       setIsOnline(false);
       setShowOfflineBanner(true);
@@ -92,30 +211,16 @@ const ConductorDashboard = ({ user, onLogout }) => {
     };
   }, []);
 
-  // Simular tiempo en ruta
+  // Cronómetro de tiempo en ruta (solo cuando la ruta está iniciada)
   useEffect(() => {
+    if (!routeStarted) return;
+
     const timer = setInterval(() => {
       setTimeOnRoute(prev => prev + 1);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
-
-  // Obtener asignaciones del conductor
-  const conductorAssignments = getAssignmentsByConductor(user.nombre || user.nombre_completo);
-
-  // Obtener asignación de hoy (si existe)
-  const today = new Date().toISOString().split('T')[0];
-  const todayDayName = getDayNameFromDate(today);
-
-  const todayAssignment = conductorAssignments.find(assignment => {
-    if (!assignment.dias_semana || !Array.isArray(assignment.dias_semana)) return false;
-    return assignment.dias_semana.includes(todayDayName);
-  });
-
-  // Obtener vehículo y ruta de la asignación de hoy
-  const userTruck = todayAssignment ? vehicles.find(v => v.id === todayAssignment.vehiculo_id) : null;
-  const assignedRoute = todayAssignment?.ruta || null;
+  }, [routeStarted]);
 
   const handleCompleteStop = (stopIndex) => {
     setPendingStopIndex(stopIndex);
@@ -157,9 +262,112 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
   const getProgressPercentage = () => {
     if (!assignedRoute) return 0;
-    const paradas = assignedRoute.paradas || [];
-    if (!Array.isArray(paradas) || paradas.length === 0) return 0;
+    const paradas = getParadasArray(assignedRoute.paradas);
+    if (paradas.length === 0) return 0;
     return Math.round((completedStops.length / paradas.length) * 100);
+  };
+
+  const handleLogout = () => {
+    // Limpiar localStorage antes de cerrar sesión
+    localStorage.removeItem('conductorRouteState');
+    onLogout();
+  };
+
+  const handleStartRoute = () => {
+    const startTime = new Date().toISOString();
+    setRouteStartTime(startTime);
+    setRouteStarted(true);
+  };
+
+  const generateRouteCompletionReport = () => {
+    if (!assignedRoute || !routeStartTime) return;
+
+    const paradas = getParadasArray(assignedRoute.paradas);
+
+    // Compilar datos de las paradas completadas con detalles
+    const paradasCompletadas = completedStops.map((completed) => {
+      const paradaOriginal = paradas[completed.index];
+      return {
+        index: completed.index,
+        orden: completed.index + 1,
+        direccion: paradaOriginal?.direccion || paradaOriginal?.nombre || `Parada ${completed.index + 1}`,
+        categoria_carga: completed.category,
+        timestamp: completed.timestamp,
+        completada: true
+      };
+    });
+
+    // Obtener reportes de riesgo creados durante esta ruta
+    const routeRiskReports = reports.filter(report => {
+      const reportDate = new Date(report.fechaCreacion);
+      const routeStart = new Date(routeStartTime);
+      return reportDate >= routeStart;
+    });
+
+    const reportData = {
+      ruta_id: assignedRoute.id,
+      asignacion_id: todayAssignment?.id,
+      nombreRuta: assignedRoute.nombre || `Ruta ${assignedRoute.id}`,
+      conductorNombre: user.nombre || user.nombre_completo,
+      conductor_id: user.id || null,
+      vehiculoPlaca: userTruck?.placa || 'N/A',
+      vehiculo_id: userTruck?.id || null,
+      fechaInicio: routeStartTime,
+      fechaCompletacion: new Date().toISOString(),
+      tiempoTotal: timeOnRoute,
+      paradas: paradasCompletadas,
+      reportes_riesgo_ids: routeRiskReports.map(r => r.id)
+    };
+
+    setCompletionReportData(reportData);
+    setShowCompletionModal(true);
+    setReportGenerated(true);
+  };
+
+  const handleConfirmReport = async (observaciones) => {
+    if (!completionReportData) return;
+
+    try {
+      const reportToSave = {
+        ruta_id: completionReportData.ruta_id,
+        asignacion_id: completionReportData.asignacion_id,
+        conductor_nombre: completionReportData.conductorNombre,
+        conductor_id: completionReportData.conductor_id,
+        vehiculo_placa: completionReportData.vehiculoPlaca,
+        vehiculo_id: completionReportData.vehiculo_id,
+        fecha_inicio: completionReportData.fechaInicio,
+        fecha_completacion: completionReportData.fechaCompletacion,
+        tiempo_total_segundos: completionReportData.tiempoTotal,
+        paradas_completadas: completionReportData.paradas,
+        reportes_riesgo_ids: completionReportData.reportes_riesgo_ids,
+        observaciones: observaciones
+      };
+
+      await saveCompletedRoute(reportToSave);
+
+      // Limpiar localStorage después de guardar exitosamente
+      localStorage.removeItem('conductorRouteState');
+
+      // Cerrar modal y mostrar mensaje de éxito
+      setShowCompletionModal(false);
+      alert('✅ Reporte de ruta guardado exitosamente');
+
+      // Reset estado para nueva ruta
+      setRouteStarted(false);
+      setCompletedStops([]);
+      setCurrentStop(0);
+      setTimeOnRoute(0);
+      setRouteStartTime(null);
+      setReportGenerated(false);
+    } catch (error) {
+      console.error('Error guardando reporte:', error);
+      alert('❌ Error al guardar el reporte. Por favor intenta de nuevo.');
+    }
+  };
+
+  const handleCancelReport = () => {
+    setShowCompletionModal(false);
+    // No marcamos reportGenerated como false para no volver a mostrar el modal
   };
 
   const handleSubmitRiskReport = () => {
@@ -221,7 +429,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
         <div className="main-content">
           <div className="dashboard-header">
             <h1><Truck size={24} /> Dashboard Conductor</h1>
-            <button className="logout-btn" onClick={onLogout}>
+            <button className="logout-btn" onClick={handleLogout}>
               <LogOut size={18} /> Cerrar Sesión
             </button>
           </div>
@@ -332,7 +540,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
             >
               <AlertTriangle size={16} /> Reportar Riesgo
             </button>
-            <button className="logout-btn" onClick={onLogout}>
+            <button className="logout-btn" onClick={handleLogout}>
               <LogOut size={18} /> Cerrar Sesión
             </button>
           </div>
@@ -342,7 +550,26 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
         {activeTab === 'ruta' && (
           <>
-            {/* KPIs del conductor */}
+            {/* Botón para iniciar ruta */}
+            {!routeStarted && (
+              <div className="start-route-container">
+                <div className="start-route-card">
+                  <div className="start-route-icon">🚀</div>
+                  <h2>¿Listo para comenzar tu ruta?</h2>
+                  <p>Ruta: <strong>{assignedRoute.nombre || assignedRoute.name}</strong></p>
+                  <p>Vehículo: <strong>{userTruck.placa}</strong></p>
+                  <p>Paradas: <strong>{getParadasArray(assignedRoute.paradas).length}</strong></p>
+                  <button className="btn-start-route" onClick={handleStartRoute}>
+                    <div className="btn-start-icon">▶️</div>
+                    <span>Iniciar Ruta</span>
+                  </button>
+                  <p className="start-route-hint">El cronómetro comenzará cuando inicies la ruta</p>
+                </div>
+              </div>
+            )}
+
+            {/* KPIs del conductor (solo visible cuando la ruta está iniciada) */}
+            {routeStarted && (
             <div className="kpi-grid">
               <div className="kpi-card">
                 <div className="kpi-icon"><Truck size={28} /></div>
@@ -354,7 +581,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
               <div className="kpi-card">
                 <div className="kpi-icon"><Package size={28} /></div>
                 <div className="kpi-content">
-                  <div className="kpi-value">{completedStops.length}/{(assignedRoute.paradas || []).length}</div>
+                  <div className="kpi-value">{completedStops.length}/{getParadasArray(assignedRoute.paradas).length}</div>
                   <div className="kpi-label">Paradas Completadas</div>
                 </div>
               </div>
@@ -373,75 +600,67 @@ const ConductorDashboard = ({ user, onLogout }) => {
                 </div>
               </div>
             </div>
+            )}
 
-        {/* Timeline de la ruta */}
-        <div className="route-timeline-section">
-          <RouteTimeline
-            route={{
-              ...assignedRoute,
-              estado: progressPercentage === 100 ? 'completada' : progressPercentage > 0 ? 'en progreso' : 'activa',
-              paradas: (() => {
-                const paradas = assignedRoute.paradas || [];
-                const paradasArray = typeof paradas === 'string' ? JSON.parse(paradas) : paradas;
-                return Array.isArray(paradasArray) ? paradasArray.map((parada, index) => ({
-                  ...parada,
-                  completada: completedStops.some(stop => stop.index === index),
-                  index: index
-                })) : [];
-              })(),
-              paradaActual: currentStop,
-              duracionEstimada: assignedRoute.tiempo_estimado || assignedRoute.tiempoEstimado,
-              distancia: assignedRoute.distancia_total || assignedRoute.distanciaTotal
-            }}
-            onViewMap={() => {
-              // El mapa ya se muestra abajo, quizás hacer scroll
-              console.log('View map for route');
-            }}
-            onEdit={() => {
-              // Los conductores no pueden editar rutas
-              console.log('Conductors cannot edit routes');
-            }}
-            onPause={() => {
-              // TODO: Implement pause functionality
-              console.log('Pause route');
-            }}
-            onViewStats={() => {
-              // TODO: Implement stats view
-              console.log('View route stats');
-            }}
-          />
-        </div>
+            {/* Timeline de la ruta (solo visible cuando la ruta está iniciada) */}
+            {routeStarted && (
+            <div className="route-timeline-section">
+              <RouteTimeline
+                route={{
+                  ...assignedRoute,
+                  estado: progressPercentage === 100 ? 'completada' : progressPercentage > 0 ? 'en progreso' : 'activa',
+                  paradas: getParadasArray(assignedRoute.paradas).map((parada, index) => {
+                    const completedStop = completedStops.find(stop => stop.index === index);
+                    return {
+                      ...parada,
+                      completada: !!completedStop,
+                      category: completedStop?.category,
+                      timestamp: completedStop?.timestamp,
+                      index: index
+                    };
+                  }),
+                  paradaActual: currentStop,
+                  duracionEstimada: assignedRoute.tiempo_estimado || assignedRoute.tiempoEstimado,
+                  distancia: assignedRoute.distancia_total || assignedRoute.distanciaTotal
+                }}
+                onCompleteStop={handleCompleteStop}
+                onViewMap={() => {
+                  // El mapa ya se muestra abajo, quizás hacer scroll
+                  console.log('View map for route');
+                }}
+                onEdit={() => {
+                  // Los conductores no pueden editar rutas
+                  console.log('Conductors cannot edit routes');
+                }}
+                onPause={() => {
+                  // TODO: Implement pause functionality
+                  console.log('Pause route');
+                }}
+                onViewStats={() => {
+                  // TODO: Implement stats view
+                  console.log('View route stats');
+                }}
+              />
+            </div>
+            )}
 
-        {/* Información del conductor y mapa */}
-        <div className="conductor-layout">
-          <div className="conductor-info-section">
-            <div className="card">
-              <div className="card__body">
-                <h3><MapPin size={20} /> Mi Ubicación Actual</h3>
-                <MapComponent
-                  camiones={[userTruck]}
-                  userType={user.tipo}
-                  showRealTime={true}
-                  selectedTruck={userTruck.id}
-                />
-              </div>
-        </div>
-
-        {/* Mapa del conductor */}
-            <div className="card">
-              <div className="card__body">
-                <h3><MapPin size={20} /> Mi Ubicación</h3>
-                <MapComponent 
-                  camiones={[userTruck]} 
-                  userType={user.tipo}
-                  showRealTime={true}
-                  selectedTruck={userTruck.id}
-                />
+            {/* Mapa del conductor (siempre visible) */}
+            <div className="conductor-map-section">
+              <div className="card">
+                <div className="card__body">
+                  <h3><MapPin size={20} /> Mi Ubicación en Tiempo Real</h3>
+                  <div className="map-container-large">
+                    <MapComponent
+                      camiones={[userTruck]}
+                      userType={user.tipo}
+                      showRealTime={true}
+                      selectedTruck={userTruck.id}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-        </>
+          </>
         )}
 
         {activeTab === 'reportes' && (
@@ -632,7 +851,23 @@ const ConductorDashboard = ({ user, onLogout }) => {
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           onConfirm={handleWeightConfirm}
-          currentStop={pendingStopIndex !== null ? (assignedRoute.paradas[pendingStopIndex]?.nombre || assignedRoute.paradas[pendingStopIndex]?.direccion || 'Parada') : ''}
+          currentStop={pendingStopIndex !== null ? (() => {
+            const paradas = getParadasArray(assignedRoute?.paradas);
+            const parada = paradas[pendingStopIndex];
+            return parada?.direccion || parada?.nombre || `Parada ${pendingStopIndex + 1}`;
+          })() : ''}
+        />
+
+        {/* Modal de completación de ruta */}
+        <RouteCompletionModal
+          isOpen={showCompletionModal}
+          routeData={completionReportData}
+          riskReports={completionReportData?.reportes_riesgo_ids?.length > 0
+            ? reports.filter(r => completionReportData.reportes_riesgo_ids.includes(r.id))
+            : []
+          }
+          onConfirm={handleConfirmReport}
+          onCancel={handleCancelReport}
         />
       </div>
     </div>

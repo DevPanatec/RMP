@@ -340,6 +340,70 @@ class SupabaseClient {
 
     return { rows: transformedData };
   }
+
+  // Método para guardar resumen de ruta completada
+  async saveRouteCompletionReport(reportData) {
+    const { data, error } = await this.client
+      .from('resumen_rutas_completadas')
+      .insert([{
+        ruta_id: reportData.ruta_id,
+        asignacion_id: reportData.asignacion_id,
+        conductor_nombre: reportData.conductor_nombre,
+        conductor_id: reportData.conductor_id || null,
+        vehiculo_placa: reportData.vehiculo_placa,
+        vehiculo_id: reportData.vehiculo_id || null,
+        fecha_inicio: reportData.fecha_inicio,
+        fecha_completacion: reportData.fecha_completacion,
+        tiempo_total_segundos: reportData.tiempo_total_segundos,
+        paradas_completadas: reportData.paradas_completadas,
+        reportes_riesgo_ids: reportData.reportes_riesgo_ids || [],
+        observaciones: reportData.observaciones || ''
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { rows: [data] };
+  }
+
+  // Método para obtener resúmenes de rutas completadas por conductor
+  async getRouteCompletionReportsByDriver(driverName) {
+    const { data, error } = await this.client
+      .from('resumen_rutas_completadas')
+      .select('*')
+      .eq('conductor_nombre', driverName)
+      .order('fecha_completacion', { ascending: false });
+
+    if (error) throw error;
+    return { rows: data };
+  }
+
+  // Método para obtener todos los resúmenes con paginación y filtros
+  async getRouteCompletionReports(filters = {}) {
+    let query = this.client
+      .from('resumen_rutas_completadas')
+      .select('*');
+
+    if (filters.fechaInicio) {
+      query = query.gte('fecha_completacion', filters.fechaInicio);
+    }
+    if (filters.fechaFin) {
+      query = query.lte('fecha_completacion', filters.fechaFin);
+    }
+    if (filters.conductor) {
+      query = query.eq('conductor_nombre', filters.conductor);
+    }
+    if (filters.vehiculo) {
+      query = query.eq('vehiculo_placa', filters.vehiculo);
+    }
+
+    query = query.order('fecha_completacion', { ascending: false });
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return { rows: data };
+  }
 }
 
 // Instancia del cliente Supabase para React

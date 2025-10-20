@@ -1,9 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar, ChevronDown, Check } from '../Icons';
 
-const WeekdayPicker = ({ selectedDays, onChange }) => {
+const WeekdayPicker = ({ selectedDays, onChange, blockedDays = {} }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownStyle, setDropdownStyle] = useState({});
+  const [shouldPortal, setShouldPortal] = useState(false);
   const pickerRef = useRef(null);
+  const triggerRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   const weekdays = [
     { key: 'lunes', label: 'L', full: 'Lunes' },
@@ -17,9 +22,18 @@ const WeekdayPicker = ({ selectedDays, onChange }) => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target)) {
-        setIsOpen(false);
+      // Check if click is inside picker container
+      if (pickerRef.current && pickerRef.current.contains(event.target)) {
+        return;
       }
+
+      // Check if click is inside portaled dropdown
+      if (dropdownRef.current && dropdownRef.current.contains(event.target)) {
+        return;
+      }
+
+      // Click is outside, close dropdown
+      setIsOpen(false);
     };
 
     if (isOpen) {
@@ -31,7 +45,65 @@ const WeekdayPicker = ({ selectedDays, onChange }) => {
     };
   }, [isOpen]);
 
+  // Check if should use portal and calculate position
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const trigger = triggerRef.current;
+      const modalBody = trigger.closest('.modal-body');
+
+      if (modalBody) {
+        setShouldPortal(true);
+
+        const updatePosition = () => {
+          const triggerRect = trigger.getBoundingClientRect();
+          const viewportHeight = window.innerHeight;
+
+          const spaceBelow = viewportHeight - triggerRect.bottom - 16;
+          const spaceAbove = triggerRect.top - 16;
+
+          const style = {
+            position: 'fixed',
+            left: `${triggerRect.left}px`,
+            width: `${triggerRect.width}px`,
+            zIndex: 10000
+          };
+
+          if (spaceBelow >= 250 || spaceBelow > spaceAbove) {
+            style.top = `${triggerRect.bottom + 10}px`;
+            style.bottom = 'auto';
+            style.maxHeight = `${Math.min(400, spaceBelow)}px`;
+          } else {
+            style.top = 'auto';
+            style.bottom = `${viewportHeight - triggerRect.top + 10}px`;
+            style.maxHeight = `${Math.min(400, spaceAbove)}px`;
+          }
+
+          setDropdownStyle(style);
+        };
+
+        updatePosition();
+
+        const handleUpdate = () => updatePosition();
+        window.addEventListener('scroll', handleUpdate, true);
+        window.addEventListener('resize', handleUpdate);
+
+        return () => {
+          window.removeEventListener('scroll', handleUpdate, true);
+          window.removeEventListener('resize', handleUpdate);
+        };
+      } else {
+        setShouldPortal(false);
+        setDropdownStyle({});
+      }
+    }
+  }, [isOpen]);
+
   const toggleDay = (dayKey) => {
+    // No permitir seleccionar días bloqueados
+    if (blockedDays[dayKey]) {
+      return;
+    }
+
     const newSelected = selectedDays.includes(dayKey)
       ? selectedDays.filter(d => d !== dayKey)
       : [...selectedDays, dayKey];
@@ -51,8 +123,9 @@ const WeekdayPicker = ({ selectedDays, onChange }) => {
   return (
     <div className="weekday-picker-container" ref={pickerRef}>
       <label className="weekday-picker-label">Días de la Semana *</label>
-      
-      <button 
+
+      <button
+        ref={triggerRef}
         className={`weekday-picker-trigger ${isOpen ? 'open' : ''}`}
         onClick={() => setIsOpen(!isOpen)}
         type="button"
@@ -63,41 +136,51 @@ const WeekdayPicker = ({ selectedDays, onChange }) => {
         </div>
         <ChevronDown size={16} className={`chevron ${isOpen ? 'rotated' : ''}`} />
       </button>
-      
-      {isOpen && (
-        <div className="weekday-picker-dropdown">
+
+      {isOpen && !shouldPortal && (
+        <div ref={dropdownRef} className="weekday-picker-dropdown">
           <div className="weekday-picker-header">
             <h4>Seleccionar días</h4>
             <p>Elige los días en que se realizará esta ruta</p>
           </div>
-          
+
           <div className="weekday-picker-grid">
             {weekdays.map(day => {
               const isSelected = selectedDays.includes(day.key);
+              const isBlocked = !!blockedDays[day.key];
+              const blockedBy = blockedDays[day.key];
+
               return (
                 <button
                   key={day.key}
-                  className={`weekday-picker-day ${isSelected ? 'selected' : ''}`}
+                  className={`weekday-picker-day ${isSelected ? 'selected' : ''} ${isBlocked ? 'blocked' : ''}`}
                   onClick={() => toggleDay(day.key)}
                   type="button"
+                  disabled={isBlocked}
+                  title={isBlocked ? (blockedBy === 'No disponible' ? blockedBy : `Asignado a ${blockedBy}`) : ''}
                 >
                   <span className="day-letter">{day.label}</span>
                   <span className="day-full">{day.full}</span>
-                  {isSelected && (
+                  {isSelected && !isBlocked && (
                     <div className="day-check">
                       <Check size={14} />
+                    </div>
+                  )}
+                  {isBlocked && (
+                    <div className="day-blocked-label">
+                      {blockedBy === 'No disponible' ? blockedBy : `Asignado a ${blockedBy}`}
                     </div>
                   )}
                 </button>
               );
             })}
           </div>
-          
+
           <div className="weekday-picker-footer">
             <span className="selected-count">
               {selectedDays.length} día{selectedDays.length !== 1 ? 's' : ''} seleccionado{selectedDays.length !== 1 ? 's' : ''}
             </span>
-            <button 
+            <button
               className="weekday-picker-done"
               onClick={() => setIsOpen(false)}
               type="button"
@@ -106,6 +189,61 @@ const WeekdayPicker = ({ selectedDays, onChange }) => {
             </button>
           </div>
         </div>
+      )}
+
+      {isOpen && shouldPortal && createPortal(
+        <div ref={dropdownRef} className="weekday-picker-dropdown portaled" style={dropdownStyle}>
+          <div className="weekday-picker-header">
+            <h4>Seleccionar días</h4>
+            <p>Elige los días en que se realizará esta ruta</p>
+          </div>
+
+          <div className="weekday-picker-grid">
+            {weekdays.map(day => {
+              const isSelected = selectedDays.includes(day.key);
+              const isBlocked = !!blockedDays[day.key];
+              const blockedBy = blockedDays[day.key];
+
+              return (
+                <button
+                  key={day.key}
+                  className={`weekday-picker-day ${isSelected ? 'selected' : ''} ${isBlocked ? 'blocked' : ''}`}
+                  onClick={() => toggleDay(day.key)}
+                  type="button"
+                  disabled={isBlocked}
+                  title={isBlocked ? (blockedBy === 'No disponible' ? blockedBy : `Asignado a ${blockedBy}`) : ''}
+                >
+                  <span className="day-letter">{day.label}</span>
+                  <span className="day-full">{day.full}</span>
+                  {isSelected && !isBlocked && (
+                    <div className="day-check">
+                      <Check size={14} />
+                    </div>
+                  )}
+                  {isBlocked && (
+                    <div className="day-blocked-label">
+                      {blockedBy === 'No disponible' ? blockedBy : `Asignado a ${blockedBy}`}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="weekday-picker-footer">
+            <span className="selected-count">
+              {selectedDays.length} día{selectedDays.length !== 1 ? 's' : ''} seleccionado{selectedDays.length !== 1 ? 's' : ''}
+            </span>
+            <button
+              className="weekday-picker-done"
+              onClick={() => setIsOpen(false)}
+              type="button"
+            >
+              Listo
+            </button>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

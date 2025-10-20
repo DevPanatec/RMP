@@ -670,18 +670,117 @@
   margin-bottom: 32px;
 }
 
-/* Conductor Layout */
-.conductor-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+/* Conductor Map Section - Ancho completo para mapa grande */
+.conductor-map-section {
   margin-bottom: 32px;
 }
 
-.conductor-info-section {
+.map-container-large {
+  min-height: 600px;
+  height: 600px;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Start Route Container */
+.start-route-container {
+  margin-bottom: 32px;
   display: flex;
-  flex-direction: column;
-  gap: 24px;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.start-route-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 3px solid rgba(61, 82, 41, 0.2);
+  border-radius: 24px;
+  padding: 48px;
+  text-align: center;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.start-route-icon {
+  font-size: 80px;
+  margin-bottom: 24px;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.start-route-card h2 {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #1a1a1a 0%, #3D5229 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 24px 0;
+  letter-spacing: -0.02em;
+}
+
+.start-route-card p {
+  font-size: 18px;
+  color: #4b5563;
+  margin: 12px 0;
+  line-height: 1.6;
+}
+
+.start-route-card p strong {
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
+.btn-start-route {
+  background: linear-gradient(135deg, #3D5229 0%, #556B2F 100%);
+  border: none;
+  color: white;
+  padding: 20px 48px;
+  border-radius: 16px;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  margin: 32px auto 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 24px rgba(61, 82, 41, 0.3);
+}
+
+.btn-start-route:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 32px rgba(61, 82, 41, 0.4);
+  background: linear-gradient(135deg, #2a3d1d 0%, #4a5e27 100%);
+}
+
+.btn-start-route:active {
+  transform: translateY(-2px) scale(0.98);
+}
+
+.btn-start-icon {
+  font-size: 24px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.1); }
+}
+
+.start-route-hint {
+  font-size: 14px !important;
+  color: #9ca3af !important;
+  font-style: italic;
+  margin-top: 8px !important;
 }
 
 /* Reports Section */
@@ -862,12 +961,26 @@
     width: 240px;
   }
 
-  .conductor-layout {
-    grid-template-columns: 1fr;
+  .map-container-large {
+    min-height: 400px;
+    height: 400px;
   }
 
   .kpi-grid {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .start-route-card {
+    padding: 32px;
+  }
+
+  .start-route-card h2 {
+    font-size: 24px;
+  }
+
+  .btn-start-route {
+    padding: 16px 32px;
+    font-size: 18px;
   }
 }
 
@@ -924,8 +1037,36 @@
     grid-template-columns: 1fr;
   }
 
-  .conductor-layout {
-    grid-template-columns: 1fr;
-    gap: 16px;
+  .map-container-large {
+    min-height: 350px;
+    height: 350px;
+  }
+
+  .start-route-container {
+    min-height: auto;
+    padding: 20px;
+  }
+
+  .start-route-card {
+    padding: 24px;
+  }
+
+  .start-route-icon {
+    font-size: 60px;
+  }
+
+  .start-route-card h2 {
+    font-size: 22px;
+  }
+
+  .start-route-card p {
+    font-size: 16px;
+  }
+
+  .btn-start-route {
+    padding: 14px 24px;
+    font-size: 16px;
+    width: 100%;
+    justify-content: center;
   }
 }

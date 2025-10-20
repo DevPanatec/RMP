@@ -18,10 +18,13 @@ const CALENDAR_CONFIG = {
 const CalendarComponent = () => {
   const { routes, loading: routesLoading } = useSupabaseRoutes();
   const { assignments: cleaningAssignments, loading: cleaningLoading } = useSupabaseCleaning();
-  const { assignments: scheduleAssignments, loading: scheduleLoading, getDayNameFromDate } = useSupabaseSchedule();
+  const { assignments: scheduleAssignments, loading: scheduleLoading, getDayNameFromDate, getStartOfWeekFromDate } = useSupabaseSchedule();
+
+  console.log('📅 DEBUG CalendarComponent - cleaningAssignments:', cleaningAssignments);
+  console.log('📅 DEBUG CalendarComponent - Cantidad:', cleaningAssignments.length);
 
   const [viewMode, setViewMode] = useState('month');
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date()); // Default to current date
   const [filters, setFilters] = useState({
     recoleccion: true,
     fumigacion: true,
@@ -46,11 +49,17 @@ const CalendarComponent = () => {
   };
 
   const getActivitiesForDate = (date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    // Formatear fecha en zona horaria local (no UTC) para evitar desajustes
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     const dayName = getDayNameFromDate(dateStr);
+    const dateWeekStart = getStartOfWeekFromDate(dateStr);
     const activities = [];
 
     const routeAssignments = scheduleAssignments.filter(assignment => {
+      // Debe ser la misma semana (misma fecha de inicio de semana)
+      if (assignment.fecha !== dateWeekStart) return false;
+
+      // Y debe incluir este día de la semana
       if (assignment.dias_semana && Array.isArray(assignment.dias_semana)) {
         return assignment.dias_semana.includes(dayName);
       }
@@ -59,13 +68,14 @@ const CalendarComponent = () => {
 
     routeAssignments.forEach(assignment => {
       const routeType = assignment.ruta?.tipo_servicio || 'recoleccion';
-      
+      const timeDisplay = assignment.hora_inicio || assignment.ruta?.hora_inicio || '08:00';
+
       if (filters.recoleccion && routeType === 'recoleccion') {
         activities.push({
           id: `route-rec-${assignment.id}`,
           type: 'recoleccion',
           title: assignment.ruta?.nombre || 'Ruta sin nombre',
-          time: '08:00',
+          time: timeDisplay,
           status: assignment.estado || 'programada',
           data: {
             ...assignment,
@@ -81,7 +91,7 @@ const CalendarComponent = () => {
           id: `route-fum-${assignment.id}`,
           type: 'fumigacion',
           title: assignment.ruta?.nombre || 'Ruta sin nombre',
-          time: '09:00',
+          time: timeDisplay,
           status: assignment.estado || 'programada',
           data: {
             ...assignment,
@@ -97,15 +107,25 @@ const CalendarComponent = () => {
       const cleaningForDate = cleaningAssignments.filter(
         a => a.fecha === dateStr
       );
+
+      console.log('🗓️ DEBUG Calendario - Fecha buscada:', dateStr);
+      console.log('🗓️ DEBUG Calendario - Asignaciones totales:', cleaningAssignments.length);
+      console.log('🗓️ DEBUG Calendario - Asignaciones filtradas:', cleaningForDate.length);
+      console.log('🗓️ DEBUG Calendario - Datos filtrados:', cleaningForDate);
+
       cleaningForDate.forEach(assignment => {
-        activities.push({
+        const timeFormatted = assignment.hora ? assignment.hora.substring(0, 5) : '10:00';
+        const activity = {
           id: `cleaning-${assignment.id}`,
           type: 'limpieza',
-          title: `${assignment.sala?.nombre || 'Sala'} - ${assignment.area?.nombre || 'Área'}`,
-          time: assignment.hora || '10:00',
+          title: `${assignment.lugar?.nombre || 'Lugar'} - ${assignment.area?.nombre || 'Área'}`,
+          time: timeFormatted,
           status: assignment.estado,
           data: assignment
-        });
+        };
+
+        console.log('🗓️ DEBUG Calendario - Actividad agregada:', activity);
+        activities.push(activity);
       });
     }
 
@@ -227,7 +247,8 @@ const CalendarComponent = () => {
   };
 
   const formatDate = (date) => {
-    return date.toISOString().split('T')[0];
+    // Formatear en zona horaria local (no UTC)
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
 
   const isToday = (date) => {

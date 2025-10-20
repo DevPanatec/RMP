@@ -7,9 +7,16 @@ import './RouteHistory.css';
 const RouteHistory = ({ routeType, onBack }) => {
   const { completedRoutes, loading, error, getCompletedRoutes, exportRoutes } = useSupabaseReports();
   
-  const [dateRange, setDateRange] = useState({
-    inicio: new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0],
-    fin: new Date().toISOString().split('T')[0]
+  const [dateRange, setDateRange] = useState(() => {
+    const formatLocalDate = (date) => {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    };
+    const now = new Date();
+    const thirtyDaysAgo = new Date(Date.now() - 30*24*60*60*1000);
+    return {
+      inicio: formatLocalDate(thirtyDaysAgo),
+      fin: formatLocalDate(now)
+    };
   });
   const [selectedRoutes, setSelectedRoutes] = useState([]);
   const [expandedRoutes, setExpandedRoutes] = useState([]);

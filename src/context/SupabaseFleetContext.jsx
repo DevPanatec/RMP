@@ -95,8 +95,9 @@ export const SupabaseFleetProvider = ({ children }) => {
         modelo: vehicle.modelo,
         año: vehicle.año,
         tipo: vehicle.tipo,
-        tipoServicio: vehicle.tipo === 'camion' ? 'recoleccion' : 'fumigacion',
-        estado: vehicle.estado === 'en_uso' ? 'En ruta' : 
+        tipoServicio: vehicle.tipo_servicio || (vehicle.tipo === 'camion' ? 'recoleccion' : 'fumigacion'),
+        tipo_servicio: vehicle.tipo_servicio,
+        estado: vehicle.estado === 'en_uso' ? 'En ruta' :
                vehicle.estado === 'disponible' ? 'Disponible' :
                vehicle.estado === 'mantenimiento' ? 'Mantenimiento' : 'Fuera de servicio',
         conductor: vehicle.conductor_nombre || 'Sin asignar',

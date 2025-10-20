@@ -31,6 +31,10 @@ export const SupabaseScheduleProvider = ({ children }) => {
       const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
+
+      console.log('📊 DEBUG Schedule - Asignaciones cargadas desde BD:', data);
+      console.log('📊 DEBUG Schedule - Cantidad:', data?.length || 0);
+
       setAssignments(data || []);
       setError(null);
     } catch (err) {
@@ -105,13 +109,29 @@ export const SupabaseScheduleProvider = ({ children }) => {
 
   const getDayNameFromDate = (date) => {
     const dayNames = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
-    const d = new Date(date);
+    const d = new Date(date + 'T12:00:00'); // Evitar problemas de timezone
     return dayNames[d.getDay()];
+  };
+
+  // Helper: calcular el lunes de la semana de una fecha dada
+  const getStartOfWeekFromDate = (dateString) => {
+    const date = new Date(dateString + 'T12:00:00');
+    const day = date.getDay();
+    const diff = day === 0 ? -6 : 1 - day; // Si es domingo, retroceder 6 días
+    const monday = new Date(date);
+    monday.setDate(date.getDate() + diff);
+    return monday.toISOString().split('T')[0];
   };
 
   const getAssignmentsByDate = (fecha) => {
     const dayName = getDayNameFromDate(fecha);
+    const startOfWeek = getStartOfWeekFromDate(fecha);
+
     return assignments.filter(a => {
+      // Debe ser la misma semana (misma fecha de inicio)
+      if (a.fecha !== startOfWeek) return false;
+
+      // Y debe incluir este día de la semana
       if (a.dias_semana && Array.isArray(a.dias_semana)) {
         return a.dias_semana.includes(dayName);
       }
@@ -147,7 +167,8 @@ export const SupabaseScheduleProvider = ({ children }) => {
     getAssignmentsByConductor,
     getAssignmentsByVehicle,
     getAssignmentsByRoute,
-    getDayNameFromDate
+    getDayNameFromDate,
+    getStartOfWeekFromDate
   };
 
   return (

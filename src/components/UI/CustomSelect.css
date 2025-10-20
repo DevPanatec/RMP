@@ -5,6 +5,10 @@
   margin-bottom: 0;
 }
 
+.custom-select-wrapper.open {
+  z-index: 10000;
+}
+
 .custom-select-wrapper.disabled {
   opacity: 0.5;
   pointer-events: none;
@@ -83,6 +87,7 @@
 .custom-select-dropdown {
   position: absolute;
   top: calc(100% + 8px);
+  bottom: auto;
   left: 0;
   right: 0;
   background: rgba(255, 255, 255, 0.98);
@@ -90,17 +95,39 @@
   -webkit-backdrop-filter: blur(60px);
   border: 1px solid rgba(142, 142, 147, 0.12);
   border-radius: 16px;
-  box-shadow: 
+  box-shadow:
     0 24px 48px -12px rgba(0, 0, 0, 0.12),
     0 12px 24px -8px rgba(0, 0, 0, 0.08),
     0 0 0 1px rgba(255, 255, 255, 0.1);
-  z-index: 1100;
+  z-index: 9999;
   overflow: hidden;
   animation: dropdownSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: top center;
   max-height: 320px;
   display: flex;
   flex-direction: column;
+}
+
+/* When positioned as fixed (inside modals) */
+.custom-select-dropdown[style*="position: fixed"] {
+  position: fixed !important;
+  z-index: 9999;
+}
+
+/* Force fixed positioning inside modal-body to escape overflow */
+.modal-body .custom-select-wrapper {
+  position: static !important;
+}
+
+.modal-body .custom-select-dropdown {
+  position: fixed !important;
+  z-index: 9999 !important;
+}
+
+/* Dropdown moved to body (portaled) */
+.custom-select-dropdown.portaled {
+  position: fixed !important;
+  z-index: 10000 !important;
 }
 
 @keyframes dropdownSlideIn {
@@ -264,7 +291,7 @@
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    z-index: 999;
+    z-index: 10001;
     animation: fadeInBackdrop 0.2s ease;
   }
 
@@ -296,9 +323,15 @@
     border-radius: 20px 20px 0 0;
     animation: slideUpFromBottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 1000;
-    box-shadow: 
+    box-shadow:
       0 -12px 48px -8px rgba(0, 0, 0, 0.2),
       0 -4px 16px -4px rgba(0, 0, 0, 0.12);
+  }
+
+  /* Override dynamic positioning on mobile */
+  .custom-select-dropdown:not([style*="position: fixed"]) {
+    top: auto !important;
+    bottom: 0 !important;
   }
 
   @keyframes slideUpFromBottom {

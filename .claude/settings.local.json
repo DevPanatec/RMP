@@ -18,7 +18,13 @@
       "Bash(git commit:*)",
       "Bash(npm start)",
       "Bash(npx kill-port:*)",
-      "Bash(npx:*)"
+      "Bash(npx:*)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"https://tikpsugkuyotqgxsvgor.supabase.co\")",
+      "Bash(tasklist)",
+      "Bash(findstr:*)",
+      "Bash(git log:*)",
+      "Bash(git checkout:*)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": [],

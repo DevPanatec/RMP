@@ -14,12 +14,86 @@
 }
 
 .fleet-header h2 {
-  margin: 0;
+  margin: 0 0 var(--space-12) 0;
   font-family: var(--font-family-display);
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text);
   letter-spacing: var(--letter-spacing-tight);
+}
+
+.fleet-stats {
+  display: flex;
+  gap: var(--space-12);
+  flex-wrap: wrap;
+}
+
+.stat-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-6) var(--space-12);
+  background: var(--color-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.stat-recoleccion {
+  background: rgba(52, 199, 89, 0.1);
+  border-color: rgba(52, 199, 89, 0.3);
+  color: #34c759;
+}
+
+.stat-fumigacion {
+  background: rgba(0, 122, 255, 0.1);
+  border-color: rgba(0, 122, 255, 0.3);
+  color: #007aff;
+}
+
+.fleet-filters {
+  display: flex;
+  gap: var(--space-12);
+  margin-bottom: var(--space-24);
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: var(--space-10) var(--space-20);
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.filter-btn:hover {
+  background: var(--color-secondary);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.filter-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(48, 209, 88, 0.3);
+}
+
+.filter-recoleccion.active {
+  background: #34c759;
+  border-color: #34c759;
+  box-shadow: 0 2px 8px rgba(52, 199, 89, 0.3);
+}
+
+.filter-fumigacion.active {
+  background: #007aff;
+  border-color: #007aff;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 .btn-add-vehicle {
@@ -122,10 +196,33 @@
   font-family: var(--font-family-mono);
 }
 
-.vehicle-type {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+.vehicle-badges {
+  display: flex;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+  margin-top: var(--space-12);
+}
+
+.vehicle-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-6) var(--space-12);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  border: 1.5px solid transparent;
+}
+
+.type-recoleccion {
+  background: rgba(52, 199, 89, 0.15);
+  color: #34c759;
+  border-color: rgba(52, 199, 89, 0.3);
+}
+
+.type-fumigacion {
+  background: rgba(0, 122, 255, 0.15);
+  color: #007aff;
+  border-color: rgba(0, 122, 255, 0.3);
 }
 
 .vehicle-status {

@@ -1,6 +1,6 @@
-const CACHE_NAME = 'rmp-conductor-v3.0';
-const STATIC_CACHE = 'rmp-static-v3.0';
-const DYNAMIC_CACHE = 'rmp-dynamic-v3.0';
+const CACHE_NAME = 'rmp-conductor-v5.1';
+const STATIC_CACHE = 'rmp-static-v5.1';
+const DYNAMIC_CACHE = 'rmp-dynamic-v5.1';
 
 const urlsToCache = [
   '/',
@@ -15,6 +15,11 @@ const urlsToCache = [
   '/src/components/Map/MapComponent.jsx',
   '/src/components/WeightModal/WeightModal.jsx'
 ];
+
+function isDevelopment() {
+  return self.location.hostname === 'localhost' || 
+         self.location.hostname === '127.0.0.1';
+}
 
 // Instalación del Service Worker
 self.addEventListener('install', (event) => {
@@ -50,7 +55,23 @@ self.addEventListener('activate', (event) => {
       );
     }).then(() => {
       console.log('SW: Activado correctamente');
-      return self.clients.claim();
+      
+      // Invalidación automática de cache en desarrollo cada 5 minutos
+      if (isDevelopment()) {
+        setInterval(() => {
+          console.log('SW Dev: Limpiando cache automáticamente...');
+          caches.keys().then(names => {
+            names.forEach(name => {
+              if (name === DYNAMIC_CACHE) {
+                caches.delete(name);
+                console.log('SW Dev: Cache dinámico eliminado:', name);
+              }
+            });
+          });
+        }, 5 * 60 * 1000);
+      }
+      
+       // return self.clients.claim(); // Desactivado para evitar reinicios en desarrollo
     })
   );
 });
@@ -65,7 +86,21 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache First para archivos estáticos (JS, CSS, imágenes)
+  // Ignorar WebSocket connections
+  if (url.protocol === 'ws:' || url.protocol === 'wss:') {
+    return;
+  }
+
+  // Ignorar archivos de desarrollo de Vite
+  if (url.pathname.includes('/node_modules/.vite/') ||
+      url.pathname.includes('/@vite/') ||
+      url.pathname.includes('/@fs/') ||
+      url.searchParams.has('t') || // timestamp parameter de Vite
+      url.searchParams.has('v')) { // version parameter de Vite
+    return; // No interceptar requests de Vite en desarrollo
+  }
+
+  // Estrategia condicional para archivos estáticos (JS, CSS, imágenes)
   if (request.destination === 'script' || 
       request.destination === 'style' || 
       request.destination === 'image' ||
@@ -76,36 +111,76 @@ self.addEventListener('fetch', (event) => {
       url.pathname.includes('.jpg') ||
       url.pathname.includes('.svg')) {
     
-    event.respondWith(
-      caches.match(request)
-        .then(response => {
-          if (response) {
-            console.log('SW: Sirviendo desde cache:', request.url);
-            return response;
-          }
-          
-          return fetch(request)
-            .then(fetchResponse => {
-              if (!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type !== 'basic') {
+    if (isDevelopment()) {
+      // Stale While Revalidate en desarrollo - sirve cache inmediatamente y actualiza en background
+      event.respondWith(
+        caches.match(request)
+          .then(cachedResponse => {
+            const fetchPromise = fetch(request)
+              .then(networkResponse => {
+                if (networkResponse && networkResponse.status === 200) {
+                  const responseToCache = networkResponse.clone();
+                  caches.open(STATIC_CACHE)
+                    .then(cache => {
+                      cache.put(request, responseToCache);
+                      console.log('SW Dev: Cache actualizado en background:', request.url);
+                    });
+                }
+                return networkResponse;
+              })
+              .catch(() => {
+                console.log('SW Dev: Red no disponible, usando cache');
+                return cachedResponse;
+              });
+            
+            // Si hay cache, retornarlo inmediatamente, sino esperar la red
+            if (cachedResponse) {
+              console.log('SW Dev: Sirviendo desde cache (actualizando en background):', request.url);
+              return cachedResponse;
+            }
+            
+            return fetchPromise;
+          })
+          .catch(() => {
+            // Fallback para imágenes si todo falla
+            if (request.destination === 'image') {
+              return caches.match('/icon-192.png');
+            }
+          })
+      );
+    } else {
+      // Cache First en producción - más agresivo
+      event.respondWith(
+        caches.match(request)
+          .then(response => {
+            if (response) {
+              console.log('SW Prod: Sirviendo desde cache:', request.url);
+              return response;
+            }
+            
+            return fetch(request)
+              .then(fetchResponse => {
+                if (!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type !== 'basic') {
+                  return fetchResponse;
+                }
+                
+                const responseToCache = fetchResponse.clone();
+                caches.open(STATIC_CACHE)
+                  .then(cache => {
+                    cache.put(request, responseToCache);
+                  });
+                
                 return fetchResponse;
-              }
-              
-              const responseToCache = fetchResponse.clone();
-              caches.open(STATIC_CACHE)
-                .then(cache => {
-                  cache.put(request, responseToCache);
-                });
-              
-              return fetchResponse;
-            })
-            .catch(() => {
-              // Fallback para imágenes
-              if (request.destination === 'image') {
-                return caches.match('/icon-192.png');
-              }
-            });
-        })
-    );
+              })
+              .catch(() => {
+                // Fallback para imágenes
+                if (request.destination === 'image') {
+                  return caches.match('/icon-192.png');
+                }
+              });
+          })
+      );
+    }
     return;
   }
 

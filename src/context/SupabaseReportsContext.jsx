@@ -157,12 +157,12 @@ export const SupabaseReportsProvider = ({ children }) => {
   const getReportsStats = (routes) => {
     const totalRoutes = routes.length;
     const totalStops = routes.reduce((sum, route) => sum + route.paradas.length, 0);
-    
+
     const serviceTypes = routes.reduce((acc, route) => {
       acc[route.tipo_servicio] = (acc[route.tipo_servicio] || 0) + 1;
       return acc;
     }, {});
-    
+
     const cargoTypes = routes.reduce((acc, route) => {
       route.paradas.forEach(parada => {
         acc[parada.tipo_carga] = (acc[parada.tipo_carga] || 0) + 1;
@@ -179,6 +179,31 @@ export const SupabaseReportsProvider = ({ children }) => {
     };
   };
 
+  // Función para guardar resumen de ruta completada
+  const saveCompletedRoute = async (routeData) => {
+    try {
+      console.log('💾 Guardando resumen de ruta completada:', routeData);
+      const result = await supabaseClient.saveRouteCompletionReport(routeData);
+      console.log('✅ Resumen guardado exitosamente:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Error guardando resumen de ruta:', error);
+      dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
+      throw error;
+    }
+  };
+
+  // Función para obtener resúmenes de rutas completadas por conductor
+  const getCompletionReportsByDriver = async (driverName) => {
+    try {
+      const result = await supabaseClient.getRouteCompletionReportsByDriver(driverName);
+      return result.rows || [];
+    } catch (error) {
+      console.error('Error loading driver completion reports:', error);
+      throw error;
+    }
+  };
+
   // Valor del contexto
   const value = {
     completedRoutes: state.completedRoutes,
@@ -186,7 +211,9 @@ export const SupabaseReportsProvider = ({ children }) => {
     error: state.error,
     getCompletedRoutes,
     exportRoutes,
-    getReportsStats
+    getReportsStats,
+    saveCompletedRoute,
+    getCompletionReportsByDriver
   };
 
   return (

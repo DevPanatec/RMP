@@ -15,6 +15,7 @@ export const SupabaseAuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   useEffect(() => {
     const savedAuthState = localStorage.getItem('rmp_auth_state');
@@ -79,14 +80,21 @@ export const SupabaseAuthProvider = ({ children }) => {
     try {
       console.log('Verificando sesión...');
       setLoading(true);
-      
-      const { data: { session }, error } = await supabaseClient.supabase.auth.getSession();
-      
+
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Session check timeout')), 10000)
+      );
+
+      const sessionPromise = supabaseClient.supabase.auth.getSession();
+
+      const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+
       if (error) throw error;
-      
+
       console.log('Sesión obtenida:', session ? 'Sesión activa' : 'Sin sesión');
       setSession(session);
-      
+
       if (session?.user) {
         await loadUserProfile(session.user.id);
       }
@@ -102,17 +110,32 @@ export const SupabaseAuthProvider = ({ children }) => {
   };
 
   const loadUserProfile = async (userId) => {
+    // Prevent duplicate profile loads
+    if (loadingProfile) {
+      console.log('⏸️ Ya se está cargando un perfil, saltando...');
+      return;
+    }
+
     try {
+      setLoadingProfile(true);
       console.log('📋 Cargando perfil de usuario:', userId);
-      
-      const { data: profile, error } = await supabaseClient.supabase
+
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Profile load timeout')), 10000)
+      );
+
+      const profilePromise = supabaseClient.supabase
         .from('perfiles_usuarios')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
+
+      const { data: profile, error } = await Promise.race([profilePromise, timeoutPromise]);
 
       if (error) {
         console.error('Error cargando perfil:', error);
+        setLoadingProfile(false);
         
         if (error.code === 'PGRST116') {
           console.warn('Perfil de usuario no encontrado, creando perfil básico...');
@@ -196,6 +219,8 @@ export const SupabaseAuthProvider = ({ children }) => {
       console.error('Error loading user profile:', err);
       setError(err.message);
       setUser(null);
+    } finally {
+      setLoadingProfile(false);
     }
   };
 
