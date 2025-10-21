@@ -20,6 +20,7 @@ const CalendarComponent = () => {
   const { routes, loading: routesLoading } = useSupabaseRoutes();
   const { assignments: cleaningAssignments, loading: cleaningLoading } = useSupabaseCleaning();
   const { assignments: scheduleAssignments, loading: scheduleLoading, getDayNameFromDate, getStartOfWeekFromDate } = useSupabaseSchedule();
+  const { tasks: maintenanceTasks, loading: maintenanceLoading } = useSupabaseMaintenance();
 
   console.log('📅 DEBUG CalendarComponent - cleaningAssignments:', cleaningAssignments);
   console.log('📅 DEBUG CalendarComponent - Cantidad:', cleaningAssignments.length);
@@ -253,7 +254,7 @@ const CalendarComponent = () => {
   };
 
   const handleDayClick = (date, activities) => {
-    if (CALENDAR_CONFIG.modalOnClick && activities.length >= CALENDAR_CONFIG.overloadThreshold) {
+    if (CALENDAR_CONFIG.modalOnClick) {
       setSelectedDay({ date, activities });
       setShowModal(true);
     }

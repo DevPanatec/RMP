@@ -19,7 +19,7 @@ const CalendarDay = ({
   const hiddenCount = activities.length - config.maxVisibleActivities;
 
   const handleClick = () => {
-    if (config.modalOnClick && isOverloaded) {
+    if (config.modalOnClick) {
       onDayClick(date, activities);
     }
   };

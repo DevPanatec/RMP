@@ -1,53 +1,41 @@
 import { useState, useEffect } from 'react';
-import { Truck, MapPin, Clock, CheckCircle, Radio } from '../Icons';
+import { Truck, MapPin, Clock, CheckCircle, Radio, Navigation, Wrench } from '../Icons';
 import './RealtimeActivity.css';
 
-const RealtimeActivity = ({ vehicles = [], routes = [], personnel = [] }) => {
-  const activeVehicles = vehicles.filter(v => v.estado === 'En ruta' || v.estado === 'en_ruta');
+const RealtimeActivity = ({ vehicles = [], routes = [], personnel = [], recentActivity = [] }) => {
+  const [activities, setActivities] = useState([]);
 
-  const getVehicleActivity = (vehicle) => {
-    const route = routes.find(r => r.id === vehicle.rutaAsignada || r.id === vehicle.ruta_id);
-    const driver = personnel.find(p => p.id === vehicle.conductorAsignado || p.id === vehicle.conductor_id);
-    
-    const stops = route?.paradas || route?.stops || [];
-    const completedStops = stops.filter(stop => stop.completada || stop.completed);
-    const totalStops = stops.length;
-    const progress = totalStops > 0 ? (completedStops.length / totalStops) * 100 : 0;
+  useEffect(() => {
+    // Si hay datos de actividad reciente (modo demo), usarlos
+    if (recentActivity && recentActivity.length > 0) {
+      setActivities(recentActivity);
+      return;
+    }
 
-    const nextStop = stops.find(stop => !stop.completada && !stop.completed);
-    
-    const recentStops = completedStops.slice(-3).reverse();
+    // Si no, generar actividades desde datos reales
+    const generatedActivities = generateActivitiesFromRealData(vehicles, routes, personnel);
+    setActivities(generatedActivities);
+  }, [recentActivity, vehicles, routes, personnel]);
 
-    return {
-      vehicleId: vehicle.id,
-      vehicleName: vehicle.placa || vehicle.nombre || `Camión ${vehicle.id}`,
-      driverName: driver?.nombre || 'Sin asignar',
-      routeName: route?.nombre || route?.name || 'Ruta sin nombre',
-      progress,
-      completedCount: completedStops.length,
-      totalStops,
-      recentStops,
-      nextStop,
-      vehicle
-    };
-  };
+  const sortedActivities = [...activities]
+    .filter(activity => activity.tipo !== 'alerta_creada') // Excluir alertas (se muestran en Riesgos)
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    .slice(0, 15); // Mostrar últimas 15 actividades
 
-  const activities = activeVehicles.map(getVehicleActivity).filter(a => a.totalStops > 0);
-
-  if (activities.length === 0) {
+  if (sortedActivities.length === 0) {
     return (
       <div className="realtime-activity">
         <div className="activity-header">
-          <h3><Radio strokeWidth={1.5} size={22} /> Actividad en Tiempo Real</h3>
+          <h3><Radio strokeWidth={1.5} size={22} /> Registro de Actividades</h3>
           <span className="live-indicator">
             <span className="live-dot"></span>
-            EN VIVO
+            TIEMPO REAL
           </span>
         </div>
         <div className="no-activity">
           <Truck strokeWidth={1.5} size={48} />
-          <p>No hay vehículos en ruta actualmente</p>
-          <span>La actividad aparecerá cuando los vehículos inicien sus rutas</span>
+          <p>Sin actividad registrada</p>
+          <span>Las operaciones aparecerán cuando los vehículos inicien sus rutas</span>
         </div>
       </div>
     );
@@ -56,120 +44,200 @@ const RealtimeActivity = ({ vehicles = [], routes = [], personnel = [] }) => {
   return (
     <div className="realtime-activity">
       <div className="activity-header">
-        <h3><Radio strokeWidth={1.5} size={22} /> Actividad en Tiempo Real</h3>
+        <h3><Radio strokeWidth={1.5} size={22} /> Registro de Actividades</h3>
         <span className="live-indicator">
           <span className="live-dot"></span>
-          EN VIVO
+          TIEMPO REAL
         </span>
       </div>
-      
-      <div className="activity-list">
-        {activities.map((activity, index) => (
-          <ActivityCard key={activity.vehicleId} activity={activity} delay={index * 100} />
+
+      <div className="activity-feed">
+        {sortedActivities.map((activity, index) => (
+          <ActivityItem
+            key={activity.id || index}
+            activity={activity}
+            delay={index * 50}
+          />
         ))}
       </div>
     </div>
   );
 };
 
-const ActivityCard = ({ activity, delay }) => {
-  const [expanded, setExpanded] = useState(true);
-  const [animatedProgress, setAnimatedProgress] = useState(0);
+// Función para generar actividades desde datos reales
+const generateActivitiesFromRealData = (vehicles, routes, personnel) => {
+  const activities = [];
+  let activityId = 1;
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setAnimatedProgress(activity.progress);
-    }, delay + 200);
-    return () => clearTimeout(timer);
-  }, [activity.progress, delay]);
+  // Generar actividades de vehículos en ruta
+  vehicles.forEach(vehicle => {
+    if (vehicle.estado === 'En ruta' || vehicle.estado === 'en_ruta') {
+      const route = routes.find(r => r.id === vehicle.rutaAsignada || r.id === vehicle.ruta_id);
+      const driver = personnel.find(p => p.id === vehicle.conductorAsignado || p.id === vehicle.conductor_id);
+
+      if (route) {
+        const stops = route.paradas || route.stops || [];
+        const completedStops = stops.filter(stop => stop.completada || stop.completed);
+
+        // Actividad de paradas completadas
+        completedStops.slice(-3).forEach((stop, idx) => {
+          const timeOffset = (idx + 1) * 15 * 60 * 1000; // 15, 30, 45 min atrás
+          activities.push({
+            id: activityId++,
+            tipo: 'parada_completada',
+            descripcion: `Parada "${stop.nombre || stop.direccion || 'Sin nombre'}" completada`,
+            vehiculo: vehicle.placa || vehicle.nombre,
+            conductor: driver?.nombre || 'Sin asignar',
+            timestamp: new Date(Date.now() - timeOffset).toISOString(),
+            ruta: route.nombre || route.name
+          });
+        });
+
+        // Si hay paradas completadas, significa que inició la ruta
+        if (completedStops.length > 0) {
+          activities.push({
+            id: activityId++,
+            tipo: 'ruta_iniciada',
+            descripcion: `Ruta "${route.nombre || route.name}" iniciada`,
+            vehiculo: vehicle.placa || vehicle.nombre,
+            conductor: driver?.nombre || 'Sin asignar',
+            timestamp: new Date(Date.now() - (completedStops.length * 20 * 60 * 1000)).toISOString(),
+            ruta: route.nombre || route.name
+          });
+        }
+      }
+    }
+  });
+
+  return activities;
+};
+
+const ActivityItem = ({ activity, delay }) => {
+  const getActivityConfig = (tipo) => {
+    switch (tipo) {
+      case 'parada_completada':
+        return {
+          icon: <CheckCircle size={16} />,
+          color: '#10b981',
+          bgColor: 'rgba(16, 185, 129, 0.08)',
+          label: 'Parada Completada',
+          badgeColor: '#10b981'
+        };
+      case 'ruta_iniciada':
+        return {
+          icon: <Navigation size={16} />,
+          color: '#3b82f6',
+          bgColor: 'rgba(59, 130, 246, 0.08)',
+          label: 'Ruta Iniciada',
+          badgeColor: '#3b82f6'
+        };
+      case 'ruta_completada':
+        return {
+          icon: <CheckCircle size={16} />,
+          color: '#8b5cf6',
+          bgColor: 'rgba(139, 92, 246, 0.08)',
+          label: 'Ruta Completada',
+          badgeColor: '#8b5cf6'
+        };
+      case 'mantenimiento':
+        return {
+          icon: <Wrench size={16} />,
+          color: '#f59e0b',
+          bgColor: 'rgba(245, 158, 11, 0.08)',
+          label: 'Mantenimiento',
+          badgeColor: '#f59e0b'
+        };
+      default:
+        return {
+          icon: <Truck size={16} />,
+          color: '#6b7280',
+          bgColor: 'rgba(107, 114, 128, 0.08)',
+          label: 'Actividad',
+          badgeColor: '#6b7280'
+        };
+    }
+  };
+
+  const formatTime = (timestamp) => {
+    const now = new Date();
+    const activityTime = new Date(timestamp);
+    const diffMs = now - activityTime;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+
+    if (diffMins < 1) return 'Hace menos de 1 min';
+    if (diffMins < 60) return `Hace ${diffMins} min`;
+    if (diffHours < 24) return `Hace ${diffHours}h`;
+    return activityTime.toLocaleDateString('es-PA', { month: 'short', day: 'numeric' });
+  };
+
+  const formatTimeExact = (timestamp) => {
+    return new Date(timestamp).toLocaleTimeString('es-PA', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }).toUpperCase();
+  };
+
+  const config = getActivityConfig(activity.tipo);
 
   return (
-    <div 
-      className="activity-card"
+    <div
+      className="activity-item"
       style={{ animationDelay: `${delay}ms` }}
     >
-      <div className="activity-card-header" onClick={() => setExpanded(!expanded)}>
-        <div className="vehicle-info">
-          <div className="vehicle-icon">
-            <Truck size={20} />
-          </div>
-          <div className="vehicle-details">
-            <h4>{activity.vehicleName}</h4>
-            <p>Conductor: {activity.driverName}</p>
-          </div>
+      <div className="activity-timeline">
+        <div
+          className="activity-icon"
+          style={{ backgroundColor: config.bgColor, color: config.color }}
+        >
+          {config.icon}
         </div>
-        <button className="expand-btn" aria-label={expanded ? 'Colapsar' : 'Expandir'}>
-          <span className={`arrow ${expanded ? 'up' : 'down'}`}>▼</span>
-        </button>
+        <div className="activity-line"></div>
       </div>
 
-      {expanded && (
-        <div className="activity-card-content">
-          <div className="route-info">
-            <div className="route-header">
-              <MapPin size={16} />
-              <span className="route-name">{activity.routeName}</span>
-            </div>
-            <div className="progress-section">
-              <div className="progress-bar-container">
-                <div 
-                  className="progress-bar-fill"
-                  style={{ width: `${animatedProgress}%` }}
-                >
-                  <span className="progress-shine"></span>
-                </div>
-              </div>
-              <span className="progress-label">
-                {activity.completedCount}/{activity.totalStops} paradas
-              </span>
-            </div>
+      <div className="activity-content">
+        <div className="activity-main">
+          <div className="activity-header-row">
+            <span
+              className="activity-badge"
+              style={{
+                backgroundColor: `${config.badgeColor}15`,
+                color: config.badgeColor,
+                borderColor: `${config.badgeColor}30`
+              }}
+            >
+              {config.label}
+            </span>
+            <span className="time-exact">{formatTimeExact(activity.timestamp)}</span>
           </div>
-
-          {activity.recentStops.length > 0 && (
-            <div className="recent-stops">
-              <h5><CheckCircle size={16} /> Últimas paradas completadas:</h5>
-              <div className="stops-list">
-                {activity.recentStops.map((stop, idx) => (
-                  <div key={idx} className="stop-item">
-                    <div className="stop-check">✓</div>
-                    <div className="stop-details">
-                      <span className="stop-time">
-                        <Clock size={14} />
-                        {stop.horaCompletada || stop.completedAt || 'Reciente'}
-                      </span>
-                      <span className="stop-address">
-                        {stop.direccion || stop.address || stop.nombre || `Parada ${idx + 1}`}
-                      </span>
-                      {(stop.pesoRecolectado || stop.weight) && (
-                        <span className="stop-weight">
-                          {stop.pesoRecolectado || stop.weight} kg
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activity.nextStop && (
-            <div className="next-stop">
-              <div className="next-stop-icon">
-                <Navigation size={16} />
-              </div>
-              <div className="next-stop-info">
-                <span className="next-label">Próxima parada:</span>
-                <span className="next-address">
-                  {activity.nextStop.direccion || activity.nextStop.address || activity.nextStop.nombre || 'Siguiente ubicación'}
+          <p className="activity-description">{activity.descripcion}</p>
+          <div className="activity-meta">
+            <span className="activity-vehicle">
+              <Truck size={13} />
+              {activity.vehiculo}
+            </span>
+            {activity.conductor && (
+              <>
+                <span className="activity-separator">•</span>
+                <span className="activity-driver">{activity.conductor}</span>
+              </>
+            )}
+            {activity.ruta && (
+              <>
+                <span className="activity-separator">•</span>
+                <span className="activity-route">
+                  <MapPin size={13} />
+                  {activity.ruta}
                 </span>
-                {activity.nextStop.eta && (
-                  <span className="next-eta">ETA: {activity.nextStop.eta}</span>
-                )}
-              </div>
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </div>
-      )}
+        <div className="activity-time">
+          <span className="time-relative">{formatTime(activity.timestamp)}</span>
+        </div>
+      </div>
     </div>
   );
 };

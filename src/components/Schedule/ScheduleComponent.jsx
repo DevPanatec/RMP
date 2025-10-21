@@ -13,6 +13,7 @@ import PhotoUploadField from '../Cleaning/PhotoUploadField';
 import HelperManager from './HelperManager';
 import WeekdayPicker from './WeekdayPicker';
 import './ScheduleComponent.css';
+import './ScheduleModal.css';
 
 const ScheduleComponent = () => {
   const {

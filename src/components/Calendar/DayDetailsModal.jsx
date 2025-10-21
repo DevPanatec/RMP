@@ -27,6 +27,7 @@ const DayDetailsModal = ({ date, activities, onClose, filters, onFilterChange })
     if (activity.type === 'recoleccion') return localFilters.recoleccion;
     if (activity.type === 'fumigacion') return localFilters.fumigacion;
     if (activity.type === 'limpieza') return localFilters.limpieza;
+    if (activity.type === 'mantenimiento') return localFilters.mantenimiento;
     return true;
   });
 
@@ -38,6 +39,8 @@ const DayDetailsModal = ({ date, activities, onClose, filters, onFilterChange })
         return 'Fumigación';
       case 'limpieza':
         return 'Limpieza';
+      case 'mantenimiento':
+        return 'Mantenimiento';
       default:
         return 'Actividad';
     }
@@ -120,6 +123,12 @@ const DayDetailsModal = ({ date, activities, onClose, filters, onFilterChange })
               onClick={() => toggleLocalFilter('limpieza')}
             >
               🧹 Limpieza
+            </button>
+            <button
+              className={`filter-btn-sm ${localFilters.mantenimiento ? 'active' : ''}`}
+              onClick={() => toggleLocalFilter('mantenimiento')}
+            >
+              🔧 Mantenimiento
             </button>
           </div>
         </div>

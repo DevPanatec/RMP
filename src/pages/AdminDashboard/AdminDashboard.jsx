@@ -13,6 +13,8 @@ import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
 import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
+import { useDemoMode } from '../../hooks/useDemoMode';
+import { DEMO_VEHICLES, DEMO_ROUTES, DEMO_PERSONNEL, DEMO_ALERTS, DEMO_RECENT_ACTIVITY, mergeDemoData } from '../../utils/demoData';
 import {
   LayoutDashboard, Truck, AlertTriangle, Package,
   BarChart3, Users, Map, LogOut, TrendingUp, CheckCircle,
@@ -73,8 +75,28 @@ const AdminDashboard = ({ user, onLogout }) => {
     getAlertsStats
   } = useSupabaseRiskReports();
 
-  // Usar datos reales de los contextos
-  const normalizedCamiones = vehicles.map(camion => (
+  // Hook de modo demo
+  const { isDemoMode, toggleDemoMode } = useDemoMode();
+
+  // Mezclar datos reales con datos demo cuando el modo demo está activo
+  const displayVehicles = useMemo(() => {
+    return isDemoMode ? mergeDemoData(vehicles, DEMO_VEHICLES) : vehicles;
+  }, [isDemoMode, vehicles]);
+
+  const displayRoutes = useMemo(() => {
+    return isDemoMode ? mergeDemoData(routes, DEMO_ROUTES) : routes;
+  }, [isDemoMode, routes]);
+
+  const displayPersonnel = useMemo(() => {
+    return isDemoMode ? mergeDemoData(personnel, DEMO_PERSONNEL) : personnel;
+  }, [isDemoMode, personnel]);
+
+  const displayAlerts = useMemo(() => {
+    return isDemoMode ? mergeDemoData(alerts, DEMO_ALERTS) : alerts;
+  }, [isDemoMode, alerts]);
+
+  // Usar datos reales o demo según el modo activo
+  const normalizedCamiones = displayVehicles.map(camion => (
     camion.tipoServicio ? camion : { ...camion, tipoServicio: 'recoleccion' }
   ));
   
@@ -83,20 +105,20 @@ const AdminDashboard = ({ user, onLogout }) => {
   const fleetStats = getFleetStats();
   const routesStats = getRoutesStats();
 
-  // Calcular estadísticas operativas basadas en datos reales
+  // Calcular estadísticas operativas basadas en datos activos (reales o demo)
   const operationalStats = useMemo(() => {
     const defaultStats = {
       eficienciaPromedio: 85,
       totalKgHoy: 0
     };
 
-    if (!vehicles || vehicles.length === 0) return defaultStats;
+    if (!displayVehicles || displayVehicles.length === 0) return defaultStats;
 
     return {
       eficienciaPromedio: 85, // Se puede calcular basado en rutas completadas
-      totalKgHoy: vehicles.reduce((total, vehicle) => total + (vehicle.capacidad_carga || 0), 0)
+      totalKgHoy: displayVehicles.reduce((total, vehicle) => total + (vehicle.capacidad_carga || 0), 0)
     };
-  }, [vehicles]);
+  }, [displayVehicles]);
 
   const handleTabChange = (newTab, defaultSubTab = '') => {
     setActiveTab(newTab);
@@ -125,18 +147,18 @@ const AdminDashboard = ({ user, onLogout }) => {
               </div>
               <div className="ops-header-stats">
                 <div className="stat-pill">
-                  <span className="stat-value">{personnel?.length || 0}</span>
+                  <span className="stat-value">{displayPersonnel?.length || 0}</span>
                   <span className="stat-label">Total</span>
                 </div>
                 <div className="stat-pill">
-                  <span className="stat-value">{personnel?.filter(p => p.estado === 'activo').length || 0}</span>
+                  <span className="stat-value">{displayPersonnel?.filter(p => p.estado === 'activo').length || 0}</span>
                   <span className="stat-label">Activos</span>
                 </div>
               </div>
             </div>
             <div className="ops-content-wrapper">
               <PersonnelTable
-                personnel={personnel}
+                personnel={displayPersonnel}
                 onEdit={(employee) => {
                   console.log('Edit employee:', employee);
                 }}
@@ -146,7 +168,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                   }
                 }}
                 currentPage={1}
-                totalPages={Math.ceil((personnel?.length || 0) / 8)}
+                totalPages={Math.ceil((displayPersonnel?.length || 0) / 8)}
                 onPageChange={(page) => {
                   console.log('Page change:', page);
                 }}
@@ -386,11 +408,11 @@ const AdminDashboard = ({ user, onLogout }) => {
               </div>
               <div className="ops-header-stats">
                 <div className="stat-pill">
-                  <span className="stat-value">{routes.filter(r => r.tipo_servicio === 'recoleccion').length}</span>
+                  <span className="stat-value">{displayRoutes.filter(r => r.tipo_servicio === 'recoleccion').length}</span>
                   <span className="stat-label">Recolección</span>
                 </div>
                 <div className="stat-pill info">
-                  <span className="stat-value">{routes.filter(r => r.tipo_servicio === 'fumigacion').length}</span>
+                  <span className="stat-value">{displayRoutes.filter(r => r.tipo_servicio === 'fumigacion').length}</span>
                   <span className="stat-label">Fumigación</span>
                 </div>
               </div>
@@ -398,7 +420,7 @@ const AdminDashboard = ({ user, onLogout }) => {
 
             <div className="ops-content-wrapper">
               <RoutesComponent
-                initialRoutes={routes}
+                initialRoutes={displayRoutes}
                 onRoutesChange={(updatedRoutes) => {
                   console.log('Routes updated:', updatedRoutes);
                 }}
@@ -444,14 +466,14 @@ const AdminDashboard = ({ user, onLogout }) => {
           {
             id: 'personnel',
             icon: <Briefcase strokeWidth={1.5} size={32} />,
-            value: personnel?.length || 0,
+            value: displayPersonnel?.length || 0,
             label: 'Personal',
             color: 'linear-gradient(135deg, #007aff 0%, #4da3ff 100%)'
           },
           {
             id: 'routes',
             icon: <MapPin strokeWidth={1.5} size={32} />,
-            value: routes.filter(r => r.activa !== false).length,
+            value: displayRoutes.filter(r => r.activa !== false).length,
             label: 'Rutas Activas',
             color: 'linear-gradient(135deg, #00d4ff 0%, #0091ff 100%)'
           }
@@ -486,13 +508,14 @@ const AdminDashboard = ({ user, onLogout }) => {
                 </div>
               </div>
               <div className="map-container-modern">
-                <MapComponent 
+                <MapComponent
                   key={`map-${serviceTypeFilter}`}
-                  camiones={serviceTypeFilter === 'todos' 
-                    ? normalizedCamiones 
+                  camiones={serviceTypeFilter === 'todos'
+                    ? normalizedCamiones
                     : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter)
                   }
-                  rutas={routes || []}
+                  rutas={displayRoutes || []}
+                  personnel={displayPersonnel || []}
                   userType={user.tipo}
                   showRealTime={true}
                   selectedTruck={selectedTruck}
@@ -502,14 +525,15 @@ const AdminDashboard = ({ user, onLogout }) => {
             </div>
 
             <div className="dashboard-grid-2col">
-              <RealtimeActivity 
+              <RealtimeActivity
                 vehicles={normalizedCamiones}
-                routes={routes}
-                personnel={personnel}
+                routes={displayRoutes}
+                personnel={displayPersonnel}
+                recentActivity={isDemoMode ? DEMO_RECENT_ACTIVITY : []}
               />
 
-              <RiskAlerts 
-                alerts={alerts}
+              <RiskAlerts
+                alerts={displayAlerts}
                 onViewDetails={(alert) => {
                   setActiveTab('riesgos');
                 }}
@@ -641,6 +665,20 @@ const AdminDashboard = ({ user, onLogout }) => {
         <div className="dashboard-header">
           <h1><Leaf strokeWidth={1.5} size={24} /> Panel de Administración</h1>
           <div className="header-actions">
+            {isDemoMode && (
+              <div className="demo-badge">
+                <Sparkles size={14} />
+                <span>MODO DEMO</span>
+              </div>
+            )}
+            <button
+              className={`demo-toggle-btn ${isDemoMode ? 'active' : ''}`}
+              onClick={toggleDemoMode}
+              title={isDemoMode ? 'Desactivar modo demo' : 'Activar modo demo'}
+            >
+              <Sparkles size={16} />
+              <span>{isDemoMode ? 'Demo ON' : 'Demo OFF'}</span>
+            </button>
             <div className="realtime-status">
               <Activity size={16} /> Sistema en Tiempo Real
             </div>
