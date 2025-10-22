@@ -343,8 +343,8 @@ class SupabaseClient {
 
   // Método para guardar resumen de ruta completada
   async saveRouteCompletionReport(reportData) {
-    const { data, error } = await this.client
-      .from('resumen_rutas_completadas')
+    const { data, error} = await this.client
+      .from('route_reports')
       .insert([{
         ruta_id: reportData.ruta_id,
         asignacion_id: reportData.asignacion_id,
@@ -357,19 +357,35 @@ class SupabaseClient {
         tiempo_total_segundos: reportData.tiempo_total_segundos,
         paradas_completadas: reportData.paradas_completadas,
         reportes_riesgo_ids: reportData.reportes_riesgo_ids || [],
-        observaciones: reportData.observaciones || ''
+        observaciones: reportData.observaciones || '',
+        tipo_ruta: reportData.tipo_ruta,
+        ruta_nombre: reportData.nombreRuta,
+        ruta_paradas: reportData.ruta_paradas || []
       }])
       .select()
       .single();
 
     if (error) throw error;
+
+    // Actualizar el estado de la asignación a "completada"
+    if (reportData.asignacion_id) {
+      const { error: updateError } = await this.client
+        .from('asignaciones_rutas')
+        .update({ estado: 'completada' })
+        .eq('id', reportData.asignacion_id);
+
+      if (updateError) {
+        console.error('Error actualizando estado de asignación:', updateError);
+      }
+    }
+
     return { rows: [data] };
   }
 
   // Método para obtener resúmenes de rutas completadas por conductor
   async getRouteCompletionReportsByDriver(driverName) {
     const { data, error } = await this.client
-      .from('resumen_rutas_completadas')
+      .from('route_reports')
       .select('*')
       .eq('conductor_nombre', driverName)
       .order('fecha_completacion', { ascending: false });
@@ -381,7 +397,7 @@ class SupabaseClient {
   // Método para obtener todos los resúmenes con paginación y filtros
   async getRouteCompletionReports(filters = {}) {
     let query = this.client
-      .from('resumen_rutas_completadas')
+      .from('route_reports')
       .select('*');
 
     if (filters.fechaInicio) {
@@ -396,6 +412,9 @@ class SupabaseClient {
     if (filters.vehiculo) {
       query = query.eq('vehiculo_placa', filters.vehiculo);
     }
+    if (filters.tipo_ruta) {
+      query = query.eq('tipo_ruta', filters.tipo_ruta);
+    }
 
     query = query.order('fecha_completacion', { ascending: false });
 
@@ -403,6 +422,88 @@ class SupabaseClient {
 
     if (error) throw error;
     return { rows: data };
+  }
+
+  // ==================== MÉTODOS PARA ROUTE_PROGRESS ====================
+
+  // Iniciar tracking de ruta
+  async startRouteProgress(progressData) {
+    const { data, error } = await this.client
+      .from('route_progress')
+      .insert([{
+        conductor_id: progressData.conductor_id,
+        conductor_nombre: progressData.conductor_nombre,
+        ruta_id: progressData.ruta_id,
+        vehiculo_id: progressData.vehiculo_id,
+        asignacion_id: progressData.asignacion_id,
+        fecha_inicio: progressData.fecha_inicio,
+        total_paradas: progressData.total_paradas,
+        tipo_ruta: progressData.tipo_ruta,
+        estado: 'en_progreso'
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { rows: [data] };
+  }
+
+  // Actualizar progreso (al completar parada o actualizar posición)
+  async updateRouteProgress(progressId, updates) {
+    const { data, error } = await this.client
+      .from('route_progress')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', progressId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { rows: [data] };
+  }
+
+  // Obtener progreso activo de un conductor
+  async getActiveRouteProgress(conductorNombre) {
+    const { data, error } = await this.client
+      .from('route_progress')
+      .select('*')
+      .eq('conductor_nombre', conductorNombre)
+      .eq('estado', 'en_progreso')
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    return { rows: data ? [data] : [] };
+  }
+
+  // Completar ruta (cambiar estado)
+  async completeRouteProgress(progressId, routeReportId = null) {
+    const { data, error } = await this.client
+      .from('route_progress')
+      .update({
+        estado: 'completada',
+        route_report_id: routeReportId,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', progressId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { rows: [data] };
+  }
+
+  // Obtener progreso por ID
+  async getRouteProgressById(progressId) {
+    const { data, error } = await this.client
+      .from('route_progress')
+      .select('*')
+      .eq('id', progressId)
+      .single();
+
+    if (error) throw error;
+    return { rows: [data] };
   }
 }
 

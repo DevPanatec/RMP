@@ -1,4 +1,4 @@
-import { Map, Edit, XCircle, BarChart3, Truck, Clock, Users } from '../Icons';
+import { Map, Edit, XCircle, BarChart3, Truck, Clock, Users, CheckCircle, Radio, Navigation, MapPin, Package } from '../Icons';
 import './RouteTimeline.css';
 
 export const RouteTimeline = ({
@@ -23,11 +23,11 @@ export const RouteTimeline = ({
   const getStatusIcon = (estado) => {
     switch (estado?.toLowerCase()) {
       case 'activa':
-      case 'en progreso': return '🟢';
-      case 'pausada': return '🟡';
-      case 'completada': return '✅';
-      case 'cancelada': return '❌';
-      default: return '⚪';
+      case 'en progreso': return <Navigation size={14} />;
+      case 'pausada': return <Clock size={14} />;
+      case 'completada': return <CheckCircle size={14} />;
+      case 'cancelada': return <XCircle size={14} />;
+      default: return <Radio size={14} />;
     }
   };
 
@@ -39,10 +39,10 @@ export const RouteTimeline = ({
 
   const getStopIcon = (status) => {
     switch (status) {
-      case 'completed': return '✅';
-      case 'current': return '🔵';
-      case 'pending': return '⚪';
-      default: return '⚪';
+      case 'completed': return <CheckCircle size={18} />;
+      case 'current': return <Navigation size={18} />;
+      case 'pending': return <Radio size={18} />;
+      default: return <Radio size={18} />;
     }
   };
 
@@ -108,23 +108,28 @@ export const RouteTimeline = ({
                         onClick={() => onCompleteStop(index)}
                         title="Completar parada"
                       >
-                        ✅ Completar
+                        <CheckCircle size={16} /> Completar
                       </button>
                     )}
                   </div>
                   {status === 'current' && !stop.completada && (
-                    <div className="stop-current-indicator">← Parada Actual</div>
+                    <div className="stop-current-indicator">
+                      <Navigation size={14} /> Parada Actual
+                    </div>
                   )}
                   {stop.completada && stop.category && (
                     <div className="stop-completed-info">
-                      <span className="completed-badge">
-                        {stop.category === 'baja' && '📄 Carga Baja'}
-                        {stop.category === 'intermedia' && '🗑️ Carga Intermedia'}
-                        {stop.category === 'alta' && '♻️ Carga Alta'}
-                        {stop.category === 'muy alta' && '🚚 Carga Muy Alta'}
+                      <span className={`completed-badge badge-${stop.category}`}>
+                        <Package size={14} />
+                        {stop.category === 'baja' && 'Carga Baja'}
+                        {stop.category === 'intermedia' && 'Carga Intermedia'}
+                        {stop.category === 'alta' && 'Carga Alta'}
+                        {stop.category === 'muy alta' && 'Carga Muy Alta'}
                       </span>
                       {stop.timestamp && (
-                        <span className="completed-time">⏰ {stop.timestamp}</span>
+                        <span className="completed-time">
+                          <Clock size={14} /> {stop.timestamp}
+                        </span>
                       )}
                     </div>
                   )}

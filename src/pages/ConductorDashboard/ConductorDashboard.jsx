@@ -7,10 +7,11 @@ import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseSchedule } from '../../context/SupabaseScheduleContext';
 import { useSupabaseReports } from '../../context/SupabaseReportsContext';
+import supabaseClient from '../../utils/supabaseClient';
 import {
   Truck, LogOut, Download, Map, Clock, AlertTriangle,
   ClipboardList, Package, TrendingUp, FileText, MapPin,
-  CheckCircle, Calendar, Loader, Wrench, AlertOctagon
+  CheckCircle, Calendar, Loader, Wrench, AlertOctagon, X
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
 import { RouteTimeline } from '../../components/Dashboard';
@@ -78,6 +79,9 @@ const ConductorDashboard = ({ user, onLogout }) => {
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completionReportData, setCompletionReportData] = useState(null);
   const [reportGenerated, setReportGenerated] = useState(false);
+  const [routeProgressId, setRouteProgressId] = useState(null);
+  const [currentGPS, setCurrentGPS] = useState({ lat: null, lng: null });
+  const [showSuccessModal, setShowSuccessModal] = useState(null);
   const [riskReport, setRiskReport] = useState({
     tipo: 'interno',
     categoria: '',
@@ -96,10 +100,22 @@ const ConductorDashboard = ({ user, onLogout }) => {
   })();
   const todayDayName = getDayNameFromDate(today);
 
+  console.log('🔍 DEBUG CONDUCTOR:', {
+    userName: user.nombre,
+    userFullName: user.nombre_completo,
+    today,
+    todayDayName,
+    conductorAssignments,
+    assignmentsCount: conductorAssignments.length
+  });
+
   const todayAssignment = conductorAssignments.find(assignment => {
+    console.log('🔍 Checking assignment:', assignment.id, assignment.dias_semana, 'includes', todayDayName, '?', assignment.dias_semana?.includes(todayDayName));
     if (!assignment.dias_semana || !Array.isArray(assignment.dias_semana)) return false;
     return assignment.dias_semana.includes(todayDayName);
   });
+
+  console.log('🔍 TODAY ASSIGNMENT:', todayAssignment);
 
   // Obtener vehículo y ruta de la asignación de hoy
   const userTruck = todayAssignment ? vehicles.find(v => v.id === todayAssignment.vehiculo_id) : null;
@@ -279,23 +295,66 @@ const ConductorDashboard = ({ user, onLogout }) => {
     setRouteStarted(true);
   };
 
+  // 🆕 PERMITIR FINALIZAR MANUALMENTE (aunque falten paradas)
+  const handleFinalizarRuta = () => {
+    const paradas = getParadasArray(assignedRoute.paradas);
+    const completadas = completedStops.length;
+    const total = paradas.length;
+    const faltantes = total - completadas;
+
+    if (faltantes > 0) {
+      const confirmar = window.confirm(
+        `⚠️ ATENCIÓN\n\n` +
+        `Faltan ${faltantes} parada(s) por completar.\n\n` +
+        `¿Estás seguro de finalizar la ruta?\n\n` +
+        `NOTA: Si alguna parada no se pudo completar, debes crear un Reporte de Riesgo explicando el motivo.`
+      );
+      if (!confirmar) return;
+    }
+
+    generateRouteCompletionReport();
+  };
+
   const generateRouteCompletionReport = () => {
     if (!assignedRoute || !routeStartTime) return;
 
     const paradas = getParadasArray(assignedRoute.paradas);
 
-    // Compilar datos de las paradas completadas con detalles
-    const paradasCompletadas = completedStops.map((completed) => {
-      const paradaOriginal = paradas[completed.index];
-      return {
-        index: completed.index,
-        orden: completed.index + 1,
-        direccion: paradaOriginal?.direccion || paradaOriginal?.nombre || `Parada ${completed.index + 1}`,
-        categoria_carga: completed.category,
-        timestamp: completed.timestamp,
-        completada: true
-      };
+    // 🆕 Compilar datos de TODAS las paradas (completadas Y no completadas)
+    const todasLasParadas = paradas.map((parada, index) => {
+      const completedStop = completedStops.find(stop => stop.index === index);
+
+      if (completedStop) {
+        // Parada COMPLETADA
+        return {
+          index: index,
+          orden: index + 1,
+          direccion: parada?.direccion || parada?.nombre || `Parada ${index + 1}`,
+          categoria_carga: completedStop.category,
+          timestamp_llegada: completedStop.timestamp,
+          timestamp_salida: completedStop.timestamp,
+          gps_completada: null,
+          completada: true
+        };
+      } else {
+        // Parada NO COMPLETADA
+        return {
+          index: index,
+          orden: index + 1,
+          direccion: parada?.direccion || parada?.nombre || `Parada ${index + 1}`,
+          categoria_carga: null,
+          timestamp_llegada: null,
+          timestamp_salida: null,
+          gps_completada: null,
+          completada: false,
+          motivo_no_completada: 'Ver reportes de riesgo asociados'
+        };
+      }
     });
+
+    // Separar paradas completadas y no completadas
+    const paradasCompletadas = todasLasParadas.filter(p => p.completada);
+    const paradasNoCompletadas = todasLasParadas.filter(p => !p.completada);
 
     // Obtener reportes de riesgo creados durante esta ruta
     const routeRiskReports = reports.filter(report => {
@@ -315,8 +374,13 @@ const ConductorDashboard = ({ user, onLogout }) => {
       fechaInicio: routeStartTime,
       fechaCompletacion: new Date().toISOString(),
       tiempoTotal: timeOnRoute,
-      paradas: paradasCompletadas,
-      reportes_riesgo_ids: routeRiskReports.map(r => r.id)
+      paradas: todasLasParadas, // 🆕 TODAS las paradas
+      paradas_completadas: paradasCompletadas, // Para estadísticas
+      paradas_no_completadas: paradasNoCompletadas, // 🆕 NUEVAS
+      reportes_riesgo_ids: routeRiskReports.map(r => r.id),
+      tipo_ruta: assignedRoute.tipo_servicio || assignedRoute.tipoServicio || 'recoleccion',
+      ruta_paradas: paradas,
+      porcentaje_completado: Math.round((paradasCompletadas.length / paradas.length) * 100)
     };
 
     setCompletionReportData(reportData);
@@ -340,7 +404,10 @@ const ConductorDashboard = ({ user, onLogout }) => {
         tiempo_total_segundos: completionReportData.tiempoTotal,
         paradas_completadas: completionReportData.paradas,
         reportes_riesgo_ids: completionReportData.reportes_riesgo_ids,
-        observaciones: observaciones
+        observaciones: observaciones,
+        tipo_ruta: completionReportData.tipo_ruta,
+        nombreRuta: completionReportData.nombreRuta,
+        ruta_paradas: completionReportData.ruta_paradas
       };
 
       await saveCompletedRoute(reportToSave);
@@ -350,7 +417,10 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
       // Cerrar modal y mostrar mensaje de éxito
       setShowCompletionModal(false);
-      alert('✅ Reporte de ruta guardado exitosamente');
+      setShowSuccessModal({
+        type: 'success',
+        message: 'El reporte de ruta ha sido guardado exitosamente'
+      });
 
       // Reset estado para nueva ruta
       setRouteStarted(false);
@@ -361,7 +431,10 @@ const ConductorDashboard = ({ user, onLogout }) => {
       setReportGenerated(false);
     } catch (error) {
       console.error('Error guardando reporte:', error);
-      alert('❌ Error al guardar el reporte. Por favor intenta de nuevo.');
+      setShowSuccessModal({
+        type: 'error',
+        message: 'Error al guardar el reporte. Por favor intenta de nuevo.'
+      });
     }
   };
 
@@ -370,37 +443,79 @@ const ConductorDashboard = ({ user, onLogout }) => {
     // No marcamos reportGenerated como false para no volver a mostrar el modal
   };
 
-  const handleSubmitRiskReport = () => {
+  const handleSubmitRiskReport = async () => {
     if (!riskReport.categoria || !riskReport.titulo || !riskReport.descripcion) {
-      alert('Por favor completa todos los campos obligatorios');
+      setShowSuccessModal({
+        type: 'error',
+        message: 'Por favor completa todos los campos obligatorios'
+      });
       return;
     }
 
-    // Crear el reporte con datos reales
-    const reportData = {
-      conductor: user.nombre,
-      camion: user.camionAsignado,
-      fecha: new Date().toISOString(),
-      ...riskReport,
-      ubicacion: userTruck ? `Lat: ${userTruck.lat.toFixed(6)}, Lng: ${userTruck.lng.toFixed(6)}` : 'No disponible',
-      coordenadas: userTruck ? { lat: userTruck.lat, lng: userTruck.lng } : null
-    };
+    try {
+      // Mapear prioridad a nivel_severidad
+      const prioridadMap = {
+        'baja': 'bajo',
+        'media': 'medio',
+        'alta': 'alto',
+        'critica': 'critico'
+      };
 
-    // Agregar al estado global (se guarda automáticamente en localStorage)
-    const createdReport = addReport(reportData);
-    console.log('Reporte creado:', createdReport);
-    
-    alert('✅ Reporte de riesgo enviado correctamente. El administrador será notificado.');
-    
-    // Resetear formulario
-    setRiskReport({
-      tipo: 'interno',
-      categoria: '',
-      titulo: '',
-      descripcion: '',
-      prioridad: 'media'
-    });
-    setShowRiskModal(false);
+      // Mapear categoría a tipo_riesgo
+      const tipoRiesgoMap = {
+        'Mecánico': 'mecanico',
+        'Combustible': 'combustible',
+        'Equipo de seguridad': 'seguridad',
+        'Mantenimiento': 'mantenimiento',
+        'Bloqueo de vía': 'bloqueo_via',
+        'Seguridad ciudadana': 'seguridad_ciudadana',
+        'Condiciones climáticas': 'climatico',
+        'Protesta/manifestación': 'manifestacion',
+        'Accidente de tránsito': 'accidente'
+      };
+
+      // Crear el reporte con datos reales para Supabase
+      const reportData = {
+        titulo: riskReport.titulo,
+        descripcion: riskReport.descripcion,
+        tipo_riesgo: tipoRiesgoMap[riskReport.categoria] || 'operacional',
+        nivel_severidad: prioridadMap[riskReport.prioridad] || 'medio',
+        ubicacion: userTruck ? `Lat: ${userTruck.lat.toFixed(6)}, Lng: ${userTruck.lng.toFixed(6)}` : 'No disponible',
+        gps_latitud: userTruck?.lat || null,
+        gps_longitud: userTruck?.lng || null,
+        empleado_reporta_id: user.id || null,
+        vehiculo_id: userTruck?.id || null,
+        ruta_id: assignedRoute?.id || null,
+        prioridad: riskReport.prioridad === 'critica' ? 10 : riskReport.prioridad === 'alta' ? 7 : riskReport.prioridad === 'media' ? 5 : 3,
+        // Campos adicionales para el contexto
+        conductor: user.nombre || user.nombre_completo,
+        camion: userTruck?.placa || 'N/A'
+      };
+
+      // Guardar en Supabase usando el context
+      await addReport(reportData);
+
+      setShowSuccessModal({
+        type: 'success',
+        message: 'Reporte de riesgo enviado correctamente. El administrador será notificado.'
+      });
+
+      // Resetear formulario
+      setRiskReport({
+        tipo: 'interno',
+        categoria: '',
+        titulo: '',
+        descripcion: '',
+        prioridad: 'media'
+      });
+      setShowRiskModal(false);
+    } catch (error) {
+      console.error('Error guardando reporte de riesgo:', error);
+      setShowSuccessModal({
+        type: 'error',
+        message: 'Error al enviar el reporte. Por favor intenta de nuevo.'
+      });
+    }
   };
 
   if (vehiclesLoading || routesLoading || assignmentsLoading) {
@@ -426,45 +541,135 @@ const ConductorDashboard = ({ user, onLogout }) => {
   if (!todayAssignment) {
     return (
       <div className="dashboard-container">
+        <div className="sidebar">
+          <div className="sidebar-header">
+            <h2><Truck size={20} /> RMP Conductor</h2>
+            <p>Bienvenido, {user.nombre}</p>
+          </div>
+          <nav className="sidebar-nav">
+            <ul>
+              <li>
+                <button
+                  className={activeTab === 'ruta' ? 'active' : ''}
+                  onClick={() => setActiveTab('ruta')}
+                >
+                  <Map size={18} /> Mi Ruta
+                </button>
+              </li>
+              <li>
+                <button
+                  className={activeTab === 'reportes' ? 'active' : ''}
+                  onClick={() => setActiveTab('reportes')}
+                >
+                  <ClipboardList size={18} /> Mis Reportes
+                </button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+
         <div className="main-content">
           <div className="dashboard-header">
-            <h1><Truck size={24} /> Dashboard Conductor</h1>
-            <button className="logout-btn" onClick={handleLogout}>
-              <LogOut size={18} /> Cerrar Sesión
-            </button>
-          </div>
-          <div className="card">
-            <div className="card__body">
-              <div className="no-assignment">
-                <div className="no-assignment-icon">📅</div>
-                <h3>Sin Asignación para Hoy</h3>
-                <p>No tienes ruta asignada para {todayDayName}. Disfruta tu día libre!</p>
-
-                {conductorAssignments.length > 0 && (
-                  <div style={{ marginTop: '20px', textAlign: 'left' }}>
-                    <h4>📋 Tus Asignaciones de la Semana:</h4>
-                    <ul style={{ listStyle: 'none', padding: 0 }}>
-                      {conductorAssignments.map(assignment => (
-                        <li key={assignment.id} style={{ marginBottom: '10px', padding: '10px', background: '#f3f4f6', borderRadius: '8px' }}>
-                          <strong>{assignment.ruta?.nombre || 'Ruta sin nombre'}</strong>
-                          <br />
-                          📍 Días: {assignment.dias_semana?.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')}
-                          <br />
-                          🚛 Vehículo: {vehicles.find(v => v.id === assignment.vehiculo_id)?.placa || 'No asignado'}
-                          <br />
-                          ⏰ Horario: {assignment.ruta?.hora_inicio || 'N/A'} - {assignment.ruta?.hora_fin || 'N/A'}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                <button className="btn btn--primary" onClick={() => window.location.reload()} style={{ marginTop: '20px' }}>
-                  🔄 Actualizar
-                </button>
-              </div>
+            <h1><Truck size={24} /> Panel de Conductor</h1>
+            <div className="header-actions">
+              <button className="logout-btn" onClick={handleLogout}>
+                <LogOut size={18} /> Cerrar Sesión
+              </button>
             </div>
           </div>
+
+          {activeTab === 'ruta' && (
+            <div className="card">
+              <div className="card__body">
+                <div className="no-assignment">
+                  <div className="no-assignment-icon">
+                    <Calendar size={64} strokeWidth={1.5} />
+                  </div>
+                  <h3>Sin Asignación para Hoy</h3>
+                  <p>No tienes ruta asignada para {todayDayName}. Disfruta tu día libre!</p>
+
+                  {conductorAssignments.length > 0 && (
+                    <div style={{ marginTop: '32px', textAlign: 'left' }}>
+                      <h4><ClipboardList size={20} /> Tus Asignaciones de la Semana</h4>
+                      <ul>
+                        {conductorAssignments.map(assignment => (
+                          <li key={assignment.id}>
+                            <strong>{assignment.ruta?.nombre || 'Ruta sin nombre'}</strong>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+                              <span><MapPin size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Días: {assignment.dias_semana?.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')}</span>
+                              <span><Truck size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Vehículo: {vehicles.find(v => v.id === assignment.vehiculo_id)?.placa || 'No asignado'}</span>
+                              <span><Clock size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Horario: {assignment.ruta?.hora_inicio || 'N/A'} - {assignment.ruta?.hora_fin || 'N/A'}</span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'reportes' && (
+            <div className="reports-section">
+              <div className="section-header">
+                <div className="section-title">
+                  <h3>Mis Reportes de Riesgo</h3>
+                  <p>Historial de reportes enviados al administrador</p>
+                </div>
+              </div>
+
+              {reportsLoading ? (
+                <div className="loading-state">
+                  <div className="spinner"></div>
+                  <p>Cargando reportes...</p>
+                </div>
+              ) : (
+                <div className="reports-grid">
+                  {getReportsByDriver(user.nombre).map(reporte => (
+                    <div key={reporte.id} className="report-card">
+                      <div className="report-header">
+                        <div className="report-type">
+                          {reporte.tipo === 'interno' ? <Wrench size={16} /> : <AlertOctagon size={16} />}
+                          <span>{reporte.tipo.toUpperCase()}</span>
+                        </div>
+                        <div className={`report-priority priority-${reporte.prioridad}`}>
+                          {reporte.prioridad.toUpperCase()}
+                        </div>
+                      </div>
+                      <div className="report-body">
+                        <h4>{reporte.titulo}</h4>
+                        <p className="report-category">{reporte.categoria}</p>
+                        <p className="report-description">{reporte.descripcion}</p>
+                        <div className="report-meta">
+                          <div className="meta-item">
+                            <Calendar size={14} />
+                            <span>{new Date(reporte.fechaCreacion).toLocaleDateString('es-ES')}</span>
+                          </div>
+                          <div className="meta-item">
+                            <MapPin size={14} />
+                            <span>{reporte.ubicacion}</span>
+                          </div>
+                          <div className={`meta-item status-${reporte.estado}`}>
+                            <span>{reporte.estado.replace('_', ' ').toUpperCase()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {getReportsByDriver(user.nombre).length === 0 && !reportsLoading && (
+                <div className="empty-state">
+                  <div className="empty-icon"><ClipboardList size={48} /></div>
+                  <h4>No tienes reportes de riesgo</h4>
+                  <p>Los reportes que crees aparecerán aquí</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -522,26 +727,39 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
       <div className="main-content">
         <div className="dashboard-header">
-          <h1><Truck size={24} /> Panel de Conductor</h1>
+          <div className="header-left">
+            <h1>Panel de Conductor</h1>
+            {routeStarted && (
+              <div className="header-subtitle">
+                <Map size={16} /> {assignedRoute.nombre || assignedRoute.name}
+              </div>
+            )}
+          </div>
           <div className="header-actions">
-            <div className="connection-status">
-              {isOnline ? '🟢 En línea' : '🔴 Sin conexión'}
-            </div>
-            <div className="route-status">
-              <Map size={16} /> {assignedRoute.nombre || assignedRoute.name}
-            </div>
-            <div className="time-indicator">
-              <Clock size={16} /> {formatTime(timeOnRoute)}
-            </div>
-            <button
-              className="btn btn--warning"
-              onClick={() => setShowRiskModal(true)}
-              title="Reportar un riesgo"
-            >
-              <AlertTriangle size={16} /> Reportar Riesgo
-            </button>
+            {routeStarted && (
+              <>
+                <div className="time-badge">
+                  <Clock size={16} />
+                  <span>{formatTime(timeOnRoute)}</span>
+                </div>
+                <button
+                  className="btn btn--warning"
+                  onClick={() => setShowRiskModal(true)}
+                  title="Reportar un riesgo"
+                >
+                  <AlertTriangle size={16} /> Reportar Riesgo
+                </button>
+                <button
+                  className="btn btn--success"
+                  onClick={handleFinalizarRuta}
+                  title="Finalizar ruta actual"
+                >
+                  <CheckCircle size={16} /> Finalizar
+                </button>
+              </>
+            )}
             <button className="logout-btn" onClick={handleLogout}>
-              <LogOut size={18} /> Cerrar Sesión
+              <LogOut size={18} />
             </button>
           </div>
         </div>
@@ -554,16 +772,48 @@ const ConductorDashboard = ({ user, onLogout }) => {
             {!routeStarted && (
               <div className="start-route-container">
                 <div className="start-route-card">
-                  <div className="start-route-icon">🚀</div>
-                  <h2>¿Listo para comenzar tu ruta?</h2>
-                  <p>Ruta: <strong>{assignedRoute.nombre || assignedRoute.name}</strong></p>
-                  <p>Vehículo: <strong>{userTruck.placa}</strong></p>
-                  <p>Paradas: <strong>{getParadasArray(assignedRoute.paradas).length}</strong></p>
+                  <div className="start-route-header">
+                    <div className="start-route-icon-circle">
+                      <Map size={40} />
+                    </div>
+                    <h2>¿Listo para comenzar tu ruta?</h2>
+                  </div>
+
+                  <div className="route-details-grid">
+                    <div className="detail-item">
+                      <div className="detail-icon"><MapPin size={20} /></div>
+                      <div className="detail-content">
+                        <span className="detail-label">Ruta</span>
+                        <strong>{assignedRoute.nombre || assignedRoute.name}</strong>
+                      </div>
+                    </div>
+
+                    <div className="detail-item">
+                      <div className="detail-icon"><Truck size={20} /></div>
+                      <div className="detail-content">
+                        <span className="detail-label">Vehículo</span>
+                        <strong>{userTruck.placa}</strong>
+                      </div>
+                    </div>
+
+                    <div className="detail-item">
+                      <div className="detail-icon"><Package size={20} /></div>
+                      <div className="detail-content">
+                        <span className="detail-label">Paradas</span>
+                        <strong>{getParadasArray(assignedRoute.paradas).length}</strong>
+                      </div>
+                    </div>
+                  </div>
+
                   <button className="btn-start-route" onClick={handleStartRoute}>
-                    <div className="btn-start-icon">▶️</div>
+                    <CheckCircle size={20} />
                     <span>Iniciar Ruta</span>
                   </button>
-                  <p className="start-route-hint">El cronómetro comenzará cuando inicies la ruta</p>
+
+                  <p className="start-route-hint">
+                    <Clock size={14} />
+                    El cronómetro comenzará cuando inicies la ruta
+                  </p>
                 </div>
               </div>
             )}
@@ -574,7 +824,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
               <div className="kpi-card">
                 <div className="kpi-icon"><Truck size={28} /></div>
                 <div className="kpi-content">
-                  <div className="kpi-value">{userTruck.id}</div>
+                  <div className="kpi-value">{userTruck?.placa || 'N/A'}</div>
                   <div className="kpi-label">Mi Camión</div>
                 </div>
               </div>
@@ -728,10 +978,12 @@ const ConductorDashboard = ({ user, onLogout }) => {
           <div className="modal-overlay" onClick={() => setShowRiskModal(false)}>
             <div className="modal-content risk-modal" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
-                <h3>⚠️ Reportar Riesgo</h3>
-                <button className="modal-close" onClick={() => setShowRiskModal(false)}>✕</button>
+                <h3><AlertTriangle size={20} /> Reportar Riesgo</h3>
+                <button className="modal-close" onClick={() => setShowRiskModal(false)}>
+                  <X size={20} />
+                </button>
               </div>
-              
+
               <div className="modal-body">
                 <div className="form-group">
                   <label>Tipo de Riesgo *</label>
@@ -744,7 +996,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                         checked={riskReport.tipo === 'interno'}
                         onChange={e => setRiskReport(prev => ({...prev, tipo: e.target.value}))}
                       />
-                      <span>🔧 Interno</span>
+                      <span><Wrench size={16} /> Interno</span>
                       <small>Problemas con el vehículo, equipo o empresa</small>
                     </label>
                     <label className="radio-label">
@@ -755,7 +1007,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                         checked={riskReport.tipo === 'externo'}
                         onChange={e => setRiskReport(prev => ({...prev, tipo: e.target.value}))}
                       />
-                      <span>🚧 Externo</span>
+                      <span><AlertOctagon size={16} /> Externo</span>
                       <small>Situaciones externas que afectan las operaciones</small>
                     </label>
                   </div>
@@ -816,31 +1068,32 @@ const ConductorDashboard = ({ user, onLogout }) => {
                     value={riskReport.prioridad}
                     onChange={e => setRiskReport(prev => ({...prev, prioridad: e.target.value}))}
                   >
-                    <option value="baja">🟢 Baja</option>
-                    <option value="media">🟡 Media</option>
-                    <option value="alta">🟠 Alta</option>
-                    <option value="critica">🔴 Crítica</option>
+                    <option value="baja">Baja</option>
+                    <option value="media">Media</option>
+                    <option value="alta">Alta</option>
+                    <option value="critica">Crítica</option>
                   </select>
                 </div>
 
                 <div className="location-info">
-                  <p><strong>📍 Ubicación actual:</strong></p>
+                  <p><MapPin size={16} style={{display: 'inline', marginRight: '6px'}} /><strong>Ubicación actual:</strong></p>
                   <p>Lat: {userTruck?.lat.toFixed(6)}, Lng: {userTruck?.lng.toFixed(6)}</p>
                 </div>
               </div>
 
               <div className="modal-footer">
-                <button 
+                <button
                   className="btn btn--secondary"
                   onClick={() => setShowRiskModal(false)}
                 >
                   Cancelar
                 </button>
-                <button 
+                <button
                   className="btn btn--warning"
                   onClick={handleSubmitRiskReport}
                 >
-                  📤 Enviar Reporte
+                  <AlertTriangle size={16} style={{marginRight: '6px'}} />
+                  Enviar Reporte
                 </button>
               </div>
             </div>
@@ -869,6 +1122,29 @@ const ConductorDashboard = ({ user, onLogout }) => {
           onConfirm={handleConfirmReport}
           onCancel={handleCancelReport}
         />
+
+        {/* Modal de éxito/error */}
+        {showSuccessModal && (
+          <div className="modal-overlay" onClick={() => setShowSuccessModal(null)}>
+            <div className="success-modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className={`success-icon-wrapper ${showSuccessModal.type === 'error' ? 'error' : ''}`}>
+                {showSuccessModal.type === 'error' ? (
+                  <AlertTriangle size={64} />
+                ) : (
+                  <CheckCircle size={64} />
+                )}
+              </div>
+              <h2>{showSuccessModal.type === 'error' ? 'Error' : '¡Éxito!'}</h2>
+              <p>{showSuccessModal.message || 'Operación completada exitosamente'}</p>
+              <button
+                className="btn btn--primary"
+                onClick={() => setShowSuccessModal(null)}
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

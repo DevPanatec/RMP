@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { X, Calendar, Download, FileText, Camera, Check, Eye, Truck, Zap, Sparkles, Wrench } from '../Icons';
 import { Card, Badge } from '../UI';
 import ReportDetailModal from '../Cleaning/ReportDetailModal';
+import RouteReportDetailModal from './RouteReportDetailModal';
 import pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import './LocationReportsModal.css';
@@ -361,7 +362,14 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
                       className="report-checkbox-custom"
                     />
                     <div className="report-info-main">
-                      <h4>{report.area?.nombre || 'Área no especificada'}</h4>
+                      <h4>
+                        {report.area?.nombre ||
+                         (report.tipo === 'recoleccion' || report.tipoServicio === 'recoleccion'
+                           ? 'Reporte de Recolección'
+                           : report.tipo === 'fumigacion' || report.tipoServicio === 'fumigacion'
+                           ? 'Reporte de Fumigación'
+                           : 'Reporte de Limpieza')}
+                      </h4>
                       <div className="report-meta-inline">
                         <span className="report-date-inline">
                           <Calendar size={14} />
@@ -410,7 +418,14 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
       </div>
 
       {/* Modal de Detalle del Reporte */}
-      {selectedReport && (
+      {selectedReport && modalType === 'recoleccion' ? (
+        <RouteReportDetailModal
+          isOpen={!!selectedReport}
+          report={selectedReport}
+          location={location}
+          onClose={() => setSelectedReport(null)}
+        />
+      ) : selectedReport && (
         <ReportDetailModal
           isOpen={!!selectedReport}
           onClose={() => setSelectedReport(null)}
@@ -418,7 +433,12 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
             fecha: selectedReport.fecha,
             hora: selectedReport.hora,
             sala: location.nombre,
-            area: selectedReport.area?.nombre || 'Área no especificada',
+            area: selectedReport.area?.nombre ||
+                  (selectedReport.tipo === 'recoleccion' || selectedReport.tipoServicio === 'recoleccion'
+                    ? 'Reporte de Recolección'
+                    : selectedReport.tipo === 'fumigacion' || selectedReport.tipoServicio === 'fumigacion'
+                    ? 'Reporte de Fumigación'
+                    : 'Reporte de Limpieza'),
             rawAssignment: selectedReport
           }}
           onDownload={() => handleDownloadReport(selectedReport)}

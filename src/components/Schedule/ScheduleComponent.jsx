@@ -4,9 +4,9 @@ import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
 import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
-import { 
+import {
   Calendar, Plus, Edit, Trash2, AlertTriangle, CheckCircle,
-  Truck, Users, Map, Clock, X, Sparkles, Camera
+  Truck, Users, Map, Clock, X, Sparkles, Camera, Info
 } from '../Icons';
 import { CustomSelect } from '../UI';
 import PhotoUploadField from '../Cleaning/PhotoUploadField';
@@ -92,8 +92,12 @@ const ScheduleComponent = () => {
   const [activeTab, setActiveTab] = useState('routes');
   const [showModal, setShowModal] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
+  const [showRulesBanner, setShowRulesBanner] = useState(true);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const [routeFormData, setRouteFormData] = useState({
+    tipo_servicio: 'recoleccion', // 'recoleccion' o 'fumigacion'
     ruta_id: '',
     conductor_nombre: '',
     ayudantes: [],
@@ -506,13 +510,14 @@ const ScheduleComponent = () => {
           }
         }
 
-        if (uploadErrors.length > 0) {
-          alert(`Asignación creada pero hubo errores al subir ${uploadErrors.length} foto(s)`);
-        } else {
-          alert(`Asignación creada exitosamente con ${uploadedCount} foto(s)`);
-        }
-
         handleCloseModal();
+
+        if (uploadErrors.length > 0) {
+          setSuccessMessage(`Asignación creada pero hubo errores al subir ${uploadErrors.length} foto(s)`);
+        } else {
+          setSuccessMessage(`Asignación creada exitosamente con ${uploadedCount} foto(s)`);
+        }
+        setShowSuccessModal(true);
       } else {
         alert(`Error al crear asignación: ${result.error}`);
       }
@@ -730,23 +735,123 @@ const ScheduleComponent = () => {
 
             <form onSubmit={handleRouteSubmit}>
               <div className="modal-body">
+                {/* Switch Tipo de Servicio */}
+                <div style={{
+                  marginBottom: '24px',
+                  padding: '20px',
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                  borderRadius: '12px',
+                  border: '2px solid #6b9656'
+                }}>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '12px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#3D5229'
+                  }}>
+                    Tipo de Servicio
+                  </label>
+                  <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    background: 'white',
+                    padding: '4px',
+                    borderRadius: '10px',
+                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRouteFormData({
+                          ...routeFormData,
+                          tipo_servicio: 'recoleccion',
+                          ruta_id: '',
+                          vehiculo_id: ''
+                        });
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        background: routeFormData.tipo_servicio === 'recoleccion'
+                          ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)'
+                          : 'transparent',
+                        color: routeFormData.tipo_servicio === 'recoleccion' ? 'white' : '#6b7280',
+                        boxShadow: routeFormData.tipo_servicio === 'recoleccion'
+                          ? '0 4px 12px rgba(61, 82, 41, 0.3)'
+                          : 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      <Truck size={18} />
+                      Recolección
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRouteFormData({
+                          ...routeFormData,
+                          tipo_servicio: 'fumigacion',
+                          ruta_id: '',
+                          vehiculo_id: ''
+                        });
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        background: routeFormData.tipo_servicio === 'fumigacion'
+                          ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)'
+                          : 'transparent',
+                        color: routeFormData.tipo_servicio === 'fumigacion' ? 'white' : '#6b7280',
+                        boxShadow: routeFormData.tipo_servicio === 'fumigacion'
+                          ? '0 4px 12px rgba(61, 82, 41, 0.3)'
+                          : 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
+                      }}
+                    >
+                      <Sparkles size={18} />
+                      Fumigación
+                    </button>
+                  </div>
+                </div>
+
                 <div className="form-grid-2col">
                   <div className="form-group-card">
                     <div className="card-label">
                       <Map size={18} />
                       <span>Ruta & Vehículo</span>
                     </div>
-                    
+
                     <CustomSelect
                       label="Ruta"
                       required
                       value={routeFormData.ruta_id}
                       onChange={(value) => handleRouteInputChange('ruta_id', value)}
-                      options={activeRoutes.map(route => ({
-                        value: route.id,
-                        label: `${route.nombre} - ${route.tipo_servicio}`
-                      }))}
-                      placeholder="Seleccionar ruta"
+                      options={activeRoutes
+                        .filter(route => route.tipo_servicio === routeFormData.tipo_servicio)
+                        .map(route => ({
+                          value: route.id,
+                          label: route.nombre
+                        }))}
+                      placeholder={`Seleccionar ruta de ${routeFormData.tipo_servicio}`}
                       searchable
                     />
 
@@ -756,7 +861,7 @@ const ScheduleComponent = () => {
                         <div style={{
                           marginTop: '12px',
                           padding: '12px 16px',
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          background: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
                           borderRadius: '10px',
                           color: 'white',
                           display: 'flex',
@@ -819,52 +924,89 @@ const ScheduleComponent = () => {
                   </div>
 
                   {/* Banner informativo */}
-                  <div style={{
-                    padding: '14px 18px',
-                    background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-                    border: '1.5px solid #0ea5e9',
-                    borderRadius: '10px',
-                    marginBottom: '16px',
-                    display: 'flex',
-                    gap: '12px',
-                    alignItems: 'flex-start'
-                  }}>
+                  {showRulesBanner && (
                     <div style={{
-                      color: '#0369a1',
-                      fontSize: '20px',
-                      lineHeight: '1',
-                      marginTop: '2px'
+                      padding: '14px 48px 14px 18px',
+                      background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                      border: '1.5px solid #6b9656',
+                      borderRadius: '10px',
+                      marginBottom: '16px',
+                      display: 'flex',
+                      gap: '12px',
+                      alignItems: 'flex-start',
+                      position: 'relative'
                     }}>
-                      ℹ️
-                    </div>
-                    <div style={{ flex: 1 }}>
                       <div style={{
-                        fontWeight: '600',
-                        color: '#0c4a6e',
-                        marginBottom: '6px',
-                        fontSize: '13px'
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        flexShrink: 0
                       }}>
-                        Reglas de Asignación
+                        <Info size={18} />
                       </div>
-                      <ul style={{
-                        margin: 0,
-                        paddingLeft: '18px',
-                        color: '#0369a1',
-                        fontSize: '12px',
-                        lineHeight: '1.6'
-                      }}>
-                        <li>Solo puedes asignar en los días permitidos por la ruta seleccionada</li>
-                        <li>El horario se toma automáticamente de la configuración de la ruta</li>
-                        <li>No se pueden duplicar asignaciones en la misma semana</li>
-                        <li>Puedes asignar la misma ruta en semanas diferentes</li>
-                      </ul>
+                      <div style={{ flex: 1 }}>
+                        <div style={{
+                          fontWeight: '600',
+                          color: '#3D5229',
+                          marginBottom: '6px',
+                          fontSize: '13px'
+                        }}>
+                          Reglas de Asignación
+                        </div>
+                        <ul style={{
+                          margin: 0,
+                          paddingLeft: '18px',
+                          color: '#556B2F',
+                          fontSize: '12px',
+                          lineHeight: '1.6'
+                        }}>
+                          <li>Solo puedes asignar en los días permitidos por la ruta seleccionada</li>
+                          <li>El horario se toma automáticamente de la configuración de la ruta</li>
+                          <li>No se pueden duplicar asignaciones en la misma semana</li>
+                          <li>Puedes asignar la misma ruta en semanas diferentes</li>
+                        </ul>
+                      </div>
+                      <button
+                        onClick={() => setShowRulesBanner(false)}
+                        type="button"
+                        style={{
+                          position: 'absolute',
+                          top: '12px',
+                          right: '12px',
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#6b9656',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(107, 150, 86, 0.1)';
+                          e.currentTarget.style.color = '#3D5229';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.color = '#6b9656';
+                        }}
+                      >
+                        <X size={18} />
+                      </button>
                     </div>
-                  </div>
+                  )}
 
                   <div style={{
                     marginBottom: '16px',
                     padding: '16px',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    background: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
                     borderRadius: '12px',
                     color: 'white'
                   }}>
@@ -974,7 +1116,8 @@ const ScheduleComponent = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCleaningSubmit} className="modal-body">
+            <form onSubmit={handleCleaningSubmit}>
+              <div className="modal-body">
               <div className="form-row">
                 <div className="form-group">
                   <label>Lugar *</label>
@@ -1047,97 +1190,70 @@ const ScheduleComponent = () => {
                     </div>
                     <div className="photos-header-content">
                       <h4>Evidencia Fotográfica Requerida</h4>
-                      <p>Sube fotos de cada etapa para documentar el trabajo realizado</p>
+                      <p>Sube 3 fotos: la primera será "Antes", la segunda "Durante" y la tercera "Después"</p>
                     </div>
                     <div className="photos-progress-indicator">
                       <div className="progress-count">
                         <span className="progress-number">
-                          {(photos.before.length > 0 ? 1 : 0) + 
-                           (photos.during.length > 0 ? 1 : 0) + 
-                           (photos.after.length > 0 ? 1 : 0)}
+                          {photos.before.length + photos.during.length + photos.after.length}
                         </span>
                         <span className="progress-total">/3</span>
                       </div>
-                      <span className="progress-label">Completadas</span>
+                      <span className="progress-label">Fotos</span>
                     </div>
                   </div>
 
                   <div className="photos-progress-bar">
-                    <div 
-                      className="progress-fill" 
-                      style={{ 
-                        width: `${((photos.before.length > 0 ? 1 : 0) + 
-                                  (photos.during.length > 0 ? 1 : 0) + 
-                                  (photos.after.length > 0 ? 1 : 0)) * 33.33}%` 
+                    <div
+                      className="progress-fill"
+                      style={{
+                        width: `${((photos.before.length + photos.during.length + photos.after.length) / 3) * 100}%`
                       }}
                     />
                   </div>
 
-                  <div className="photos-grid-enhanced">
-                    <div className="photo-card-enhanced">
-                      <div className="photo-card-header">
-                        <div className={`photo-step-badge ${photos.before.length > 0 ? 'completed' : ''}`}>
-                          {photos.before.length > 0 ? <CheckCircle size={16} /> : '1'}
-                        </div>
-                        <h5>Fotos Antes</h5>
-                      </div>
-                      <div className="photo-card-body">
-                        <PhotoUploadField
-                          label=""
-                          photos={photos.before}
-                          onChange={(newPhotos) => handlePhotosChange('before', newPhotos)}
-                        />
-                      </div>
+                  <PhotoUploadField
+                    label=""
+                    photos={[...photos.before, ...photos.during, ...photos.after]}
+                    onChange={(newPhotos) => {
+                      // Distribuir automáticamente: 1ra = antes, 2da = durante, 3ra = después
+                      const before = newPhotos[0] ? [newPhotos[0]] : [];
+                      const during = newPhotos[1] ? [newPhotos[1]] : [];
+                      const after = newPhotos[2] ? [newPhotos[2]] : [];
+
+                      setPhotos({
+                        before,
+                        during,
+                        after
+                      });
+                    }}
+                    maxPhotos={3}
+                  />
+
+                  {/* Indicadores de qué foto va a qué etapa */}
+                  {(photos.before.length > 0 || photos.during.length > 0 || photos.after.length > 0) && (
+                    <div className="photo-stage-indicators">
                       {photos.before.length > 0 && (
-                        <div className="photo-card-footer">
-                          <span className="photo-count">{photos.before.length} foto(s) subida(s)</span>
+                        <div className="stage-indicator">
+                          <div className="stage-badge completed">1</div>
+                          <span>Antes</span>
                         </div>
                       )}
-                    </div>
-
-                    <div className="photo-card-enhanced">
-                      <div className="photo-card-header">
-                        <div className={`photo-step-badge ${photos.during.length > 0 ? 'completed' : ''}`}>
-                          {photos.during.length > 0 ? <CheckCircle size={16} /> : '2'}
-                        </div>
-                        <h5>Fotos Durante</h5>
-                      </div>
-                      <div className="photo-card-body">
-                        <PhotoUploadField
-                          label=""
-                          photos={photos.during}
-                          onChange={(newPhotos) => handlePhotosChange('during', newPhotos)}
-                        />
-                      </div>
                       {photos.during.length > 0 && (
-                        <div className="photo-card-footer">
-                          <span className="photo-count">{photos.during.length} foto(s) subida(s)</span>
+                        <div className="stage-indicator">
+                          <div className="stage-badge completed">2</div>
+                          <span>Durante</span>
                         </div>
                       )}
-                    </div>
-
-                    <div className="photo-card-enhanced">
-                      <div className="photo-card-header">
-                        <div className={`photo-step-badge ${photos.after.length > 0 ? 'completed' : ''}`}>
-                          {photos.after.length > 0 ? <CheckCircle size={16} /> : '3'}
-                        </div>
-                        <h5>Fotos Después</h5>
-                      </div>
-                      <div className="photo-card-body">
-                        <PhotoUploadField
-                          label=""
-                          photos={photos.after}
-                          onChange={(newPhotos) => handlePhotosChange('after', newPhotos)}
-                        />
-                      </div>
                       {photos.after.length > 0 && (
-                        <div className="photo-card-footer">
-                          <span className="photo-count">{photos.after.length} foto(s) subida(s)</span>
+                        <div className="stage-indicator">
+                          <div className="stage-badge completed">3</div>
+                          <span>Después</span>
                         </div>
                       )}
                     </div>
-                  </div>
-                  
+                  )}
+
                   {errors.photos && (
                     <div className="error-message-enhanced">
                       <AlertTriangle size={16} />
@@ -1146,13 +1262,14 @@ const ScheduleComponent = () => {
                   )}
                 </div>
               )}
+              </div>
 
               <div className="modal-footer">
                 <button type="button" className="btn btn--outline" onClick={handleCloseModal}>
                   Cancelar
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="btn btn--primary"
                   disabled={submitting}
                 >
@@ -1160,6 +1277,25 @@ const ScheduleComponent = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de éxito */}
+      {showSuccessModal && (
+        <div className="modal-overlay" onClick={() => setShowSuccessModal(false)}>
+          <div className="success-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="success-icon-wrapper">
+              <CheckCircle size={64} />
+            </div>
+            <h2>¡Asignación Creada!</h2>
+            <p>{successMessage}</p>
+            <button
+              className="btn btn--primary"
+              onClick={() => setShowSuccessModal(false)}
+            >
+              Aceptar
+            </button>
           </div>
         </div>
       )}

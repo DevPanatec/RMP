@@ -282,13 +282,13 @@
 }
 
 .maintenance-task-item__badge--correctivo {
-  background: rgba(255, 149, 0, 0.1);
-  color: var(--color-warning);
+  background: rgba(61, 82, 41, 0.1);
+  color: #556B2F;
 }
 
 .maintenance-task-item__badge--contingencia {
-  background: rgba(255, 59, 48, 0.1);
-  color: var(--color-error);
+  background: rgba(61, 82, 41, 0.15);
+  color: var(--color-primary);
 }
 
 .maintenance-task-item__info {
@@ -316,13 +316,13 @@
 }
 
 .maintenance-task-item__status--programada {
-  background: rgba(0, 122, 255, 0.1);
-  color: var(--color-info);
+  background: rgba(61, 82, 41, 0.08);
+  color: #556B2F;
 }
 
 .maintenance-task-item__status--en_proceso {
-  background: rgba(255, 149, 0, 0.1);
-  color: var(--color-warning);
+  background: rgba(61, 82, 41, 0.12);
+  color: var(--color-primary);
 }
 
 .maintenance-task-item__status--completada {

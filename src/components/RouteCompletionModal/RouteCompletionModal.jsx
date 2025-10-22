@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle, Clock, MapPin, AlertTriangle, FileText, Download } from '../Icons';
+import { CheckCircle, Clock, MapPin, AlertTriangle, FileText, Download, Package, Trash2, RefreshCw, Truck } from '../Icons';
 import './RouteCompletionModal.css';
 
 const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCancel }) => {
@@ -39,15 +39,18 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
 
   const getCategoryIcon = (category) => {
     switch (category) {
-      case 'baja': return '📄';
-      case 'intermedia': return '🗑️';
-      case 'alta': return '♻️';
-      case 'muy alta': return '🚚';
-      default: return '📦';
+      case 'baja': return <FileText size={14} />;
+      case 'intermedia': return <Trash2 size={14} />;
+      case 'alta': return <RefreshCw size={14} />;
+      case 'muy alta': return <Truck size={14} />;
+      default: return <Package size={14} />;
     }
   };
 
   const downloadReport = () => {
+    const completedStops = routeData.paradas_completadas || routeData.paradas.filter(p => p.completada !== false);
+    const incompleteStops = routeData.paradas_no_completadas || [];
+
     let content = `=== REPORTE DE RUTA COMPLETADA ===\n\n`;
     content += `Ruta: ${routeData.nombreRuta}\n`;
     content += `Conductor: ${routeData.conductorNombre}\n`;
@@ -55,14 +58,26 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
     content += `Fecha: ${new Date(routeData.fechaInicio).toLocaleDateString('es-ES')}\n`;
     content += `Hora de inicio: ${new Date(routeData.fechaInicio).toLocaleTimeString('es-ES')}\n`;
     content += `Hora de finalización: ${new Date(routeData.fechaCompletacion).toLocaleTimeString('es-ES')}\n`;
-    content += `Tiempo total: ${formatTime(routeData.tiempoTotal)}\n\n`;
+    content += `Tiempo total: ${formatTime(routeData.tiempoTotal)}\n`;
+    if (routeData.porcentaje_completado) {
+      content += `Porcentaje completado: ${routeData.porcentaje_completado}%\n`;
+    }
+    content += `\n`;
 
-    content += `=== PARADAS COMPLETADAS (${routeData.paradas.length}) ===\n`;
-    routeData.paradas.forEach((parada, index) => {
-      content += `\n${index + 1}. ${parada.direccion}\n`;
-      content += `   Hora: ${parada.timestamp}\n`;
+    content += `=== PARADAS COMPLETADAS (${completedStops.length}) ===\n`;
+    completedStops.forEach((parada, index) => {
+      content += `\n${parada.orden || index + 1}. ${parada.direccion}\n`;
+      content += `   Hora: ${parada.timestamp_llegada || parada.timestamp}\n`;
       content += `   Nivel de basura: ${parada.categoria_carga}\n`;
     });
+
+    if (incompleteStops.length > 0) {
+      content += `\n\n=== ⚠️ PARADAS NO COMPLETADAS (${incompleteStops.length}) ===\n`;
+      incompleteStops.forEach((parada, index) => {
+        content += `\n${parada.orden}. ${parada.direccion}\n`;
+        content += `   Motivo: ${parada.motivo_no_completada}\n`;
+      });
+    }
 
     if (riskReports && riskReports.length > 0) {
       content += `\n\n=== REPORTES DE RIESGO (${riskReports.length}) ===\n`;
@@ -151,17 +166,30 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
           <div className="completion-section">
             <div className="completion-section-header">
               <MapPin size={20} />
-              <h3>Paradas Completadas ({routeData.paradas.length})</h3>
+              <h3>Paradas Completadas ({routeData.paradas_completadas?.length || routeData.paradas.length})</h3>
+              {routeData.porcentaje_completado && routeData.porcentaje_completado < 100 && (
+                <span className="completion-percentage" style={{
+                  marginLeft: '10px',
+                  padding: '4px 10px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  backgroundColor: routeData.porcentaje_completado >= 80 ? '#34c759' : routeData.porcentaje_completado >= 50 ? '#ff9500' : '#ff3b30',
+                  color: 'white'
+                }}>
+                  {routeData.porcentaje_completado}% Completado
+                </span>
+              )}
             </div>
             <div className="completion-stops-list">
-              {routeData.paradas.map((parada, index) => (
+              {(routeData.paradas_completadas || routeData.paradas.filter(p => p.completada !== false)).map((parada, index) => (
                 <div key={index} className="completion-stop-item">
-                  <div className="completion-stop-number">{index + 1}</div>
+                  <div className="completion-stop-number">{parada.orden || index + 1}</div>
                   <div className="completion-stop-content">
                     <div className="completion-stop-address">{parada.direccion}</div>
                     <div className="completion-stop-meta">
                       <span className="completion-stop-time">
-                        <Clock size={14} /> {parada.timestamp}
+                        <Clock size={14} /> {parada.timestamp_llegada || parada.timestamp}
                       </span>
                       <span
                         className="completion-stop-category"
@@ -180,6 +208,35 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
             </div>
           </div>
 
+          {/* Paradas NO Completadas (si existen) */}
+          {routeData.paradas_no_completadas && routeData.paradas_no_completadas.length > 0 && (
+            <div className="completion-section completion-section--incomplete">
+              <div className="completion-section-header">
+                <AlertTriangle size={20} />
+                <h3>Paradas No Completadas ({routeData.paradas_no_completadas.length})</h3>
+              </div>
+              <div className="completion-alert-box">
+                <AlertTriangle size={18} />
+                <p>Las siguientes paradas no pudieron ser completadas. Verifica que hayas creado reportes de riesgo para cada una.</p>
+              </div>
+              <div className="completion-stops-list">
+                {routeData.paradas_no_completadas.map((parada, index) => (
+                  <div key={index} className="completion-stop-item completion-stop-item--incomplete">
+                    <div className="completion-stop-number completion-stop-number--incomplete">{parada.orden}</div>
+                    <div className="completion-stop-content">
+                      <div className="completion-stop-address">{parada.direccion}</div>
+                      <div className="completion-stop-meta">
+                        <span className="completion-stop-reason">
+                          <AlertTriangle size={14} /> {parada.motivo_no_completada}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Reportes de Riesgo */}
           {riskReports && riskReports.length > 0 && (
             <div className="completion-section completion-section--warning">
@@ -190,7 +247,7 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
               <div className="completion-risks-list">
                 {riskReports.map((report, index) => (
                   <div key={index} className="completion-risk-item">
-                    <div className="completion-risk-icon">⚠️</div>
+                    <div className="completion-risk-icon"><AlertTriangle size={24} /></div>
                     <div className="completion-risk-content">
                       <div className="completion-risk-title">{report.titulo}</div>
                       <div className="completion-risk-meta">

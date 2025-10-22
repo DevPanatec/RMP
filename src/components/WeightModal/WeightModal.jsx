@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { FileText, Trash2, RefreshCw, Truck, Package, MapPin, ClipboardList, AlertTriangle, X, CheckCircle } from '../Icons';
 import './WeightModal.css';
 
 const WeightModal = ({ isOpen, onClose, onConfirm, currentStop }) => {
@@ -16,7 +17,7 @@ const WeightModal = ({ isOpen, onClose, onConfirm, currentStop }) => {
 
   const handleSubmit = async () => {
     setError('');
-    
+
     // Validaciones
     if (!selectedCategory) {
       setError('Por favor selecciona una categoría de carga');
@@ -24,9 +25,9 @@ const WeightModal = ({ isOpen, onClose, onConfirm, currentStop }) => {
     }
 
     const finalCategory = selectedCategory;
-    
+
     setLoading(true);
-    
+
     // Simular procesamiento
     setTimeout(() => {
       onConfirm(finalCategory);
@@ -51,12 +52,12 @@ const WeightModal = ({ isOpen, onClose, onConfirm, currentStop }) => {
 
   const getCategoryIcon = (type) => {
     const icons = {
-      'baja': '📄',
-      'intermedia': '🗑️',
-      'alta': '♻️',
-      'muy alta': '🚚'
+      'baja': <FileText size={32} />,
+      'intermedia': <Trash2 size={32} />,
+      'alta': <RefreshCw size={32} />,
+      'muy alta': <Truck size={32} />
     };
-    return icons[type] || '📦';
+    return icons[type] || <Package size={32} />;
   };
 
   if (!isOpen) return null;
@@ -65,15 +66,17 @@ const WeightModal = ({ isOpen, onClose, onConfirm, currentStop }) => {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>⚖️ Registrar Peso de Recolección</h3>
+          <h3><Package size={20} /> Registrar Peso de Recolección</h3>
           <button className="modal-close" onClick={onClose}>
-            ✕
+            <X size={20} />
           </button>
         </div>
-        
+
         <div className="modal-body">
           <div className="stop-info">
-            <div className="stop-icon">📍</div>
+            <div className="stop-icon">
+              <MapPin size={20} />
+            </div>
             <div className="stop-details">
               <div className="stop-name">{currentStop}</div>
               <div className="stop-description">
@@ -108,14 +111,16 @@ const WeightModal = ({ isOpen, onClose, onConfirm, currentStop }) => {
 
           {error && (
             <div className="error-message">
-              ⚠️ {error}
+              <AlertTriangle size={16} /> {error}
             </div>
           )}
 
           {/* Resumen */}
           {selectedCategory && (
             <div className="weight-summary">
-              <div className="summary-header">📋 Resumen</div>
+              <div className="summary-header">
+                <ClipboardList size={18} /> Resumen
+              </div>
               <div className="summary-content">
                 <div className="summary-item">
                   <span className="summary-label">Parada:</span>
@@ -129,16 +134,16 @@ const WeightModal = ({ isOpen, onClose, onConfirm, currentStop }) => {
             </div>
           )}
         </div>
-        
+
         <div className="modal-actions">
-          <button 
+          <button
             className="btn btn--outline btn--full-width"
             onClick={onClose}
             disabled={loading}
           >
-            ❌ Cancelar
+            <X size={16} /> Cancelar
           </button>
-          <button 
+          <button
             className="btn btn--primary btn--full-width"
             onClick={handleSubmit}
             disabled={loading || !selectedCategory}
@@ -149,7 +154,9 @@ const WeightModal = ({ isOpen, onClose, onConfirm, currentStop }) => {
                 Procesando...
               </span>
             ) : (
-              '✅ Confirmar Recolección'
+              <>
+                <CheckCircle size={16} /> Confirmar Recolección
+              </>
             )}
           </button>
         </div>

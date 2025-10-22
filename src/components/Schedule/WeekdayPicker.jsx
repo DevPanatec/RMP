@@ -57,6 +57,18 @@ const WeekdayPicker = ({ selectedDays, onChange, blockedDays = {} }) => {
         const updatePosition = () => {
           const triggerRect = trigger.getBoundingClientRect();
           const viewportHeight = window.innerHeight;
+          const modalBodyRect = modalBody.getBoundingClientRect();
+
+          // Verificar si el trigger está visible en el modal
+          const triggerVisibleInModal =
+            triggerRect.top >= modalBodyRect.top &&
+            triggerRect.bottom <= modalBodyRect.bottom;
+
+          // Si el trigger no está visible, cerrar el dropdown
+          if (!triggerVisibleInModal) {
+            setIsOpen(false);
+            return;
+          }
 
           const spaceBelow = viewportHeight - triggerRect.bottom - 16;
           const spaceAbove = triggerRect.top - 16;
@@ -87,9 +99,13 @@ const WeekdayPicker = ({ selectedDays, onChange, blockedDays = {} }) => {
         window.addEventListener('scroll', handleUpdate, true);
         window.addEventListener('resize', handleUpdate);
 
+        // También escuchar scroll del modal-body específicamente
+        modalBody.addEventListener('scroll', handleUpdate);
+
         return () => {
           window.removeEventListener('scroll', handleUpdate, true);
           window.removeEventListener('resize', handleUpdate);
+          modalBody.removeEventListener('scroll', handleUpdate);
         };
       } else {
         setShouldPortal(false);

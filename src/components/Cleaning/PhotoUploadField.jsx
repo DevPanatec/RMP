@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Camera, X, CheckCircle, Upload } from '../Icons';
 import './PhotoUploadField.css';
 
-const PhotoUploadField = ({ label, type, photos, onPhotosChange, maxPhotos = 3 }) => {
+const PhotoUploadField = ({ label, type, photos, onChange, onPhotosChange, maxPhotos = 3 }) => {
+  // Soportar tanto onChange como onPhotosChange para compatibilidad
+  const handleChange = onChange || onPhotosChange;
   const [dragActive, setDragActive] = useState(false);
 
   const handleFileSelect = (e) => {
@@ -22,7 +24,7 @@ const PhotoUploadField = ({ label, type, photos, onPhotosChange, maxPhotos = 3 }
       name: file.name
     }));
 
-    onPhotosChange([...photos, ...newPhotos]);
+    handleChange([...photos, ...newPhotos]);
   };
 
   const removePhoto = (photoId) => {
@@ -33,7 +35,7 @@ const PhotoUploadField = ({ label, type, photos, onPhotosChange, maxPhotos = 3 }
       URL.revokeObjectURL(photoToRemove.preview);
     }
     
-    onPhotosChange(updatedPhotos);
+    handleChange(updatedPhotos);
   };
 
   const handleDrag = (e) => {

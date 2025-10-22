@@ -204,6 +204,17 @@ export const SupabaseReportsProvider = ({ children }) => {
     }
   };
 
+  // Función para obtener todos los reportes de rutas con filtros
+  const getRouteCompletionReports = async (filters = {}) => {
+    try {
+      const result = await supabaseClient.getRouteCompletionReports(filters);
+      return result.rows || [];
+    } catch (error) {
+      console.error('Error loading route completion reports:', error);
+      throw error;
+    }
+  };
+
   // Valor del contexto
   const value = {
     completedRoutes: state.completedRoutes,
@@ -213,7 +224,8 @@ export const SupabaseReportsProvider = ({ children }) => {
     exportRoutes,
     getReportsStats,
     saveCompletedRoute,
-    getCompletionReportsByDriver
+    getCompletionReportsByDriver,
+    getRouteCompletionReports
   };
 
   return (

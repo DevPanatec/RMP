@@ -91,8 +91,22 @@ export const SupabaseRiskReportsProvider = ({ children }) => {
       
       // Formatear datos para que coincidan con la estructura esperada
       const formattedReports = (result.rows || []).map(alert => {
+        // Mapear tipo_riesgo a nombre legible
+        const categoriaMap = {
+          'mecanico': 'Problemas mecánicos',
+          'combustible': 'Combustible',
+          'seguridad': 'Equipo de seguridad',
+          'mantenimiento': 'Mantenimiento requerido',
+          'bloqueo_via': 'Bloqueo de vía',
+          'seguridad_ciudadana': 'Seguridad ciudadana',
+          'climatico': 'Condiciones climáticas',
+          'manifestacion': 'Protesta o manifestación',
+          'accidente': 'Accidente de tránsito',
+          'operacional': 'Operacional'
+        };
+
         // Determinar si es interno o externo basado en tipo_riesgo
-        const esInterno = ['seguridad', 'vehiculo', 'mecanico', 'operacional', 'interno'].includes(
+        const esInterno = ['seguridad', 'vehiculo', 'mecanico', 'operacional', 'interno', 'mantenimiento', 'combustible'].includes(
           (alert.tipo_riesgo || '').toLowerCase()
         );
 
@@ -103,10 +117,11 @@ export const SupabaseRiskReportsProvider = ({ children }) => {
           descripcion: alert.descripcion || 'Sin descripción',
           conductor: alert.empleado_nombre || 'Sin asignar',
           ubicacion: alert.ubicacion || 'Sin ubicación',
-          prioridad: alert.nivel_severidad === 'alto' ? 'alta' :
+          prioridad: alert.nivel_severidad === 'critico' ? 'critica' :
+                    alert.nivel_severidad === 'alto' ? 'alta' :
                     alert.nivel_severidad === 'medio' ? 'media' : 'baja',
-          estado: alert.estado || 'abierto',
-          categoria: esInterno ? 'Vehiculo' : 'Operacional',
+          estado: alert.estado || 'reportado',
+          categoria: categoriaMap[alert.tipo_riesgo] || alert.tipo_riesgo || 'Operacional',
           camion: alert.vehiculo_placa || 'N/A',
           proyecto: alert.proyecto_nombre || 'Sin proyecto',
           severidad: alert.nivel_severidad,
@@ -132,34 +147,52 @@ export const SupabaseRiskReportsProvider = ({ children }) => {
   // Función para agregar un nuevo reporte
   const addReport = async (reportData) => {
     try {
-      const alertData = {
-        tipo: reportData.tipo,
-        titulo: reportData.titulo || 'Reporte de Riesgo',
-        mensaje: reportData.descripcion,
-        fecha_evento: reportData.fechaEvento || new Date().toISOString().split('T')[0],
-        urgente: reportData.prioridad === 'critica' || reportData.prioridad === 'alta'
-      };
-      
-      const result = await supabaseClient.addAlert(alertData);
+      // reportData ya viene con el formato correcto para Supabase desde ConductorDashboard
+      const result = await supabaseClient.addAlert(reportData);
       const newAlert = result.rows[0];
-      
+
+      // Mapear tipo_riesgo a nombre legible
+      const categoriaMap = {
+        'mecanico': 'Problemas mecánicos',
+        'combustible': 'Combustible',
+        'seguridad': 'Equipo de seguridad',
+        'mantenimiento': 'Mantenimiento requerido',
+        'bloqueo_via': 'Bloqueo de vía',
+        'seguridad_ciudadana': 'Seguridad ciudadana',
+        'climatico': 'Condiciones climáticas',
+        'manifestacion': 'Protesta o manifestación',
+        'accidente': 'Accidente de tránsito',
+        'operacional': 'Operacional'
+      };
+
       // Formatear para el estado
       const formattedReport = {
         id: newAlert.id,
-        tipo: newAlert.tipo,
+        tipo: newAlert.tipo_riesgo || 'operacional',
         titulo: newAlert.titulo,
-        descripcion: newAlert.mensaje,
+        descripcion: newAlert.descripcion,
         conductor: reportData.conductor || 'Sin asignar',
-        ubicacion: reportData.ubicacion || 'Sin ubicación',
-        prioridad: newAlert.urgente ? 'alta' : 'media',
+        ubicacion: newAlert.ubicacion || 'Sin ubicación',
+        prioridad: newAlert.nivel_severidad === 'critico' ? 'critica' :
+                  newAlert.nivel_severidad === 'alto' ? 'alta' :
+                  newAlert.nivel_severidad === 'medio' ? 'media' : 'baja',
         estado: 'reportado',
-        categoria: newAlert.tipo === 'interno' ? 'Vehículo' : 'Vía',
+        categoria: categoriaMap[newAlert.tipo_riesgo] || newAlert.tipo_riesgo || 'Operacional',
         camion: reportData.camion || 'N/A',
-        fechaCreacion: newAlert.created_at,
-        fechaActualizacion: newAlert.updated_at
+        fechaCreacion: newAlert.fecha_reporte || newAlert.created_at,
+        fechaActualizacion: newAlert.updated_at,
+        empleadoId: newAlert.empleado_reporta_id,
+        vehiculoId: newAlert.vehiculo_id,
+        proyectoId: newAlert.proyecto_id,
+        gpsLatitud: newAlert.gps_latitud,
+        gpsLongitud: newAlert.gps_longitud
       };
-      
+
       dispatch({ type: ACTIONS.ADD_REPORT, payload: formattedReport });
+
+      // Recargar todos los reportes para actualizar la vista
+      await loadReports();
+
       return formattedReport;
     } catch (error) {
       console.error('Error adding report:', error);

@@ -20,330 +20,394 @@ const MaintenanceDashboard = ({ userRole }) => {
 
   return (
     <div>
-      {/* Hero Stats con degradado */}
+
+      {/* Operational Stats - Diseño delgado con divisiones */}
       <div style={{
-        background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)',
-        borderRadius: '20px',
-        padding: '32px',
-        marginBottom: '24px',
-        color: 'white',
-        boxShadow: '0 8px 32px rgba(61, 82, 41, 0.2)'
+        background: 'linear-gradient(135deg, #556B2F 0%, #3D5229 100%)',
+        borderRadius: '16px',
+        padding: '20px 0',
+        marginBottom: '32px',
+        boxShadow: '0 4px 16px rgba(61, 82, 41, 0.2)',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)'
       }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', fontWeight: '700', marginBottom: '8px', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-              {programmedTasks.length}
-            </div>
-            <div style={{ fontSize: '14px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '500' }}>
-              Programadas
-            </div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', fontWeight: '700', marginBottom: '8px', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-              {inProgressTasks.length}
-            </div>
-            <div style={{ fontSize: '14px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '500' }}>
-              En Proceso
-            </div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', fontWeight: '700', marginBottom: '8px', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-              {completedTasks.length}
-            </div>
-            <div style={{ fontSize: '14px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '500' }}>
-              Completadas
-            </div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', fontWeight: '700', marginBottom: '8px', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-              {activeAlerts.length}
-            </div>
-            <div style={{ fontSize: '14px', opacity: 0.9, textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '500' }}>
-              Alertas Activas
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Operational Stats con cards mejoradas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        {/* Volumen Total */}
         <div style={{
-          background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-          border: '1px solid rgba(0, 122, 255, 0.1)',
-          borderRadius: '16px',
-          padding: '24px',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '80px', opacity: '0.1' }}>💧</div>
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ fontSize: '12px', fontWeight: '600', color: '#0284c7', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-              Volumen Total
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: '700', color: '#0c4a6e', marginBottom: '4px' }}>
-              {stats.totalDischarges.toLocaleString()}
-            </div>
-            <div style={{ fontSize: '13px', color: '#0369a1', fontWeight: '500' }}>
-              galones descargados
-            </div>
-          </div>
-        </div>
-
-        <div style={{
-          background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-          border: '1px solid var(--color-primary-subtle)',
-          borderRadius: '16px',
-          padding: '24px',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '80px', opacity: '0.1' }}>💵</div>
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-primary)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-              Costo Acumulado
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: '700', color: 'var(--color-primary-active)', marginBottom: '4px' }}>
-              B/. {stats.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div style={{ fontSize: '13px', color: 'var(--color-primary-hover)', fontWeight: '500' }}>
-              inversión total
-            </div>
-          </div>
-        </div>
-
-        <div style={{
-          background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)',
-          border: '1px solid rgba(255, 149, 0, 0.1)',
-          borderRadius: '16px',
-          padding: '24px',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '80px', opacity: '0.1' }}>⚡</div>
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ fontSize: '12px', fontWeight: '600', color: '#d97706', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-              Alto Impacto
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: '700', color: '#92400e', marginBottom: '4px' }}>
-              {stats.highImpactCleanups}
-            </div>
-            <div style={{ fontSize: '13px', color: '#b45309', fontWeight: '500' }}>
-              limpiezas realizadas
-            </div>
-          </div>
-        </div>
-
-        <div style={{
-          background: 'linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%)',
-          border: '1px solid rgba(168, 85, 247, 0.1)',
-          borderRadius: '16px',
-          padding: '24px',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '80px', opacity: '0.1' }}>⏱️</div>
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ fontSize: '12px', fontWeight: '600', color: '#9333ea', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-              Duración Promedio
-            </div>
-            <div style={{ fontSize: '32px', fontWeight: '700', color: '#581c87', marginBottom: '4px' }}>
-              {stats.averageWorkDuration.toFixed(1)}
-            </div>
-            <div style={{ fontSize: '13px', color: '#7c3aed', fontWeight: '500' }}>
-              horas de trabajo
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Overdue Tasks Alert */}
-      {overdueTasks.length > 0 && (
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(255, 59, 48, 0.05) 0%, rgba(255, 59, 48, 0.02) 100%)',
-          border: '1px solid rgba(255, 59, 48, 0.2)',
-          borderRadius: '16px',
-          padding: '20px',
-          marginBottom: '24px',
+          padding: '0 24px',
+          borderRight: '1px solid rgba(255, 255, 255, 0.15)',
           display: 'flex',
-          alignItems: 'start',
-          gap: '12px'
+          alignItems: 'center',
+          gap: '16px'
         }}>
           <div style={{
-            width: '40px',
-            height: '40px',
-            background: 'rgba(255, 59, 48, 0.1)',
+            width: '48px',
+            height: '48px',
+            background: 'rgba(255, 255, 255, 0.15)',
             borderRadius: '12px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             flexShrink: 0
           }}>
-            <AlertTriangle size={20} style={{ color: '#ff3b30' }} />
+            <Package size={24} style={{ color: 'white' }} />
           </div>
           <div>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600', color: '#dc2626' }}>
-              {overdueTasks.length} Tarea{overdueTasks.length !== 1 ? 's' : ''} Vencida{overdueTasks.length !== 1 ? 's' : ''}
-            </h3>
-            <p style={{ margin: 0, fontSize: '14px', color: '#991b1b' }}>
-              Hay tareas que no se han completado en la fecha programada. Revísalas lo antes posible.
-            </p>
+            <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>
+              Volumen Total
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: 'white', lineHeight: 1, marginBottom: '2px' }}>
+              {stats.totalDischarges.toLocaleString()}
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.65)' }}>
+              galones descargados
+            </div>
           </div>
         </div>
-      )}
 
-      {/* Upcoming Tasks */}
-      <div className="maintenance-section">
-        <div className="maintenance-section__header">
-          <h3 className="maintenance-section__title">📅 Próximos Mantenimientos (7 días)</h3>
+        {/* Costo Acumulado */}
+        <div style={{
+          padding: '0 24px',
+          borderRight: '1px solid rgba(255, 255, 255, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px'
+        }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            background: 'rgba(255, 255, 255, 0.15)',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <TrendingUp size={24} style={{ color: 'white' }} />
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>
+              Costo Acumulado
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: 'white', lineHeight: 1, marginBottom: '2px' }}>
+              B/. {stats.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.65)' }}>
+              inversión total
+            </div>
+          </div>
         </div>
 
-        {upcomingTasks.length === 0 ? (
-          <div className="maintenance-empty">
-            <div className="maintenance-empty__icon">📅</div>
-            <h4 className="maintenance-empty__title">No hay mantenimientos programados</h4>
-            <p className="maintenance-empty__description">
-              No hay mantenimientos programados para los próximos 7 días
-            </p>
+        {/* Alto Impacto */}
+        <div style={{
+          padding: '0 24px',
+          borderRight: '1px solid rgba(255, 255, 255, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px'
+        }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            background: 'rgba(255, 255, 255, 0.15)',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <AlertTriangle size={24} style={{ color: 'white' }} />
           </div>
-        ) : (
-          <div className="maintenance-task-list">
-            {upcomingTasks.map((task) => {
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>
+              Alto Impacto
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: 'white', lineHeight: 1, marginBottom: '2px' }}>
+              {stats.highImpactCleanups}
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.65)' }}>
+              limpiezas realizadas
+            </div>
+          </div>
+        </div>
+
+        {/* Duración Promedio */}
+        <div style={{
+          padding: '0 24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px'
+        }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            background: 'rgba(255, 255, 255, 0.15)',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <Clock size={24} style={{ color: 'white' }} />
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>
+              Duración Promedio
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: 'white', lineHeight: 1, marginBottom: '2px' }}>
+              {stats.averageWorkDuration.toFixed(1)}
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.65)' }}>
+              horas de trabajo
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Tasks Grid - Compact Side by Side */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: '24px' }}>
+        {/* Upcoming Tasks */}
+        <div style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+          border: '2px solid #dcfce7',
+          borderRadius: '20px',
+          padding: '24px',
+          boxShadow: '0 4px 16px rgba(61, 82, 41, 0.08)',
+          minHeight: '400px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', paddingBottom: '16px', borderBottom: '2px solid #dcfce7' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              background: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(61, 82, 41, 0.2)'
+            }}>
+              <Calendar size={22} style={{ color: 'white' }} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937' }}>Próximos Mantenimientos</h3>
+              <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>Próximos 7 días</p>
+            </div>
+          </div>
+
+          {upcomingTasks.length === 0 ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                margin: '0 auto 16px',
+                borderRadius: '20px',
+                background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Calendar size={40} style={{ color: '#9ca3af' }} />
+              </div>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600', color: '#374151' }}>Sin mantenimientos</h4>
+              <p style={{ margin: 0, fontSize: '14px', color: '#9ca3af', textAlign: 'center' }}>
+                No hay mantenimientos programados
+              </p>
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '500px', overflowY: 'auto', paddingRight: '4px' }}>
+              {upcomingTasks.slice(0, 5).map((task) => {
               const taskDate = new Date(`${task.scheduled_date}T${task.scheduled_time}`);
               const daysUntil = Math.ceil((taskDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
               const urgency = daysUntil <= 1 ? 'red' : daysUntil <= 3 ? 'yellow' : 'green';
 
-              const urgencyStyles = {
-                red: {
-                  bg: 'linear-gradient(135deg, rgba(255, 59, 48, 0.08) 0%, rgba(255, 59, 48, 0.04) 100%)',
-                  border: 'rgba(255, 59, 48, 0.3)',
-                  color: '#dc2626'
-                },
-                yellow: {
-                  bg: 'linear-gradient(135deg, rgba(255, 204, 0, 0.08) 0%, rgba(255, 204, 0, 0.04) 100%)',
-                  border: 'rgba(255, 204, 0, 0.3)',
-                  color: '#d97706'
-                },
-                green: {
-                  bg: 'linear-gradient(135deg, var(--color-primary-subtle) 0%, var(--color-primary-light) 100%)',
-                  border: 'var(--color-primary-subtle)',
-                  color: 'var(--color-primary)'
-                }
-              };
+              const urgencyColor = daysUntil <= 1 ? '#dc2626' : daysUntil <= 3 ? '#d97706' : '#3D5229';
 
               return (
                 <div
                   key={task.id}
-                  className="maintenance-task-item"
                   style={{
-                    background: urgencyStyles[urgency].bg,
-                    border: `1px solid ${urgencyStyles[urgency].border}`,
-                    borderLeft: `4px solid ${urgencyStyles[urgency].color}`
+                    background: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderLeft: `3px solid ${urgencyColor}`,
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.transform = 'translateY(0)';
                   }}
                 >
-                  <div className="maintenance-task-item__content">
-                    <span className={`maintenance-task-item__badge maintenance-task-item__badge--${task.type}`}>
-                      {task.type}
-                    </span>
-                    <div className="maintenance-task-item__info">
-                      <div className="maintenance-task-item__date">
-                        {new Date(task.scheduled_date).toLocaleDateString('es-PA')} {task.scheduled_time}
+                  <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', gap: '12px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <span className={`maintenance-task-item__badge maintenance-task-item__badge--${task.type}`} style={{ fontSize: '11px', padding: '3px 10px' }}>
+                          {task.type}
+                        </span>
+                        <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500' }}>
+                          {new Date(task.scheduled_date).toLocaleDateString('es-PA')}
+                        </span>
                       </div>
-                      <div className="maintenance-task-item__description">{task.observations}</div>
-                      {task.operational_data && (
-                        <div style={{ fontSize: '12px', color: '#666', marginTop: '8px', display: 'flex', gap: '16px' }}>
-                          <span>💧 {task.operational_data.volume_discharged?.toLocaleString()} gal</span>
-                          <span>💵 B/. {task.operational_data.total_estimated_cost?.toFixed(2)}</span>
-                        </div>
+                      <div style={{ fontSize: '14px', color: '#1f2937', marginBottom: '4px', lineHeight: '1.4' }}>
+                        {task.observations}
+                      </div>
+                    </div>
+                    <div style={{
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      color: urgencyColor,
+                      padding: '6px 12px',
+                      background: '#f9fafb',
+                      borderRadius: '8px',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}>
+                      {daysUntil === 0 ? (
+                        <>
+                          <AlertTriangle size={12} />
+                          <span>Hoy</span>
+                        </>
+                      ) : daysUntil === 1 ? (
+                        <>
+                          <Clock size={12} />
+                          <span>Mañana</span>
+                        </>
+                      ) : (
+                        <span>{daysUntil}d</span>
                       )}
                     </div>
-                  </div>
-                  <div style={{
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: urgencyStyles[urgency].color,
-                    padding: '8px 16px',
-                    background: 'white',
-                    borderRadius: '8px'
-                  }}>
-                    {daysUntil === 0 ? '🔥 Hoy' : daysUntil === 1 ? '⚠️ Mañana' : `📌 ${daysUntil} días`}
                   </div>
                 </div>
               );
             })}
-          </div>
-        )}
-      </div>
-
-      {/* Recent Completed Tasks */}
-      <div className="maintenance-section">
-        <div className="maintenance-section__header">
-          <h3 className="maintenance-section__title">✅ Mantenimientos Completados Recientes</h3>
+            </div>
+          )}
         </div>
 
-        {completedTasks.length === 0 ? (
-          <div className="maintenance-empty">
-            <div className="maintenance-empty__icon">✅</div>
-            <h4 className="maintenance-empty__title">No hay mantenimientos completados</h4>
-            <p className="maintenance-empty__description">
-              Los mantenimientos completados aparecerán aquí
-            </p>
+        {/* Recent Completed Tasks */}
+        <div style={{
+          background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+          border: '2px solid #dcfce7',
+          borderRadius: '20px',
+          padding: '24px',
+          boxShadow: '0 4px 16px rgba(61, 82, 41, 0.08)',
+          minHeight: '400px',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', paddingBottom: '16px', borderBottom: '2px solid #dcfce7' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              background: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 4px 12px rgba(61, 82, 41, 0.2)'
+            }}>
+              <CheckCircle size={22} style={{ color: 'white' }} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937' }}>Completados Recientes</h3>
+              <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>Últimos 5 mantenimientos</p>
+            </div>
           </div>
-        ) : (
-          <div className="maintenance-task-list">
-            {completedTasks.slice(0, 5).map((task) => (
-              <div key={task.id} className="maintenance-task-item" style={{
-                background: 'linear-gradient(135deg, var(--color-primary-light) 0%, rgba(255, 255, 255, 0.5) 100%)',
-                borderLeft: '4px solid var(--color-primary)'
+
+          {completedTasks.length === 0 ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                margin: '0 auto 16px',
+                borderRadius: '20px',
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}>
-                <div className="maintenance-task-item__content">
-                  <span className={`maintenance-task-item__badge maintenance-task-item__badge--${task.type}`}>
-                    {task.type}
-                  </span>
-                  <div className="maintenance-task-item__info">
-                    <div className="maintenance-task-item__date">
-                      ✅ Completado: {task.completed_at ? new Date(task.completed_at).toLocaleDateString('es-PA') : '-'}
-                    </div>
-                    <div className="maintenance-task-item__description">{task.observations}</div>
-                    {task.operational_data && (
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: '12px',
-                        fontSize: '12px',
-                        marginTop: '12px',
-                        padding: '12px',
-                        background: 'white',
-                        borderRadius: '8px'
-                      }}>
-                        <div>
-                          <div style={{ color: '#999', marginBottom: '4px' }}>Volumen</div>
-                          <div style={{ fontWeight: '600', color: '#333' }}>
-                            {task.operational_data.volume_discharged?.toLocaleString()} gal
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ color: '#999', marginBottom: '4px' }}>Costo</div>
-                          <div style={{ fontWeight: '600', color: '#333' }}>
-                            B/. {task.operational_data.total_estimated_cost?.toFixed(2)}
-                          </div>
-                        </div>
-                        <div>
-                          <div style={{ color: '#999', marginBottom: '4px' }}>Duración</div>
-                          <div style={{ fontWeight: '600', color: '#333' }}>
-                            {task.operational_data.work_duration} hrs
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <span className="maintenance-task-item__status maintenance-task-item__status--completada">
-                  Completada
-                </span>
+                <CheckCircle size={40} style={{ color: '#3D5229' }} />
               </div>
-            ))}
-          </div>
-        )}
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600', color: '#374151' }}>Sin completados</h4>
+              <p style={{ margin: 0, fontSize: '14px', color: '#9ca3af', textAlign: 'center' }}>
+                Los completados aparecerán aquí
+              </p>
+            </div>
+          ) : (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '500px', overflowY: 'auto', paddingRight: '4px' }}>
+              {completedTasks.slice(0, 5).map((task) => (
+                <div
+                  key={task.id}
+                  style={{
+                    background: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderLeft: '3px solid #3D5229',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', gap: '12px', marginBottom: '8px' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <span className={`maintenance-task-item__badge maintenance-task-item__badge--${task.type}`} style={{ fontSize: '11px', padding: '3px 10px' }}>
+                          {task.type}
+                        </span>
+                        <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <CheckCircle size={12} style={{ color: '#3D5229' }} />
+                          {task.completed_at ? new Date(task.completed_at).toLocaleDateString('es-PA') : '-'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '14px', color: '#1f2937', lineHeight: '1.4' }}>
+                        {task.observations}
+                      </div>
+                    </div>
+                  </div>
+                  {task.operational_data && (
+                    <div style={{
+                      display: 'flex',
+                      gap: '16px',
+                      fontSize: '11px',
+                      padding: '10px',
+                      background: '#f9fafb',
+                      borderRadius: '8px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6b7280' }}>
+                        <Package size={12} style={{ color: '#0284c7' }} />
+                        <span style={{ fontWeight: '600' }}>{task.operational_data.volume_discharged?.toLocaleString()} gal</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6b7280' }}>
+                        <TrendingUp size={12} style={{ color: '#3D5229' }} />
+                        <span style={{ fontWeight: '600' }}>B/. {task.operational_data.total_estimated_cost?.toFixed(2)}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6b7280' }}>
+                        <Clock size={12} style={{ color: '#9333ea' }} />
+                        <span style={{ fontWeight: '600' }}>{task.operational_data.work_duration} hrs</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
