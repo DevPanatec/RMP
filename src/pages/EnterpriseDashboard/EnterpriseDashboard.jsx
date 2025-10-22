@@ -1,271 +1,285 @@
-import { useState } from 'react';
-import { appData } from '../../data/mockData';
+import { useState, useEffect, useMemo } from 'react';
 import MapComponent from '../../components/Map/MapComponent';
-import { VehicleCard } from '../../components/Dashboard';
+import PersonnelComponent from '../../components/Personnel/PersonnelComponent';
+import InventoryComponent from '../../components/Inventory/InventoryComponent';
+import RoutesComponent from '../../components/Routes/RoutesComponent';
+import RiskComponent from '../../components/Risk/RiskComponent';
+import ReportsComponent from '../../components/Reports/ReportsComponent';
+import ScheduleComponent from '../../components/Schedule/ScheduleComponent';
+import FleetManagement from '../../components/Fleet/FleetManagement';
+import CalendarComponent from '../../components/Calendar/CalendarComponent';
 import MaintenanceComponent from '../../components/Maintenance/MaintenanceComponent';
+import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
+import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
+import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
+import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
+import { useDemoMode } from '../../hooks/useDemoMode';
+import { DEMO_VEHICLES, DEMO_ROUTES, DEMO_PERSONNEL, DEMO_ALERTS, DEMO_RECENT_ACTIVITY, mergeDemoData } from '../../utils/demoData';
 import {
-  LayoutDashboard, TrendingUp, BarChart3, Map, LogOut,
-  Truck, Activity, Package, Calendar, Building, Wrench
+  LayoutDashboard, Truck, AlertTriangle, Package,
+  BarChart3, Users, Map, LogOut, TrendingUp, CheckCircle,
+  MapPin, Radio, Activity, Zap, Bell, Wrench, Leaf, Navigation, Clock, Save, Calendar,
+  Satellite, Briefcase, Sparkles, Plus
 } from '../../components/Icons';
+import { Badge, ProgressBar } from '../../components/UI';
+import { DashboardKPI, AlertCard, PersonnelTable, VehicleCard, HeroStats, RealtimeActivity, RiskAlerts } from '../../components/Dashboard';
 import './EnterpriseDashboard.css';
 
 const EnterpriseDashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeSubTab, setActiveSubTab] = useState('');
+  const [selectedTruck, setSelectedTruck] = useState(null);
+  const [serviceTypeFilter, setServiceTypeFilter] = useState('todos');
+  const [selectedLocationId, setSelectedLocationId] = useState(null);
+  const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
+  const [vehicleFormData, setVehicleFormData] = useState({
+    nombre: '',
+    placa: '',
+    marca: '',
+    modelo: '',
+    año: new Date().getFullYear(),
+    tipoServicio: 'recoleccion'
+  });
 
-  // Filter data for enterprise (only specific trucks)
-  const enterpriseTrucks = appData.camiones.filter(c => ['TR-001', 'TR-002'].includes(c.id));
-  const enterpriseReports = appData.historialRecolecciones.filter(h => 
-    enterpriseTrucks.some(t => t.id === h.camion)
-  );
+  // Hooks de contextos reales
+  const {
+    personnel,
+    loading: personnelLoading,
+    moveEmployee,
+    addEmployee,
+    updateEmployee,
+    deleteEmployee,
+    getPersonnelStats
+  } = useSupabasePersonnel();
+
+  const {
+    vehicles,
+    loading: fleetLoading,
+    updateVehicle,
+    addVehicle,
+    deleteVehicle,
+    getFleetStats
+  } = useSupabaseFleet();
+
+  const {
+    routes,
+    loading: routesLoading,
+    getRoutesStats
+  } = useSupabaseRoutes();
+
+  const {
+    reports: alerts,
+    loading: alertsLoading,
+    addReport: addAlert,
+    updateReportStatus: updateAlert,
+    deleteReport: deleteAlert,
+    getReportStats: getAlertsStats
+  } = useSupabaseRiskReports();
+
+  // Hook de modo demo
+  const { isDemoMode, toggleDemoMode } = useDemoMode();
+
+  // Mezclar datos reales con datos demo cuando el modo demo está activo
+  const displayVehicles = useMemo(() => {
+    return isDemoMode ? mergeDemoData(vehicles, DEMO_VEHICLES) : vehicles;
+  }, [isDemoMode, vehicles]);
+
+  const displayRoutes = useMemo(() => {
+    return isDemoMode ? mergeDemoData(routes, DEMO_ROUTES) : routes;
+  }, [isDemoMode, routes]);
+
+  const displayPersonnel = useMemo(() => {
+    return isDemoMode ? mergeDemoData(personnel, DEMO_PERSONNEL) : personnel;
+  }, [isDemoMode, personnel]);
+
+  const displayAlerts = useMemo(() => {
+    return isDemoMode ? mergeDemoData(alerts, DEMO_ALERTS) : alerts;
+  }, [isDemoMode, alerts]);
+
+  // Usar datos reales o demo según el modo activo
+  const normalizedCamiones = displayVehicles.map(camion => (
+    camion.tipoServicio ? camion : { ...camion, tipoServicio: 'recoleccion' }
+  ));
+
+  // Obtener estadísticas reales
+  const personnelStats = getPersonnelStats();
+  const fleetStats = getFleetStats();
+  const routesStats = getRoutesStats();
+
+  // Calcular estadísticas operativas basadas en datos activos (reales o demo)
+  const operationalStats = useMemo(() => {
+    const defaultStats = {
+      eficienciaPromedio: 85,
+      totalKgHoy: 0
+    };
+
+    if (!displayVehicles || displayVehicles.length === 0) return defaultStats;
+
+    return {
+      eficienciaPromedio: 85,
+      totalKgHoy: displayVehicles.reduce((total, vehicle) => total + (vehicle.capacidad_carga || 0), 0)
+    };
+  }, [displayVehicles]);
+
+  const handleTabChange = (newTab, defaultSubTab = '') => {
+    setActiveTab(newTab);
+    setActiveSubTab(defaultSubTab);
+  };
+
+  const handleViewLocationReports = (locationId) => {
+    setSelectedLocationId(locationId);
+    handleTabChange('reportes');
+  };
+
+  const handleClearLocationSelection = () => {
+    setSelectedLocationId(null);
+  };
+
+  const handleGoToVehicleLocation = (vehicleId) => {
+    setSelectedTruck(vehicleId);
+    handleTabChange('dashboard');
+  };
+
+  const renderOperationsContent = () => {
+    const currentSubTab = activeSubTab || 'personal';
+    switch (currentSubTab) {
+      case 'personal':
+        return (
+          <div className="operations-content-modern">
+            <div className="ops-header">
+              <div className="ops-header-content">
+                <h2><Users size={24} /> Gestión de Personal</h2>
+                <p>Gestiona tu equipo de trabajo, conductores y personal operativo</p>
+              </div>
+            </div>
+            <PersonnelComponent userType={user.tipo} />
+          </div>
+        );
+
+      case 'flota':
+        return (
+          <div className="operations-content-modern">
+            <div className="ops-header">
+              <div className="ops-header-content">
+                <h2><Truck size={24} /> Gestión de Flota</h2>
+                <p>Administra todos los vehículos de la flota</p>
+              </div>
+            </div>
+            <FleetManagement userType={user.tipo} />
+          </div>
+        );
+
+      case 'rutas':
+        return (
+          <div className="operations-content-modern">
+            <div className="ops-header">
+              <div className="ops-header-content">
+                <h2><MapPin size={24} /> Gestión de Rutas</h2>
+                <p>Crea y gestiona las rutas de recolección</p>
+              </div>
+            </div>
+            <RoutesComponent userType={user.tipo} />
+          </div>
+        );
+
+      case 'programacion':
+        return (
+          <div className="operations-content-modern">
+            <div className="ops-header">
+              <div className="ops-header-content">
+                <h2><Clock size={24} /> Programación</h2>
+                <p>Programa y asigna rutas a conductores y vehículos</p>
+              </div>
+            </div>
+            <ScheduleComponent userType={user.tipo} />
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
         return (
           <div className="dashboard-content">
-            <div className="kpi-grid">
-              <div className="kpi-card">
-                <div className="kpi-icon"><Truck size={28} /></div>
-                <div className="kpi-content">
-                  <div className="kpi-value">{enterpriseTrucks.length}</div>
-                  <div className="kpi-label">Camiones Asignados</div>
-                </div>
-              </div>
-              <div className="kpi-card">
-                <div className="kpi-icon"><Activity size={28} /></div>
-                <div className="kpi-content">
-                  <div className="kpi-value">
-                    {enterpriseTrucks.filter(c => c.estado === 'En ruta').length}
-                  </div>
-                  <div className="kpi-label">En Ruta</div>
-                </div>
-              </div>
-              <div className="kpi-card">
-                <div className="kpi-icon"><TrendingUp size={28} /></div>
-                <div className="kpi-content">
-                  <div className="kpi-value">
-                    {Math.round(enterpriseReports.reduce((sum, h) => sum + h.duracion, 0) / enterpriseReports.length) || 0}
-                  </div>
-                  <div className="kpi-label">Duración Promedio</div>
-                </div>
-              </div>
-              <div className="kpi-card">
-                <div className="kpi-icon"><Package size={28} /></div>
-                <div className="kpi-content">
-                  <div className="kpi-value">
-                    {enterpriseReports.reduce((sum, h) => sum + h.kgTotal, 0)}
-                  </div>
-                  <div className="kpi-label">Total Recogido (kg)</div>
-                </div>
-              </div>
-            </div>
+            <HeroStats
+              vehiclesStats={fleetStats}
+              personnelStats={personnelStats}
+              routesStats={routesStats}
+              operationalStats={operationalStats}
+              isDemoMode={isDemoMode}
+              toggleDemoMode={toggleDemoMode}
+              userRole="enterprise"
+            />
 
-            <div className="section-header">
-              <div className="section-title">
-                <h3>Flota Asignada</h3>
-                <p>Monitorea el estado de tus camiones asignados</p>
+            <div className="dashboard-grid">
+              <div className="dashboard-section dashboard-section-map">
+                <div className="section-header-inline">
+                  <div className="section-title">
+                    <h3><Map size={20} /> Mapa en Tiempo Real</h3>
+                    <p>Monitorea tu flota en vivo</p>
+                  </div>
+                  <div className="filter-controls">
+                    <select
+                      value={serviceTypeFilter}
+                      onChange={(e) => setServiceTypeFilter(e.target.value)}
+                      className="service-filter-select"
+                    >
+                      <option value="todos">Todos los servicios</option>
+                      <option value="recoleccion">Recolección</option>
+                      <option value="fumigacion">Fumigación</option>
+                      <option value="limpieza">Limpieza</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="map-container-dashboard">
+                  <MapComponent
+                    camiones={normalizedCamiones}
+                    userType={user.tipo}
+                    selectedTruck={selectedTruck}
+                    serviceTypeFilter={serviceTypeFilter}
+                    onViewLocationReports={handleViewLocationReports}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="vehicle-grid">
-              {enterpriseTrucks.map(truck => (
-                <VehicleCard
-                  key={truck.id}
-                  vehicle={{
-                    ...truck,
-                    nombre: truck.id,
-                    placa: truck.id,
-                    estado: truck.estado === 'En ruta' ? 'en ruta' : truck.estado === 'Disponible' ? 'disponible' : 'mantenimiento',
-                    conductor: truck.conductor || 'Sin asignar',
-                    rutaAsignada: truck.rutaAsignada || 'Sin asignar',
-                    lat: truck.lat,
-                    lng: truck.lng,
-                    ultimoMantenimiento: '2024-01-15',
-                    proximoMantenimiento: '2024-07-15'
-                  }}
-                  onLocationClick={() => {
-                    // TODO: Implement location view
-                    console.log('View location for truck:', truck);
-                  }}
-                  onMaintenanceClick={() => {
-                    // TODO: Implement maintenance view
-                    console.log('Maintenance for truck:', truck);
-                  }}
-                  onHistoryClick={() => {
-                    // TODO: Implement history view
-                    console.log('History for truck:', truck);
-                  }}
+              <div className="dashboard-section dashboard-section-activity">
+                <RealtimeActivity
+                  activities={isDemoMode ? DEMO_RECENT_ACTIVITY : []}
                 />
-              ))}
-            </div>
-
-            <div className="card">
-              <div className="card__body">
-                <h3><Map size={20} /> Ubicación de Camiones Asignados</h3>
-                <MapComponent camiones={enterpriseTrucks} userType={user.tipo} />
               </div>
             </div>
+
+            <RiskAlerts
+              alerts={displayAlerts}
+              onViewAll={() => handleTabChange('riesgos')}
+            />
           </div>
         );
-        
-      case 'tracking':
-        return (
-          <div className="tracking-section">
-            <div className="section-header">
-              <div className="section-title">
-                <h3>Seguimiento en Tiempo Real</h3>
-                <p>Monitorea la ubicación y estado de todos tus camiones</p>
-              </div>
-            </div>
 
-            <div className="tracking-grid">
-              {enterpriseTrucks.map(truck => (
-                <div key={truck.id} className="tracking-card">
-                  <div className="tracking-header">
-                    <div className="tracking-icon">
-                      <Truck size={24} />
-                    </div>
-                    <div className="tracking-info">
-                      <h4>{truck.id}</h4>
-                      <span className={`status-badge status-${truck.estado.toLowerCase().replace(' ', '-')}`}>
-                        {truck.estado}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="tracking-details">
-                    <div className="detail-row">
-                      <span className="detail-label">Conductor:</span>
-                      <span className="detail-value">{truck.conductor || 'Sin asignar'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Ruta:</span>
-                      <span className="detail-value">{truck.rutaAsignada || 'Sin asignar'}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Ubicación:</span>
-                      <span className="detail-value">{truck.lat.toFixed(4)}, {truck.lng.toFixed(4)}</span>
-                    </div>
-                    <div className="detail-row">
-                      <span className="detail-label">Última actualización:</span>
-                      <span className="detail-value">{new Date().toLocaleTimeString('es-ES')}</span>
-                    </div>
-                  </div>
-                  <div className="tracking-actions">
-                    <button className="action-btn action-btn--location">
-                      <Map size={16} /> Ver en Mapa
-                    </button>
-                    <button className="action-btn action-btn--history">
-                      <BarChart3 size={16} /> Historial
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+      case 'operaciones':
+        return renderOperationsContent();
 
-            {enterpriseTrucks.length === 0 && (
-              <div className="empty-state">
-                <div className="empty-icon"><Truck size={48} /></div>
-                <h4>No hay camiones asignados</h4>
-                <p>Contacta con el administrador para asignar camiones a tu empresa</p>
-              </div>
-            )}
-          </div>
-        );
-        
+      case 'calendario':
+        return <CalendarComponent userType={user.tipo} />;
       case 'mantenimiento':
-        return <MaintenanceComponent userRole="enterprise" />;
-
-      case 'reports':
+        return <MaintenanceComponent userType={user.tipo} />;
+      case 'riesgos':
+        return <RiskComponent userType={user.tipo} />;
+      case 'inventario':
+        return <InventoryComponent userType={user.tipo} />;
+      case 'reportes':
         return (
-          <div className="reports-section">
-            <div className="section-header">
-              <div className="section-title">
-                <h3>Reportes de Recolección</h3>
-                <p>Historial detallado de todas las operaciones realizadas</p>
-              </div>
-            </div>
-
-            <div className="reports-summary">
-              <div className="summary-card">
-                <div className="summary-icon"><Package size={24} /></div>
-                <div className="summary-content">
-                  <div className="summary-value">
-                    {enterpriseReports.reduce((sum, r) => sum + r.kgTotal, 0)} kg
-                  </div>
-                  <div className="summary-label">Total Recogido</div>
-                </div>
-              </div>
-              <div className="summary-card">
-                <div className="summary-icon"><Activity size={24} /></div>
-                <div className="summary-content">
-                  <div className="summary-value">{enterpriseReports.length}</div>
-                  <div className="summary-label">Operaciones</div>
-                </div>
-              </div>
-              <div className="summary-card">
-                <div className="summary-icon"><TrendingUp size={24} /></div>
-                <div className="summary-content">
-                  <div className="summary-value">
-                    {Math.round(enterpriseReports.reduce((sum, r) => sum + r.duracion, 0) / enterpriseReports.length) || 0} min
-                  </div>
-                  <div className="summary-label">Tiempo Promedio</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="reports-table-container">
-              <div className="reports-table-wrapper">
-                <table className="reports-table">
-                  <thead>
-                    <tr>
-                      <th>Camión</th>
-                      <th>Fecha</th>
-                      <th>Duración</th>
-                      <th>Paradas</th>
-                      <th>Recogido</th>
-                      <th>Eficiencia</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {enterpriseReports.map((recoleccion, index) => (
-                      <tr key={index}>
-                        <td>
-                          <div className="truck-cell">
-                            <Truck size={16} />
-                            <span>{recoleccion.camion}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="date-cell">
-                            <Calendar size={14} />
-                            <span>{recoleccion.fecha}</span>
-                          </div>
-                        </td>
-                        <td>{recoleccion.duracion} min</td>
-                        <td>{recoleccion.paradas} paradas</td>
-                        <td>{recoleccion.kgTotal} kg</td>
-                        <td>
-                          <span className={`efficiency-badge efficiency-${recoleccion.kgTotal > 800 ? 'excellent' : recoleccion.kgTotal > 600 ? 'good' : 'poor'}`}>
-                            {recoleccion.kgTotal > 800 ? 'Excelente' : recoleccion.kgTotal > 600 ? 'Buena' : 'Mejorable'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {enterpriseReports.length === 0 && (
-              <div className="empty-state">
-                <div className="empty-icon"><BarChart3 size={48} /></div>
-                <h4>No hay reportes disponibles</h4>
-                <p>Aún no se han realizado operaciones de recolección</p>
-              </div>
-            )}
-          </div>
+          <ReportsComponent
+            userType={user.tipo}
+            preSelectedLocationId={selectedLocationId}
+            onClearSelection={handleClearLocationSelection}
+          />
         );
-        
+
       default:
         return null;
     }
@@ -275,7 +289,10 @@ const EnterpriseDashboard = ({ user, onLogout }) => {
     <div className="dashboard-container">
       <div className="sidebar">
         <div className="sidebar-header">
-          <h2><Building size={20} /> RMP Enterprise</h2>
+          <div className="sidebar-logo">
+            <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="logo-image" />
+            <h2>RMP Enterprise</h2>
+          </div>
           <p>Bienvenido, {user.nombre}</p>
         </div>
         <nav className="sidebar-nav">
@@ -283,31 +300,91 @@ const EnterpriseDashboard = ({ user, onLogout }) => {
             <li>
               <button
                 className={activeTab === 'dashboard' ? 'active' : ''}
-                onClick={() => setActiveTab('dashboard')}
+                onClick={() => handleTabChange('dashboard')}
               >
                 <LayoutDashboard size={18} /> Dashboard
               </button>
             </li>
             <li>
               <button
-                className={activeTab === 'tracking' ? 'active' : ''}
-                onClick={() => setActiveTab('tracking')}
+                className={activeTab === 'operaciones' ? 'active' : ''}
+                onClick={() => handleTabChange('operaciones', 'personal')}
               >
-                <Map size={18} /> Seguimiento
+                <Briefcase size={18} /> Operaciones
+              </button>
+              {activeTab === 'operaciones' && (
+                <ul className="submenu">
+                  <li>
+                    <button
+                      className={activeSubTab === 'personal' ? 'active' : ''}
+                      onClick={() => setActiveSubTab('personal')}
+                    >
+                      <Users size={16} /> Personal
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      className={activeSubTab === 'flota' ? 'active' : ''}
+                      onClick={() => setActiveSubTab('flota')}
+                    >
+                      <Truck size={16} /> Flota
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      className={activeSubTab === 'rutas' ? 'active' : ''}
+                      onClick={() => setActiveSubTab('rutas')}
+                    >
+                      <MapPin size={16} /> Rutas
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      className={activeSubTab === 'programacion' ? 'active' : ''}
+                      onClick={() => setActiveSubTab('programacion')}
+                    >
+                      <Clock size={16} /> Programación
+                    </button>
+                  </li>
+                </ul>
+              )}
+            </li>
+            <li>
+              <button
+                className={activeTab === 'calendario' ? 'active' : ''}
+                onClick={() => handleTabChange('calendario')}
+              >
+                <Calendar size={18} /> Calendario
               </button>
             </li>
             <li>
               <button
                 className={activeTab === 'mantenimiento' ? 'active' : ''}
-                onClick={() => setActiveTab('mantenimiento')}
+                onClick={() => handleTabChange('mantenimiento')}
               >
                 <Wrench size={18} /> Mantenimiento
               </button>
             </li>
             <li>
               <button
-                className={activeTab === 'reports' ? 'active' : ''}
-                onClick={() => setActiveTab('reports')}
+                className={activeTab === 'riesgos' ? 'active' : ''}
+                onClick={() => handleTabChange('riesgos')}
+              >
+                <AlertTriangle size={18} /> Riesgos
+              </button>
+            </li>
+            <li>
+              <button
+                className={activeTab === 'inventario' ? 'active' : ''}
+                onClick={() => handleTabChange('inventario')}
+              >
+                <Package size={18} /> Inventario
+              </button>
+            </li>
+            <li>
+              <button
+                className={activeTab === 'reportes' ? 'active' : ''}
+                onClick={() => handleTabChange('reportes')}
               >
                 <BarChart3 size={18} /> Reportes
               </button>
@@ -318,7 +395,7 @@ const EnterpriseDashboard = ({ user, onLogout }) => {
 
       <div className="main-content">
         <div className="dashboard-header">
-          <h1><Building size={24} /> Panel Enterprise</h1>
+          <h1><Briefcase size={24} /> Panel Enterprise</h1>
           <div className="header-actions">
             <button className="logout-btn" onClick={onLogout}>
               <LogOut size={18} /> Cerrar Sesión
@@ -331,4 +408,4 @@ const EnterpriseDashboard = ({ user, onLogout }) => {
   );
 };
 
-export default EnterpriseDashboard; 
+export default EnterpriseDashboard;
