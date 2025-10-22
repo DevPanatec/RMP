@@ -627,9 +627,8 @@ const AdminDashboard = ({ user, onLogout }) => {
         <div className="sidebar-header">
           <div className="sidebar-logo">
             <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="logo-image" />
-            <h2>RMP Admin</h2>
           </div>
-          <p>Bienvenido, {user.nombre}</p>
+          <p>Bienvenido, Administrador del Sistema</p>
         </div>
         <nav className="sidebar-nav">
           <ul>

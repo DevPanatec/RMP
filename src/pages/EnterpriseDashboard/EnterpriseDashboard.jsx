@@ -291,7 +291,6 @@ const EnterpriseDashboard = ({ user, onLogout }) => {
         <div className="sidebar-header">
           <div className="sidebar-logo">
             <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="logo-image" />
-            <h2>RMP Enterprise</h2>
           </div>
           <p>Bienvenido, {user.nombre}</p>
         </div>
