@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
 import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
+import { useSupabaseReports } from '../../context/SupabaseReportsContext';
 import { BarChart3, Truck, Zap, Sparkles, Wrench, ChevronRight, MapPin, Calendar, Camera } from '../Icons';
 import { Card, Badge } from '../UI';
 import ReportsDashboard from './ReportsDashboard';
@@ -13,10 +14,28 @@ const ReportsComponent = ({ userType = 'admin' }) => {
   const [activeCategory, setActiveCategory] = useState('dashboard');
   const [selectedRouteType, setSelectedRouteType] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [routeReports, setRouteReports] = useState([]);
 
   const { routes } = useSupabaseRoutes();
   const { assignments, loading: cleaningLoading, lugares } = useSupabaseCleaning();
   const { tasks: maintenanceTasks, loading: maintenanceLoading } = useSupabaseMaintenance();
+  const { getRouteCompletionReports } = useSupabaseReports();
+
+  // Cargar reportes de rutas completadas
+  useEffect(() => {
+    const loadRouteReports = async () => {
+      try {
+        const reports = await getRouteCompletionReports({ tipo_ruta: 'recoleccion' });
+        console.log('📊 Reportes cargados:', reports);
+        setRouteReports(reports);
+      } catch (error) {
+        console.error('Error cargando reportes de rutas:', error);
+      }
+    };
+    if (activeCategory === 'recoleccion') {
+      loadRouteReports();
+    }
+  }, [activeCategory, getRouteCompletionReports]);
 
   const rutasRecoleccion = routes.filter(r => r.type === 'recoleccion' || r.tipoServicio === 'recoleccion');
   const rutasFumigacion = routes.filter(r => r.type === 'fumigacion' || r.tipoServicio === 'fumigacion');
@@ -43,29 +62,47 @@ const ReportsComponent = ({ userType = 'admin' }) => {
     return `https://your-supabase-url.supabase.co/storage/v1/object/public/${filePath}`;
   };
 
-  // Filtrar lugares para recolección
+  // Filtrar lugares para recolección - mantener los 6 lugares fijos
   const recoleccionLocations = useMemo(() => {
     const recoleccionPlaces = lugares.filter(lugar =>
-      lugar.nombre.includes('Mercado') || lugar.nombre.includes('Complejo')
-    ).filter(lugar =>
+      (lugar.nombre.includes('Mercado') || lugar.nombre.includes('Complejo')) &&
       !lugar.nombre.includes('Planta de tratamiento')
     );
 
     return recoleccionPlaces.map(lugar => {
-      const lugarAssignments = assignments.filter(a => {
-        const matchLocation = a.lugar?.id === lugar.id || a.lugar_id === lugar.id;
-        const matchType = a.tipo === 'recoleccion' || a.tipoServicio === 'recoleccion';
-        return matchLocation && matchType;
+      // Buscar reportes de rutas que pasaron por este lugar
+      const lugarReports = [];
+
+      routeReports.forEach(report => {
+        if (report.paradas_completadas && Array.isArray(report.paradas_completadas)) {
+          report.paradas_completadas.forEach(parada => {
+            const paradaDireccion = (parada.direccion || '').toLowerCase();
+            const lugarNombre = lugar.nombre.toLowerCase();
+
+            // Verificar si la parada pertenece a este lugar
+            if (paradaDireccion.includes(lugarNombre) || lugarNombre.includes(paradaDireccion.split(' ')[0])) {
+              lugarReports.push({
+                ...report,
+                tipo: 'recoleccion',
+                tipoServicio: 'recoleccion',
+                fecha: report.fecha_completacion,
+                estado: 'completado',
+                notas: report.observaciones,
+                parada_info: parada
+              });
+            }
+          });
+        }
       });
 
       return {
         ...lugar,
-        assignmentsCount: lugarAssignments.length,
-        completedCount: lugarAssignments.filter(a => a.estado === 'completado').length,
-        assignments: lugarAssignments
+        assignmentsCount: lugarReports.length,
+        completedCount: lugarReports.length,
+        assignments: lugarReports
       };
     });
-  }, [lugares, assignments]);
+  }, [lugares, routeReports]);
 
   const renderRecoleccion = () => {
     return (

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
-import { Plus, Eye, Trash2, CheckCircle } from '../Icons';
+import { Plus, Eye, Trash2, CheckCircle, Calendar, Wrench, FileText } from '../Icons';
 import MaintenanceTaskModal from './MaintenanceTaskModal';
 
 const MaintenanceTasks = ({ userRole }) => {
@@ -102,7 +102,10 @@ const MaintenanceTasks = ({ userRole }) => {
             <div style={{ fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>
               {tasks.filter(t => t.status === 'programada').length}
             </div>
-            <div style={{ fontSize: '13px', opacity: 0.9 }}>📅 Programadas</div>
+            <div style={{ fontSize: '13px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+              <Calendar size={14} />
+              <span>Programadas</span>
+            </div>
           </button>
           <button
             className={`maintenance-subtab ${filter === 'completada' ? 'maintenance-subtab--active' : ''}`}
@@ -123,14 +126,28 @@ const MaintenanceTasks = ({ userRole }) => {
             <div style={{ fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>
               {tasks.filter(t => t.status === 'completada').length}
             </div>
-            <div style={{ fontSize: '13px', opacity: 0.9 }}>✅ Completadas</div>
+            <div style={{ fontSize: '13px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+              <CheckCircle size={14} />
+              <span>Completadas</span>
+            </div>
           </button>
         </div>
 
         {/* Tasks List */}
         {filteredTasks.length === 0 ? (
           <div className="maintenance-empty">
-            <div className="maintenance-empty__icon">📋</div>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              margin: '0 auto 16px',
+              borderRadius: '20px',
+              background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <FileText size={40} style={{ color: '#9ca3af' }} />
+            </div>
             <h4 className="maintenance-empty__title">No hay tareas</h4>
             <p className="maintenance-empty__description">
               {filter === 'all'
@@ -188,7 +205,7 @@ const MaintenanceTasks = ({ userRole }) => {
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                         <button
                           onClick={() => handleView(task)}
-                          style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#007aff' }}
+                          style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#556B2F' }}
                           title="Ver detalles"
                         >
                           <Eye size={18} />
@@ -198,7 +215,7 @@ const MaintenanceTasks = ({ userRole }) => {
                             {task.status !== 'completada' && (
                               <button
                                 onClick={() => handleEdit(task)}
-                                style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#34c759' }}
+                                style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#3D5229' }}
                                 title="Editar"
                               >
                                 <CheckCircle size={18} />
@@ -206,7 +223,7 @@ const MaintenanceTasks = ({ userRole }) => {
                             )}
                             <button
                               onClick={() => handleDelete(task.id)}
-                              style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#ff3b30' }}
+                              style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#556B2F' }}
                               title="Eliminar"
                             >
                               <Trash2 size={18} />

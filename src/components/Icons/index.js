@@ -12,6 +12,7 @@ export {
   XCircle,
   AlertTriangle,
   AlertOctagon,
+  Info,
   Lightbulb,
   Truck,
   Package,

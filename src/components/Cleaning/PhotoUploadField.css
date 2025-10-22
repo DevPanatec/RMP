@@ -28,8 +28,8 @@
 }
 
 .photo-upload__count.complete {
-  background: rgba(52, 199, 89, 0.15);
-  color: #34C759;
+  background: rgba(107, 150, 86, 0.15);
+  color: #3D5229;
 }
 
 .photo-upload__dropzone {
@@ -47,15 +47,16 @@
 }
 
 .photo-upload__dropzone:hover {
-  border-color: #007AFF;
-  background: rgba(0, 122, 255, 0.05);
+  border-color: #6b9656;
+  background: rgba(107, 150, 86, 0.05);
   transform: translateY(-2px);
 }
 
 .photo-upload__dropzone.drag-active {
-  border-color: #007AFF;
-  background: rgba(0, 122, 255, 0.1);
+  border-color: #3D5229;
+  background: rgba(61, 82, 41, 0.1);
   transform: scale(1.02);
+  box-shadow: 0 0 0 4px rgba(107, 150, 86, 0.1);
 }
 
 .photo-upload__dropzone.has-photos {
@@ -74,12 +75,12 @@
 }
 
 .photo-upload__dropzone:hover .photo-upload__icon {
-  color: #007AFF;
+  color: #3D5229;
   transform: scale(1.1);
 }
 
 .photo-upload__icon .icon-success {
-  color: #34C759;
+  color: #6b9656;
 }
 
 .photo-upload__text {

@@ -20,6 +20,7 @@ const CalendarComponent = () => {
   const { routes, loading: routesLoading } = useSupabaseRoutes();
   const { assignments: cleaningAssignments, loading: cleaningLoading } = useSupabaseCleaning();
   const { assignments: scheduleAssignments, loading: scheduleLoading, getDayNameFromDate, getStartOfWeekFromDate } = useSupabaseSchedule();
+  const { assignments: maintenanceAssignments, loading: maintenanceLoading } = useSupabaseMaintenance();
 
   console.log('📅 DEBUG CalendarComponent - cleaningAssignments:', cleaningAssignments);
   console.log('📅 DEBUG CalendarComponent - Cantidad:', cleaningAssignments.length);

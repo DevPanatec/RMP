@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
 import supabaseClient from '../../utils/supabaseClient';
-import { X } from '../Icons';
+import { X, Upload, Image as ImageIcon, Check, Trash2 } from '../Icons';
 import { MAINTENANCE_PRESETS } from '../../constants/maintenancePresets';
 
 const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
@@ -338,43 +338,37 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
 
         {/* Content */}
         <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
-          {/* Paquete de Mantenimiento (NUEVO) */}
+          {/* Paquete de Mantenimiento - Compacto */}
           {!viewMode && (
-            <div style={{
-              marginBottom: '24px',
-              padding: '20px',
-              background: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
-              borderRadius: '16px',
-              boxShadow: '0 4px 15px rgba(61, 82, 41, 0.3)'
-            }}>
-              <label style={{ display: 'block', fontSize: '15px', fontWeight: '700', marginBottom: '12px', color: 'white' }}>
-                Paquete de Mantenimiento
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
+                Paquete de Mantenimiento (Opcional)
               </label>
               <select
                 value={selectedPackage}
                 onChange={(e) => handlePackageSelect(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '12px 14px',
-                  border: 'none',
-                  borderRadius: '12px',
+                  padding: '10px 12px',
+                  border: '2px solid #dcfce7',
+                  borderRadius: '10px',
                   fontSize: '14px',
                   background: 'white',
                   fontWeight: '500',
                   cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  color: selectedPackage ? '#3D5229' : '#64748b'
                 }}
               >
-                <option value="">Seleccionar paquete predefinido o personalizar...</option>
+                <option value="">Personalizado</option>
                 {MAINTENANCE_PRESETS.maintenancePackages.map(pkg => (
                   <option key={pkg.id} value={pkg.id}>
-                    {pkg.label} - {(pkg.estimatedDuration / 60).toFixed(1)}h
+                    {pkg.label} ({(pkg.estimatedDuration / 60).toFixed(1)}h)
                   </option>
                 ))}
               </select>
               {selectedPackage && (
-                <p style={{ margin: '10px 0 0 0', fontSize: '13px', color: 'rgba(255,255,255,0.95)', lineHeight: '1.4' }}>
+                <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#64748b', lineHeight: '1.4' }}>
                   {MAINTENANCE_PRESETS.maintenancePackages.find(p => p.id === selectedPackage)?.description}
                 </p>
               )}
@@ -523,34 +517,29 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
               Datos Operativos
             </h3>
 
-            {/* Preset de Volumen (NUEVO) */}
+            {/* Preset de Volumen - Compacto */}
             {!viewMode && (
-              <div style={{
-                marginBottom: '16px',
-                padding: '14px',
-                background: 'white',
-                borderRadius: '12px',
-                border: '2px dashed #cbd5e1'
-              }}>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#475569' }}>
-                  Preset de Volumen
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569' }}>
+                  Preset de Volumen (Opcional)
                 </label>
                 <select
                   onChange={(e) => handleVolumePresetSelect(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '10px 12px',
+                    padding: '8px 10px',
                     border: '2px solid #e5e7eb',
-                    borderRadius: '10px',
-                    fontSize: '14px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
                     fontWeight: '500',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    background: 'white'
                   }}
                 >
-                  <option value="">Seleccionar volumen predefinido...</option>
+                  <option value="">Manual</option>
                   {MAINTENANCE_PRESETS.volumeAndCost.map(preset => (
                     <option key={preset.id} value={preset.id}>
-                      {preset.label} - {preset.volume_gallons.toLocaleString()} gal - B/.{preset.total_cost.toFixed(2)}
+                      {preset.label} ({preset.volume_gallons.toLocaleString()} gal, B/.{preset.total_cost.toFixed(2)})
                     </option>
                   ))}
                 </select>
@@ -705,256 +694,296 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
 
           {/* Sección de Evidencia Fotográfica - Para crear o completar tareas */}
           {!viewMode && isAdmin && (
-            <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '20px', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                📸 Evidencia Fotográfica
-              </h3>
-              <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '12px' }}>
-                Arrastra o selecciona imágenes/videos
+            <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: '24px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <ImageIcon size={22} style={{ color: '#3D5229' }} />
+                <h3 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: '#1f2937' }}>
+                  Evidencia Fotográfica
+                </h3>
+              </div>
+              <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>
+                Selecciona la categoría y arrastra las imágenes. Si arrastras 3 imágenes, se distribuirán automáticamente (1 antes, 1 durante, 1 después)
               </p>
 
-              {/* Selector de categoría */}
-              <div style={{ marginBottom: '16px', display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategory('before')}
-                  style={{
-                    padding: '10px 20px',
-                    background: selectedCategory === 'before' ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)' : '#f1f5f9',
-                    color: selectedCategory === 'before' ? 'white' : '#64748b',
-                    border: 'none',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    boxShadow: selectedCategory === 'before' ? '0 4px 12px rgba(61, 82, 41, 0.3)' : 'none'
-                  }}
-                >
-                  📷 Antes
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategory('during')}
-                  style={{
-                    padding: '10px 20px',
-                    background: selectedCategory === 'during' ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)' : '#f1f5f9',
-                    color: selectedCategory === 'during' ? 'white' : '#64748b',
-                    border: 'none',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    boxShadow: selectedCategory === 'during' ? '0 4px 12px rgba(61, 82, 41, 0.3)' : 'none'
-                  }}
-                >
-                  📷 Durante
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategory('after')}
-                  style={{
-                    padding: '10px 20px',
-                    background: selectedCategory === 'after' ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)' : '#f1f5f9',
-                    color: selectedCategory === 'after' ? 'white' : '#64748b',
-                    border: 'none',
-                    borderRadius: '10px',
-                    fontSize: '13px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    boxShadow: selectedCategory === 'after' ? '0 4px 12px rgba(61, 82, 41, 0.3)' : 'none'
-                  }}
-                >
-                  📷 Después
-                </button>
-              </div>
+              {/* Selector de categoría integrado con zona de carga */}
+              <div style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+                border: '2px solid #dcfce7',
+                borderRadius: '16px',
+                padding: '20px'
+              }}>
+                {/* Tabs de categoría */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', background: '#f8fafc', padding: '6px', borderRadius: '12px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('before')}
+                    style={{
+                      flex: 1,
+                      padding: '10px 16px',
+                      background: selectedCategory === 'before' ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)' : 'transparent',
+                      color: selectedCategory === 'before' ? 'white' : '#64748b',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: selectedCategory === 'before' ? '0 2px 8px rgba(61, 82, 41, 0.3)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <ImageIcon size={16} />
+                    Antes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('during')}
+                    style={{
+                      flex: 1,
+                      padding: '10px 16px',
+                      background: selectedCategory === 'during' ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)' : 'transparent',
+                      color: selectedCategory === 'during' ? 'white' : '#64748b',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: selectedCategory === 'during' ? '0 2px 8px rgba(61, 82, 41, 0.3)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <ImageIcon size={16} />
+                    Durante
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('after')}
+                    style={{
+                      flex: 1,
+                      padding: '10px 16px',
+                      background: selectedCategory === 'after' ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)' : 'transparent',
+                      color: selectedCategory === 'after' ? 'white' : '#64748b',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      boxShadow: selectedCategory === 'after' ? '0 2px 8px rgba(61, 82, 41, 0.3)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <ImageIcon size={16} />
+                    Después
+                  </button>
+                </div>
 
-              {/* Un solo cuadro de carga */}
-              <div
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, 'all')}
-                onPaste={(e) => handlePaste(e, 'all')}
-                onClick={() => document.getElementById('file-all').click()}
-                style={{
-                  width: '100%',
-                  minHeight: '140px',
-                  padding: '30px',
-                  border: '2px dashed #94a3b8',
-                  borderRadius: '16px',
-                  cursor: 'pointer',
-                  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '12px',
-                  transition: 'all 0.3s ease',
-                  marginBottom: '20px'
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.borderColor = '#3D5229';
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #f0f4e8 0%, #e8f0dc 100%)';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.borderColor = '#94a3b8';
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)';
-                }}
-              >
-                <div style={{ fontSize: '48px', opacity: 0.6 }}>📁</div>
-                <div style={{ fontSize: '15px', fontWeight: '600', color: '#475569', textAlign: 'center' }}>
-                  Arrastra fotos aquí o haz clic para seleccionar
+                {/* Zona de carga */}
+                <div
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, 'all')}
+                  onPaste={(e) => handlePaste(e, 'all')}
+                  onClick={() => document.getElementById('file-all').click()}
+                  style={{
+                    width: '100%',
+                    minHeight: '140px',
+                    padding: '30px',
+                    border: '2px dashed #94a3b8',
+                    borderRadius: '12px',
+                    cursor: 'pointer',
+                    background: 'white',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.borderColor = '#3D5229';
+                    e.currentTarget.style.background = '#f0fdf4';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.borderColor = '#94a3b8';
+                    e.currentTarget.style.background = 'white';
+                  }}
+                >
+                  <Upload size={48} style={{ color: '#3D5229', opacity: 0.6 }} />
+                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#475569', textAlign: 'center' }}>
+                    Arrastra fotos aquí o haz clic para seleccionar
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
+                    Se subirán a la categoría: <strong style={{ color: '#3D5229' }}>
+                      {selectedCategory === 'before' ? 'Antes' : selectedCategory === 'during' ? 'Durante' : 'Después'}
+                    </strong>
+                  </div>
                 </div>
-                <div style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
-                  Soporta arrastrar desde WhatsApp Web • Imágenes y videos
-                </div>
+                <input
+                  id="file-all"
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  onChange={(e) => {
+                    Array.from(e.target.files).forEach(file => handlePhotoUpload(file, selectedCategory));
+                  }}
+                  style={{ display: 'none' }}
+                />
               </div>
-              <input
-                id="file-all"
-                type="file"
-                accept="image/*,video/*"
-                multiple
-                onChange={(e) => {
-                  Array.from(e.target.files).forEach(file => handlePhotoUpload(file, selectedCategory));
-                }}
-                style={{ display: 'none' }}
-              />
 
               {/* Galería de imágenes subidas organizadas por categoría */}
               {(photos.before.length > 0 || photos.during.length > 0 || photos.after.length > 0) && (
                 <div style={{ marginTop: '20px' }}>
                   {/* Sección Antes */}
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>📷 Antes</span>
-                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>({photos.before.length})</span>
+                  {photos.before.length > 0 && (
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '8px 12px', background: 'rgba(61, 82, 41, 0.08)', borderRadius: '8px', width: 'fit-content' }}>
+                        <ImageIcon size={16} style={{ color: '#3D5229' }} />
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#3D5229' }}>Antes</span>
+                        <span style={{ fontSize: '12px', background: '#3D5229', color: 'white', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
+                          {photos.before.length}
+                        </span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
+                        {photos.before.map((url, idx) => (
+                          <div key={idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #dcfce7' }}>
+                            <img src={url} alt={`Antes ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); removePhoto('before', idx); }}
+                              style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                background: 'rgba(61, 82, 41, 0.9)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '24px',
+                                height: '24px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                              }}
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
-                      {photos.before.map((url, idx) => (
-                        <div key={idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #e5e7eb' }}>
-                          <img src={url} alt={`Antes ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); removePhoto('before', idx); }}
-                            style={{
-                              position: 'absolute',
-                              top: '4px',
-                              right: '4px',
-                              background: 'rgba(239, 68, 68, 0.95)',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '50%',
-                              width: '24px',
-                              height: '24px',
-                              cursor: 'pointer',
-                              fontSize: '14px',
-                              fontWeight: 'bold',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  )}
 
                   {/* Sección Durante */}
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>📷 Durante</span>
-                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>({photos.during.length})</span>
+                  {photos.during.length > 0 && (
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '8px 12px', background: 'rgba(61, 82, 41, 0.08)', borderRadius: '8px', width: 'fit-content' }}>
+                        <ImageIcon size={16} style={{ color: '#3D5229' }} />
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#3D5229' }}>Durante</span>
+                        <span style={{ fontSize: '12px', background: '#3D5229', color: 'white', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
+                          {photos.during.length}
+                        </span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
+                        {photos.during.map((url, idx) => (
+                          <div key={idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #dcfce7' }}>
+                            <img src={url} alt={`Durante ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); removePhoto('during', idx); }}
+                              style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                background: 'rgba(61, 82, 41, 0.9)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '24px',
+                                height: '24px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                              }}
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
-                      {photos.during.map((url, idx) => (
-                        <div key={idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #e5e7eb' }}>
-                          <img src={url} alt={`Durante ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); removePhoto('during', idx); }}
-                            style={{
-                              position: 'absolute',
-                              top: '4px',
-                              right: '4px',
-                              background: 'rgba(239, 68, 68, 0.95)',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '50%',
-                              width: '24px',
-                              height: '24px',
-                              cursor: 'pointer',
-                              fontSize: '14px',
-                              fontWeight: 'bold',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  )}
 
                   {/* Sección Después */}
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#0f172a' }}>📷 Después</span>
-                      <span style={{ fontSize: '12px', color: '#94a3b8' }}>({photos.after.length})</span>
+                  {photos.after.length > 0 && (
+                    <div style={{ marginBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '8px 12px', background: 'rgba(61, 82, 41, 0.08)', borderRadius: '8px', width: 'fit-content' }}>
+                        <ImageIcon size={16} style={{ color: '#3D5229' }} />
+                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#3D5229' }}>Después</span>
+                        <span style={{ fontSize: '12px', background: '#3D5229', color: 'white', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
+                          {photos.after.length}
+                        </span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
+                        {photos.after.map((url, idx) => (
+                          <div key={idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #dcfce7' }}>
+                            <img src={url} alt={`Después ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
+                            <button
+                              type="button"
+                              onClick={(e) => { e.stopPropagation(); removePhoto('after', idx); }}
+                              style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                background: 'rgba(61, 82, 41, 0.9)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '24px',
+                                height: '24px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                              }}
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
-                      {photos.after.map((url, idx) => (
-                        <div key={idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #e5e7eb' }}>
-                          <img src={url} alt={`Después ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
-                          <button
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); removePhoto('after', idx); }}
-                            style={{
-                              position: 'absolute',
-                              top: '4px',
-                              right: '4px',
-                              background: 'rgba(239, 68, 68, 0.95)',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '50%',
-                              width: '24px',
-                              height: '24px',
-                              cursor: 'pointer',
-                              fontSize: '14px',
-                              fontWeight: 'bold',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
 
               {uploadingPhotos && (
                 <div style={{
                   padding: '12px',
-                  background: '#eff6ff',
+                  background: 'rgba(61, 82, 41, 0.08)',
                   borderRadius: '8px',
                   fontSize: '13px',
-                  color: '#1e40af',
+                  color: '#3D5229',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px'
+                  gap: '8px',
+                  marginTop: '12px'
                 }}>
-                  <div className="spinner" style={{ width: '16px', height: '16px' }}></div>
+                  <Upload size={16} style={{ color: '#3D5229' }} />
                   Subiendo fotos...
                 </div>
               )}
@@ -966,10 +995,9 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   onClick={() => setFormData({ ...formData, status: 'completada' })}
                   disabled={formData.status === 'completada'}
                   style={{
+                    marginTop: '12px',
                     padding: '14px',
-                    background: formData.status === 'completada'
-                      ? 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)'
-                      : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    background: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
                     color: 'white',
                     border: 'none',
                     borderRadius: '12px',
@@ -980,11 +1008,13 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    transition: 'all 0.2s'
+                    boxShadow: '0 4px 12px rgba(61, 82, 41, 0.3)',
+                    transition: 'all 0.2s',
+                    opacity: formData.status === 'completada' ? 0.7 : 1
                   }}
                 >
-                  {formData.status === 'completada' ? '✅ Marcada como Completada' : '✓ Marcar como Completada'}
+                  <Check size={18} />
+                  {formData.status === 'completada' ? 'Marcada como Completada' : 'Marcar como Completada'}
                 </button>
               )}
             </div>
@@ -996,21 +1026,23 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
               borderTop: '2px solid #e2e8f0',
               paddingTop: '24px',
               marginBottom: '20px',
-              background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+              background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
               padding: '24px',
-              borderRadius: '16px'
+              borderRadius: '16px',
+              border: '2px solid #dcfce7'
             }}>
-              <h3 style={{
+              <div style={{
                 fontSize: '18px',
                 fontWeight: '700',
                 marginBottom: '20px',
-                color: '#0f172a',
+                color: '#1f2937',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '10px'
               }}>
-                📸 Evidencia Fotográfica del Mantenimiento
-              </h3>
+                <ImageIcon size={22} style={{ color: '#3D5229' }} />
+                Evidencia Fotográfica del Mantenimiento
+              </div>
 
               {/* Sección Antes */}
               {task.images_before && task.images_before.length > 0 && (
@@ -1021,14 +1053,15 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                     gap: '8px',
                     marginBottom: '12px',
                     padding: '8px 12px',
-                    background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                    background: 'rgba(61, 82, 41, 0.08)',
                     borderRadius: '8px',
                     width: 'fit-content'
                   }}>
-                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#92400e' }}>📷 Antes</span>
+                    <ImageIcon size={16} style={{ color: '#3D5229' }} />
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#3D5229' }}>Antes</span>
                     <span style={{
                       fontSize: '12px',
-                      background: '#92400e',
+                      background: '#3D5229',
                       color: 'white',
                       padding: '2px 8px',
                       borderRadius: '12px',
@@ -1039,7 +1072,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
                     {task.images_before.map((url, index) => (
-                      <div key={index} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                      <div key={index} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '2px solid #dcfce7', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                         <img
                           src={url}
                           alt={`Antes ${index + 1}`}
@@ -1061,14 +1094,15 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                     gap: '8px',
                     marginBottom: '12px',
                     padding: '8px 12px',
-                    background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+                    background: 'rgba(61, 82, 41, 0.08)',
                     borderRadius: '8px',
                     width: 'fit-content'
                   }}>
-                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#1e3a8a' }}>📷 Durante</span>
+                    <ImageIcon size={16} style={{ color: '#3D5229' }} />
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#3D5229' }}>Durante</span>
                     <span style={{
                       fontSize: '12px',
-                      background: '#1e3a8a',
+                      background: '#3D5229',
                       color: 'white',
                       padding: '2px 8px',
                       borderRadius: '12px',
@@ -1079,7 +1113,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
                     {task.images_during.map((url, index) => (
-                      <div key={index} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                      <div key={index} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '2px solid #dcfce7', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                         <img
                           src={url}
                           alt={`Durante ${index + 1}`}
@@ -1101,14 +1135,15 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                     gap: '8px',
                     marginBottom: '12px',
                     padding: '8px 12px',
-                    background: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+                    background: 'rgba(61, 82, 41, 0.08)',
                     borderRadius: '8px',
                     width: 'fit-content'
                   }}>
-                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#065f46' }}>📷 Después</span>
+                    <ImageIcon size={16} style={{ color: '#3D5229' }} />
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#3D5229' }}>Después</span>
                     <span style={{
                       fontSize: '12px',
-                      background: '#065f46',
+                      background: '#3D5229',
                       color: 'white',
                       padding: '2px 8px',
                       borderRadius: '12px',
@@ -1119,7 +1154,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
                     {task.images_after.map((url, index) => (
-                      <div key={index} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                      <div key={index} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '2px solid #dcfce7', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
                         <img
                           src={url}
                           alt={`Después ${index + 1}`}
@@ -1189,7 +1224,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                 {loading
                   ? 'Guardando...'
                   : formData.status === 'completada' && task
-                    ? '✅ Completar Tarea'
+                    ? 'Completar Tarea'
                     : task
                       ? 'Actualizar Tarea'
                       : 'Crear Tarea'}

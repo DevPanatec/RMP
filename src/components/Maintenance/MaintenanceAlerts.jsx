@@ -48,153 +48,253 @@ const MaintenanceAlerts = ({ userRole }) => {
 
   return (
     <div>
-      {/* Summary con gradientes */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+      {/* Summary - Diseño delgado con divisiones */}
+      <div style={{
+        background: 'linear-gradient(135deg, #556B2F 0%, #3D5229 100%)',
+        borderRadius: '16px',
+        padding: '20px 0',
+        marginBottom: '32px',
+        boxShadow: '0 4px 16px rgba(61, 82, 41, 0.2)',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)'
+      }}>
+        {/* Críticas */}
         <div style={{
-          background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-          borderRadius: '16px',
-          padding: '24px',
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: '0 4px 12px rgba(255, 59, 48, 0.15)'
+          padding: '0 32px',
+          borderRight: '1px solid rgba(255, 255, 255, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px'
         }}>
-          <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '60px', opacity: '0.15' }}>🚨</div>
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ fontSize: '36px', fontWeight: '700', color: '#dc2626', marginBottom: '8px' }}>
-              {activeAlerts.filter(a => a.severity === 'critical').length}
-            </div>
-            <div style={{ fontSize: '14px', fontWeight: '600', color: '#991b1b' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            background: 'rgba(255, 255, 255, 0.15)',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <AlertTriangle size={24} style={{ color: 'white' }} />
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>
               Críticas
             </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: 'white', lineHeight: 1, marginBottom: '2px' }}>
+              {activeAlerts.filter(a => a.severity === 'critical').length}
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.65)' }}>
+              requieren atención inmediata
+            </div>
           </div>
         </div>
 
+        {/* Advertencias */}
         <div style={{
-          background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
-          borderRadius: '16px',
-          padding: '24px',
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: '0 4px 12px rgba(255, 204, 0, 0.15)'
+          padding: '0 32px',
+          borderRight: '1px solid rgba(255, 255, 255, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px'
         }}>
-          <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '60px', opacity: '0.15' }}>⚠️</div>
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ fontSize: '36px', fontWeight: '700', color: '#d97706', marginBottom: '8px' }}>
-              {activeAlerts.filter(a => a.severity === 'warning').length}
-            </div>
-            <div style={{ fontSize: '14px', fontWeight: '600', color: '#92400e' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            background: 'rgba(255, 255, 255, 0.15)',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <AlertTriangle size={24} style={{ color: 'white' }} />
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>
               Advertencias
             </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: 'white', lineHeight: 1, marginBottom: '2px' }}>
+              {activeAlerts.filter(a => a.severity === 'warning').length}
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.65)' }}>
+              pendientes de revisión
+            </div>
           </div>
         </div>
 
+        {/* Informativas */}
         <div style={{
-          background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-          borderRadius: '16px',
-          padding: '24px',
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: '0 4px 12px rgba(0, 122, 255, 0.15)'
+          padding: '0 32px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px'
         }}>
-          <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '60px', opacity: '0.15' }}>ℹ️</div>
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{ fontSize: '36px', fontWeight: '700', color: '#2563eb', marginBottom: '8px' }}>
+          <div style={{
+            width: '48px',
+            height: '48px',
+            background: 'rgba(255, 255, 255, 0.15)',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}>
+            <Clock size={24} style={{ color: 'white' }} />
+          </div>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>
+              Informativas
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: 'white', lineHeight: 1, marginBottom: '2px' }}>
               {activeAlerts.filter(a => a.severity === 'info').length}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: '600', color: '#1e3a8a' }}>
-              Informativas
+            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.65)' }}>
+              notificaciones generales
             </div>
           </div>
         </div>
       </div>
 
-      {/* Alerts List */}
+      {/* Alerts List - Diseño Limpio */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {activeAlerts.length === 0 ? (
-          <div className="maintenance-section">
-            <div className="maintenance-empty">
-              <div className="maintenance-empty__icon">
-                <Clock size={32} />
-              </div>
-              <h3 className="maintenance-empty__title">No hay alertas activas</h3>
-              <p className="maintenance-empty__description">
-                Todas las alertas han sido atendidas o descartadas
-              </p>
+          <div style={{
+            background: 'white',
+            border: '2px solid #e5e7eb',
+            borderRadius: '16px',
+            padding: '60px 20px',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              margin: '0 auto 16px',
+              borderRadius: '20px',
+              background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Clock size={40} style={{ color: '#9ca3af' }} />
             </div>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600', color: '#374151' }}>
+              No hay alertas activas
+            </h3>
+            <p style={{ margin: 0, fontSize: '14px', color: '#9ca3af' }}>
+              Todas las alertas han sido atendidas o descartadas
+            </p>
           </div>
         ) : (
           activeAlerts.map((alert) => {
             const relatedTask = getRelatedTask(alert.task_id);
-            const colors = getSeverityColor(alert.severity);
 
-            const gradientBg = alert.severity === 'critical'
-              ? 'linear-gradient(135deg, rgba(255, 59, 48, 0.08) 0%, rgba(255, 59, 48, 0.03) 100%)'
-              : alert.severity === 'warning'
-              ? 'linear-gradient(135deg, rgba(255, 204, 0, 0.08) 0%, rgba(255, 204, 0, 0.03) 100%)'
-              : 'linear-gradient(135deg, rgba(0, 122, 255, 0.08) 0%, rgba(0, 122, 255, 0.03) 100%)';
+            const severityConfig = {
+              critical: {
+                bg: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+                border: '#dcfce7',
+                borderLeft: '#3D5229',
+                iconBg: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
+                iconColor: 'white',
+                titleColor: '#1f2937'
+              },
+              warning: {
+                bg: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+                border: '#dcfce7',
+                borderLeft: '#3D5229',
+                iconBg: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
+                iconColor: 'white',
+                titleColor: '#1f2937'
+              },
+              info: {
+                bg: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+                border: '#dcfce7',
+                borderLeft: '#3D5229',
+                iconBg: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
+                iconColor: 'white',
+                titleColor: '#1f2937'
+              }
+            };
+
+            const config = severityConfig[alert.severity] || severityConfig.info;
 
             return (
               <div
                 key={alert.id}
                 style={{
-                  border: `2px solid ${colors.border}`,
+                  background: config.bg,
+                  border: `2px solid ${config.border}`,
+                  borderLeft: `4px solid ${config.borderLeft}`,
                   borderRadius: '16px',
-                  padding: '20px',
-                  background: gradientBg,
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
-                  transition: 'all 0.3s ease'
+                  padding: '20px 24px',
+                  transition: 'all 0.2s ease',
+                  cursor: 'default',
+                  boxShadow: '0 4px 16px rgba(61, 82, 41, 0.08)'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.08)'}
-                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)'}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = 'none';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
               >
-                <div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
-                  <div style={{ flexShrink: 0, marginTop: '2px' }}>
-                    {getSeverityIcon(alert.severity)}
+                <div style={{ display: 'flex', alignItems: 'start', gap: '14px' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    background: config.iconBg,
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    boxShadow: '0 4px 12px rgba(61, 82, 41, 0.2)'
+                  }}>
+                    {alert.severity === 'critical' ? (
+                      <AlertTriangle size={20} style={{ color: config.iconColor }} />
+                    ) : alert.severity === 'warning' ? (
+                      <AlertTriangle size={20} style={{ color: config.iconColor }} />
+                    ) : (
+                      <Clock size={20} style={{ color: config.iconColor }} />
+                    )}
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', gap: '12px' }}>
                       <div style={{ flex: 1 }}>
-                        <p style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600', color: colors.text }}>
+                        <h4 style={{ margin: '0 0 8px 0', fontSize: '15px', fontWeight: '600', color: config.titleColor, lineHeight: '1.4' }}>
                           {alert.message}
-                        </p>
+                        </h4>
 
-                        {relatedTask && (
-                          <div style={{
-                            marginTop: '12px',
-                            padding: '12px',
-                            background: 'white',
-                            borderRadius: '8px',
-                            fontSize: '13px'
-                          }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontWeight: '600', color: '#333' }}>Tarea:</span>
-                                <span className={`maintenance-task-item__badge maintenance-task-item__badge--${relatedTask.type}`} style={{ fontSize: '10px', padding: '2px 8px' }}>
-                                  {relatedTask.type}
-                                </span>
-                              </div>
-                              <div style={{ color: '#666' }}>
-                                <span style={{ fontWeight: '600', color: '#333' }}>Fecha:</span>{' '}
-                                {new Date(relatedTask.scheduled_date).toLocaleDateString('es-PA')} {relatedTask.scheduled_time}
-                              </div>
-                              <div style={{ color: '#666' }}>
-                                <span style={{ fontWeight: '600', color: '#333' }}>Observaciones:</span>{' '}
-                                {relatedTask.observations}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-
-                        {alert.equipment_id && (
-                          <div style={{ marginTop: '8px', fontSize: '13px', color: '#666' }}>
-                            <span style={{ fontWeight: '600', color: '#333' }}>Equipo:</span> {alert.equipment_id}
-                          </div>
-                        )}
-
-                        <div style={{ marginTop: '8px', fontSize: '12px', color: '#999' }}>
-                          Programada para: {new Date(alert.scheduled_date).toLocaleString('es-PA')}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px', fontSize: '13px', color: '#6b7280' }}>
+                          {relatedTask && (
+                            <>
+                              <span className={`maintenance-task-item__badge maintenance-task-item__badge--${relatedTask.type}`} style={{ fontSize: '11px', padding: '4px 10px' }}>
+                                {relatedTask.type}
+                              </span>
+                              <span>•</span>
+                              <span>{new Date(relatedTask.scheduled_date).toLocaleDateString('es-PA')} {relatedTask.scheduled_time}</span>
+                            </>
+                          )}
+                          {!relatedTask && (
+                            <span>{new Date(alert.scheduled_date).toLocaleDateString('es-PA')}</span>
+                          )}
+                          {alert.equipment_id && (
+                            <>
+                              <span>•</span>
+                              <span>Equipo: {alert.equipment_id}</span>
+                            </>
+                          )}
                         </div>
+
+                        {relatedTask?.observations && (
+                          <div style={{ marginTop: '10px', fontSize: '13px', color: '#4b5563', padding: '10px', background: '#f9fafb', borderRadius: '8px' }}>
+                            {relatedTask.observations}
+                          </div>
+                        )}
                       </div>
 
                       {isAdmin && (
@@ -202,17 +302,30 @@ const MaintenanceAlerts = ({ userRole }) => {
                           onClick={() => handleDismiss(alert.id)}
                           style={{
                             flexShrink: 0,
-                            padding: '6px',
-                            background: 'white',
+                            width: '32px',
+                            height: '32px',
+                            padding: '0',
+                            background: '#f3f4f6',
                             border: 'none',
-                            borderRadius: '6px',
+                            borderRadius: '8px',
                             cursor: 'pointer',
-                            color: '#999',
-                            transition: 'all 0.2s'
+                            color: '#6b7280',
+                            transition: 'all 0.2s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#ef4444';
+                            e.currentTarget.style.color = 'white';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#f3f4f6';
+                            e.currentTarget.style.color = '#6b7280';
                           }}
                           title="Descartar alerta"
                         >
-                          <X size={18} />
+                          <X size={16} />
                         </button>
                       )}
                     </div>
