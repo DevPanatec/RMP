@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
 import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
@@ -7,16 +7,47 @@ import { Card, Badge } from '../UI';
 import ReportsDashboard from './ReportsDashboard';
 import RouteHistory from './RouteHistory';
 import LocationReportsModal from './LocationReportsModal';
+import { DEMO_LUGARES, DEMO_CLEANING_ASSIGNMENTS, mergeDemoData } from '../../utils/demoData';
+import { useDemoMode } from '../../hooks/useDemoMode';
 import './ReportsComponent.css';
 
-const ReportsComponent = ({ userType = 'admin' }) => {
+const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, onClearSelection = null }) => {
   const [activeCategory, setActiveCategory] = useState('dashboard');
   const [selectedRouteType, setSelectedRouteType] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const { isDemoMode } = useDemoMode();
 
   const { routes } = useSupabaseRoutes();
   const { assignments, loading: cleaningLoading, lugares } = useSupabaseCleaning();
   const { tasks: maintenanceTasks, loading: maintenanceLoading } = useSupabaseMaintenance();
+
+  // Mergear datos demo con datos reales si el modo demo está activo
+  const displayLugares = isDemoMode ? mergeDemoData(lugares, DEMO_LUGARES) : lugares;
+  const displayAssignments = isDemoMode ? mergeDemoData(assignments, DEMO_CLEANING_ASSIGNMENTS) : assignments;
+
+  // Manejar pre-selección de ubicación desde mapa
+  useEffect(() => {
+    if (preSelectedLocationId) {
+      const location = displayLugares.find(l => l.id === preSelectedLocationId);
+      if (location) {
+        // Enriquecer el lugar con los assignments
+        const lugarAssignments = displayAssignments.filter(a => {
+          const matchLocation = a.lugar?.id === location.id || a.lugar_id === location.id;
+          return matchLocation;
+        });
+
+        const enrichedLocation = {
+          ...location,
+          assignmentsCount: lugarAssignments.length,
+          completedCount: lugarAssignments.filter(a => a.estado === 'completado').length,
+          assignments: lugarAssignments
+        };
+
+        setActiveCategory('recoleccion'); // o 'limpieza' según el tipo
+        setSelectedLocation(enrichedLocation);
+      }
+    }
+  }, [preSelectedLocationId, displayLugares, displayAssignments]);
 
   const rutasRecoleccion = routes.filter(r => r.type === 'recoleccion' || r.tipoServicio === 'recoleccion');
   const rutasFumigacion = routes.filter(r => r.type === 'fumigacion' || r.tipoServicio === 'fumigacion');
@@ -45,14 +76,14 @@ const ReportsComponent = ({ userType = 'admin' }) => {
 
   // Filtrar lugares para recolección
   const recoleccionLocations = useMemo(() => {
-    const recoleccionPlaces = lugares.filter(lugar =>
+    const recoleccionPlaces = displayLugares.filter(lugar =>
       lugar.nombre.includes('Mercado') || lugar.nombre.includes('Complejo')
     ).filter(lugar =>
       !lugar.nombre.includes('Planta de tratamiento')
     );
 
     return recoleccionPlaces.map(lugar => {
-      const lugarAssignments = assignments.filter(a => {
+      const lugarAssignments = displayAssignments.filter(a => {
         const matchLocation = a.lugar?.id === lugar.id || a.lugar_id === lugar.id;
         const matchType = a.tipo === 'recoleccion' || a.tipoServicio === 'recoleccion';
         return matchLocation && matchType;
@@ -65,7 +96,7 @@ const ReportsComponent = ({ userType = 'admin' }) => {
         assignments: lugarAssignments
       };
     });
-  }, [lugares, assignments]);
+  }, [displayLugares, displayAssignments]);
 
   const renderRecoleccion = () => {
     return (
@@ -141,7 +172,12 @@ const ReportsComponent = ({ userType = 'admin' }) => {
         {selectedLocation && (
           <LocationReportsModal
             location={selectedLocation}
-            onClose={() => setSelectedLocation(null)}
+            onClose={() => {
+              setSelectedLocation(null);
+              if (onClearSelection) {
+                onClearSelection();
+              }
+            }}
             getPhotoUrl={getPhotoUrl}
             getStatusVariant={getStatusVariant}
             modalType="recoleccion"
@@ -249,7 +285,12 @@ const ReportsComponent = ({ userType = 'admin' }) => {
         {selectedLocation && (
           <LocationReportsModal
             location={selectedLocation}
-            onClose={() => setSelectedLocation(null)}
+            onClose={() => {
+              setSelectedLocation(null);
+              if (onClearSelection) {
+                onClearSelection();
+              }
+            }}
             getPhotoUrl={getPhotoUrl}
             getStatusVariant={getStatusVariant}
             modalType="fumigacion"
@@ -350,7 +391,12 @@ const ReportsComponent = ({ userType = 'admin' }) => {
         {selectedLocation && (
           <LocationReportsModal
             location={selectedLocation}
-            onClose={() => setSelectedLocation(null)}
+            onClose={() => {
+              setSelectedLocation(null);
+              if (onClearSelection) {
+                onClearSelection();
+              }
+            }}
             getPhotoUrl={getPhotoUrl}
             getStatusVariant={getStatusVariant}
             modalType="limpieza"
@@ -461,7 +507,12 @@ const ReportsComponent = ({ userType = 'admin' }) => {
         {selectedLocation && (
           <LocationReportsModal
             location={selectedLocation}
-            onClose={() => setSelectedLocation(null)}
+            onClose={() => {
+              setSelectedLocation(null);
+              if (onClearSelection) {
+                onClearSelection();
+              }
+            }}
             getPhotoUrl={getPhotoUrl}
             getStatusVariant={getStatusVariant}
             modalType="mantenimiento"

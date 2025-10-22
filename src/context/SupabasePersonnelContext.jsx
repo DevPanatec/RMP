@@ -1,5 +1,7 @@
 import { createContext, useContext, useReducer, useEffect } from 'react';
 import supabaseClient from '../utils/supabaseClient';
+import { DEMO_PERSONNEL, DEMO_VEHICLES, mergeDemoData } from '../utils/demoData';
+import { useDemoMode } from '../hooks/useDemoMode';
 
 // Crear el contexto
 const SupabasePersonnelContext = createContext();
@@ -74,44 +76,105 @@ const initialState = {
 // Provider del contexto
 export const SupabasePersonnelProvider = ({ children }) => {
   const [state, dispatch] = useReducer(personnelReducer, initialState);
+  const { isDemoMode } = useDemoMode();
 
-  // Cargar personal al iniciar
+  // Cargar personal al iniciar y cuando cambie el modo demo
   useEffect(() => {
-    loadPersonnel();
-  }, []);
+    loadPersonnel(isDemoMode);
+  }, [isDemoMode]);
 
   // Función para cargar personal
-  const loadPersonnel = async () => {
+  const loadPersonnel = async (isDemoMode = false) => {
     dispatch({ type: ACTIONS.LOAD_PERSONNEL });
-    
+
     try {
       const result = await supabaseClient.getEmployees();
-      
-      const employees = (result.rows || []).map(emp => ({
-        id: emp.id,
-        name: `${emp.nombre} ${emp.apellido}`,
-        position: emp.cargo || 'Sin asignar',
-        email: emp.email,
-        phone: emp.telefono,
-        document: emp.documento,
-        documentType: emp.tipo_documento,
-        birthDate: emp.fecha_nacimiento,
-        address: emp.direccion,
-        salary: emp.salario,
-        salaryType: emp.tipo_salario,
-        registerDate: emp.fecha_registro,
-        active: emp.activo,
-        avatar: emp.foto_url || `${emp.nombre?.charAt(0) || ''}${emp.apellido?.charAt(0) || ''}`,
-        employeeCode: emp.codigo_empleado,
-        project: emp.proyecto_nombre,
-        contractType: emp.tipo_contrato,
-        contractStart: emp.contrato_inicio,
-        contractEnd: emp.contrato_vencimiento,
-        baseSalary: emp.salario_base,
-        rating: 8.0 // Rating por defecto, se podría agregar a la BD
-      }));
-      
-      dispatch({ type: ACTIONS.SET_PERSONNEL, payload: employees });
+
+      const realEmployees = (result.rows || []).map(emp => {
+        // Determinar el estado basado en si tiene asignación activa
+        let estado = 'Inactivo';
+        let asignacion = 'Sin asignar';
+
+        if (emp.activo) {
+          if (emp.vehiculo_asignado_placa) {
+            estado = 'En ruta';
+            asignacion = `Vehículo: ${emp.vehiculo_asignado_placa}`;
+          } else {
+            estado = 'Disponible';
+            asignacion = 'Sin vehículo asignado';
+          }
+        }
+
+        return {
+          id: emp.id,
+          nombre: `${emp.nombre || ''} ${emp.apellido || ''}`.trim() || 'Sin nombre',
+          puesto: emp.cargo || 'Conductor',
+          email: emp.email || '',
+          telefono: emp.telefono || '',
+          estado: estado,
+          asignacion: asignacion,
+          document: emp.documento,
+          documentType: emp.tipo_documento,
+          birthDate: emp.fecha_nacimiento,
+          address: emp.direccion,
+          salary: emp.salario,
+          salaryType: emp.tipo_salario,
+          registerDate: emp.fecha_registro,
+          active: emp.activo,
+          avatar: emp.foto_url || `${emp.nombre?.charAt(0) || '?'}${emp.apellido?.charAt(0) || '?'}`,
+          employeeCode: emp.codigo_empleado,
+          project: emp.proyecto_nombre,
+          contractType: emp.tipo_contrato,
+          contractStart: emp.contrato_inicio,
+          contractEnd: emp.contrato_vencimiento,
+          baseSalary: emp.salario_base,
+          vehiculoAsignado: emp.vehiculo_asignado_placa,
+          rating: 8.0
+        };
+      });
+
+      // Si el modo demo está activo, agregar datos demo
+      let allEmployees = realEmployees;
+      if (isDemoMode) {
+        const demoEmployees = DEMO_PERSONNEL.map(emp => {
+          // Buscar el vehículo asignado
+          const vehiculo = DEMO_VEHICLES.find(v => v.id === emp.vehiculo_asignado);
+          const vehiculoPlaca = vehiculo?.placa;
+          const vehiculoEnRuta = vehiculo?.estado === 'En ruta';
+
+          let estado = 'Inactivo';
+          let asignacion = 'Sin asignar';
+
+          if (emp.estado === 'activo') {
+            if (vehiculoPlaca) {
+              estado = vehiculoEnRuta ? 'En ruta' : 'Disponible';
+              asignacion = `Vehículo: ${vehiculoPlaca}`;
+            } else {
+              estado = 'Disponible';
+              asignacion = 'Sin vehículo asignado';
+            }
+          }
+
+          return {
+            id: emp.id,
+            nombre: `${emp.nombre} ${emp.apellido}`,
+            puesto: emp.cargo || 'Conductor',
+            email: emp.email,
+            telefono: emp.telefono,
+            estado: estado,
+            asignacion: asignacion,
+            document: emp.licencia,
+            active: emp.estado === 'activo',
+            avatar: `${emp.nombre.charAt(0)}${emp.apellido.charAt(0)}`,
+            vehiculoAsignado: vehiculoPlaca,
+            rating: 8.5
+          };
+        });
+
+        allEmployees = mergeDemoData(realEmployees, demoEmployees);
+      }
+
+      dispatch({ type: ACTIONS.SET_PERSONNEL, payload: allEmployees });
     } catch (error) {
       console.error('Error loading personnel:', error);
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
@@ -158,10 +221,11 @@ export const SupabasePersonnelProvider = ({ children }) => {
       // Formatear empleado para el estado
       const formattedEmployee = {
         id: newEmployee.id,
-        name: `${newEmployee.nombre} ${newEmployee.apellido}`,
-        position: newEmployee.cargo || 'Sin asignar',
+        nombre: `${newEmployee.nombre} ${newEmployee.apellido}`,
+        puesto: newEmployee.cargo || 'Conductor',
         email: newEmployee.email,
-        phone: newEmployee.telefono,
+        telefono: newEmployee.telefono,
+        estado: 'Activo',
         document: newEmployee.documento,
         documentType: newEmployee.tipo_documento,
         avatar: `${newEmployee.nombre?.charAt(0) || ''}${newEmployee.apellido?.charAt(0) || ''}`,
@@ -207,10 +271,11 @@ export const SupabasePersonnelProvider = ({ children }) => {
       // Formatear empleado actualizado
       const formattedEmployee = {
         id: updatedEmployee.id,
-        name: `${updatedEmployee.nombre} ${updatedEmployee.apellido}`,
-        position: updatedEmployee.cargo || 'Sin asignar',
+        nombre: `${updatedEmployee.nombre} ${updatedEmployee.apellido}`,
+        puesto: updatedEmployee.cargo || 'Conductor',
         email: updatedEmployee.email,
-        phone: updatedEmployee.telefono,
+        telefono: updatedEmployee.telefono,
+        estado: updatedEmployee.activo ? 'Activo' : 'Inactivo',
         document: updatedEmployee.documento,
         avatar: `${updatedEmployee.nombre?.charAt(0) || ''}${updatedEmployee.apellido?.charAt(0) || ''}`,
         rating: 8.0
@@ -253,36 +318,37 @@ export const SupabasePersonnelProvider = ({ children }) => {
 
   // Función para obtener empleados por posición
   const getEmployeesByPosition = (position) => {
-    return state.personnel.filter(emp => emp.position === position);
+    return state.personnel.filter(emp => emp.puesto === position);
   };
 
   // Función para obtener estadísticas
   const getPersonnelStats = () => {
     const all = getAllEmployees();
     const total = all.length;
-    const conductors = all.filter(emp => emp.position === 'Conductor').length;
-    const assistants = all.filter(emp => emp.position === 'Ayudante').length;
-    const supervisors = all.filter(emp => emp.position === 'Supervisor').length;
+    const conductors = all.filter(emp => emp.puesto === 'Conductor').length;
+    const assistants = all.filter(emp => emp.puesto === 'Ayudante').length;
+    const supervisors = all.filter(emp => emp.puesto === 'Supervisor').length;
+    const active = all.filter(emp => emp.estado === 'Activo').length;
     const avgRating = total > 0 ? (all.reduce((sum, emp) => sum + emp.rating, 0) / total).toFixed(1) : 0;
-    
+
     return {
       total,
       conductors,
       assistants,
       supervisors,
       avgRating,
-      active: total,
-      inactive: 0 // Solo cargamos activos
+      active,
+      inactive: total - active
     };
   };
 
   // Función para buscar empleados
   const searchEmployees = (searchTerm) => {
     if (!searchTerm) return state.personnel;
-    
+
     return state.personnel.filter(emp =>
-      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.puesto.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       emp.employeeCode?.toLowerCase().includes(searchTerm.toLowerCase())
     );

@@ -30,6 +30,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [activeSubTab, setActiveSubTab] = useState('');
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [serviceTypeFilter, setServiceTypeFilter] = useState('todos');
+  const [selectedLocationId, setSelectedLocationId] = useState(null);
   const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
   const [vehicleFormData, setVehicleFormData] = useState({
     nombre: '',
@@ -125,6 +126,14 @@ const AdminDashboard = ({ user, onLogout }) => {
     setActiveSubTab(defaultSubTab);
   };
 
+  const handleViewLocationReports = (locationId) => {
+    setSelectedLocationId(locationId);
+    handleTabChange('reportes');
+  };
+
+  const handleClearLocationSelection = () => {
+    setSelectedLocationId(null);
+  };
 
   const handleGoToVehicleLocation = (vehicleId) => {
     setSelectedTruck(vehicleId);
@@ -507,7 +516,25 @@ const AdminDashboard = ({ user, onLogout }) => {
                   </button>
                 </div>
               </div>
-              <div className="map-container-modern">
+              <div
+                className="map-container-modern"
+                ref={(el) => {
+                  if (el) {
+                    const observer = new IntersectionObserver(
+                      (entries) => {
+                        entries.forEach((entry) => {
+                          if (entry.isIntersecting) {
+                            entry.target.classList.add('scroll-reveal');
+                            observer.unobserve(entry.target);
+                          }
+                        });
+                      },
+                      { threshold: 0.2 }
+                    );
+                    observer.observe(el);
+                  }
+                }}
+              >
                 <MapComponent
                   key={`map-${serviceTypeFilter}`}
                   camiones={serviceTypeFilter === 'todos'
@@ -519,6 +546,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                   userType={user.tipo}
                   showRealTime={true}
                   selectedTruck={selectedTruck}
+                  onViewLocationReports={handleViewLocationReports}
                   serviceTypeFilter={serviceTypeFilter}
                 />
               </div>
@@ -586,7 +614,7 @@ const AdminDashboard = ({ user, onLogout }) => {
       case 'inventario':
         return <InventoryComponent userType={user.tipo} />;
       case 'reportes':
-        return <ReportsComponent userType={user.tipo} />;
+        return <ReportsComponent userType={user.tipo} preSelectedLocationId={selectedLocationId} onClearSelection={handleClearLocationSelection} />;
       default:
         return null;
     }

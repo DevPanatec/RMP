@@ -90,31 +90,37 @@ export const SupabaseRiskReportsProvider = ({ children }) => {
       const result = await supabaseClient.getAlerts();
       
       // Formatear datos para que coincidan con la estructura esperada
-      const formattedReports = (result.rows || []).map(alert => ({
-        id: alert.id,
-        tipo: alert.tipo_riesgo || 'operacional',
-        titulo: alert.titulo || 'Reporte de Riesgo',
-        descripcion: alert.descripcion || 'Sin descripción',
-        conductor: alert.empleado_nombre || 'Sin asignar',
-        ubicacion: alert.ubicacion || 'Sin ubicación',
-        prioridad: alert.nivel_severidad === 'alto' ? 'alta' : 
-                  alert.nivel_severidad === 'medio' ? 'media' : 'baja',
-        estado: alert.estado || 'abierto',
-        categoria: alert.tipo_riesgo === 'seguridad' ? 'Vehículo' : 
-                  alert.tipo_riesgo === 'ambiental' ? 'Ambiental' : 'Operacional',
-        camion: alert.vehiculo_placa || 'N/A',
-        proyecto: alert.proyecto_nombre || 'Sin proyecto',
-        severidad: alert.nivel_severidad,
-        prioridadNumerica: alert.prioridad || 5,
-        fechaCreacion: alert.fecha_reporte || alert.created_at,
-        fechaActualizacion: alert.updated_at || alert.created_at,
-        // Campos adicionales
-        empleadoId: alert.empleado_reporta_id,
-        vehiculoId: alert.vehiculo_id,
-        proyectoId: alert.proyecto_id,
-        gpsLatitud: alert.gps_latitud,
-        gpsLongitud: alert.gps_longitud
-      }));
+      const formattedReports = (result.rows || []).map(alert => {
+        // Determinar si es interno o externo basado en tipo_riesgo
+        const esInterno = ['seguridad', 'vehiculo', 'mecanico', 'operacional', 'interno'].includes(
+          (alert.tipo_riesgo || '').toLowerCase()
+        );
+
+        return {
+          id: alert.id,
+          tipo: esInterno ? 'interno' : 'externo',
+          titulo: alert.titulo || 'Reporte de Riesgo',
+          descripcion: alert.descripcion || 'Sin descripción',
+          conductor: alert.empleado_nombre || 'Sin asignar',
+          ubicacion: alert.ubicacion || 'Sin ubicación',
+          prioridad: alert.nivel_severidad === 'alto' ? 'alta' :
+                    alert.nivel_severidad === 'medio' ? 'media' : 'baja',
+          estado: alert.estado || 'abierto',
+          categoria: esInterno ? 'Vehiculo' : 'Operacional',
+          camion: alert.vehiculo_placa || 'N/A',
+          proyecto: alert.proyecto_nombre || 'Sin proyecto',
+          severidad: alert.nivel_severidad,
+          prioridadNumerica: alert.prioridad || 5,
+          fechaCreacion: alert.fecha_reporte || alert.created_at,
+          fechaActualizacion: alert.updated_at || alert.created_at,
+          // Campos adicionales
+          empleadoId: alert.empleado_reporta_id,
+          vehiculoId: alert.vehiculo_id,
+          proyectoId: alert.proyecto_id,
+          gpsLatitud: alert.gps_latitud,
+          gpsLongitud: alert.gps_longitud
+        };
+      });
       
       dispatch({ type: ACTIONS.SET_REPORTS, payload: formattedReports });
     } catch (error) {

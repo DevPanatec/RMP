@@ -75,27 +75,6 @@ const RiskComponent = ({ userType = 'admin' }) => {
                 <div className="stat-label">Riesgos Externos</div>
               </div>
             </div>
-            <div className="stat-card">
-              <div className="stat-icon"><Zap size={24} /></div>
-              <div className="stat-data">
-                <div className="stat-value">{stats.pendientes}</div>
-                <div className="stat-label">Pendientes</div>
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon"><Eye size={24} /></div>
-              <div className="stat-data">
-                <div className="stat-value">{stats.enRevision}</div>
-                <div className="stat-label">En Revisión</div>
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon"><CheckCircle size={24} /></div>
-              <div className="stat-data">
-                <div className="stat-value">{stats.resueltos}</div>
-                <div className="stat-label">Resueltos</div>
-              </div>
-            </div>
           </div>
 
           {/* Grid de reportes */}
