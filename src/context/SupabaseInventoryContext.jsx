@@ -1,5 +1,7 @@
 import { createContext, useContext, useReducer, useEffect } from 'react';
 import supabaseClient from '../utils/supabaseClient';
+import { DEMO_INVENTORY, mergeDemoData } from '../utils/demoData';
+import { useDemoMode } from '../hooks/useDemoMode';
 
 // Crear el contexto
 const SupabaseInventoryContext = createContext();
@@ -73,11 +75,12 @@ const initialState = {
 // Provider del contexto
 export const SupabaseInventoryProvider = ({ children }) => {
   const [state, dispatch] = useReducer(inventoryReducer, initialState);
+  const { isDemoMode } = useDemoMode();
 
   // Cargar materiales al iniciar
   useEffect(() => {
     loadMaterials();
-  }, []);
+  }, [isDemoMode]);
 
   // Función para cargar materiales
   const loadMaterials = async () => {
@@ -126,8 +129,11 @@ export const SupabaseInventoryProvider = ({ children }) => {
           updatedAt: item.updated_at
         };
       });
-      
-      dispatch({ type: ACTIONS.SET_MATERIALS, payload: formattedMaterials });
+
+      // Mezclar con datos demo si el modo demo está activo
+      const finalMaterials = isDemoMode ? mergeDemoData(formattedMaterials, DEMO_INVENTORY) : formattedMaterials;
+
+      dispatch({ type: ACTIONS.SET_MATERIALS, payload: finalMaterials });
     } catch (error) {
       console.error('Error loading materials:', error);
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });

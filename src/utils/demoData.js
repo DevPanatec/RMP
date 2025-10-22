@@ -640,6 +640,363 @@ export const DEMO_CLEANING_ASSIGNMENTS = [
   }
 ];
 
+// Asignaciones de calendario (schedule) demo - para esta semana
+const getMonday = () => {
+  const today = new Date();
+  const day = today.getDay();
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(today.setDate(diff));
+};
+
+export const DEMO_SCHEDULE_ASSIGNMENTS = [
+  {
+    id: 'demo-schedule-1',
+    ruta_id: 'demo-ruta-1',
+    vehiculo_id: 'demo-vehicle-1',
+    conductor_id: 'demo-conductor-1',
+    fecha: getMonday().toISOString().split('T')[0],
+    dias_semana: ['lunes', 'miercoles', 'viernes'],
+    hora_inicio: '06:00',
+    hora_fin: '14:00',
+    estado: 'completada',
+    ruta: DEMO_ROUTES[0],
+    conductor_nombre: 'Carlos Rodríguez Mendoza',
+    vehiculo: { placa: 'RMP-001' }
+  },
+  {
+    id: 'demo-schedule-2',
+    ruta_id: 'demo-ruta-2',
+    vehiculo_id: 'demo-vehicle-2',
+    conductor_id: 'demo-conductor-2',
+    fecha: getMonday().toISOString().split('T')[0],
+    dias_semana: ['martes', 'jueves', 'sabado'],
+    hora_inicio: '07:00',
+    hora_fin: '15:00',
+    estado: 'en_progreso',
+    ruta: DEMO_ROUTES[1],
+    conductor_nombre: 'María González Pérez',
+    vehiculo: { placa: 'RMP-002' }
+  },
+  {
+    id: 'demo-schedule-3',
+    ruta_id: 'demo-ruta-3',
+    vehiculo_id: 'demo-vehicle-3',
+    conductor_id: 'demo-conductor-3',
+    fecha: getMonday().toISOString().split('T')[0],
+    dias_semana: ['lunes', 'jueves'],
+    hora_inicio: '05:00',
+    hora_fin: '11:00',
+    estado: 'programada',
+    ruta: DEMO_ROUTES[2],
+    conductor_nombre: 'José Martínez López',
+    vehiculo: { placa: 'RMP-F01' }
+  }
+];
+
+// Tareas de mantenimiento demo
+export const DEMO_MAINTENANCE_TASKS = [
+  {
+    id: 'demo-maint-1',
+    vehiculo_id: 'demo-vehicle-1',
+    vehiculo_placa: 'RMP-001',
+    tipo_mantenimiento: 'preventivo',
+    descripcion: 'Cambio de aceite y filtros',
+    fecha_programada: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    prioridad: 'media',
+    estado: 'pendiente',
+    costo_estimado: 150.00,
+    mecanico_asignado: 'Taller Central'
+  },
+  {
+    id: 'demo-maint-2',
+    vehiculo_id: 'demo-vehicle-2',
+    vehiculo_placa: 'RMP-002',
+    tipo_mantenimiento: 'correctivo',
+    descripcion: 'Reparación de sistema hidráulico',
+    fecha_programada: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    prioridad: 'alta',
+    estado: 'en_progreso',
+    costo_estimado: 450.00,
+    mecanico_asignado: 'Taller Especializado'
+  },
+  {
+    id: 'demo-maint-3',
+    vehiculo_id: 'demo-vehicle-3',
+    vehiculo_placa: 'RMP-F01',
+    tipo_mantenimiento: 'inspeccion',
+    descripcion: 'Inspección mensual de equipo de fumigación',
+    fecha_programada: new Date().toISOString().split('T')[0],
+    prioridad: 'alta',
+    estado: 'completada',
+    costo_estimado: 85.00,
+    fecha_completada: new Date().toISOString().split('T')[0],
+    mecanico_asignado: 'Técnico Especializado'
+  },
+  {
+    id: 'demo-maint-4',
+    vehiculo_id: 'demo-vehicle-4',
+    vehiculo_placa: 'RMP-003',
+    tipo_mantenimiento: 'preventivo',
+    descripcion: 'Revisión de frenos y suspensión',
+    fecha_programada: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    prioridad: 'media',
+    estado: 'pendiente',
+    costo_estimado: 280.00,
+    mecanico_asignado: 'Taller Central'
+  }
+];
+
+// Reportes de rutas completadas demo
+export const DEMO_ROUTE_REPORTS = [
+  {
+    id: 'demo-report-1',
+    ruta_id: 'demo-ruta-1',
+    ruta_nombre: 'Ruta Recolección Costa del Este',
+    tipo_ruta: 'recoleccion',
+    vehiculo_id: 'demo-vehicle-1',
+    vehiculo_placa: 'RMP-001',
+    conductor_id: 'demo-conductor-1',
+    conductor_nombre: 'Carlos Rodríguez Mendoza',
+    fecha_completacion: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    hora_inicio: '06:00',
+    hora_fin: '13:45',
+    paradas_completadas: [
+      { direccion: 'Costa del Este Centro', orden: 1, hora_completada: '06:15', peso_kg: 450 },
+      { direccion: 'Parque Omar', orden: 2, hora_completada: '06:45', peso_kg: 380 },
+      { direccion: 'Vía Brasil Plaza', orden: 3, hora_completada: '07:20', peso_kg: 520 },
+      { direccion: 'Multiplaza Pacific', orden: 4, hora_completada: '08:10', peso_kg: 410 },
+      { direccion: 'Parque Urraca', orden: 5, hora_completada: '09:15', peso_kg: 360 },
+      { direccion: 'Cinta Costera', orden: 6, hora_completada: '10:30', peso_kg: 280 }
+    ],
+    peso_total_kg: 2400,
+    distancia_recorrida_km: 8.5,
+    combustible_usado_lts: 12.3,
+    observaciones: 'Ruta completada sin incidentes. Todas las paradas atendidas.',
+    calificacion: 5
+  },
+  {
+    id: 'demo-report-2',
+    ruta_id: 'demo-ruta-2',
+    ruta_nombre: 'Ruta San Miguelito',
+    tipo_ruta: 'recoleccion',
+    vehiculo_id: 'demo-vehicle-2',
+    vehiculo_placa: 'RMP-002',
+    conductor_id: 'demo-conductor-2',
+    conductor_nombre: 'María González Pérez',
+    fecha_completacion: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    hora_inicio: '07:00',
+    hora_fin: '14:30',
+    paradas_completadas: [
+      { direccion: 'Mercado San Miguelito', orden: 1, hora_completada: '07:10', peso_kg: 580 },
+      { direccion: 'Plaza Comercial', orden: 2, hora_completada: '07:50', peso_kg: 420 },
+      { direccion: 'Zona Residencial Norte', orden: 3, hora_completada: '09:20', peso_kg: 390 },
+      { direccion: 'Hospital San Miguel', orden: 4, hora_completada: '11:15', peso_kg: 410 }
+    ],
+    peso_total_kg: 1800,
+    distancia_recorrida_km: 6.2,
+    combustible_usado_lts: 9.8,
+    observaciones: 'Recolección eficiente en zona comercial.',
+    calificacion: 5
+  },
+  {
+    id: 'demo-report-3',
+    ruta_id: 'demo-ruta-3',
+    ruta_nombre: 'Fumigación Zona Turística',
+    tipo_ruta: 'fumigacion',
+    vehiculo_id: 'demo-vehicle-3',
+    vehiculo_placa: 'RMP-F01',
+    conductor_id: 'demo-conductor-3',
+    conductor_nombre: 'José Martínez López',
+    fecha_completacion: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    hora_inicio: '05:00',
+    hora_fin: '10:45',
+    paradas_completadas: [
+      { direccion: 'Plaza Catedral', orden: 1, hora_completada: '05:15', area_m2: 420 },
+      { direccion: 'Plaza Francia', orden: 2, hora_completada: '05:45', area_m2: 380 },
+      { direccion: 'Teatro Nacional', orden: 3, hora_completada: '06:30', area_m2: 310 },
+      { direccion: 'Mercado Público', orden: 4, hora_completada: '07:45', area_m2: 520 },
+      { direccion: 'Plaza Herrera', orden: 5, hora_completada: '09:00', area_m2: 290 },
+      { direccion: 'Cinta Costera 1', orden: 6, hora_completada: '10:15', area_m2: 330 }
+    ],
+    area_fumigada_m2: 2250,
+    distancia_recorrida_km: 5.8,
+    producto_usado_lts: 45,
+    observaciones: 'Fumigación preventiva completada. Condiciones climáticas favorables.',
+    calificacion: 5
+  }
+];
+
+// Inventario demo
+export const DEMO_INVENTORY = [
+  {
+    id: 'demo-inv-1',
+    nombre: 'Combustible Diesel',
+    categoria: 'combustible',
+    unidad_medida: 'litros',
+    cantidad_actual: 2500,
+    cantidad_minima: 1000,
+    cantidad_maxima: 5000,
+    costo_unitario: 1.25,
+    proveedor: 'Petro Panamá',
+    ubicacion: 'Tanque Principal',
+    estado: 'disponible',
+    ultima_actualizacion: new Date().toISOString()
+  },
+  {
+    id: 'demo-inv-2',
+    nombre: 'Aceite Motor 15W40',
+    categoria: 'lubricantes',
+    unidad_medida: 'litros',
+    cantidad_actual: 85,
+    cantidad_minima: 50,
+    cantidad_maxima: 200,
+    costo_unitario: 8.50,
+    proveedor: 'Lubricantes SA',
+    ubicacion: 'Almacén A',
+    estado: 'disponible',
+    ultima_actualizacion: new Date().toISOString()
+  },
+  {
+    id: 'demo-inv-3',
+    nombre: 'Insecticida Concentrado',
+    categoria: 'quimicos',
+    unidad_medida: 'litros',
+    cantidad_actual: 120,
+    cantidad_minima: 80,
+    cantidad_maxima: 300,
+    costo_unitario: 22.00,
+    proveedor: 'Químicos del Istmo',
+    ubicacion: 'Almacén Químicos',
+    estado: 'disponible',
+    ultima_actualizacion: new Date().toISOString()
+  },
+  {
+    id: 'demo-inv-4',
+    nombre: 'Filtro de Aceite',
+    categoria: 'repuestos',
+    unidad_medida: 'unidades',
+    cantidad_actual: 15,
+    cantidad_minima: 20,
+    cantidad_maxima: 50,
+    costo_unitario: 18.50,
+    proveedor: 'Repuestos Total',
+    ubicacion: 'Almacén B',
+    estado: 'bajo',
+    ultima_actualizacion: new Date().toISOString()
+  },
+  {
+    id: 'demo-inv-5',
+    nombre: 'Filtro de Aire',
+    categoria: 'repuestos',
+    unidad_medida: 'unidades',
+    cantidad_actual: 22,
+    cantidad_minima: 15,
+    cantidad_maxima: 40,
+    costo_unitario: 25.00,
+    proveedor: 'Repuestos Total',
+    ubicacion: 'Almacén B',
+    estado: 'disponible',
+    ultima_actualizacion: new Date().toISOString()
+  },
+  {
+    id: 'demo-inv-6',
+    nombre: 'Guantes de Seguridad',
+    categoria: 'epp',
+    unidad_medida: 'pares',
+    cantidad_actual: 45,
+    cantidad_minima: 30,
+    cantidad_maxima: 100,
+    costo_unitario: 3.50,
+    proveedor: 'Seguridad Industrial',
+    ubicacion: 'Almacén EPP',
+    estado: 'disponible',
+    ultima_actualizacion: new Date().toISOString()
+  },
+  {
+    id: 'demo-inv-7',
+    nombre: 'Mascarillas Respiratorias',
+    categoria: 'epp',
+    unidad_medida: 'unidades',
+    cantidad_actual: 12,
+    cantidad_minima: 25,
+    cantidad_maxima: 80,
+    costo_unitario: 12.00,
+    proveedor: 'Seguridad Industrial',
+    ubicacion: 'Almacén EPP',
+    estado: 'bajo',
+    ultima_actualizacion: new Date().toISOString()
+  },
+  {
+    id: 'demo-inv-8',
+    nombre: 'Bolsas de Basura Industrial 100L',
+    categoria: 'consumibles',
+    unidad_medida: 'rollos',
+    cantidad_actual: 180,
+    cantidad_minima: 100,
+    cantidad_maxima: 300,
+    costo_unitario: 15.00,
+    proveedor: 'Plásticos del Pacífico',
+    ubicacion: 'Almacén General',
+    estado: 'disponible',
+    ultima_actualizacion: new Date().toISOString()
+  }
+];
+
+// Reportes de riesgo demo adicionales
+export const DEMO_RISK_REPORTS = [
+  {
+    id: 'demo-risk-1',
+    tipo: 'interno',
+    tipo_riesgo: 'mecanico',
+    titulo: 'Fuga menor en sistema hidráulico',
+    descripcion: 'Se detectó una pequeña fuga en el sistema hidráulico del compactador. Requiere revisión técnica.',
+    conductor: 'Carlos Rodríguez Mendoza',
+    conductor_id: 'demo-conductor-1',
+    camion: 'RMP-001',
+    vehiculo_id: 'demo-vehicle-1',
+    ubicacion: 'Costa del Este Centro',
+    prioridad: 'media',
+    estado: 'reportado',
+    categoria: 'Problemas mecánicos',
+    fechaCreacion: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+    fechaActualizacion: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'demo-risk-2',
+    tipo: 'externo',
+    tipo_riesgo: 'bloqueo_via',
+    titulo: 'Manifestación bloqueando vía principal',
+    descripcion: 'Grupo de manifestantes bloqueando Vía España. Se requiere ruta alterna.',
+    conductor: 'María González Pérez',
+    conductor_id: 'demo-conductor-2',
+    camion: 'RMP-002',
+    vehiculo_id: 'demo-vehicle-2',
+    ubicacion: 'Vía España - Plaza Comercial',
+    prioridad: 'alta',
+    estado: 'en_revision',
+    categoria: 'Bloqueo de vía',
+    fechaCreacion: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    fechaActualizacion: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'demo-risk-3',
+    tipo: 'interno',
+    tipo_riesgo: 'combustible',
+    titulo: 'Nivel de combustible bajo',
+    descripcion: 'El vehículo tiene menos del 20% de combustible. Requiere reabastecimiento pronto.',
+    conductor: 'José Martínez López',
+    conductor_id: 'demo-conductor-3',
+    camion: 'RMP-F01',
+    vehiculo_id: 'demo-vehicle-3',
+    ubicacion: 'Plaza Herrera',
+    prioridad: 'baja',
+    estado: 'resuelto',
+    categoria: 'Combustible',
+    fechaCreacion: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+    fechaActualizacion: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString()
+  }
+];
+
 // Función helper para mezclar datos demo con datos reales
 export const mergeDemoData = (realData, demoData) => {
   return [...(realData || []), ...demoData];

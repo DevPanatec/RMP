@@ -1,5 +1,7 @@
 import { createContext, useContext, useReducer } from 'react';
 import supabaseClient from '../utils/supabaseClient';
+import { DEMO_ROUTE_REPORTS, mergeDemoData } from '../utils/demoData';
+import { useDemoMode } from '../hooks/useDemoMode';
 
 // Crear el contexto
 const SupabaseReportsContext = createContext();
@@ -50,6 +52,7 @@ const initialState = {
 // Provider del contexto
 export const SupabaseReportsProvider = ({ children }) => {
   const [state, dispatch] = useReducer(reportsReducer, initialState);
+  const { isDemoMode } = useDemoMode();
 
   // Función para obtener rutas completadas  
   const getCompletedRoutes = async (dateRange) => {
@@ -85,9 +88,12 @@ export const SupabaseReportsProvider = ({ children }) => {
           }))
         };
       });
-      
-      dispatch({ type: ACTIONS.SET_COMPLETED_ROUTES, payload: formattedRoutes });
-      return formattedRoutes;
+
+      // Mezclar con datos demo si el modo demo está activo
+      const finalRoutes = isDemoMode ? mergeDemoData(formattedRoutes, DEMO_ROUTE_REPORTS) : formattedRoutes;
+
+      dispatch({ type: ACTIONS.SET_COMPLETED_ROUTES, payload: finalRoutes });
+      return finalRoutes;
     } catch (error) {
       console.error('Error loading completed routes:', error);
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
@@ -208,7 +214,12 @@ export const SupabaseReportsProvider = ({ children }) => {
   const getRouteCompletionReports = async (filters = {}) => {
     try {
       const result = await supabaseClient.getRouteCompletionReports(filters);
-      return result.rows || [];
+      const reports = result.rows || [];
+
+      // Mezclar con datos demo si el modo demo está activo
+      const finalReports = isDemoMode ? mergeDemoData(reports, DEMO_ROUTE_REPORTS) : reports;
+
+      return finalReports;
     } catch (error) {
       console.error('Error loading route completion reports:', error);
       throw error;

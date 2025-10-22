@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
+import { DEMO_SCHEDULE_ASSIGNMENTS, mergeDemoData } from '../utils/demoData';
+import { useDemoMode } from '../hooks/useDemoMode';
 
 const SupabaseScheduleContext = createContext();
 
@@ -15,6 +17,7 @@ export const SupabaseScheduleProvider = ({ children }) => {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { isDemoMode } = useDemoMode();
 
   const fetchAssignments = async (startDate = null, endDate = null) => {
     try {
@@ -35,7 +38,12 @@ export const SupabaseScheduleProvider = ({ children }) => {
       console.log('📊 DEBUG Schedule - Asignaciones cargadas desde BD:', data);
       console.log('📊 DEBUG Schedule - Cantidad:', data?.length || 0);
 
-      setAssignments(data || []);
+      // Mezclar con datos demo si el modo demo está activo
+      const finalAssignments = isDemoMode ? mergeDemoData(data || [], DEMO_SCHEDULE_ASSIGNMENTS) : (data || []);
+      console.log('📊 DEBUG Schedule - isDemoMode:', isDemoMode);
+      console.log('📊 DEBUG Schedule - Asignaciones finales:', finalAssignments.length);
+
+      setAssignments(finalAssignments);
       setError(null);
     } catch (err) {
       console.error('Error fetching assignments:', err);
@@ -153,7 +161,7 @@ export const SupabaseScheduleProvider = ({ children }) => {
 
   useEffect(() => {
     fetchAssignments();
-  }, []);
+  }, [isDemoMode]);
 
   const value = {
     assignments,

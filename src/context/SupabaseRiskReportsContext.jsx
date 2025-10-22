@@ -1,5 +1,7 @@
 import { createContext, useContext, useReducer, useEffect } from 'react';
 import supabaseClient from '../utils/supabaseClient';
+import { DEMO_RISK_REPORTS, mergeDemoData } from '../utils/demoData';
+import { useDemoMode } from '../hooks/useDemoMode';
 
 // Crear el contexto
 const SupabaseRiskReportsContext = createContext();
@@ -76,11 +78,12 @@ const initialState = {
 // Provider del contexto
 export const SupabaseRiskReportsProvider = ({ children }) => {
   const [state, dispatch] = useReducer(riskReportsReducer, initialState);
+  const { isDemoMode } = useDemoMode();
 
   // Cargar reportes al iniciar
   useEffect(() => {
     loadReports();
-  }, []);
+  }, [isDemoMode]);
 
   // Función para cargar reportes
   const loadReports = async () => {
@@ -136,8 +139,11 @@ export const SupabaseRiskReportsProvider = ({ children }) => {
           gpsLongitud: alert.gps_longitud
         };
       });
-      
-      dispatch({ type: ACTIONS.SET_REPORTS, payload: formattedReports });
+
+      // Mezclar con datos demo si el modo demo está activo
+      const finalReports = isDemoMode ? mergeDemoData(formattedReports, DEMO_RISK_REPORTS) : formattedReports;
+
+      dispatch({ type: ACTIONS.SET_REPORTS, payload: finalReports });
     } catch (error) {
       console.error('Error loading reports:', error);
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });

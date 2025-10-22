@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import supabaseClient from '../utils/supabaseClient';
+import { DEMO_MAINTENANCE_TASKS, mergeDemoData } from '../utils/demoData';
+import { useDemoMode } from '../hooks/useDemoMode';
 
 const SupabaseMaintenanceContext = createContext();
 
@@ -7,6 +9,7 @@ export const SupabaseMaintenanceProvider = ({ children }) => {
   const [tasks, setTasks] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { isDemoMode } = useDemoMode();
 
   // Cargar tareas
   const loadTasks = async () => {
@@ -20,7 +23,10 @@ export const SupabaseMaintenanceProvider = ({ children }) => {
         .order('scheduled_date', { ascending: true });
 
       if (error) throw error;
-      setTasks(data || []);
+
+      // Mezclar con datos demo si el modo demo está activo
+      const finalTasks = isDemoMode ? mergeDemoData(data || [], DEMO_MAINTENANCE_TASKS) : (data || []);
+      setTasks(finalTasks);
     } catch (error) {
       console.error('Error loading maintenance tasks:', error);
     }
@@ -235,7 +241,7 @@ export const SupabaseMaintenanceProvider = ({ children }) => {
       tasksSubscription.unsubscribe();
       alertsSubscription.unsubscribe();
     };
-  }, []);
+  }, [isDemoMode]);
 
   return (
     <SupabaseMaintenanceContext.Provider
