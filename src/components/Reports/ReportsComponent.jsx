@@ -100,10 +100,14 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
     return `https://your-supabase-url.supabase.co/storage/v1/object/public/${filePath}`;
   };
 
-  // Mostrar TODOS los lugares para recolección
+  // Filtrar lugares para recolección - solo mercados y Mi Pueblito
   const recoleccionLocations = useMemo(() => {
-    const recoleccionPlaces = displayLugares.filter(lugar => lugar.activo !== false);
-    console.log('🏢 Total lugares activos:', recoleccionPlaces.length);
+    const recoleccionPlaces = displayLugares.filter(lugar =>
+      (lugar.nombre.includes('Mercado') || lugar.nombre.includes('Complejo')) &&
+      !lugar.nombre.includes('Planta de tratamiento') &&
+      lugar.activo !== false
+    );
+    console.log('🏢 Total lugares de recolección:', recoleccionPlaces.length);
     console.log('🏢 Lugares:', recoleccionPlaces.map(l => l.nombre));
 
     return recoleccionPlaces.map(lugar => {
@@ -341,16 +345,16 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
     );
   };
 
-  // Filtrar lugares para fumigación
+  // Filtrar lugares para fumigación - solo mercados y Mi Pueblito
   const fumigacionLocations = useMemo(() => {
-    const fumigacionPlaces = lugares.filter(lugar =>
-      lugar.nombre.includes('Mercado') || lugar.nombre.includes('Complejo')
-    ).filter(lugar =>
-      !lugar.nombre.includes('Planta de tratamiento')
+    const fumigacionPlaces = displayLugares.filter(lugar =>
+      (lugar.nombre.includes('Mercado') || lugar.nombre.includes('Complejo')) &&
+      !lugar.nombre.includes('Planta de tratamiento') &&
+      lugar.activo !== false
     );
 
     return fumigacionPlaces.map(lugar => {
-      const lugarAssignments = assignments.filter(a => {
+      const lugarAssignments = displayAssignments.filter(a => {
         const matchLocation = a.lugar?.id === lugar.id || a.lugar_id === lugar.id;
         const matchType = a.tipo === 'fumigacion' || a.tipoServicio === 'fumigacion';
         return matchLocation && matchType;
