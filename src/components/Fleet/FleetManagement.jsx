@@ -11,7 +11,8 @@ const FleetManagement = () => {
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [vehicleHistory, setVehicleHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [filterType, setFilterType] = useState('all'); // 'all', 'recoleccion', 'fumigacion'
+  const [filterType, setFilterType] = useState('all'); // 'all', 'recoleccion', 'fumigacion', 'limpieza'
+  const [filterVehicleType, setFilterVehicleType] = useState('all'); // 'all', 'bus', 'barredora', 'pickup', 'cisterna', 'camion_carga', 'fumigadora'
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -19,27 +20,55 @@ const FleetManagement = () => {
     marca: '',
     modelo: '',
     año: new Date().getFullYear(),
-    tipoServicio: 'recoleccion'
+    tipoServicio: 'limpieza',
+    tipoVehiculo: 'bus'
   });
 
-  // Filtrar vehículos por tipo
+  // Filtrar vehículos por tipo de servicio y tipo de vehículo
   const filteredVehicles = vehicles.filter(v => {
-    if (filterType === 'all') return true;
-    return v.tipo_servicio === filterType;
+    const serviceMatch = filterType === 'all' || v.tipo_servicio === filterType;
+    const vehicleTypeMatch = filterVehicleType === 'all' || v.tipo_vehiculo === filterVehicleType || v.tipoVehiculo === filterVehicleType;
+    return serviceMatch && vehicleTypeMatch;
   });
 
-  // Contadores
+  // Contadores por tipo de servicio
+  const limpiezaCount = vehicles.filter(v => v.tipo_servicio === 'limpieza').length;
   const recoleccionCount = vehicles.filter(v => v.tipo_servicio === 'recoleccion').length;
   const fumigacionCount = vehicles.filter(v => v.tipo_servicio === 'fumigacion').length;
 
+  // Contadores por tipo de vehículo (solo limpieza)
+  const busCount = vehicles.filter(v => (v.tipo_vehiculo === 'bus' || v.tipoVehiculo === 'bus')).length;
+  const barredoraCount = vehicles.filter(v => (v.tipo_vehiculo === 'barredora' || v.tipoVehiculo === 'barredora')).length;
+  const pickupCount = vehicles.filter(v => (v.tipo_vehiculo === 'pickup' || v.tipoVehiculo === 'pickup')).length;
+  const cisternaCount = vehicles.filter(v => (v.tipo_vehiculo === 'cisterna' || v.tipoVehiculo === 'cisterna')).length;
+  const camionCargaCount = vehicles.filter(v => (v.tipo_vehiculo === 'camion_carga' || v.tipoVehiculo === 'camion_carga')).length;
+  const compactadorCount = vehicles.filter(v => (v.tipo_vehiculo === 'compactador' || v.tipoVehiculo === 'compactador')).length;
+  const fumigadoraCount = vehicles.filter(v => (v.tipo_vehiculo === 'fumigadora' || v.tipoVehiculo === 'fumigadora')).length;
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+
+    // Si se cambia el tipo de servicio, actualizar el tipo de vehículo por defecto
+    if (name === 'tipoServicio') {
+      const defaultVehicleTypes = {
+        limpieza: 'bus',
+        recoleccion: 'compactador',
+        fumigacion: 'fumigadora'
+      };
+
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+        tipoVehiculo: defaultVehicleTypes[value] || 'bus'
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleAddVehicle = async (e) => {
     e.preventDefault();
-    
+
     try {
       await addVehicle(formData);
       setShowAddModal(false);
@@ -49,7 +78,8 @@ const FleetManagement = () => {
         marca: '',
         modelo: '',
         año: new Date().getFullYear(),
-        tipoServicio: 'recoleccion'
+        tipoServicio: 'limpieza',
+        tipoVehiculo: 'bus'
       });
     } catch (error) {
       console.error('Error adding vehicle:', error);
@@ -86,6 +116,7 @@ const FleetManagement = () => {
           <h2>Gestión de Flota</h2>
           <div className="fleet-stats">
             <span className="stat-badge">Total: {vehicles.length}</span>
+            <span className="stat-badge stat-limpieza">🧹 Limpieza: {limpiezaCount}</span>
             <span className="stat-badge stat-recoleccion">🚛 Recolección: {recoleccionCount}</span>
             <span className="stat-badge stat-fumigacion">🦟 Fumigación: {fumigacionCount}</span>
           </div>
@@ -97,24 +128,113 @@ const FleetManagement = () => {
       </div>
 
       <div className="fleet-filters">
-        <button
-          className={`filter-btn ${filterType === 'all' ? 'active' : ''}`}
-          onClick={() => setFilterType('all')}
-        >
-          Todos ({vehicles.length})
-        </button>
-        <button
-          className={`filter-btn filter-recoleccion ${filterType === 'recoleccion' ? 'active' : ''}`}
-          onClick={() => setFilterType('recoleccion')}
-        >
-          🚛 Recolección ({recoleccionCount})
-        </button>
-        <button
-          className={`filter-btn filter-fumigacion ${filterType === 'fumigacion' ? 'active' : ''}`}
-          onClick={() => setFilterType('fumigacion')}
-        >
-          🦟 Fumigación ({fumigacionCount})
-        </button>
+        <div className="service-filters">
+          <button
+            className={`filter-btn ${filterType === 'all' ? 'active' : ''}`}
+            onClick={() => { setFilterType('all'); setFilterVehicleType('all'); }}
+          >
+            Todos ({vehicles.length})
+          </button>
+          <button
+            className={`filter-btn filter-limpieza ${filterType === 'limpieza' ? 'active' : ''}`}
+            onClick={() => { setFilterType('limpieza'); setFilterVehicleType('all'); }}
+          >
+            🧹 Limpieza ({limpiezaCount})
+          </button>
+          <button
+            className={`filter-btn filter-recoleccion ${filterType === 'recoleccion' ? 'active' : ''}`}
+            onClick={() => { setFilterType('recoleccion'); setFilterVehicleType('all'); }}
+          >
+            🚛 Recolección ({recoleccionCount})
+          </button>
+          <button
+            className={`filter-btn filter-fumigacion ${filterType === 'fumigacion' ? 'active' : ''}`}
+            onClick={() => { setFilterType('fumigacion'); setFilterVehicleType('all'); }}
+          >
+            🦟 Fumigación ({fumigacionCount})
+          </button>
+        </div>
+
+        {/* Filtros de tipo de vehículo - limpieza */}
+        {(filterType === 'all' || filterType === 'limpieza') && (
+          <div className="vehicle-type-filters">
+            <span className="filter-label">Tipo de vehículo:</span>
+            <button
+              className={`filter-btn-small ${filterVehicleType === 'all' ? 'active' : ''}`}
+              onClick={() => setFilterVehicleType('all')}
+            >
+              Todos
+            </button>
+            <button
+              className={`filter-btn-small ${filterVehicleType === 'bus' ? 'active' : ''}`}
+              onClick={() => setFilterVehicleType('bus')}
+            >
+              🚌 Buses ({busCount})
+            </button>
+            <button
+              className={`filter-btn-small ${filterVehicleType === 'barredora' ? 'active' : ''}`}
+              onClick={() => setFilterVehicleType('barredora')}
+            >
+              🧹 Barredora ({barredoraCount})
+            </button>
+            <button
+              className={`filter-btn-small ${filterVehicleType === 'pickup' ? 'active' : ''}`}
+              onClick={() => setFilterVehicleType('pickup')}
+            >
+              🛻 Pickup ({pickupCount})
+            </button>
+            <button
+              className={`filter-btn-small ${filterVehicleType === 'cisterna' ? 'active' : ''}`}
+              onClick={() => setFilterVehicleType('cisterna')}
+            >
+              🚰 Cisternas ({cisternaCount})
+            </button>
+            <button
+              className={`filter-btn-small ${filterVehicleType === 'camion_carga' ? 'active' : ''}`}
+              onClick={() => setFilterVehicleType('camion_carga')}
+            >
+              🚚 Camiones Carga ({camionCargaCount})
+            </button>
+          </div>
+        )}
+
+        {/* Filtros de tipo de vehículo - recolección */}
+        {filterType === 'recoleccion' && (
+          <div className="vehicle-type-filters">
+            <span className="filter-label">Tipo de vehículo:</span>
+            <button
+              className={`filter-btn-small ${filterVehicleType === 'all' ? 'active' : ''}`}
+              onClick={() => setFilterVehicleType('all')}
+            >
+              Todos
+            </button>
+            <button
+              className={`filter-btn-small ${filterVehicleType === 'compactador' ? 'active' : ''}`}
+              onClick={() => setFilterVehicleType('compactador')}
+            >
+              🚛 Compactadores ({compactadorCount})
+            </button>
+          </div>
+        )}
+
+        {/* Filtro de fumigadoras cuando se selecciona fumigación */}
+        {filterType === 'fumigacion' && (
+          <div className="vehicle-type-filters">
+            <span className="filter-label">Tipo de vehículo:</span>
+            <button
+              className={`filter-btn-small ${filterVehicleType === 'all' ? 'active' : ''}`}
+              onClick={() => setFilterVehicleType('all')}
+            >
+              Todos
+            </button>
+            <button
+              className={`filter-btn-small ${filterVehicleType === 'fumigadora' ? 'active' : ''}`}
+              onClick={() => setFilterVehicleType('fumigadora')}
+            >
+              🦟 Fumigadoras ({fumigadoraCount})
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="vehicles-grid">
@@ -128,8 +248,23 @@ const FleetManagement = () => {
               <p className="vehicle-placa">{vehicle.placa}</p>
               <div className="vehicle-badges">
                 <span className={`vehicle-type-badge type-${vehicle.tipo_servicio || vehicle.tipoServicio}`}>
-                  {vehicle.tipo_servicio === 'recoleccion' || vehicle.tipoServicio === 'recoleccion' ? '🚛 Recolección' : '🦟 Fumigación'}
+                  {vehicle.tipo_servicio === 'limpieza' || vehicle.tipoServicio === 'limpieza'
+                    ? '🧹 Limpieza'
+                    : vehicle.tipo_servicio === 'recoleccion' || vehicle.tipoServicio === 'recoleccion'
+                    ? '🚛 Recolección'
+                    : '🦟 Fumigación'}
                 </span>
+                {(vehicle.tipo_vehiculo || vehicle.tipoVehiculo) && (
+                  <span className={`vehicle-subtype-badge subtype-${vehicle.tipo_vehiculo || vehicle.tipoVehiculo}`}>
+                    {vehicle.tipo_vehiculo === 'bus' || vehicle.tipoVehiculo === 'bus' ? '🚌 Bus' :
+                     vehicle.tipo_vehiculo === 'barredora' || vehicle.tipoVehiculo === 'barredora' ? '🧹 Barredora' :
+                     vehicle.tipo_vehiculo === 'pickup' || vehicle.tipoVehiculo === 'pickup' ? '🛻 Pickup' :
+                     vehicle.tipo_vehiculo === 'cisterna' || vehicle.tipoVehiculo === 'cisterna' ? '🚰 Cisterna' :
+                     vehicle.tipo_vehiculo === 'camion_carga' || vehicle.tipoVehiculo === 'camion_carga' ? '🚚 Camión' :
+                     vehicle.tipo_vehiculo === 'compactador' || vehicle.tipoVehiculo === 'compactador' ? '🚛 Compactador' :
+                     vehicle.tipo_vehiculo === 'fumigadora' || vehicle.tipoVehiculo === 'fumigadora' ? '🦟 Fumigadora' : ''}
+                  </span>
+                )}
                 <span className={`vehicle-status status-${vehicle.estado.toLowerCase().replace(' ', '-')}`}>
                   {vehicle.estado}
                 </span>
@@ -229,10 +364,43 @@ const FleetManagement = () => {
                     onChange={handleInputChange}
                     required
                   >
+                    <option value="limpieza">Limpieza</option>
                     <option value="recoleccion">Recolección</option>
                     <option value="fumigacion">Fumigación</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="form-group">
+                <label>Tipo de Vehículo</label>
+                <select
+                  name="tipoVehiculo"
+                  value={formData.tipoVehiculo}
+                  onChange={handleInputChange}
+                  required
+                >
+                  {formData.tipoServicio === 'limpieza' && (
+                    <>
+                      <option value="bus">🚌 Bus</option>
+                      <option value="barredora">🧹 Barredora</option>
+                      <option value="pickup">🛻 Pickup</option>
+                      <option value="cisterna">🚰 Cisterna</option>
+                      <option value="camion_carga">🚚 Camión de Carga Liviana</option>
+                    </>
+                  )}
+                  {formData.tipoServicio === 'recoleccion' && (
+                    <>
+                      <option value="compactador">🚛 Camión Compactador</option>
+                      <option value="camion_recolector">🚛 Camión Recolector</option>
+                    </>
+                  )}
+                  {formData.tipoServicio === 'fumigacion' && (
+                    <>
+                      <option value="fumigadora">🦟 Fumigadora</option>
+                      <option value="atomizador">💨 Atomizador</option>
+                    </>
+                  )}
+                </select>
               </div>
 
               <div className="modal-actions">

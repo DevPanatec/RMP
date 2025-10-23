@@ -40,6 +40,12 @@
   color: var(--color-text-secondary);
 }
 
+.stat-limpieza {
+  background: rgba(255, 159, 10, 0.1);
+  border-color: rgba(255, 159, 10, 0.3);
+  color: #ff9f0a;
+}
+
 .stat-recoleccion {
   background: rgba(52, 199, 89, 0.1);
   border-color: rgba(52, 199, 89, 0.3);
@@ -54,9 +60,33 @@
 
 .fleet-filters {
   display: flex;
-  gap: var(--space-12);
+  flex-direction: column;
+  gap: var(--space-16);
   margin-bottom: var(--space-24);
+}
+
+.service-filters {
+  display: flex;
+  gap: var(--space-12);
   flex-wrap: wrap;
+}
+
+.vehicle-type-filters {
+  display: flex;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+  align-items: center;
+  padding: var(--space-12) var(--space-16);
+  background: var(--color-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.filter-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  margin-right: var(--space-8);
 }
 
 .filter-btn {
@@ -84,6 +114,12 @@
   box-shadow: 0 2px 8px rgba(48, 209, 88, 0.3);
 }
 
+.filter-limpieza.active {
+  background: #ff9f0a;
+  border-color: #ff9f0a;
+  box-shadow: 0 2px 8px rgba(255, 159, 10, 0.3);
+}
+
 .filter-recoleccion.active {
   background: #34c759;
   border-color: #34c759;
@@ -94,6 +130,34 @@
   background: #007aff;
   border-color: #007aff;
   box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+.filter-btn-small {
+  padding: var(--space-6) var(--space-14);
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.filter-btn-small:hover {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+  transform: translateY(-1px);
+}
+
+.filter-btn-small.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+  box-shadow: 0 2px 6px rgba(48, 209, 88, 0.25);
+  font-weight: var(--font-weight-semibold);
 }
 
 .btn-add-vehicle {
@@ -213,6 +277,12 @@
   border: 1.5px solid transparent;
 }
 
+.type-limpieza {
+  background: rgba(255, 159, 10, 0.15);
+  color: #ff9f0a;
+  border-color: rgba(255, 159, 10, 0.3);
+}
+
 .type-recoleccion {
   background: rgba(52, 199, 89, 0.15);
   color: #34c759;
@@ -223,6 +293,40 @@
   background: rgba(0, 122, 255, 0.15);
   color: #007aff;
   border-color: rgba(0, 122, 255, 0.3);
+}
+
+.vehicle-subtype-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-4) var(--space-10);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  background: var(--color-secondary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.subtype-bus,
+.subtype-barredora,
+.subtype-pickup,
+.subtype-cisterna,
+.subtype-camion_carga {
+  background: rgba(255, 159, 10, 0.08);
+  color: #ff9f0a;
+  border-color: rgba(255, 159, 10, 0.2);
+}
+
+.subtype-compactador {
+  background: rgba(52, 199, 89, 0.08);
+  color: #34c759;
+  border-color: rgba(52, 199, 89, 0.2);
+}
+
+.subtype-fumigadora {
+  background: rgba(0, 122, 255, 0.08);
+  color: #007aff;
+  border-color: rgba(0, 122, 255, 0.2);
 }
 
 .vehicle-status {
