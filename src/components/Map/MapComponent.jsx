@@ -254,6 +254,7 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], userType, showReal
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [hoveredTruckId, setHoveredTruckId] = useState(null); // Para pausar animación en hover
   const [showTruckModal, setShowTruckModal] = useState(false); // Modal de información del camión
+  const [showRouteInfo, setShowRouteInfo] = useState(false); // Mostrar información de la ruta
   // Mapa de rutas viales precalculadas { [routeId]: coords[] }
   const [roadRoutes, setRoadRoutes] = useState({});
 

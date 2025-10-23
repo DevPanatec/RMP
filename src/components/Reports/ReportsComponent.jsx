@@ -18,11 +18,18 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
   const [selectedLocation, setSelectedLocation] = useState(null);
   const { isDemoMode } = useDemoMode();
   const [routeReports, setRouteReports] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 6;
 
   const { routes } = useSupabaseRoutes();
   const { assignments, loading: cleaningLoading, lugares } = useSupabaseCleaning();
   const { tasks: maintenanceTasks, loading: maintenanceLoading } = useSupabaseMaintenance();
   const { getRouteCompletionReports } = useSupabaseReports();
+
+  // Resetear página cuando cambie de categoría
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategory]);
 
   // Cargar reportes de rutas completadas
   useEffect(() => {
@@ -93,12 +100,11 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
     return `https://your-supabase-url.supabase.co/storage/v1/object/public/${filePath}`;
   };
 
-  // Filtrar lugares para recolección - mantener los 6 lugares fijos
+  // Mostrar TODOS los lugares para recolección
   const recoleccionLocations = useMemo(() => {
-    const recoleccionPlaces = displayLugares.filter(lugar =>
-      (lugar.nombre.includes('Mercado') || lugar.nombre.includes('Complejo')) &&
-      !lugar.nombre.includes('Planta de tratamiento')
-    );
+    const recoleccionPlaces = displayLugares.filter(lugar => lugar.activo !== false);
+    console.log('🏢 Total lugares activos:', recoleccionPlaces.length);
+    console.log('🏢 Lugares:', recoleccionPlaces.map(l => l.nombre));
 
     return recoleccionPlaces.map(lugar => {
       // Obtener assignments del lugar
@@ -145,11 +151,26 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
   }, [displayLugares, displayAssignments, routeReports]);
 
   const renderRecoleccion = () => {
+    // Paginación
+    const totalPages = Math.ceil(recoleccionLocations.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedLocations = recoleccionLocations.slice(startIndex, endIndex);
+
+    console.log('📄 Paginación:', {
+      total: recoleccionLocations.length,
+      currentPage,
+      totalPages,
+      startIndex,
+      endIndex,
+      showing: paginatedLocations.length
+    });
+
     return (
       <div className="reports-category reports-recoleccion">
         <div className="category-header">
           <h3>Reportes de Recolección por Ubicación</h3>
-          <p>Selecciona un mercado para ver sus reportes de recolección</p>
+          <p>Selecciona un lugar para ver sus reportes de recolección ({recoleccionLocations.length} lugares)</p>
         </div>
 
         {cleaningLoading ? (
@@ -163,19 +184,30 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
             <p>No hay ubicaciones de recolección registradas</p>
           </div>
         ) : (
-          <div className="locations-grid">
-            {recoleccionLocations.map(location => {
-              const imageMap = {
-                'Mercado de Alcalde Díaz': 'Mercado Alcalde Diaz.jpeg',
-                'Mercado del Marisco': 'mercado de mariscos.jpg',
-                'Mercado de Pacora': 'Mercado de Pacora.jpg',
-                'Mercado San Felipe Neri': 'san felipe neri.jpeg',
-                'Mercado de Pueblo Nuevo': 'Mercado Pueblo Nuevo.jpg',
-                'Complejo Turístico Mi Pueblito': 'mi-pueblito.jpg'
-              };
+          <>
+            <div className="locations-grid">
+              {paginatedLocations.map(location => {
+                const imageMap = {
+                  'Mercado de Alcalde Díaz': 'Mercado Alcalde Diaz.jpeg',
+                  'Mercado del Marisco': 'mercado de mariscos.jpg',
+                  'Mercado de Pacora': 'Mercado de Pacora.jpg',
+                  'Mercado San Felipe Neri': 'san felipe neri.jpeg',
+                  'Mercado de Pueblo Nuevo': 'Mercado Pueblo Nuevo.jpg',
+                  'Complejo Turístico Mi Pueblito': 'mi-pueblito.jpg',
+                  'Almacén Central': 'almacen-central.jpg',
+                  'Casa de la Municipalidad': 'casa-municipalidad.jpg',
+                  'Casa Góngora': 'casa-gongora.jpg',
+                  'Centro de Recaudación Magna Corp.': 'centro-recaudacion.jpg',
+                  'Edificio Hatillo': 'edificio-hatillo.jpg',
+                  'Oficinas del Parque Summit': 'parque-summit.jpg',
+                  'Palacio Municipal': 'palacio-municipal.jpg',
+                  'Planta de tratamiento (Mercado San Felipe Neri)': 'planta-tratamiento.jpg',
+                  'Taller': 'taller.jpg'
+                };
 
-              const mapEmbedUrl = location.latitud && location.longitud
-                ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(location.nombre)}&zoom=15`
+              // Usar NOMBRE del lugar para ubicación exacta en Google Maps
+              const mapEmbedUrl = location.nombre
+                ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(location.nombre + ', Panama City, Panama')}&zoom=16`
                 : null;
 
               return (
@@ -213,6 +245,61 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
               );
             })}
           </div>
+
+          {/* Paginación */}
+          {totalPages > 1 && (
+            <div className="pagination-controls" style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '12px',
+              marginTop: '24px',
+              padding: '20px'
+            }}>
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  background: currentPage === 1 ? '#f3f4f6' : 'white',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: currentPage === 1 ? '#9ca3af' : '#374151'
+                }}
+              >
+                ← Anterior
+              </button>
+
+              <span style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                fontWeight: '500'
+              }}>
+                Página {currentPage} de {totalPages}
+              </span>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  background: currentPage === totalPages ? '#f3f4f6' : 'white',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: currentPage === totalPages ? '#9ca3af' : '#374151'
+                }}
+              >
+                Siguiente →
+              </button>
+            </div>
+          )}
+          </>
         )}
 
         {selectedLocation && (
@@ -287,8 +374,9 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
                 'Complejo Turístico Mi Pueblito': 'mi-pueblito.jpg'
               };
 
-              const mapEmbedUrl = location.latitud && location.longitud
-                ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(location.nombre)}&zoom=15`
+              // Usar NOMBRE del lugar para ubicación exacta en Google Maps
+              const mapEmbedUrl = location.nombre
+                ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(location.nombre + ', Panama City, Panama')}&zoom=16`
                 : null;
 
               return (
@@ -348,32 +436,49 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
 
   // Agrupar asignaciones por lugar (useMemo para performance)
   const assignmentsByLocation = useMemo(() => {
-    return lugares.map(lugar => {
-      const lugarAssignments = assignments.filter(a => {
-        // Intentar múltiples formas de match
-        return a.lugar?.id === lugar.id ||
-               a.lugar_id === lugar.id;
-      });
+    // Mostrar TODOS los lugares activos, no solo los que tienen asignaciones
+    return lugares
+      .filter(lugar => lugar.activo !== false)
+      .map(lugar => {
+        const lugarAssignments = assignments.filter(a => {
+          // Intentar múltiples formas de match
+          return a.lugar?.id === lugar.id ||
+                 a.lugar_id === lugar.id;
+        });
 
-      return {
-        ...lugar,
-        assignmentsCount: lugarAssignments.length,
-        completedCount: lugarAssignments.filter(a => a.estado === 'completado').length,
-        assignments: lugarAssignments
-      };
-    }).filter(l => l.assignmentsCount > 0);
+        return {
+          ...lugar,
+          assignmentsCount: lugarAssignments.length,
+          completedCount: lugarAssignments.filter(a => a.estado === 'completado').length,
+          assignments: lugarAssignments
+        };
+      });
+      // ELIMINADO: .filter(l => l.assignmentsCount > 0) - Ahora mostramos todos
   }, [lugares, assignments]);
 
   const renderLimpieza = () => {
+    // Paginación
+    const totalPages = Math.ceil(assignmentsByLocation.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedLocations = assignmentsByLocation.slice(startIndex, endIndex);
+
     console.log('🔍 DEBUG - lugares:', lugares);
     console.log('🔍 DEBUG - assignments:', assignments);
     console.log('🔍 DEBUG - assignmentsByLocation:', assignmentsByLocation);
+    console.log('🏢 Total lugares para limpieza:', assignmentsByLocation.length);
+    console.log('📄 Paginación limpieza:', {
+      total: assignmentsByLocation.length,
+      currentPage,
+      totalPages,
+      showing: paginatedLocations.length
+    });
 
     return (
       <div className="reports-category reports-limpieza">
         <div className="category-header">
           <h3>Reportes de Limpieza por Ubicación</h3>
-          <p>Selecciona una ubicación para ver sus reportes detallados</p>
+          <p>Selecciona una ubicación para ver sus reportes detallados ({assignmentsByLocation.length} lugares)</p>
         </div>
 
         {cleaningLoading ? (
@@ -384,22 +489,35 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
         ) : assignmentsByLocation.length === 0 ? (
           <div className="empty-state">
             <Sparkles size={48} />
-            <p>No hay asignaciones de limpieza registradas</p>
+            <p>No hay lugares registrados</p>
           </div>
         ) : (
-          <div className="locations-grid limpieza-grid-3col">
-            {assignmentsByLocation.map(location => {
-              const imageMap = {
-                'Mercado de Alcalde Díaz': 'Mercado Alcalde Diaz.jpeg',
-                'Mercado de Alcalde Diaz': 'Mercado Alcalde Diaz.jpeg',
-                'Mercado del Marisco': 'mercado de mariscos.jpg',
-                'Mercado de Pacora': 'Mercado de Pacora.jpg',
-                'Mercado San Felipe Neri': 'san felipe neri.jpeg',
-                'Mercado de Pueblo Nuevo': 'Mercado Pueblo Nuevo.jpg'
-              };
+          <>
+            <div className="locations-grid limpieza-grid-3col">
+              {paginatedLocations.map(location => {
+                // Mapeo exacto entre nombres de BD y nombres de archivos
+                const imageMap = {
+                  'Almacén Central del MINSA': 'Almacen Central MINSA.jpg',
+                  'Casa de la Municipalidad': 'Casa de la Municipidad.jpg',
+                  'Casa Góngora': 'Plaza Gongora.jpg',
+                  'Centro de Recaudación Magna Corp.': 'Centro de Recaudacion Magna Corp..jpg',
+                  'Complejo Turístico Mi Pueblito': 'Mi Pueblito.jpeg',
+                  'Edificio Hatillo': 'Edificio Hatillo.jpeg',
+                  'Mercado de Alcalde Díaz': 'Mercado Alcalde Diaz.jpeg',
+                  'Mercado del Marisco': 'mercado de mariscos.jpg',
+                  'Mercado de Pacora': 'Mercado de Pacora.jpg',
+                  'Mercado San Felipe Neri': 'san felipe neri.jpeg',
+                  'Mercado de Pueblo Nuevo': 'Mercado Pueblo Nuevo.jpg',
+                  'Oficinas del Parque Summit': 'Oficina del Parque Summit.jpg',
+                  'Palacio Municipal': 'Palacio Municipal.jpg',
+                  'Planta de tratamiento (Mercado San Felipe Neri)': 'san felipe neri.jpeg',
+                  'Taller': 'Taller.jpg'
+                };
 
-              const imageName = imageMap[location.nombre] || `${location.nombre}.jpg`;
-              const imageUrl = `/lugares/${imageName}`;
+              const imageName = imageMap[location.nombre];
+              const imageUrl = imageName ? `/lugares/${imageName}` : null;
+
+              console.log('🖼️ Lugar:', location.nombre, '| Imagen:', imageName, '| URL:', imageUrl);
 
               return (
                 <div
@@ -408,21 +526,33 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
                   onClick={() => setSelectedLocation(location)}
                 >
                   <div className="location-image-wrapper">
-                    <img
-                      src={imageUrl}
-                      alt={location.nombre}
-                      className="location-image"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextElementSibling.style.display = 'flex';
-                      }}
-                    />
-                    <div className="location-image-fallback" style={{ display: 'none' }}>
-                      <MapPin size={48} />
-                      <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
-                        {location.nombre}
-                      </p>
-                    </div>
+                    {imageUrl ? (
+                      <>
+                        <img
+                          src={imageUrl}
+                          alt={location.nombre}
+                          className="location-image"
+                          onError={(e) => {
+                            console.error('Error cargando imagen:', imageUrl);
+                            e.target.style.display = 'none';
+                            e.target.nextElementSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="location-image-fallback" style={{ display: 'none' }}>
+                          <MapPin size={48} />
+                          <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
+                            {location.nombre}
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="location-image-fallback" style={{ display: 'flex' }}>
+                        <MapPin size={48} />
+                        <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
+                          {location.nombre}
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div className="map-card-overlay">
                     <h4>{location.nombre}</h4>
@@ -432,6 +562,63 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
               );
             })}
           </div>
+
+          {/* Paginación */}
+          {totalPages > 1 && (
+            <div className="pagination-controls" style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '12px',
+              marginTop: '24px',
+              padding: '20px'
+            }}>
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  background: currentPage === 1 ? '#f3f4f6' : 'white',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: currentPage === 1 ? '#9ca3af' : '#374151',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                ← Anterior
+              </button>
+
+              <span style={{
+                fontSize: '14px',
+                color: '#6b7280',
+                fontWeight: '500'
+              }}>
+                Página {currentPage} de {totalPages}
+              </span>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  border: '1px solid #d1d5db',
+                  background: currentPage === totalPages ? '#f3f4f6' : 'white',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  color: currentPage === totalPages ? '#9ca3af' : '#374151',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Siguiente →
+              </button>
+            </div>
+          )}
+          </>
         )}
 
         {selectedLocation && (

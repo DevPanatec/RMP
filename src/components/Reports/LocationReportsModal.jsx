@@ -227,14 +227,14 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
     });
   };
 
-  // Generar URL del mapa interactivo de Google Maps Embed
-  const mapEmbedUrl = location.latitud && location.longitud
-    ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${location.latitud},${location.longitud}&zoom=17&maptype=satellite`
+  // Generar URL del mapa usando NOMBRE del lugar para ubicación exacta con marcador rojo
+  const mapEmbedUrl = location.nombre
+    ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(location.nombre + ', Panama City, Panama')}&zoom=17`
     : null;
 
-  // URL para abrir en Google Maps
-  const googleMapsUrl = location.latitud && location.longitud
-    ? `https://www.google.com/maps/search/?api=1&query=${location.latitud},${location.longitud}`
+  // URL para abrir en Google Maps usando nombre del lugar
+  const googleMapsUrl = location.nombre
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.nombre + ', Panama City, Panama')}`
     : null;
 
   // Debug log
