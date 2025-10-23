@@ -389,6 +389,7 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
   const [mapTheme, setMapTheme] = useState(() => {
     return localStorage.getItem('mapTheme') || 'dark';
   });
+  const [showRouteInfo, setShowRouteInfo] = useState(false); // Mostrar información de la ruta
   // Mapa de rutas viales precalculadas { [routeId]: coords[] }
   const [roadRoutes, setRoadRoutes] = useState({});
   const [routesLoading, setRoutesLoading] = useState(true);

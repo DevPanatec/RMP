@@ -1079,38 +1079,14 @@
   margin-right: auto;
 }
 
-/* Grid especial para limpieza: 2 arriba centradas, 3 abajo */
+/* Grid especial para limpieza: 3 columnas × 2 filas = 6 lugares */
 .limpieza-grid-3col {
   display: grid !important;
   grid-template-columns: repeat(3, 1fr) !important;
-  max-width: 1300px !important;
+  max-width: 1400px !important;
   margin-left: auto !important;
   margin-right: auto !important;
   gap: 24px !important;
-}
-
-/* Primera fila: centrar las 2 primeras tarjetas */
-.limpieza-grid-3col > *:nth-child(1) {
-  grid-column: 1 / 2;
-  justify-self: end;
-  width: 100%;
-  max-width: 420px;
-}
-
-.limpieza-grid-3col > *:nth-child(2) {
-  grid-column: 2 / 4;
-  justify-self: start;
-  width: 100%;
-  max-width: 420px;
-}
-
-/* Segunda fila: 3 tarjetas normales */
-.limpieza-grid-3col > *:nth-child(3),
-.limpieza-grid-3col > *:nth-child(4),
-.limpieza-grid-3col > *:nth-child(5) {
-  width: 100%;
-  max-width: 420px;
-  justify-self: center;
 }
 
 /* Grid más grande para mantenimiento (solo un lugar) */
