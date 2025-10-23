@@ -261,6 +261,7 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
               style={{ border: 0 }}
               allowFullScreen=""
               loading="lazy"
+              importance="low"
               referrerPolicy="no-referrer-when-downgrade"
               title={`Mapa de ${location.nombre}`}
             />

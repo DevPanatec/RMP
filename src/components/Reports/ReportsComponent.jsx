@@ -205,9 +205,9 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
                   'Taller': 'taller.jpg'
                 };
 
-              // Usar NOMBRE del lugar para ubicación exacta en Google Maps
-              const mapEmbedUrl = location.nombre
-                ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(location.nombre + ', Panama City, Panama')}&zoom=16`
+              // Usar Google Static Maps API para carga más rápida en tarjetas
+              const staticMapUrl = location.nombre
+                ? `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(location.nombre + ', Panama City, Panama')}&zoom=16&size=600x400&markers=color:red%7C${encodeURIComponent(location.nombre + ', Panama City, Panama')}&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&style=feature:poi|visibility:on&style=feature:transit|visibility:simplified`
                 : null;
 
               return (
@@ -217,25 +217,25 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
                   onClick={() => setSelectedLocation(location)}
                 >
                   <div className="location-image-wrapper">
-                    {mapEmbedUrl ? (
-                      <iframe
-                        src={mapEmbedUrl}
-                        width="100%"
-                        height="100%"
-                        style={{ border: 0, pointerEvents: 'none' }}
-                        allowFullScreen=""
+                    {staticMapUrl ? (
+                      <img
+                        src={staticMapUrl}
+                        alt={`Mapa de ${location.nombre}`}
+                        className="location-map-static"
                         loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                        title={`Mapa de ${location.nombre}`}
+                        decoding="async"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextElementSibling.style.display = 'flex';
+                        }}
                       />
-                    ) : (
-                      <div className="location-image-fallback" style={{ display: 'flex' }}>
-                        <Truck size={48} />
-                        <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
-                          {location.nombre}
-                        </p>
-                      </div>
-                    )}
+                    ) : null}
+                    <div className="location-image-fallback" style={{ display: staticMapUrl ? 'none' : 'flex' }}>
+                      <Truck size={48} />
+                      <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
+                        {location.nombre}
+                      </p>
+                    </div>
                   </div>
                   <div className="map-card-overlay">
                     <h4>{location.nombre}</h4>
@@ -374,9 +374,9 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
                 'Complejo Turístico Mi Pueblito': 'mi-pueblito.jpg'
               };
 
-              // Usar NOMBRE del lugar para ubicación exacta en Google Maps
-              const mapEmbedUrl = location.nombre
-                ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(location.nombre + ', Panama City, Panama')}&zoom=16`
+              // Usar Google Static Maps API para carga más rápida en tarjetas
+              const staticMapUrl = location.nombre
+                ? `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(location.nombre + ', Panama City, Panama')}&zoom=16&size=600x400&markers=color:red%7C${encodeURIComponent(location.nombre + ', Panama City, Panama')}&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&style=feature:poi|visibility:on&style=feature:transit|visibility:simplified`
                 : null;
 
               return (
@@ -386,25 +386,25 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
                   onClick={() => setSelectedLocation(location)}
                 >
                   <div className="location-image-wrapper">
-                    {mapEmbedUrl ? (
-                      <iframe
-                        src={mapEmbedUrl}
-                        width="100%"
-                        height="100%"
-                        style={{ border: 0, pointerEvents: 'none' }}
-                        allowFullScreen=""
+                    {staticMapUrl ? (
+                      <img
+                        src={staticMapUrl}
+                        alt={`Mapa de ${location.nombre}`}
+                        className="location-map-static"
                         loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                        title={`Mapa de ${location.nombre}`}
+                        decoding="async"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextElementSibling.style.display = 'flex';
+                        }}
                       />
-                    ) : (
-                      <div className="location-image-fallback" style={{ display: 'flex' }}>
-                        <Zap size={48} />
-                        <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
-                          {location.nombre}
-                        </p>
-                      </div>
-                    )}
+                    ) : null}
+                    <div className="location-image-fallback" style={{ display: staticMapUrl ? 'none' : 'flex' }}>
+                      <Zap size={48} />
+                      <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
+                        {location.nombre}
+                      </p>
+                    </div>
                   </div>
                   <div className="map-card-overlay">
                     <h4>{location.nombre}</h4>

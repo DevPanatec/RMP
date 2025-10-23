@@ -1260,6 +1260,21 @@
   transform: scale(1.05);
 }
 
+/* Static Map Images - Optimized for performance */
+.location-map-static {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.location-map-card:hover .location-map-static {
+  transform: scale(1.05);
+}
+
 .location-image-fallback {
   width: 100%;
   height: 100%;
