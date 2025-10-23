@@ -4,6 +4,7 @@ import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
 import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
 import { Truck, Zap, Sparkles, Wrench, TrendingUp, CheckCircle, Clock, Download, ChevronRight, Calendar } from '../Icons';
 import { Card } from '../UI';
+import { RecoleccionIcon, FumigacionIcon, LimpiezaIcon, MantenimientoIcon } from './ServiceIcons';
 import './ReportsDashboard.css';
 
 const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
@@ -100,7 +101,7 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
           onClick={() => onNavigate?.('recoleccion')}
         >
           <div className="metric-icon">
-            <img src="/icons/modules/RECOLECCION.png" alt="Recolección" className="metric-logo" />
+            <RecoleccionIcon size={56} className="metric-logo" />
           </div>
           <div className="metric-content">
             <h3>Recolección</h3>
@@ -130,7 +131,7 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
           onClick={() => onNavigate?.('fumigacion')}
         >
           <div className="metric-icon">
-            <img src="/icons/modules/FUMIGACION.png" alt="Fumigación" className="metric-logo" />
+            <FumigacionIcon size={56} className="metric-logo" />
           </div>
           <div className="metric-content">
             <h3>Fumigación</h3>
@@ -160,7 +161,7 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
           onClick={() => onNavigate?.('limpieza')}
         >
           <div className="metric-icon">
-            <img src="/icons/modules/limpieza.png" alt="Limpieza" className="metric-logo" />
+            <LimpiezaIcon size={56} className="metric-logo" />
           </div>
           <div className="metric-content">
             <h3>Limpieza</h3>
@@ -190,7 +191,7 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
           onClick={() => onNavigate?.('mantenimiento')}
         >
           <div className="metric-icon">
-            <img src="/icons/modules/mantenimiento.png" alt="Mantenimiento" className="metric-logo" />
+            <MantenimientoIcon size={56} className="metric-logo" />
           </div>
           <div className="metric-content">
             <h3>Mantenimiento</h3>

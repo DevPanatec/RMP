@@ -152,7 +152,12 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.18)) contrast(1.2) saturate(1.25) brightness(1.05);
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.12));
+  transition: filter 0.3s ease;
+}
+
+.metric-card:hover .metric-logo {
+  filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.18));
 }
 
 .metric-content {
