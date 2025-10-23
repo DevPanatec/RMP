@@ -100,7 +100,14 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
           onClick={() => onNavigate?.('recoleccion')}
         >
           <div className="metric-icon">
-            <img src="/icons/modules/RECOLECCION.png" alt="Recolección" className="metric-logo" />
+            <img
+              src="/icons/modules/RECOLECCION.png"
+              alt="Recolección"
+              className="metric-logo"
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
+            />
           </div>
           <div className="metric-content">
             <h3>Recolección</h3>
@@ -130,7 +137,14 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
           onClick={() => onNavigate?.('fumigacion')}
         >
           <div className="metric-icon">
-            <img src="/icons/modules/FUMIGACION.png" alt="Fumigación" className="metric-logo" />
+            <img
+              src="/icons/modules/FUMIGACION.png"
+              alt="Fumigación"
+              className="metric-logo"
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
+            />
           </div>
           <div className="metric-content">
             <h3>Fumigación</h3>
@@ -160,7 +174,14 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
           onClick={() => onNavigate?.('limpieza')}
         >
           <div className="metric-icon">
-            <img src="/icons/modules/limpieza.png" alt="Limpieza" className="metric-logo" />
+            <img
+              src="/icons/modules/limpieza.png"
+              alt="Limpieza"
+              className="metric-logo"
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
+            />
           </div>
           <div className="metric-content">
             <h3>Limpieza</h3>
@@ -190,7 +211,14 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
           onClick={() => onNavigate?.('mantenimiento')}
         >
           <div className="metric-icon">
-            <img src="/icons/modules/mantenimiento.png" alt="Mantenimiento" className="metric-logo" />
+            <img
+              src="/icons/modules/mantenimiento.png"
+              alt="Mantenimiento"
+              className="metric-logo"
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
+            />
           </div>
           <div className="metric-content">
             <h3>Mantenimiento</h3>
