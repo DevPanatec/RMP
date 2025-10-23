@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSupabaseInventory } from '../../context/SupabaseInventoryContext';
-import { Package, FileText, AlertTriangle, X, Loader, CheckCircle } from '../Icons';
+import { Package, FileText, AlertTriangle, X, Loader, CheckCircle, Search, Filter, LayoutGrid, List, Eye, Edit, Trash2, TrendingUp, TrendingDown } from '../Icons';
 import './InventoryComponent.css';
 
 const InventoryComponent = ({ userType = 'admin' }) => {
@@ -10,6 +10,9 @@ const InventoryComponent = ({ userType = 'admin' }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [alerts, setAlerts] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
+  const [categoryFilter, setCategoryFilter] = useState('todos');
   const [newMaterialData, setNewMaterialData] = useState({
     nombre: '',
     unidad: '',
@@ -24,6 +27,33 @@ const InventoryComponent = ({ userType = 'admin' }) => {
     stockMaximo: '',
     proveedor: ''
   });
+
+  // Filtrar y buscar materiales
+  const filteredMaterials = useMemo(() => {
+    let filtered = [...materials];
+
+    // Filtrar por búsqueda
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(material =>
+        material.nombre?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        material.codigo?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        material.proveedor?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filtrar por categoría
+    if (categoryFilter !== 'todos') {
+      filtered = filtered.filter(material => material.categoria === categoryFilter);
+    }
+
+    return filtered;
+  }, [materials, searchQuery, categoryFilter]);
+
+  // Obtener categorías únicas
+  const categories = useMemo(() => {
+    const cats = [...new Set(materials.map(m => m.categoria || 'General'))];
+    return ['todos', ...cats];
+  }, [materials]);
 
   // Generar alertas cuando los materiales cambien
   useEffect(() => {
@@ -63,6 +93,22 @@ const InventoryComponent = ({ userType = 'admin' }) => {
     if (material.stockActual <= material.stockMinimo) return 'bajo';
     if (material.stockActual >= material.stockMaximo * 0.8) return 'alto';
     return 'normal';
+  };
+
+  const getStockPercentage = (material) => {
+    const range = material.stockMaximo - material.stockMinimo;
+    if (range <= 0) return 100;
+    const current = material.stockActual - material.stockMinimo;
+    return Math.min(100, Math.max(0, (current / range) * 100));
+  };
+
+  const getStockColor = (status) => {
+    switch (status) {
+      case 'crítico': return '#ff3b30';
+      case 'bajo': return '#ff9500';
+      case 'alto': return '#007aff';
+      default: return '#34c759';
+    }
   };
 
   // Manejar cambios en el formulario
@@ -179,34 +225,112 @@ const InventoryComponent = ({ userType = 'admin' }) => {
 
   const renderMaterialsTab = () => (
     <div className="inventory-content">
-      <div className="inventory-header">
-        <h3><Package size={20} /> Gestión de Materiales e Insumos</h3>
-        <div className="inventory-actions">
-          <button className="btn btn--secondary">
-            <FileText size={16} /> Importar Inventario
-          </button>
-          <button 
-            className="btn btn--primary"
-            onClick={() => setShowMaterialModal(true)}
-          >
-            <Package size={16} /> Nuevo Material
-          </button>
+      <div className="inventory-header-modern">
+        <div className="inventory-header-top">
+          <div className="inventory-title-section">
+            <div className="title-icon-wrapper">
+              <Package size={32} />
+            </div>
+            <div>
+              <h3>Gestión de Materiales e Insumos</h3>
+              <p>Control integral de materiales e insumos</p>
+            </div>
+          </div>
+          <div className="inventory-actions-modern">
+            <button className="btn-modern btn-secondary">
+              <FileText size={18} /> Importar
+            </button>
+            <button
+              className="btn-modern btn-primary"
+              onClick={() => setShowMaterialModal(true)}
+            >
+              <Package size={18} /> Nuevo Material
+            </button>
+          </div>
+        </div>
+
+        {/* Barra de búsqueda y filtros */}
+        <div className="inventory-controls">
+          <div className="search-box-modern">
+            <Search size={20} />
+            <input
+              type="text"
+              placeholder="Buscar materiales por nombre, código o proveedor..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button className="search-clear" onClick={() => setSearchQuery('')}>
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          <div className="view-toggles">
+            <button
+              className={`view-toggle ${viewMode === 'table' ? 'active' : ''}`}
+              onClick={() => setViewMode('table')}
+              title="Vista de tabla"
+            >
+              <List size={20} />
+            </button>
+            <button
+              className={`view-toggle ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid')}
+              title="Vista de tarjetas"
+            >
+              <LayoutGrid size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Filtros por categoría */}
+        <div className="category-filters">
+          {categories.map(cat => (
+            <button
+              key={cat}
+              className={`category-chip ${categoryFilter === cat ? 'active' : ''}`}
+              onClick={() => setCategoryFilter(cat)}
+            >
+              {cat === 'todos' ? 'Todos' : cat}
+              <span className="chip-count">
+                {cat === 'todos'
+                  ? materials.length
+                  : materials.filter(m => (m.categoria || 'General') === cat).length
+                }
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Alertas de inventario */}
+      {/* Alertas de inventario mejoradas */}
       {alerts.length > 0 && (
-        <div className="inventory-alerts">
-          <h4><AlertTriangle size={18} /> Alertas de Inventario</h4>
-          <div className="alerts-grid">
-            {alerts.slice(0, 3).map(alert => (
-              <div key={alert.id} className={`alert-card alert-${alert.tipo}`}>
-                <div className="alert-icon">
-                  <AlertTriangle size={20} />
+        <div className="inventory-alerts-modern">
+          <div className="alerts-header">
+            <div className="alerts-title">
+              <AlertTriangle size={22} />
+              <h4>Alertas de Inventario</h4>
+            </div>
+            <span className="alerts-badge">{alerts.length} activas</span>
+          </div>
+          <div className="alerts-grid-modern">
+            {alerts.slice(0, 3).map((alert, index) => (
+              <div
+                key={alert.id}
+                className={`alert-card-modern alert-${alert.tipo}`}
+                style={{ animationDelay: `${index * 0.1}s` }}
+              >
+                <div className="alert-icon-modern">
+                  <AlertTriangle size={28} />
                 </div>
-                <div className="alert-content">
-                  <div className="alert-material">{alert.material}</div>
-                  <div className="alert-message">{alert.mensaje}</div>
+                <div className="alert-content-modern">
+                  <div className="alert-material-modern">{alert.material}</div>
+                  <div className="alert-message-modern">{alert.mensaje}</div>
+                  <div className="alert-status-modern">
+                    {alert.tipo === 'crítico' ? <TrendingDown size={14} /> : <AlertTriangle size={14} />}
+                    <span>{alert.tipo.toUpperCase()}</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -214,99 +338,240 @@ const InventoryComponent = ({ userType = 'admin' }) => {
         </div>
       )}
 
-      {/* Estadísticas de inventario */}
-      <div className="inventory-stats">
-        <div className="stat-card">
-          <div className="stat-icon"><Package size={24} /></div>
-          <div className="stat-data">
-            <div className="stat-value">{materials.length}</div>
-            <div className="stat-label">Total Materiales</div>
+      {/* Estadísticas mejoradas */}
+      <div className="inventory-stats-modern">
+        <div className="stat-card-modern stat-total">
+          <div className="stat-icon-modern">
+            <Package size={32} />
+          </div>
+          <div className="stat-data-modern">
+            <div className="stat-value-modern">{filteredMaterials.length}</div>
+            <div className="stat-label-modern">Total Materiales</div>
+            {searchQuery && <div className="stat-hint">de {materials.length} total</div>}
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon"><AlertTriangle size={24} /></div>
-          <div className="stat-data">
-            <div className="stat-value">
+        <div className="stat-card-modern stat-low">
+          <div className="stat-icon-modern">
+            <AlertTriangle size={32} />
+          </div>
+          <div className="stat-data-modern">
+            <div className="stat-value-modern">
               {materials.filter(m => getStockStatus(m) === 'bajo' || getStockStatus(m) === 'crítico').length}
             </div>
-            <div className="stat-label">Stock Bajo</div>
+            <div className="stat-label-modern">Stock Bajo</div>
+            <div className="stat-hint">requieren reposición</div>
+          </div>
+        </div>
+        <div className="stat-card-modern stat-critical">
+          <div className="stat-icon-modern">
+            <TrendingDown size={32} />
+          </div>
+          <div className="stat-data-modern">
+            <div className="stat-value-modern">
+              {materials.filter(m => getStockStatus(m) === 'crítico').length}
+            </div>
+            <div className="stat-label-modern">Críticos</div>
+            <div className="stat-hint">atención urgente</div>
+          </div>
+        </div>
+        <div className="stat-card-modern stat-ok">
+          <div className="stat-icon-modern">
+            <CheckCircle size={32} />
+          </div>
+          <div className="stat-data-modern">
+            <div className="stat-value-modern">
+              {materials.filter(m => getStockStatus(m) === 'normal').length}
+            </div>
+            <div className="stat-label-modern">En Orden</div>
+            <div className="stat-hint">stock adecuado</div>
           </div>
         </div>
       </div>
 
-      {/* Tabla de materiales */}
-      <div className="table-wrapper">
-        <table className="inventory-table">
-          <thead>
-            <tr>
-              <th>Código</th>
-              <th>Material</th>
-              <th>Stock Actual</th>
-              <th>Stock Mín/Máx</th>
-              <th>Proveedor</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {materials.map(material => (
-              <tr key={material.id}>
-                <td>{material.codigo}</td>
-                <td>
-                  <div className="material-info">
-                    <div className="material-name">{material.nombre}</div>
-                    <div className="material-description">{material.descripcion}</div>
-                  </div>
-                </td>
-                <td>
-                  <div className="stock-info">
-                    <span className="stock-amount">{material.stockActual}</span>
-                    <span className="stock-unit">{material.unidad}s</span>
-                  </div>
-                </td>
-                <td>
-                  <div className="stock-range">
-                    <span className="stock-min">{material.stockMinimo}</span>
-                    <span className="stock-separator">/</span>
-                    <span className="stock-max">{material.stockMaximo}</span>
-                  </div>
-                </td>
-                <td>{material.proveedor}</td>
-                <td>
-                  <span className={`stock-status stock-${getStockStatus(material)}`}>
-                    {material.estado}
-                  </span>
-                </td>
-                <td>
-                  <div className="action-buttons">
-                    <button 
-                      className="action-btn action-btn--view"
-                      onClick={() => handleViewMaterial(material)}
-                      title="Ver detalles"
-                    >
-                      Ver
-                    </button>
-                    <button 
-                      className="action-btn action-btn--edit"
-                      onClick={() => handleEditMaterial(material)}
-                      title="Editar material"
-                    >
-                      Editar
-                    </button>
-                    <button 
-                      className="action-btn action-btn--delete"
-                      onClick={() => handleDeleteMaterial(material)}
-                      title="Eliminar material"
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </td>
+      {/* Vista condicional: Tabla o Grid */}
+      {viewMode === 'table' ? (
+        <div className="table-wrapper-modern">
+          <table className="inventory-table-modern">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Material</th>
+                <th>Stock Actual</th>
+                <th>Stock Mín/Máx</th>
+                <th>Proveedor</th>
+                <th>Estado</th>
+                <th>Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filteredMaterials.map((material, index) => {
+                const status = getStockStatus(material);
+                const percentage = getStockPercentage(material);
+                const color = getStockColor(status);
+
+                return (
+                  <tr key={material.id} style={{ animationDelay: `${index * 0.05}s` }}>
+                    <td>
+                      <div className="material-code">{material.codigo}</div>
+                    </td>
+                    <td>
+                      <div className="material-info-modern">
+                        <div className="material-name-modern">{material.nombre}</div>
+                        {material.descripcion && <div className="material-description-modern">{material.descripcion}</div>}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="stock-info-modern">
+                        <div className="stock-amount-modern">{material.stockActual} <span className="stock-unit-modern">{material.unidad}s</span></div>
+                        <div className="stock-progress-bar">
+                          <div
+                            className="stock-progress-fill"
+                            style={{
+                              width: `${percentage}%`,
+                              background: color
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="stock-range-modern">
+                        <span className="stock-min-modern">{material.stockMinimo}</span>
+                        <span className="stock-separator-modern">/</span>
+                        <span className="stock-max-modern">{material.stockMaximo}</span>
+                      </div>
+                    </td>
+                    <td className="proveedor-cell">{material.proveedor || '-'}</td>
+                    <td>
+                      <span className={`stock-badge stock-badge-${status}`}>
+                        {status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="action-buttons-modern">
+                        <button
+                          className="action-btn-modern action-view"
+                          onClick={() => handleViewMaterial(material)}
+                          title="Ver detalles"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          className="action-btn-modern action-edit"
+                          onClick={() => handleEditMaterial(material)}
+                          title="Editar material"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          className="action-btn-modern action-delete"
+                          onClick={() => handleDeleteMaterial(material)}
+                          title="Eliminar material"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {filteredMaterials.length === 0 && (
+            <div className="empty-state-modern">
+              <Package size={64} />
+              <h4>No se encontraron materiales</h4>
+              <p>
+                {searchQuery
+                  ? `No hay materiales que coincidan con "${searchQuery}"`
+                  : 'No hay materiales registrados en esta categoría'}
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="materials-grid-modern">
+          {filteredMaterials.map((material, index) => {
+            const status = getStockStatus(material);
+            const percentage = getStockPercentage(material);
+            const color = getStockColor(status);
+
+            return (
+              <div
+                key={material.id}
+                className={`material-card-modern material-${status}`}
+                style={{ animationDelay: `${index * 0.05}s` }}
+              >
+                <div className="material-card-header">
+                  <div className="material-card-icon">
+                    <Package size={24} />
+                  </div>
+                  <span className={`material-status-badge badge-${status}`}>
+                    {status.toUpperCase()}
+                  </span>
+                </div>
+                <div className="material-card-body">
+                  <h4>{material.nombre}</h4>
+                  <p className="material-code-text">{material.codigo}</p>
+                  <div className="material-stock-visual">
+                    <div className="stock-value-large">
+                      {material.stockActual} <span>{material.unidad}s</span>
+                    </div>
+                    <div className="stock-progress-large">
+                      <div
+                        className="stock-progress-fill-large"
+                        style={{
+                          width: `${percentage}%`,
+                          background: color
+                        }}
+                      />
+                    </div>
+                    <div className="stock-range-text">
+                      Rango: {material.stockMinimo} - {material.stockMaximo}
+                    </div>
+                  </div>
+                  {material.proveedor && (
+                    <div className="material-proveedor">
+                      <strong>Proveedor:</strong> {material.proveedor}
+                    </div>
+                  )}
+                </div>
+                <div className="material-card-footer">
+                  <button
+                    className="card-btn card-btn-view"
+                    onClick={() => handleViewMaterial(material)}
+                  >
+                    <Eye size={16} /> Ver
+                  </button>
+                  <button
+                    className="card-btn card-btn-edit"
+                    onClick={() => handleEditMaterial(material)}
+                  >
+                    <Edit size={16} /> Editar
+                  </button>
+                  <button
+                    className="card-btn card-btn-delete"
+                    onClick={() => handleDeleteMaterial(material)}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+          {filteredMaterials.length === 0 && (
+            <div className="empty-state-modern empty-grid">
+              <Package size={64} />
+              <h4>No se encontraron materiales</h4>
+              <p>
+                {searchQuery
+                  ? `No hay materiales que coincidan con "${searchQuery}"`
+                  : 'No hay materiales registrados en esta categoría'}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 

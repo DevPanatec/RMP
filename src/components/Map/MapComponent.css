@@ -1,20 +1,192 @@
 /* ============================================
-   MAP COMPONENT - MODERN APPLE STYLE
+   MAP COMPONENT - MODERN CYBERPUNK STYLE
    ============================================ */
 
-.map-wrapper {
+/* Wrapper principal con animación de entrada */
+.map-component-wrapper {
   position: relative;
-  height: 100%;
-  width: 100%;
+  animation: mapFadeIn 0.8s ease-out;
 }
 
-.map-container {
-  height: 500px;
-  width: 100%;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-border);
+@keyframes mapFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.98) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Contenedor del mapa con efectos glass morphism */
+.map-component {
+  position: relative;
+  border-radius: 20px;
+  padding: 3px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 255, 255, 0.15) 0%,
+    rgba(139, 92, 246, 0.15) 50%,
+    rgba(236, 72, 153, 0.15) 100%
+  );
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.3),
+    0 10px 30px rgba(0, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   overflow: hidden;
-  box-shadow: var(--shadow-card);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.map-component:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 25px 70px rgba(0, 0, 0, 0.4),
+    0 15px 40px rgba(0, 255, 255, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Mapa interno */
+.leaflet-container {
+  border-radius: 17px;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+/* ============================================
+   EFECTOS AMBIENTALES CYBERPUNK
+   ============================================ */
+
+/* Scan lines holográficas mejoradas */
+.leaflet-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 255, 255, 0.04) 0px,
+    transparent 1px,
+    transparent 2px,
+    rgba(139, 92, 246, 0.03) 3px,
+    transparent 4px,
+    transparent 5px,
+    rgba(0, 255, 255, 0.04) 6px
+  );
+  pointer-events: none;
+  z-index: 1000;
+  animation: scanLinesFlow 12s linear infinite;
+  mix-blend-mode: screen;
+}
+
+@keyframes scanLinesFlow {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(20px);
+  }
+}
+
+/* Vignette effect mejorado */
+.leaflet-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    transparent 60%,
+    rgba(0, 0, 0, 0.2) 85%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  pointer-events: none;
+  z-index: 999;
+  mix-blend-mode: multiply;
+}
+
+/* Grid holográfico */
+.gps-map {
+  position: relative;
+}
+
+.gps-map .leaflet-tile-pane {
+  filter: contrast(1.05) brightness(0.95);
+}
+
+/* Corner sparkles animados */
+.map-component-wrapper::before,
+.map-component-wrapper::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(
+    circle,
+    rgba(0, 255, 255, 0.8) 0%,
+    rgba(139, 92, 246, 0.4) 50%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 10;
+  animation: sparkle 3s ease-in-out infinite;
+}
+
+.map-component-wrapper::before {
+  top: -5px;
+  left: -5px;
+  animation-delay: 0s;
+}
+
+.map-component-wrapper::after {
+  bottom: -5px;
+  right: -5px;
+  animation-delay: 1.5s;
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+/* Borde holográfico animado mejorado */
+.map-component::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(
+    90deg,
+    rgba(0, 255, 255, 0.6),
+    rgba(139, 92, 246, 0.6),
+    rgba(236, 72, 153, 0.6),
+    rgba(245, 158, 11, 0.6),
+    rgba(0, 255, 255, 0.6)
+  );
+  background-size: 300% 300%;
+  border-radius: 20px;
+  pointer-events: none;
+  z-index: -1;
+  animation: borderFlow 8s linear infinite;
+  opacity: 0.4;
+  filter: blur(2px);
+}
+
+@keyframes borderFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Leaflet Popup Customization */
@@ -43,12 +215,26 @@
   box-shadow: var(--shadow-sm) !important;
 }
 
-/* Zoom Controls */
+/* Zoom Controls mejorados */
 .leaflet-control-zoom {
   border: none !important;
-  box-shadow: var(--shadow-elevated) !important;
-  border-radius: var(--radius-md) !important;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 0 20px rgba(0, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
   overflow: hidden !important;
+  backdrop-filter: blur(10px) !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+.leaflet-control-zoom:hover {
+  transform: scale(1.05);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.15),
+    0 0 30px rgba(0, 255, 255, 0.2) !important;
 }
 
 .leaflet-control-zoom a {
@@ -247,6 +433,21 @@
   }
 }
 
+/* Loading Spinner */
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin-loader 0.8s linear infinite;
+}
+
+@keyframes spin-loader {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* Loading State */
 .map-loading {
   position: absolute;
@@ -315,24 +516,47 @@
    RUTAS PROFESIONALES CON EFECTOS
    ============================================ */
 
-/* Base Polyline Styles */
+/* Base Polyline Styles - HOLOGRAPHIC */
 .leaflet-interactive {
   stroke-linecap: round !important;
   stroke-linejoin: round !important;
 }
 
-/* Ruta con efecto glow */
-.route-glow {
-  filter: blur(8px);
-  animation: glow-pulse-route 3s ease-in-out infinite;
+/* Ruta base holográfica */
+.gps-route {
+  filter:
+    drop-shadow(0 0 8px currentColor)
+    drop-shadow(0 0 16px currentColor);
+  stroke-dasharray: 15 8 !important;
+  animation: holo-shimmer 5s linear infinite;
 }
 
-@keyframes glow-pulse-route {
-  0%, 100% {
-    opacity: 0.15;
+@keyframes holo-shimmer {
+  0% {
+    stroke-dashoffset: 0;
+    opacity: 0.7;
   }
   50% {
-    opacity: 0.3;
+    opacity: 0.85;
+  }
+  100% {
+    stroke-dashoffset: 23;
+    opacity: 0.7;
+  }
+}
+
+/* Ruta con efecto glow mejorado */
+.route-glow {
+  filter: blur(10px);
+  animation: glow-pulse-route-holo 3s ease-in-out infinite;
+}
+
+@keyframes glow-pulse-route-holo {
+  0%, 100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.4;
   }
 }
 
@@ -409,34 +633,60 @@
   opacity: 0.65;
 }
 
-/* GPS Trail activo mejorado */
+/* GPS Trail activo mejorado - HOLOGRAPHIC */
 .gps-trail-active {
   stroke-dasharray: 0 !important;
-  filter: drop-shadow(0 0 8px currentColor) drop-shadow(0 0 4px currentColor);
-  animation: trail-glow 2s ease-in-out infinite;
+  filter:
+    drop-shadow(0 0 12px currentColor)
+    drop-shadow(0 0 6px currentColor)
+    drop-shadow(0 0 24px currentColor);
+  animation: trail-glow-holo 2s ease-in-out infinite;
 }
 
-@keyframes trail-glow {
+@keyframes trail-glow-holo {
   0%, 100% {
-    opacity: 0.6;
+    opacity: 0.7;
+    filter:
+      drop-shadow(0 0 12px currentColor)
+      drop-shadow(0 0 6px currentColor);
   }
   50% {
     opacity: 1;
+    filter:
+      drop-shadow(0 0 20px currentColor)
+      drop-shadow(0 0 10px currentColor)
+      drop-shadow(0 0 30px currentColor);
   }
 }
 
-/* Ruta GPS activa */
+/* Ruta GPS activa - HOLOGRAPHIC DATA FLOW */
 .gps-route-active {
-  filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.8));
-  animation: route-pulse 3s ease-in-out infinite;
+  filter:
+    drop-shadow(0 0 12px rgba(16, 185, 129, 0.9))
+    drop-shadow(0 0 24px rgba(16, 185, 129, 0.6));
+  stroke-dasharray: 20 10 !important;
+  animation:
+    route-pulse-holo 3s ease-in-out infinite,
+    data-flow 4s linear infinite;
 }
 
-@keyframes route-pulse {
+@keyframes route-pulse-holo {
   0%, 100% {
     opacity: 0.85;
+    stroke-width: inherit;
   }
   50% {
     opacity: 1;
+    stroke-width: calc(inherit * 1.15);
+  }
+}
+
+@keyframes data-flow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 30;
   }
 }
 
@@ -499,107 +749,164 @@
   border: 1px solid rgba(107, 114, 128, 0.3);
 }
 
-/* Modern Pin Stops - Google Maps/Waze Style */
+/* Modern Pin Stops - HEXAGONAL TECH STYLE */
 .stop-pin-modern {
   position: relative;
-  width: 40px;
-  height: 56px;
-  animation: pinBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  width: 44px;
+  height: 44px;
+  animation: hexBounce 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
-@keyframes pinBounce {
+@keyframes hexBounce {
   0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-15px) scale(1.05); }
-  75% { transform: translateY(-7px) scale(1.02); }
+  50% { transform: translateY(-12px) scale(1.08); }
+  75% { transform: translateY(-6px) scale(1.03); }
 }
 
-/* Pin Head (círculo superior) */
+/* Pin Head (hexágono) */
 .pin-head {
   width: 40px;
   height: 40px;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
   position: absolute;
   top: 0;
-  left: 0;
+  left: 2px;
   box-shadow:
-    0 8px 20px rgba(0, 0, 0, 0.25),
-    0 4px 10px rgba(0, 0, 0, 0.15),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.1),
-    inset 0 2px 4px rgba(255, 255, 255, 0.3);
+    0 0 16px currentColor,
+    0 0 32px currentColor,
+    0 8px 24px rgba(0, 0, 0, 0.3),
+    inset 0 0 12px rgba(255, 255, 255, 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: visible;
+  animation: hex-glow 3s ease-in-out infinite;
+}
+
+/* Anillos rotatorios del hexágono */
+.pin-head::before,
+.pin-head::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+  border: 2px solid currentColor;
+  opacity: 0.5;
+  animation: ring-rotate-1 4s linear infinite;
+  box-shadow: 0 0 12px currentColor;
+}
+
+.pin-head::after {
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  border-width: 1px;
+  opacity: 0.3;
+  animation: ring-rotate-2 6s linear infinite reverse;
+}
+
+@keyframes ring-rotate-1 {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ring-rotate-2 {
+  from { transform: rotate(0deg) scale(1.05); }
+  to { transform: rotate(360deg) scale(1.05); }
+}
+
+@keyframes hex-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 16px currentColor,
+      0 0 32px currentColor,
+      0 8px 24px rgba(0, 0, 0, 0.3),
+      inset 0 0 12px rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 24px currentColor,
+      0 0 48px currentColor,
+      0 12px 32px rgba(0, 0, 0, 0.4),
+      inset 0 0 18px rgba(255, 255, 255, 0.4);
+  }
 }
 
 .stop-pin-modern:hover .pin-head {
-  transform: rotate(-45deg) scale(1.15);
+  transform: scale(1.15);
   box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.35),
-    0 6px 14px rgba(0, 0, 0, 0.2),
-    inset 0 -2px 4px rgba(0, 0, 0, 0.1),
-    inset 0 2px 6px rgba(255, 255, 255, 0.4);
+    0 0 24px currentColor,
+    0 0 48px currentColor,
+    0 12px 32px rgba(0, 0, 0, 0.4),
+    inset 0 0 18px rgba(255, 255, 255, 0.4);
 }
 
-/* Pin Content (número/icono) */
+/* Pin Content (número/icono) - TECH */
 .pin-content {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%) rotate(45deg);
-  font-size: 18px;
-  font-weight: 800;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  font-weight: 900;
   color: #ffffff;
   text-shadow:
+    0 0 8px rgba(0, 0, 0, 0.5),
     0 2px 4px rgba(0, 0, 0, 0.3),
-    0 1px 2px rgba(0, 0, 0, 0.2);
+    0 0 12px currentColor;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 100%;
+  z-index: 2;
+  letter-spacing: -0.5px;
 }
 
-/* Pin Tip (punta triangular) */
+/* Pin Tip - REMOVED (usando hexágonos) */
 .pin-tip {
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  position: absolute;
-  bottom: 0;
-  left: 12px;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+  display: none;
 }
 
-.stop-pin-completed .pin-tip {
-  border-top: 16px solid #059669;
-}
-
-.stop-pin-current .pin-tip {
-  border-top: 16px solid #ef4444;
-}
-
+.stop-pin-completed .pin-tip,
+.stop-pin-current .pin-tip,
 .stop-pin-pending .pin-tip {
-  border-top: 16px solid #6b7280;
+  display: none;
 }
 
-/* Pin Shadow (sombra elíptica) */
+/* Pin Shadow (sombra holográfica) */
 .pin-shadow {
   position: absolute;
-  bottom: -8px;
+  bottom: -12px;
   left: 50%;
   transform: translateX(-50%);
-  width: 24px;
-  height: 8px;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.3) 0%, transparent 70%);
+  width: 32px;
+  height: 4px;
+  background: radial-gradient(ellipse, currentColor 0%, transparent 70%);
   border-radius: 50%;
+  opacity: 0.4;
+  filter: blur(4px);
   transition: all 0.3s ease;
+  animation: shadow-pulse-hex 3s ease-in-out infinite;
+}
+
+@keyframes shadow-pulse-hex {
+  0%, 100% {
+    opacity: 0.4;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: translateX(-50%) scale(1.1);
+  }
 }
 
 .stop-pin-modern:hover .pin-shadow {
-  width: 32px;
-  height: 10px;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.4) 0%, transparent 70%);
+  width: 40px;
+  opacity: 0.6;
+  filter: blur(6px);
 }
 
 /* Pulse effect for current stop */
@@ -678,7 +985,7 @@
   transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Icono del vehículo 3D */
+/* Icono del vehículo 3D - TECH ENHANCED */
 .vehicle-icon-3d {
   position: absolute;
   top: 50%;
@@ -692,7 +999,52 @@
   justify-content: center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 2;
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 0 12px currentColor,
+    0 0 24px currentColor,
+    inset 0 0 8px rgba(255, 255, 255, 0.2);
+  animation: vehicle-glow-pulse 2.5s ease-in-out infinite;
+}
+
+/* Escáner holográfico del vehículo */
+.vehicle-icon-3d::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border: 1px solid currentColor;
+  border-radius: 10px;
+  opacity: 0.4;
+  animation: scanner-sweep 3s linear infinite;
+}
+
+@keyframes scanner-sweep {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes vehicle-glow-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 12px currentColor,
+      0 0 24px currentColor,
+      inset 0 0 8px rgba(255, 255, 255, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 16px currentColor,
+      0 0 32px currentColor,
+      inset 0 0 12px rgba(255, 255, 255, 0.3);
+  }
 }
 
 .vehicle-icon-3d:hover {
@@ -705,7 +1057,7 @@
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
-/* Pulso animado para vehículos en movimiento */
+/* Pulso animado para vehículos en movimiento - TECH ENHANCED */
 .vehicle-pulse {
   position: absolute;
   top: 50%;
@@ -715,10 +1067,32 @@
   height: 44px;
   border: 3px solid;
   border-radius: 50%;
-  animation: pulse-rings 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: pulse-rings-tech 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   z-index: 1;
   opacity: 0.9;
-  filter: drop-shadow(0 0 6px currentColor);
+  filter: drop-shadow(0 0 8px currentColor) drop-shadow(0 0 12px currentColor);
+  box-shadow:
+    0 0 20px currentColor,
+    inset 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+/* Anillo de escaneo tech */
+.vehicle-pulse::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  border: 2px dashed currentColor;
+  border-radius: 50%;
+  animation: rotate-scan 4s linear infinite;
+  opacity: 0.5;
+}
+
+@keyframes rotate-scan {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @keyframes pulse-rings {
@@ -732,32 +1106,92 @@
   }
 }
 
-/* Estela de movimiento */
+@keyframes pulse-rings-tech {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 1;
+    box-shadow: 0 0 20px currentColor, inset 0 0 10px rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.3);
+    opacity: 0.2;
+    box-shadow: 0 0 40px currentColor, inset 0 0 20px rgba(255, 255, 255, 0.5);
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 1;
+    box-shadow: 0 0 20px currentColor, inset 0 0 10px rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Estela de movimiento - NEON TECH */
 .vehicle-trail {
   position: absolute;
   top: 50%;
   right: 55%;
   transform: translateY(-50%);
-  width: 18px;
-  height: 3px;
-  border-radius: 1.5px;
-  animation: trail-flow 1.5s linear infinite;
+  width: 24px;
+  height: 4px;
+  border-radius: 2px;
+  animation: trail-flow-tech 1.2s linear infinite;
   z-index: 0;
-  opacity: 0.5;
+  opacity: 0.8;
+  filter: blur(1px);
+  box-shadow:
+    0 0 8px currentColor,
+    0 0 16px currentColor,
+    0 0 24px currentColor;
 }
 
-@keyframes trail-flow {
+/* Partículas de la estela */
+.vehicle-trail::before,
+.vehicle-trail::after {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  animation: particle-drift 0.8s ease-out infinite;
+}
+
+.vehicle-trail::before {
+  left: 25%;
+  animation-delay: 0.2s;
+}
+
+.vehicle-trail::after {
+  left: 50%;
+  animation-delay: 0.4s;
+}
+
+@keyframes trail-flow-tech {
   0% {
-    width: 18px;
-    opacity: 0.5;
+    width: 24px;
+    opacity: 0.8;
+    filter: blur(1px);
   }
   50% {
-    width: 12px;
-    opacity: 0.7;
+    width: 16px;
+    opacity: 1;
+    filter: blur(2px);
   }
   100% {
-    width: 18px;
-    opacity: 0.5;
+    width: 24px;
+    opacity: 0.8;
+    filter: blur(1px);
+  }
+}
+
+@keyframes particle-drift {
+  0% {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-12px) scale(0.3);
+    opacity: 0;
   }
 }
 
@@ -2303,4 +2737,234 @@
     height: 36px;
     font-size: 13px;
   }
+}
+
+/* ============================================
+   GRID OVERLAY OPCIONAL (Holográfico)
+   ============================================ */
+
+.gps-map.with-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 998;
+  animation: gridPulse 4s ease-in-out infinite;
+}
+
+@keyframes gridPulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* Tablets y pantallas medianas */
+@media (max-width: 1024px) {
+  .leaflet-container {
+    height: 650px !important;
+  }
+
+  .map-component {
+    border-radius: 16px;
+  }
+
+  .map-component-wrapper::before,
+  .map-component-wrapper::after {
+    width: 15px;
+    height: 15px;
+  }
+}
+
+/* Móviles y pantallas pequeñas */
+@media (max-width: 768px) {
+  .leaflet-container {
+    height: 500px !important;
+  }
+
+  .map-component {
+    border-radius: 12px;
+    padding: 2px;
+  }
+
+  .leaflet-container {
+    border-radius: 10px;
+  }
+
+  .map-component-wrapper::before,
+  .map-component-wrapper::after {
+    display: none; /* Ocultar sparkles en móvil */
+  }
+
+  /* Scan lines más sutiles en móvil */
+  .leaflet-container::before {
+    opacity: 0.3;
+  }
+
+  /* Controles de zoom más pequeños */
+  .leaflet-control-zoom {
+    transform: scale(0.9);
+  }
+}
+
+/* Móviles pequeños */
+@media (max-width: 480px) {
+  .leaflet-container {
+    height: 400px !important;
+  }
+
+  .map-component {
+    border-radius: 10px;
+  }
+}
+
+/* ============================================
+   LOADING STATE
+   ============================================ */
+
+.map-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.8) 0%,
+    rgba(0, 0, 0, 0.9) 100%
+  );
+  z-index: 10000;
+  border-radius: 17px;
+}
+
+.map-loading-content {
+  text-align: center;
+  color: rgba(0, 255, 255, 0.9);
+}
+
+.map-loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(0, 255, 255, 0.1);
+  border-top-color: rgba(0, 255, 255, 0.8);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.map-loading-text {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   MARCADORES DE PUNTOS DE LIMPIEZA
+   ============================================ */
+
+.custom-location-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.location-marker-container {
+  position: relative;
+  width: 30px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Pulso animado */
+.location-pulse {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 24px;
+  background: rgba(16, 185, 129, 0.3);
+  border-radius: 50%;
+  animation: locationPulse 2s ease-out infinite;
+}
+
+@keyframes locationPulse {
+  0% {
+    transform: translateX(-50%) scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* Ícono principal */
+.location-icon-main {
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  transition: transform 0.2s ease;
+}
+
+.location-marker-container:hover .location-icon-main {
+  transform: scale(1.1) translateY(-2px);
+}
+
+/* Sombra del marcador */
+.location-shadow {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 6px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.3) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+/* Mini popup de Leaflet para ubicaciones */
+.location-popup-mini {
+  padding: 8px 12px;
+  min-width: 150px;
+}
+
+.location-popup-mini h4 {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.location-popup-mini p {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
 }

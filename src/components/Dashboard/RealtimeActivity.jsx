@@ -139,14 +139,6 @@ const ActivityItem = ({ activity, delay }) => {
           label: 'Ruta Completada',
           badgeColor: '#8b5cf6'
         };
-      case 'mantenimiento':
-        return {
-          icon: <Wrench size={16} />,
-          color: '#f59e0b',
-          bgColor: 'rgba(245, 158, 11, 0.08)',
-          label: 'Mantenimiento',
-          badgeColor: '#f59e0b'
-        };
       default:
         return {
           icon: <Truck size={16} />,

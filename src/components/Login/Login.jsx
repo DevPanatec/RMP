@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
+import { useDemoMode } from '../../hooks/useDemoMode';
 import CreateTestUsers from '../CreateTestUsers/CreateTestUsers';
-import { Settings, Building, Truck, Eye, EyeOff, CheckCircle, XCircle } from '../Icons';
+import { Settings, Building, Truck, Eye, EyeOff, CheckCircle, XCircle, Sparkles } from '../Icons';
 import './Login.css';
 
 const Login = ({ onLogin }) => {
   const { signIn, loading, error: authError } = useSupabaseAuth();
+  const { isDemoMode, toggleDemoMode } = useDemoMode();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -204,14 +206,25 @@ const Login = ({ onLogin }) => {
           <p style={{ fontSize: '12px', color: '#666', marginTop: '16px', textAlign: 'center' }}>
             🔒 Autenticación segura con Supabase
           </p>
-          <button 
-            type="button"
-            className="btn btn--outline btn--sm"
-            onClick={() => setShowCreateUsers(true)}
-            style={{ marginTop: '12px', width: '100%' }}
-          >
-            <Settings size={16} /> Crear Usuarios de Prueba
-          </button>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+            <button
+              type="button"
+              className="btn btn--outline btn--sm"
+              onClick={() => setShowCreateUsers(true)}
+              style={{ flex: 1 }}
+            >
+              <Settings size={16} /> Crear Usuarios
+            </button>
+            <button
+              type="button"
+              className={`btn ${isDemoMode ? 'btn--primary' : 'btn--outline'} btn--sm`}
+              onClick={toggleDemoMode}
+              title={isDemoMode ? 'Desactivar modo demo' : 'Activar modo demo'}
+              style={{ flex: 1 }}
+            >
+              <Sparkles size={16} /> {isDemoMode ? 'Demo ON' : 'Demo OFF'}
+            </button>
+          </div>
         </div>
       </div>
 

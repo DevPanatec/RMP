@@ -251,55 +251,6 @@ export const DEMO_PERSONNEL = [
     certificacion: 'Fumigación Nivel 2',
     estado: 'activo',
     vehiculo_asignado: 'demo-vehicle-3'
-  },
-  {
-    id: 'demo-conductor-4',
-    nombre: 'Ana Castillo',
-    apellido: 'Ramírez',
-    cargo: 'Conductor',
-    departamento: 'Operaciones',
-    telefono: '+507 6456-7890',
-    email: 'ana.castillo@rmp.com',
-    fecha_contratacion: '2021-08-05',
-    licencia: 'A-456789',
-    estado: 'activo',
-    vehiculo_asignado: 'demo-vehicle-4'
-  },
-  {
-    id: 'demo-conductor-5',
-    nombre: 'Roberto Sánchez',
-    apellido: 'Torres',
-    cargo: 'Técnico Fumigación',
-    departamento: 'Fumigación',
-    telefono: '+507 6567-8901',
-    email: 'roberto.sanchez@rmp.com',
-    fecha_contratacion: '2022-06-12',
-    licencia: 'B-567890',
-    certificacion: 'Fumigación Nivel 1',
-    estado: 'activo',
-    vehiculo_asignado: 'demo-vehicle-6'
-  },
-  {
-    id: 'demo-admin-1',
-    nombre: 'Laura Fernández',
-    apellido: 'Morales',
-    cargo: 'Supervisor',
-    departamento: 'Operaciones',
-    telefono: '+507 6678-9012',
-    email: 'laura.fernandez@rmp.com',
-    fecha_contratacion: '2019-04-01',
-    estado: 'activo'
-  },
-  {
-    id: 'demo-admin-2',
-    nombre: 'Pedro Gutiérrez',
-    apellido: 'Silva',
-    cargo: 'Coordinador',
-    departamento: 'Logística',
-    telefono: '+507 6789-0123',
-    email: 'pedro.gutierrez@rmp.com',
-    fecha_contratacion: '2020-02-15',
-    estado: 'activo'
   }
 ];
 
@@ -311,7 +262,7 @@ export const DEMO_ALERTS = [
     ubicacion: 'Avenida Balboa, Ciudad de Panamá',
     latitud: 8.9679,
     longitud: -79.5339,
-    fecha: new Date(Date.now() - 7200000).toISOString(), // Hace 2 horas
+    fecha: new Date(Date.now() - 600000).toISOString(), // Hace 10 minutos
     estado: 'activa',
     prioridad: 'alta',
     reportado_por: 'demo-conductor-1',
@@ -324,7 +275,7 @@ export const DEMO_ALERTS = [
     ubicacion: 'Vía España, Ciudad de Panamá',
     latitud: 9.0010,
     longitud: -79.5200,
-    fecha: new Date(Date.now() - 10800000).toISOString(), // Hace 3 horas
+    fecha: new Date(Date.now() - 1800000).toISOString(), // Hace 30 minutos
     estado: 'en_proceso',
     prioridad: 'media',
     reportado_por: 'demo-conductor-2',
@@ -337,7 +288,7 @@ export const DEMO_ALERTS = [
     ubicacion: 'Parque Lefevre, Ciudad de Panamá',
     latitud: 9.0515,
     longitud: -79.4850,
-    fecha: new Date(Date.now() - 14400000).toISOString(), // Hace 4 horas
+    fecha: new Date(Date.now() - 3600000).toISOString(), // Hace 1 hora
     estado: 'resuelta',
     prioridad: 'baja',
     reportado_por: 'demo-conductor-4',
@@ -492,151 +443,192 @@ export const DEMO_LUGARES = [
   }
 ];
 
-// Assignments de limpieza demo
+// Áreas demo para limpieza
+export const DEMO_AREAS = [
+  { id: 'demo-area-1', nombre: 'Zona de Carga y Descarga', lugar_id: 'demo-lugar-1', activo: true },
+  { id: 'demo-area-2', nombre: 'Área de Venta Principal', lugar_id: 'demo-lugar-1', activo: true },
+  { id: 'demo-area-3', nombre: 'Muelle de Pescadores', lugar_id: 'demo-lugar-2', activo: true },
+  { id: 'demo-area-4', nombre: 'Zona de Limpieza de Pescado', lugar_id: 'demo-lugar-2', activo: true },
+  { id: 'demo-area-5', nombre: 'Plaza Central', lugar_id: 'demo-lugar-3', activo: true },
+  { id: 'demo-area-6', nombre: 'Estacionamiento', lugar_id: 'demo-lugar-3', activo: true },
+  { id: 'demo-area-7', nombre: 'Entrada Principal', lugar_id: 'demo-lugar-4', activo: true },
+  { id: 'demo-area-8', nombre: 'Patio Interior', lugar_id: 'demo-lugar-4', activo: true },
+  { id: 'demo-area-9', nombre: 'Zona de Frutas y Verduras', lugar_id: 'demo-lugar-5', activo: true },
+  { id: 'demo-area-10', nombre: 'Área de Carnes', lugar_id: 'demo-lugar-5', activo: true }
+];
+
+// Assignments de limpieza demo con estructura completa
 export const DEMO_CLEANING_ASSIGNMENTS = [
   // Mercado de Alcalde Díaz
   {
     id: 'demo-cleaning-1',
     lugar_id: 'demo-lugar-1',
+    area_id: 'demo-area-1',
+    lugar: { id: 'demo-lugar-1', nombre: 'Mercado de Alcalde Díaz' },
+    area: { id: 'demo-area-1', nombre: 'Zona de Carga y Descarga' },
     fecha: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Ayer
-    hora_inicio: '06:00',
-    hora_fin: '08:30',
-    tipo: 'recoleccion',
+    hora: '06:00',
     estado: 'completado',
-    personal_asignado: 'demo-conductor-1',
-    observaciones: 'Limpieza completa realizada. Todas las áreas fueron atendidas.',
+    notas: 'Limpieza completa realizada. Todas las áreas fueron atendidas. Recolección de 250kg de residuos.',
     fotos: [
-      { etapa: 'antes', url: '/placeholder-before.jpg' },
-      { etapa: 'despues', url: '/placeholder-after.jpg' }
-    ]
+      { id: 'demo-photo-1', etapa: 'antes', url: 'https://via.placeholder.com/800x600/808080/FFFFFF?text=Antes+-+Mercado+Alcalde+Diaz', file_name: 'antes_1.jpg' },
+      { id: 'demo-photo-2', etapa: 'despues', url: 'https://via.placeholder.com/800x600/4CAF50/FFFFFF?text=Despues+-+Area+Limpia', file_name: 'despues_1.jpg' }
+    ],
+    created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
   },
   {
     id: 'demo-cleaning-2',
     lugar_id: 'demo-lugar-1',
+    area_id: 'demo-area-2',
+    lugar: { id: 'demo-lugar-1', nombre: 'Mercado de Alcalde Díaz' },
+    area: { id: 'demo-area-2', nombre: 'Área de Venta Principal' },
     fecha: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Hace 8 días
-    hora_inicio: '06:00',
-    hora_fin: '08:00',
-    tipo: 'recoleccion',
+    hora: '06:00',
     estado: 'completado',
-    personal_asignado: 'demo-conductor-2',
-    observaciones: 'Recolección de residuos sólidos.',
-    fotos: []
+    notas: 'Recolección de residuos sólidos. Coordinación con vendedores.',
+    fotos: [
+      { id: 'demo-photo-3', etapa: 'antes', url: 'https://via.placeholder.com/800x600/808080/FFFFFF?text=Antes+-+Zona+de+Ventas', file_name: 'antes_2.jpg' },
+      { id: 'demo-photo-4', etapa: 'durante', url: 'https://via.placeholder.com/800x600/FFA726/FFFFFF?text=Durante+-+Limpieza', file_name: 'durante_2.jpg' },
+      { id: 'demo-photo-5', etapa: 'despues', url: 'https://via.placeholder.com/800x600/4CAF50/FFFFFF?text=Despues+-+Limpio', file_name: 'despues_2.jpg' }
+    ],
+    created_at: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString()
   },
 
   // Mercado del Marisco
   {
     id: 'demo-cleaning-3',
     lugar_id: 'demo-lugar-2',
+    area_id: 'demo-area-3',
+    lugar: { id: 'demo-lugar-2', nombre: 'Mercado del Marisco' },
+    area: { id: 'demo-area-3', nombre: 'Muelle de Pescadores' },
     fecha: new Date().toISOString().split('T')[0], // Hoy
-    hora_inicio: '05:30',
-    hora_fin: '07:45',
-    tipo: 'recoleccion',
+    hora: '05:30',
     estado: 'completado',
-    personal_asignado: 'demo-conductor-3',
-    observaciones: 'Limpieza especial por alta actividad del mercado. Residuos orgánicos gestionados.',
+    notas: 'Limpieza especial por alta actividad del mercado. Residuos orgánicos gestionados. 380kg recolectados.',
     fotos: [
-      { etapa: 'antes', url: '/placeholder-before.jpg' },
-      { etapa: 'durante', url: '/placeholder-during.jpg' },
-      { etapa: 'despues', url: '/placeholder-after.jpg' }
-    ]
+      { id: 'demo-photo-6', etapa: 'antes', url: 'https://via.placeholder.com/800x600/808080/FFFFFF?text=Antes+-+Muelle+Pescadores', file_name: 'antes_3.jpg' },
+      { id: 'demo-photo-7', etapa: 'durante', url: 'https://via.placeholder.com/800x600/FFA726/FFFFFF?text=Durante+-+Proceso', file_name: 'durante_3.jpg' },
+      { id: 'demo-photo-8', etapa: 'despues', url: 'https://via.placeholder.com/800x600/4CAF50/FFFFFF?text=Despues+-+Completo', file_name: 'despues_3.jpg' }
+    ],
+    created_at: new Date().toISOString()
   },
   {
     id: 'demo-cleaning-4',
     lugar_id: 'demo-lugar-2',
+    area_id: 'demo-area-4',
+    lugar: { id: 'demo-lugar-2', nombre: 'Mercado del Marisco' },
+    area: { id: 'demo-area-4', nombre: 'Zona de Limpieza de Pescado' },
     fecha: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Hace 2 días
-    hora_inicio: '05:30',
-    hora_fin: '07:30',
-    tipo: 'recoleccion',
+    hora: '05:30',
     estado: 'completado',
-    personal_asignado: 'demo-conductor-1',
-    observaciones: 'Recolección rutinaria de residuos del mercado.',
-    fotos: []
+    notas: 'Recolección rutinaria de residuos del mercado. Limpieza profunda de área de procesamiento.',
+    fotos: [
+      { id: 'demo-photo-9', etapa: 'antes', url: 'https://via.placeholder.com/800x600/808080/FFFFFF?text=Antes+-+Zona+Limpieza', file_name: 'antes_4.jpg' },
+      { id: 'demo-photo-10', etapa: 'despues', url: 'https://via.placeholder.com/800x600/4CAF50/FFFFFF?text=Despues+-+Sanitizado', file_name: 'despues_4.jpg' }
+    ],
+    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
   },
 
   // Mercado de Pacora
   {
     id: 'demo-cleaning-5',
     lugar_id: 'demo-lugar-3',
+    area_id: 'demo-area-5',
+    lugar: { id: 'demo-lugar-3', nombre: 'Mercado de Pacora' },
+    area: { id: 'demo-area-5', nombre: 'Plaza Central' },
     fecha: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Ayer
-    hora_inicio: '07:00',
-    hora_fin: '09:00',
-    tipo: 'recoleccion',
+    hora: '07:00',
     estado: 'completado',
-    personal_asignado: 'demo-conductor-4',
-    observaciones: 'Limpieza general del área del mercado.',
+    notas: 'Limpieza general del área del mercado. Barrido y lavado de plaza.',
     fotos: [
-      { etapa: 'antes', url: '/placeholder-before.jpg' },
-      { etapa: 'despues', url: '/placeholder-after.jpg' }
-    ]
+      { id: 'demo-photo-11', etapa: 'antes', url: 'https://via.placeholder.com/800x600/808080/FFFFFF?text=Antes+-+Plaza+Pacora', file_name: 'antes_5.jpg' },
+      { id: 'demo-photo-12', etapa: 'durante', url: 'https://via.placeholder.com/800x600/FFA726/FFFFFF?text=Durante+-+Lavado', file_name: 'durante_5.jpg' },
+      { id: 'demo-photo-13', etapa: 'despues', url: 'https://via.placeholder.com/800x600/4CAF50/FFFFFF?text=Despues+-+Plaza+Limpia', file_name: 'despues_5.jpg' }
+    ],
+    created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
   },
   {
     id: 'demo-cleaning-6',
     lugar_id: 'demo-lugar-3',
+    area_id: 'demo-area-6',
+    lugar: { id: 'demo-lugar-3', nombre: 'Mercado de Pacora' },
+    area: { id: 'demo-area-6', nombre: 'Estacionamiento' },
     fecha: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Hace 7 días
-    hora_inicio: '07:00',
-    hora_fin: '08:45',
-    tipo: 'recoleccion',
+    hora: '07:00',
     estado: 'completado',
-    personal_asignado: 'demo-conductor-2',
-    observaciones: 'Manejo de residuos del mercado semanal.',
-    fotos: []
+    notas: 'Manejo de residuos del mercado semanal. Limpieza de estacionamiento.',
+    fotos: [
+      { id: 'demo-photo-14', etapa: 'antes', url: 'https://via.placeholder.com/800x600/808080/FFFFFF?text=Antes+-+Estacionamiento', file_name: 'antes_6.jpg' },
+      { id: 'demo-photo-15', etapa: 'despues', url: 'https://via.placeholder.com/800x600/4CAF50/FFFFFF?text=Despues+-+Ordenado', file_name: 'despues_6.jpg' }
+    ],
+    created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   },
 
   // San Felipe Neri
   {
     id: 'demo-cleaning-7',
     lugar_id: 'demo-lugar-4',
+    area_id: 'demo-area-7',
+    lugar: { id: 'demo-lugar-4', nombre: 'Mercado San Felipe Neri' },
+    area: { id: 'demo-area-7', nombre: 'Entrada Principal' },
     fecha: new Date().toISOString().split('T')[0], // Hoy
-    hora_inicio: '06:30',
-    hora_fin: null,
-    tipo: 'recoleccion',
+    hora: '06:30',
     estado: 'en_progreso',
-    personal_asignado: 'demo-conductor-3',
-    observaciones: 'Limpieza en curso en el Casco Antiguo.',
+    notas: 'Limpieza en curso en el Casco Antiguo. Preservación del patrimonio histórico.',
     fotos: [
-      { etapa: 'antes', url: '/placeholder-before.jpg' }
-    ]
+      { id: 'demo-photo-16', etapa: 'antes', url: 'https://via.placeholder.com/800x600/808080/FFFFFF?text=Antes+-+Entrada+Principal', file_name: 'antes_7.jpg' },
+      { id: 'demo-photo-17', etapa: 'durante', url: 'https://via.placeholder.com/800x600/FFA726/FFFFFF?text=Durante+-+En+Proceso', file_name: 'durante_7.jpg' }
+    ],
+    created_at: new Date().toISOString()
   },
   {
     id: 'demo-cleaning-8',
     lugar_id: 'demo-lugar-4',
+    area_id: 'demo-area-8',
+    lugar: { id: 'demo-lugar-4', nombre: 'Mercado San Felipe Neri' },
+    area: { id: 'demo-area-8', nombre: 'Patio Interior' },
     fecha: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Hace 3 días
-    hora_inicio: '06:30',
-    hora_fin: '08:15',
-    tipo: 'recoleccion',
+    hora: '06:30',
     estado: 'completado',
-    personal_asignado: 'demo-conductor-1',
-    observaciones: 'Limpieza histórica preservando el entorno.',
-    fotos: []
+    notas: 'Limpieza histórica preservando el entorno. Uso de productos eco-amigables.',
+    fotos: [
+      { id: 'demo-photo-18', etapa: 'antes', url: 'https://via.placeholder.com/800x600/808080/FFFFFF?text=Antes+-+Patio+Interior', file_name: 'antes_8.jpg' },
+      { id: 'demo-photo-19', etapa: 'durante', url: 'https://via.placeholder.com/800x600/FFA726/FFFFFF?text=Durante+-+Limpieza+Detallada', file_name: 'durante_8.jpg' },
+      { id: 'demo-photo-20', etapa: 'despues', url: 'https://via.placeholder.com/800x600/4CAF50/FFFFFF?text=Despues+-+Restaurado', file_name: 'despues_8.jpg' }
+    ],
+    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
   },
 
   // Pueblo Nuevo
   {
     id: 'demo-cleaning-9',
     lugar_id: 'demo-lugar-5',
+    area_id: 'demo-area-9',
+    lugar: { id: 'demo-lugar-5', nombre: 'Mercado de Pueblo Nuevo' },
+    area: { id: 'demo-area-9', nombre: 'Zona de Frutas y Verduras' },
     fecha: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Mañana
-    hora_inicio: '06:00',
-    hora_fin: null,
-    tipo: 'recoleccion',
+    hora: '06:00',
     estado: 'pendiente',
-    personal_asignado: 'demo-conductor-2',
-    observaciones: 'Limpieza programada para mañana.',
-    fotos: []
+    notas: 'Limpieza programada para mañana. Coordinación con vendedores confirmada.',
+    fotos: [],
+    created_at: new Date().toISOString()
   },
   {
     id: 'demo-cleaning-10',
     lugar_id: 'demo-lugar-5',
+    area_id: 'demo-area-10',
+    lugar: { id: 'demo-lugar-5', nombre: 'Mercado de Pueblo Nuevo' },
+    area: { id: 'demo-area-10', nombre: 'Área de Carnes' },
     fecha: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Hace 4 días
-    hora_inicio: '06:00',
-    hora_fin: '08:00',
-    tipo: 'recoleccion',
+    hora: '06:00',
     estado: 'completado',
-    personal_asignado: 'demo-conductor-4',
-    observaciones: 'Recolección eficiente completada sin incidentes.',
+    notas: 'Recolección eficiente completada sin incidentes. Sanitización profunda realizada. 195kg procesados.',
     fotos: [
-      { etapa: 'antes', url: '/placeholder-before.jpg' },
-      { etapa: 'despues', url: '/placeholder-after.jpg' }
-    ]
+      { id: 'demo-photo-21', etapa: 'antes', url: 'https://via.placeholder.com/800x600/808080/FFFFFF?text=Antes+-+Area+Carnes', file_name: 'antes_10.jpg' },
+      { id: 'demo-photo-22', etapa: 'durante', url: 'https://via.placeholder.com/800x600/FFA726/FFFFFF?text=Durante+-+Sanitizacion', file_name: 'durante_10.jpg' },
+      { id: 'demo-photo-23', etapa: 'despues', url: 'https://via.placeholder.com/800x600/4CAF50/FFFFFF?text=Despues+-+Sanitizado', file_name: 'despues_10.jpg' }
+    ],
+    created_at: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
   }
 ];
 

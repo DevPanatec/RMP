@@ -38,6 +38,7 @@ export {
   Users,
   LogOut,
   TrendingUp,
+  TrendingDown,
   Download,
   Activity,
   Zap,
@@ -58,5 +59,9 @@ export {
   Camera,
   ChevronRight,
   ChevronLeft,
-  ChevronDown
+  ChevronDown,
+  Maximize2,
+  Minimize2,
+  LayoutGrid,
+  List
 } from 'lucide-react';

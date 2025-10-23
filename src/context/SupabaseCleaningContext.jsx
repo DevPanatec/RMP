@@ -1,5 +1,7 @@
 import { createContext, useContext, useReducer, useEffect } from 'react';
 import supabaseClient from '../utils/supabaseClient';
+import { useDemoMode } from '../hooks/useDemoMode';
+import { DEMO_LUGARES, DEMO_AREAS, DEMO_CLEANING_ASSIGNMENTS, mergeDemoData } from '../utils/demoData';
 
 // Crear el contexto
 const SupabaseCleaningContext = createContext();
@@ -90,13 +92,14 @@ const initialState = {
 // Provider del contexto
 export const SupabaseCleaningProvider = ({ children }) => {
   const [state, dispatch] = useReducer(cleaningReducer, initialState);
+  const { isDemoMode } = useDemoMode();
 
-  // Cargar lugares al iniciar
+  // Cargar lugares al iniciar y cuando cambie el modo demo
   useEffect(() => {
     loadLugares();
     loadAreas();
     loadAssignments();
-  }, []);
+  }, [isDemoMode]);
 
   // Cargar lugares desde Supabase
   const loadLugares = async () => {
@@ -109,7 +112,8 @@ export const SupabaseCleaningProvider = ({ children }) => {
 
       if (error) throw error;
 
-      dispatch({ type: ACTIONS.SET_LUGARES, payload: data || [] });
+      const finalLugares = isDemoMode ? mergeDemoData(data || [], DEMO_LUGARES) : (data || []);
+      dispatch({ type: ACTIONS.SET_LUGARES, payload: finalLugares });
     } catch (error) {
       console.error('Error loading lugares:', error);
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
@@ -127,7 +131,8 @@ export const SupabaseCleaningProvider = ({ children }) => {
 
       if (error) throw error;
 
-      dispatch({ type: ACTIONS.SET_AREAS, payload: data || [] });
+      const finalAreas = isDemoMode ? mergeDemoData(data || [], DEMO_AREAS) : (data || []);
+      dispatch({ type: ACTIONS.SET_AREAS, payload: finalAreas });
     } catch (error) {
       console.error('Error loading areas:', error);
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });
@@ -152,7 +157,8 @@ export const SupabaseCleaningProvider = ({ children }) => {
 
       if (error) throw error;
 
-      dispatch({ type: ACTIONS.SET_ASSIGNMENTS, payload: data || [] });
+      const finalAssignments = isDemoMode ? mergeDemoData(data || [], DEMO_CLEANING_ASSIGNMENTS) : (data || []);
+      dispatch({ type: ACTIONS.SET_ASSIGNMENTS, payload: finalAssignments });
     } catch (error) {
       console.error('Error loading assignments:', error);
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });

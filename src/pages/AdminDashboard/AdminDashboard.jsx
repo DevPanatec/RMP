@@ -13,13 +13,14 @@ import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
 import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
+import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { DEMO_VEHICLES, DEMO_ROUTES, DEMO_PERSONNEL, DEMO_ALERTS, DEMO_RECENT_ACTIVITY, mergeDemoData } from '../../utils/demoData';
 import {
   LayoutDashboard, Truck, AlertTriangle, Package,
   BarChart3, Users, Map, LogOut, TrendingUp, CheckCircle,
   MapPin, Radio, Activity, Zap, Bell, Wrench, Leaf, Navigation, Clock, Save, Calendar,
-  Satellite, Briefcase, Sparkles, Plus
+  Satellite, Briefcase, Sparkles, Plus, X, Maximize2, Minimize2
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
 import { DashboardKPI, AlertCard, PersonnelTable, VehicleCard, HeroStats, RealtimeActivity, RiskAlerts } from '../../components/Dashboard';
@@ -32,6 +33,7 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [serviceTypeFilter, setServiceTypeFilter] = useState('todos');
   const [selectedLocationId, setSelectedLocationId] = useState(null);
   const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
+  const [isMapMaximized, setIsMapMaximized] = useState(false);
   const [vehicleFormData, setVehicleFormData] = useState({
     nombre: '',
     placa: '',
@@ -75,6 +77,11 @@ const AdminDashboard = ({ user, onLogout }) => {
     deleteAlert,
     getAlertsStats
   } = useSupabaseRiskReports();
+
+  const {
+    lugares,
+    loading: lugaresLoading
+  } = useSupabaseCleaning();
 
   // Hook de modo demo
   const { isDemoMode, toggleDemoMode } = useDemoMode();
@@ -494,25 +501,36 @@ const AdminDashboard = ({ user, onLogout }) => {
             
             <div className="map-section">
               <div className="map-header">
-                <h3><Satellite strokeWidth={1.5} size={22} /> Monitoreo GPS en Tiempo Real</h3>
-                <div className="service-filters-modern">
-                  <button 
-                    className={`filter-chip ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
-                    onClick={() => setServiceTypeFilter('todos')}
+                <div className="map-header-left">
+                  <h3><Satellite strokeWidth={1.5} size={22} /> Monitoreo GPS en Tiempo Real</h3>
+                </div>
+                <div className="map-header-right">
+                  <div className="service-filters-modern">
+                    <button
+                      className={`filter-chip ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
+                      onClick={() => setServiceTypeFilter('todos')}
+                    >
+                      <BarChart3 strokeWidth={1.5} size={16} /> Todos
+                    </button>
+                    <button
+                      className={`filter-chip ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
+                      onClick={() => setServiceTypeFilter('recoleccion')}
+                    >
+                      <Truck strokeWidth={1.5} size={16} /> Recolección
+                    </button>
+                    <button
+                      className={`filter-chip ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
+                      onClick={() => setServiceTypeFilter('fumigacion')}
+                    >
+                      <Truck strokeWidth={1.5} size={16} /> Fumigación
+                    </button>
+                  </div>
+                  <button
+                    className="maximize-btn"
+                    onClick={() => setIsMapMaximized(true)}
+                    title="Maximizar mapa"
                   >
-                    <BarChart3 strokeWidth={1.5} size={16} /> Todos
-                  </button>
-                  <button 
-                    className={`filter-chip ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
-                    onClick={() => setServiceTypeFilter('recoleccion')}
-                  >
-                    <Truck strokeWidth={1.5} size={16} /> Recolección
-                  </button>
-                  <button 
-                    className={`filter-chip ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
-                    onClick={() => setServiceTypeFilter('fumigacion')}
-                  >
-                    <Truck strokeWidth={1.5} size={16} /> Fumigación
+                    <Maximize2 size={18} />
                   </button>
                 </div>
               </div>
@@ -543,6 +561,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                   }
                   rutas={displayRoutes || []}
                   personnel={displayPersonnel || []}
+                  lugares={lugares || []}
                   userType={user.tipo}
                   showRealTime={true}
                   selectedTruck={selectedTruck}
@@ -695,20 +714,6 @@ const AdminDashboard = ({ user, onLogout }) => {
         <div className="dashboard-header">
           <h1><Leaf strokeWidth={1.5} size={24} /> Panel de Administración</h1>
           <div className="header-actions">
-            {isDemoMode && (
-              <div className="demo-badge">
-                <Sparkles size={14} />
-                <span>MODO DEMO</span>
-              </div>
-            )}
-            <button
-              className={`demo-toggle-btn ${isDemoMode ? 'active' : ''}`}
-              onClick={toggleDemoMode}
-              title={isDemoMode ? 'Desactivar modo demo' : 'Activar modo demo'}
-            >
-              <Sparkles size={16} />
-              <span>{isDemoMode ? 'Demo ON' : 'Demo OFF'}</span>
-            </button>
             <div className="realtime-status">
               <Activity size={16} /> Sistema en Tiempo Real
             </div>
@@ -719,6 +724,90 @@ const AdminDashboard = ({ user, onLogout }) => {
         </div>
         {renderContent()}
       </div>
+
+      {/* Modal de Mapa Maximizado */}
+      {isMapMaximized && (
+        <div className="map-maximized-overlay" onClick={() => setIsMapMaximized(false)}>
+          <div className="map-maximized-container" onClick={(e) => e.stopPropagation()}>
+            <div className="map-maximized-header">
+              <div className="map-maximized-title">
+                <Satellite size={24} />
+                <h2>Monitoreo GPS en Tiempo Real</h2>
+              </div>
+              <div className="map-maximized-actions">
+                <div className="service-filters-modern">
+                  <button
+                    className={`filter-chip ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
+                    onClick={() => setServiceTypeFilter('todos')}
+                  >
+                    <BarChart3 strokeWidth={1.5} size={16} /> Todos
+                  </button>
+                  <button
+                    className={`filter-chip ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
+                    onClick={() => setServiceTypeFilter('recoleccion')}
+                  >
+                    <Truck strokeWidth={1.5} size={16} /> Recolección
+                  </button>
+                  <button
+                    className={`filter-chip ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
+                    onClick={() => setServiceTypeFilter('fumigacion')}
+                  >
+                    <Truck strokeWidth={1.5} size={16} /> Fumigación
+                  </button>
+                </div>
+                <button
+                  className="minimize-btn"
+                  onClick={() => setIsMapMaximized(false)}
+                  title="Cerrar"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+            <div className="map-maximized-content">
+              <div className="map-maximized-map-wrapper">
+                <MapComponent
+                  key={`map-maximized-${serviceTypeFilter}`}
+                  camiones={serviceTypeFilter === 'todos'
+                    ? normalizedCamiones
+                    : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter)
+                  }
+                  rutas={displayRoutes || []}
+                  personnel={displayPersonnel || []}
+                  lugares={lugares || []}
+                  userType={user.tipo}
+                  showRealTime={true}
+                  selectedTruck={selectedTruck}
+                  onViewLocationReports={handleViewLocationReports}
+                  serviceTypeFilter={serviceTypeFilter}
+                />
+              </div>
+
+              {/* Notificaciones flotantes */}
+              <div className="map-floating-notifications">
+                <div className="map-floating-activity">
+                  <RealtimeActivity
+                    vehicles={normalizedCamiones}
+                    routes={displayRoutes}
+                    personnel={displayPersonnel}
+                    recentActivity={isDemoMode ? DEMO_RECENT_ACTIVITY : []}
+                  />
+                </div>
+
+                <div className="map-floating-alerts">
+                  <RiskAlerts
+                    alerts={displayAlerts}
+                    onViewDetails={(alert) => {
+                      setIsMapMaximized(false);
+                      setActiveTab('riesgos');
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -11,9 +11,7 @@ export const VehicleCard = ({
     switch (estado?.toLowerCase()) {
       case 'en ruta': return 'success';
       case 'disponible': return 'info';
-      case 'mantenimiento': return 'warning';
-      case 'fuera de servicio': return 'error';
-      default: return 'default';
+      default: return 'info'; // Cualquier otro estado se trata como Disponible
     }
   };
 
@@ -21,9 +19,7 @@ export const VehicleCard = ({
     switch (estado?.toLowerCase()) {
       case 'en ruta': return '🟢';
       case 'disponible': return '⚪';
-      case 'mantenimiento': return '🔴';
-      case 'fuera de servicio': return '🔴';
-      default: return '⚪';
+      default: return '⚪'; // Cualquier otro estado se trata como Disponible
     }
   };
 

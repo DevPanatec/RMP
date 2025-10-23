@@ -13,6 +13,7 @@ import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
 import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
+import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { DEMO_VEHICLES, DEMO_ROUTES, DEMO_PERSONNEL, DEMO_ALERTS, DEMO_RECENT_ACTIVITY, mergeDemoData } from '../../utils/demoData';
 import {
@@ -75,6 +76,11 @@ const EnterpriseDashboard = ({ user, onLogout }) => {
     deleteReport: deleteAlert,
     getReportStats: getAlertsStats
   } = useSupabaseRiskReports();
+
+  const {
+    lugares,
+    loading: lugaresLoading
+  } = useSupabaseCleaning();
 
   // Hook de modo demo
   const { isDemoMode, toggleDemoMode } = useDemoMode();
@@ -210,8 +216,6 @@ const EnterpriseDashboard = ({ user, onLogout }) => {
               personnelStats={personnelStats}
               routesStats={routesStats}
               operationalStats={operationalStats}
-              isDemoMode={isDemoMode}
-              toggleDemoMode={toggleDemoMode}
               userRole="enterprise"
             />
 
@@ -238,6 +242,7 @@ const EnterpriseDashboard = ({ user, onLogout }) => {
                 <div className="map-container-dashboard">
                   <MapComponent
                     camiones={normalizedCamiones}
+                    lugares={lugares || []}
                     userType={user.tipo}
                     selectedTruck={selectedTruck}
                     serviceTypeFilter={serviceTypeFilter}

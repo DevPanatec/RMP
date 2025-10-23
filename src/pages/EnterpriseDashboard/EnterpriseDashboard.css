@@ -36,16 +36,16 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 20px 0;
+  margin-bottom: 16px;
+  padding: 8px 0;
 }
 
 .sidebar-logo .logo-image {
   width: 100%;
-  max-width: 180px;
+  max-width: 100px;
   height: auto;
   object-fit: contain;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
 }
 
 .sidebar-header p {
