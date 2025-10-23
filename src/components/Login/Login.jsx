@@ -97,8 +97,7 @@ const Login = ({ onLogin }) => {
     <div className="login-container">
       <div className="login-card">
         <div className="rmp-logo">
-          <h1>🌱 RMP</h1>
-          <p>Recolecting Manager Pro</p>
+          <img src="/icons/modules/Logo principal.png" alt="FMP Logo" className="logo-image" />
         </div>
         
         {(error || authError) && (
@@ -109,27 +108,13 @@ const Login = ({ onLogin }) => {
         
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label">Tipo de Usuario</label>
-            <select 
-              className="form-control"
-              value={formData.tipo}
-              onChange={(e) => handleTypeChange(e.target.value)}
-              disabled={loading}
-            >
-              <option value="admin">Administrador</option>
-              <option value="enterprise">Enterprise</option>
-              <option value="conductor">Conductor</option>
-            </select>
-          </div>
-          
-          <div className="form-group">
-            <label className="form-label">Email</label>
+            <label className="form-label-modern">Usuario</label>
             <input 
               type="email"
-              className="form-control"
+              className="form-control-modern"
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
-              placeholder={`Ej: ${currentCredentials.email}`}
+              placeholder="Ingresa tu correo"
               required
               disabled={loading}
               autoComplete="email"
@@ -137,11 +122,11 @@ const Login = ({ onLogin }) => {
           </div>
           
           <div className="form-group">
-            <label className="form-label">Contraseña</label>
+            <label className="form-label-modern">Contraseña</label>
             <div className="password-input-wrapper">
               <input 
                 type={showPassword ? "text" : "password"}
-                className="form-control"
+                className="form-control-modern"
                 value={formData.password}
                 onChange={(e) => setFormData({...formData, password: e.target.value})}
                 placeholder="Ingresa tu contraseña"
@@ -151,14 +136,17 @@ const Login = ({ onLogin }) => {
               />
               <button
                 type="button"
-                className="password-toggle"
+                className="password-toggle-modern"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={loading}
+                aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
               >
-                {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
           </div>
+
+          <input type="hidden" name="tipo" value="admin" />
           
           <button 
             type="submit" 
@@ -168,64 +156,8 @@ const Login = ({ onLogin }) => {
             {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
-        
-        <div className="credentials-info">
-          <div className="credentials-header">
-            <strong>Credenciales para {formData.tipo}:</strong>
-            <button 
-              type="button" 
-              className="btn btn--outline btn--sm"
-              onClick={fillCredentials}
-              disabled={loading}
-              style={{ marginLeft: '8px', fontSize: '10px', padding: '4px 8px' }}
-            >
-              Auto-llenar
-            </button>
-          </div>
-          <div className="credential-item">
-            <strong>Email:</strong> {currentCredentials.email}<br/>
-            <strong>Contraseña:</strong> {currentCredentials.password}<br/>
-            <strong>Nombre:</strong> {currentCredentials.nombre}
-          </div>
-          
-          <div className="all-credentials">
-            <details style={{ marginTop: '16px', fontSize: '11px' }}>
-              <summary style={{ cursor: 'pointer', color: 'var(--color-text-secondary)' }}>
-                Ver todas las credenciales de prueba
-              </summary>
-              <div style={{ marginTop: '8px', padding: '8px', background: 'rgba(var(--color-primary-rgb), 0.05)', borderRadius: '4px' }}>
-                <strong>Admin:</strong> admin@rmp.com / admin123<br/>
-                <strong>Enterprise:</strong> empresa@rmp.com / empresa123<br/>
-                <strong>Conductor:</strong> conductor@rmp.com / conductor123
-              </div>
-            </details>
-          </div>
-        </div>
 
-        <div className="login-footer">
-          <p style={{ fontSize: '12px', color: '#666', marginTop: '16px', textAlign: 'center' }}>
-            🔒 Autenticación segura con Supabase
-          </p>
-          <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-            <button
-              type="button"
-              className="btn btn--outline btn--sm"
-              onClick={() => setShowCreateUsers(true)}
-              style={{ flex: 1 }}
-            >
-              <Settings size={16} /> Crear Usuarios
-            </button>
-            <button
-              type="button"
-              className={`btn ${isDemoMode ? 'btn--primary' : 'btn--outline'} btn--sm`}
-              onClick={toggleDemoMode}
-              title={isDemoMode ? 'Desactivar modo demo' : 'Activar modo demo'}
-              style={{ flex: 1 }}
-            >
-              <Sparkles size={16} /> {isDemoMode ? 'Demo ON' : 'Demo OFF'}
-            </button>
-          </div>
-        </div>
+
       </div>
 
       {showCreateUsers && (

@@ -291,19 +291,19 @@ a:hover {
 }
 
 .btn--primary {
-  background-color: var(--color-primary);
+  background-color: #1fb09e;
   color: white;
   box-shadow: var(--shadow-sm);
 }
 
 .btn--primary:hover {
-  background-color: var(--color-primary-hover);
-  box-shadow: 0 4px 12px rgba(48, 209, 88, 0.3);
+  background-color: #22c4ad;
+  box-shadow: 0 4px 12px rgba(31, 176, 158, 0.35);
   transform: translateY(-1px);
 }
 
 .btn--primary:active {
-  background-color: var(--color-primary-active);
+  background-color: #1ca595;
   transform: translateY(0);
   box-shadow: var(--shadow-sm);
 }
