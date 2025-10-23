@@ -42,23 +42,23 @@ export const DEMO_ROUTES = [
   },
   {
     id: 'demo-ruta-3',
-    nombre: 'Fumigación Zona Turística',
+    nombre: 'Fumigación Edificios Municipales',
     tipo_servicio: 'fumigacion',
-    descripcion: 'Fumigación preventiva Casco Antiguo y alrededores',
+    descripcion: 'Fumigación preventiva de edificios y centros administrativos',
     hora_inicio: '05:00',
-    hora_fin: '11:00',
+    hora_fin: '12:00',
     dias_operacion: ['lunes', 'jueves'],
     estado: 'activa',
     paradas: [
-      { id: 1, nombre: 'Plaza Catedral', latitud: 8.9530, longitud: -79.5340, orden: 1, completada: true, hora_completada: '05:15' },
-      { id: 2, nombre: 'Plaza Francia', latitud: 8.9495, longitud: -79.5355, orden: 2, completada: true, hora_completada: '05:45' },
-      { id: 3, nombre: 'Teatro Nacional', latitud: 8.9510, longitud: -79.5325, orden: 3, completada: false },
-      { id: 4, nombre: 'Mercado Público', latitud: 8.9560, longitud: -79.5380, orden: 4, completada: false },
-      { id: 5, nombre: 'Plaza Herrera', latitud: 8.9580, longitud: -79.5350, orden: 5, completada: false },
-      { id: 6, nombre: 'Cinta Costera 1', latitud: 8.9620, longitud: -79.5320, orden: 6, completada: false }
+      { id: 1, nombre: 'Almacén Central del MINSA', latitud: 9.0050, longitud: -79.5250, orden: 1, completada: true, hora_completada: '05:20' },
+      { id: 2, nombre: 'Casa de la Municipalidad', latitud: 8.9540, longitud: -79.5365, orden: 2, completada: true, hora_completada: '06:15' },
+      { id: 3, nombre: 'Casa Góngora', latitud: 8.9565, longitud: -79.5350, orden: 3, completada: false },
+      { id: 4, nombre: 'Centro de Recaudación Magna Corp.', latitud: 9.0020, longitud: -79.5180, orden: 4, completada: false },
+      { id: 5, nombre: 'Complejo Turístico Mi Pueblito', latitud: 8.9650, longitud: -79.5520, orden: 5, completada: false },
+      { id: 6, nombre: 'Edificio Hatillo', latitud: 8.9880, longitud: -79.5420, orden: 6, completada: false }
     ],
-    distancia_km: 5.8,
-    tiempo_estimado_min: 240
+    distancia_km: 8.2,
+    tiempo_estimado_min: 300
   }
 ];
 
@@ -130,25 +130,25 @@ export const DEMO_VEHICLES = [
     tipo_servicio: 'fumigacion',
     capacidad_carga: 2000,
     estado: 'En ruta',
-    lat: 8.9505,
-    lng: -79.5340,
+    lat: 8.9565,
+    lng: -79.5350,
     rutaAsignada: 'demo-ruta-3',
     ruta_id: 'demo-ruta-3',
     conductorAsignado: 'demo-conductor-3',
     conductor_id: 'demo-conductor-3',
-    indiceRuta: 5,
-    paradaActual: 2,
+    indiceRuta: 2,
+    paradaActual: 3,
     totalParadas: 6,
     ultimaActualizacion: Date.now(),
     horaInicio: Date.now() - (1 * 60 * 60 * 1000 + 30 * 60 * 1000), // Hace 1h 30min
     direccion: 45,
-    areaFumigada: 1250,
-    tipoPlaga: 'Mosquitos',
-    combustible: 75,
+    areaFumigada: 1470,
+    tipoPlaga: 'Mosquitos y Cucarachas',
+    combustible: 72,
     historialPosiciones: [
-      { lat: 8.9530, lng: -79.5340, timestamp: new Date(Date.now() - 3000000).toISOString() },
-      { lat: 8.9495, lng: -79.5355, timestamp: new Date(Date.now() - 1500000).toISOString() },
-      { lat: 8.9505, lng: -79.5340, timestamp: new Date().toISOString() }
+      { lat: 9.0050, lng: -79.5250, timestamp: new Date(Date.now() - 3000000).toISOString() },
+      { lat: 8.9540, lng: -79.5365, timestamp: new Date(Date.now() - 1500000).toISOString() },
+      { lat: 8.9565, lng: -79.5350, timestamp: new Date().toISOString() }
     ]
   },
   {
@@ -300,11 +300,11 @@ export const DEMO_RECENT_ACTIVITY = [
   {
     id: 1,
     tipo: 'parada_completada',
-    descripcion: 'Parada "Plaza Catedral" completada',
+    descripcion: 'Parada "Casa de la Municipalidad" completada',
     vehiculo: 'RMP-F01',
     conductor: 'José Martínez',
     timestamp: new Date(Date.now() - 300000).toISOString(), // Hace 5 min
-    ruta: 'Fumigación Zona Turística'
+    ruta: 'Fumigación Edificios Municipales'
   },
   {
     id: 2,
@@ -336,11 +336,11 @@ export const DEMO_RECENT_ACTIVITY = [
   {
     id: 5,
     tipo: 'ruta_iniciada',
-    descripcion: 'Ruta "Fumigación Zona Turística" iniciada',
+    descripcion: 'Ruta "Fumigación Edificios Municipales" iniciada',
     vehiculo: 'RMP-F01',
     conductor: 'José Martínez',
     timestamp: new Date(Date.now() - 5400000).toISOString(), // Hace 1.5 horas
-    ruta: 'Fumigación Zona Turística'
+    ruta: 'Fumigación Edificios Municipales'
   },
   {
     id: 6,
@@ -793,7 +793,7 @@ export const DEMO_ROUTE_REPORTS = [
   {
     id: 'demo-report-3',
     ruta_id: 'demo-ruta-3',
-    ruta_nombre: 'Fumigación Zona Turística',
+    ruta_nombre: 'Fumigación Edificios Municipales',
     tipo_ruta: 'fumigacion',
     vehiculo_id: 'demo-vehicle-3',
     vehiculo_placa: 'RMP-F01',
@@ -801,19 +801,19 @@ export const DEMO_ROUTE_REPORTS = [
     conductor_nombre: 'José Martínez López',
     fecha_completacion: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
     hora_inicio: '05:00',
-    hora_fin: '10:45',
+    hora_fin: '11:30',
     paradas_completadas: [
-      { direccion: 'Plaza Catedral', orden: 1, hora_completada: '05:15', area_m2: 420 },
-      { direccion: 'Plaza Francia', orden: 2, hora_completada: '05:45', area_m2: 380 },
-      { direccion: 'Teatro Nacional', orden: 3, hora_completada: '06:30', area_m2: 310 },
-      { direccion: 'Mercado Público', orden: 4, hora_completada: '07:45', area_m2: 520 },
-      { direccion: 'Plaza Herrera', orden: 5, hora_completada: '09:00', area_m2: 290 },
-      { direccion: 'Cinta Costera 1', orden: 6, hora_completada: '10:15', area_m2: 330 }
+      { direccion: 'Almacén Central del MINSA', orden: 1, hora_completada: '05:20', area_m2: 850 },
+      { direccion: 'Casa de la Municipalidad', orden: 2, hora_completada: '06:15', area_m2: 620 },
+      { direccion: 'Casa Góngora', orden: 3, hora_completada: '07:30', area_m2: 450 },
+      { direccion: 'Centro de Recaudación Magna Corp.', orden: 4, hora_completada: '08:45', area_m2: 780 },
+      { direccion: 'Complejo Turístico Mi Pueblito', orden: 5, hora_completada: '10:00', area_m2: 920 },
+      { direccion: 'Edificio Hatillo', orden: 6, hora_completada: '11:15', area_m2: 680 }
     ],
-    area_fumigada_m2: 2250,
-    distancia_recorrida_km: 5.8,
-    producto_usado_lts: 45,
-    observaciones: 'Fumigación preventiva completada. Condiciones climáticas favorables.',
+    area_fumigada_m2: 4300,
+    distancia_recorrida_km: 8.2,
+    producto_usado_lts: 62,
+    observaciones: 'Fumigación preventiva de edificios municipales completada. Todas las áreas administrativas atendidas. Condiciones climáticas favorables.',
     calificacion: 5
   }
 ];

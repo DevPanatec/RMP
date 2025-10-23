@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
 import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
@@ -150,6 +150,82 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
     });
   }, [displayLugares, displayAssignments, routeReports]);
 
+  // Component para tarjeta de mapa con carga diferida
+  const MapCard = ({ location, icon: Icon }) => {
+    const [loadMap, setLoadMap] = useState(false);
+    const cardRef = useRef(null);
+
+    useEffect(() => {
+      if (!cardRef.current) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              // Cargar mapa cuando esté cerca del viewport
+              setLoadMap(true);
+            }
+          });
+        },
+        { rootMargin: '100px' } // Cargar 100px antes de entrar al viewport
+      );
+
+      observer.observe(cardRef.current);
+
+      return () => {
+        if (cardRef.current) {
+          observer.unobserve(cardRef.current);
+        }
+      };
+    }, []);
+
+    const mapEmbedUrl = location.nombre
+      ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(location.nombre + ', Panama City, Panama')}&zoom=15`
+      : null;
+
+    return (
+      <div
+        ref={cardRef}
+        className="location-map-card"
+        onClick={() => setSelectedLocation(location)}
+        onMouseEnter={() => setLoadMap(true)}
+      >
+        <div className="location-image-wrapper">
+          {!loadMap ? (
+            <div className="map-placeholder">
+              <div className="map-placeholder-gradient"></div>
+              <Icon size={56} className="map-placeholder-icon" />
+              <span className="map-placeholder-text">Vista de mapa</span>
+            </div>
+          ) : mapEmbedUrl ? (
+            <iframe
+              src={mapEmbedUrl}
+              width="100%"
+              height="100%"
+              style={{ border: 0, pointerEvents: 'none' }}
+              allowFullScreen=""
+              loading="lazy"
+              importance="low"
+              referrerPolicy="no-referrer-when-downgrade"
+              title={`Mapa de ${location.nombre}`}
+            />
+          ) : (
+            <div className="location-image-fallback" style={{ display: 'flex' }}>
+              <Icon size={48} />
+              <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
+                {location.nombre}
+              </p>
+            </div>
+          )}
+        </div>
+        <div className="map-card-overlay">
+          <h4>{location.nombre}</h4>
+          <span className="report-badge">{location.assignmentsCount} reportes</span>
+        </div>
+      </div>
+    );
+  };
+
   const renderRecoleccion = () => {
     // Paginación
     const totalPages = Math.ceil(recoleccionLocations.length / ITEMS_PER_PAGE);
@@ -186,64 +262,9 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
         ) : (
           <>
             <div className="locations-grid">
-              {paginatedLocations.map(location => {
-                const imageMap = {
-                  'Mercado de Alcalde Díaz': 'Mercado Alcalde Diaz.jpeg',
-                  'Mercado del Marisco': 'mercado de mariscos.jpg',
-                  'Mercado de Pacora': 'Mercado de Pacora.jpg',
-                  'Mercado San Felipe Neri': 'san felipe neri.jpeg',
-                  'Mercado de Pueblo Nuevo': 'Mercado Pueblo Nuevo.jpg',
-                  'Complejo Turístico Mi Pueblito': 'mi-pueblito.jpg',
-                  'Almacén Central': 'almacen-central.jpg',
-                  'Casa de la Municipalidad': 'casa-municipalidad.jpg',
-                  'Casa Góngora': 'casa-gongora.jpg',
-                  'Centro de Recaudación Magna Corp.': 'centro-recaudacion.jpg',
-                  'Edificio Hatillo': 'edificio-hatillo.jpg',
-                  'Oficinas del Parque Summit': 'parque-summit.jpg',
-                  'Palacio Municipal': 'palacio-municipal.jpg',
-                  'Planta de tratamiento (Mercado San Felipe Neri)': 'planta-tratamiento.jpg',
-                  'Taller': 'taller.jpg'
-                };
-
-              // Usar Google Static Maps API para carga más rápida en tarjetas
-              const staticMapUrl = location.nombre
-                ? `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(location.nombre + ', Panama City, Panama')}&zoom=16&size=600x400&markers=color:red%7C${encodeURIComponent(location.nombre + ', Panama City, Panama')}&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&style=feature:poi|visibility:on&style=feature:transit|visibility:simplified`
-                : null;
-
-              return (
-                <div
-                  key={location.id}
-                  className="location-map-card"
-                  onClick={() => setSelectedLocation(location)}
-                >
-                  <div className="location-image-wrapper">
-                    {staticMapUrl ? (
-                      <img
-                        src={staticMapUrl}
-                        alt={`Mapa de ${location.nombre}`}
-                        className="location-map-static"
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextElementSibling.style.display = 'flex';
-                        }}
-                      />
-                    ) : null}
-                    <div className="location-image-fallback" style={{ display: staticMapUrl ? 'none' : 'flex' }}>
-                      <Truck size={48} />
-                      <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
-                        {location.nombre}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="map-card-overlay">
-                    <h4>{location.nombre}</h4>
-                    <span className="report-badge">{location.assignmentsCount} reportes</span>
-                  </div>
-                </div>
-              );
-            })}
+              {paginatedLocations.map(location => (
+                <MapCard key={location.id} location={location} icon={Truck} />
+              ))}
           </div>
 
           {/* Paginación */}
@@ -364,55 +385,9 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
           </div>
         ) : (
           <div className="locations-grid">
-            {fumigacionLocations.map(location => {
-              const imageMap = {
-                'Mercado de Alcalde Díaz': 'Mercado Alcalde Diaz.jpeg',
-                'Mercado del Marisco': 'mercado de mariscos.jpg',
-                'Mercado de Pacora': 'Mercado de Pacora.jpg',
-                'Mercado San Felipe Neri': 'san felipe neri.jpeg',
-                'Mercado de Pueblo Nuevo': 'Mercado Pueblo Nuevo.jpg',
-                'Complejo Turístico Mi Pueblito': 'mi-pueblito.jpg'
-              };
-
-              // Usar Google Static Maps API para carga más rápida en tarjetas
-              const staticMapUrl = location.nombre
-                ? `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(location.nombre + ', Panama City, Panama')}&zoom=16&size=600x400&markers=color:red%7C${encodeURIComponent(location.nombre + ', Panama City, Panama')}&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&style=feature:poi|visibility:on&style=feature:transit|visibility:simplified`
-                : null;
-
-              return (
-                <div
-                  key={location.id}
-                  className="location-map-card"
-                  onClick={() => setSelectedLocation(location)}
-                >
-                  <div className="location-image-wrapper">
-                    {staticMapUrl ? (
-                      <img
-                        src={staticMapUrl}
-                        alt={`Mapa de ${location.nombre}`}
-                        className="location-map-static"
-                        loading="lazy"
-                        decoding="async"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextElementSibling.style.display = 'flex';
-                        }}
-                      />
-                    ) : null}
-                    <div className="location-image-fallback" style={{ display: staticMapUrl ? 'none' : 'flex' }}>
-                      <Zap size={48} />
-                      <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
-                        {location.nombre}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="map-card-overlay">
-                    <h4>{location.nombre}</h4>
-                    <span className="report-badge">{location.assignmentsCount} reportes</span>
-                  </div>
-                </div>
-              );
-            })}
+            {fumigacionLocations.map(location => (
+              <MapCard key={location.id} location={location} icon={Zap} />
+            ))}
           </div>
         )}
 
