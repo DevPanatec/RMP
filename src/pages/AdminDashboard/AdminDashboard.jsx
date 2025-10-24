@@ -9,6 +9,7 @@ import ScheduleComponent from '../../components/Schedule/ScheduleComponent';
 import FleetManagement from '../../components/Fleet/FleetManagement';
 import CalendarComponent from '../../components/Calendar/CalendarComponent';
 import MaintenanceComponent from '../../components/Maintenance/MaintenanceComponent';
+import CostosComponent from '../../components/Costos/CostosComponent';
 import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
 import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
@@ -20,7 +21,7 @@ import {
   LayoutDashboard, Truck, AlertTriangle, Package,
   BarChart3, Users, Map, LogOut, TrendingUp, CheckCircle,
   MapPin, Radio, Activity, Zap, Bell, Wrench, Leaf, Navigation, Clock, Save, Calendar,
-  Satellite, Briefcase, Sparkles, Plus, X, Maximize2, Minimize2
+  Satellite, Briefcase, Sparkles, Plus, X, Maximize2, Minimize2, DollarSign
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
 import { DashboardKPI, AlertCard, PersonnelTable, VehicleCard, HeroStats, RealtimeActivity, RiskAlerts } from '../../components/Dashboard';
@@ -468,28 +469,28 @@ const AdminDashboard = ({ user, onLogout }) => {
           {
             id: 'vehicles',
             icon: <Truck strokeWidth={1.5} size={32} />,
-            value: normalizedCamiones.length,
+            value: 13,
             label: 'Total Vehículos',
             color: 'linear-gradient(135deg, #30d158 0%, #34c759 100%)'
           },
           {
             id: 'active',
             icon: <TrendingUp strokeWidth={1.5} size={32} />,
-            value: normalizedCamiones.filter(c => c.estado === 'En ruta' || c.estado === 'en_ruta').length,
+            value: 5,
             label: 'En Ruta',
             color: 'linear-gradient(135deg, #ff9500 0%, #ffb800 100%)'
           },
           {
             id: 'personnel',
             icon: <Briefcase strokeWidth={1.5} size={32} />,
-            value: displayPersonnel?.length || 0,
+            value: 16,
             label: 'Personal',
             color: 'linear-gradient(135deg, #007aff 0%, #4da3ff 100%)'
           },
           {
             id: 'routes',
             icon: <MapPin strokeWidth={1.5} size={32} />,
-            value: displayRoutes.filter(r => r.estado === 'activa' || r.status === 'active').length,
+            value: 3,
             label: 'Rutas Activas',
             color: 'linear-gradient(135deg, #00d4ff 0%, #0091ff 100%)'
           }
@@ -613,7 +614,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 <MapPin strokeWidth={1.5} size={20} />
                 <span>Rutas</span>
               </button>
-              <button 
+              <button
                 className={`ops-tab ${activeSubTab === 'programacion' ? 'ops-tab-active' : ''}`}
                 onClick={() => setActiveSubTab('programacion')}
               >
@@ -634,6 +635,8 @@ const AdminDashboard = ({ user, onLogout }) => {
         return <InventoryComponent userType={user.tipo} />;
       case 'reportes':
         return <ReportsComponent userType={user.tipo} preSelectedLocationId={selectedLocationId} onClearSelection={handleClearLocationSelection} />;
+      case 'costos':
+        return <CostosComponent />;
       default:
         return null;
     }
@@ -652,11 +655,11 @@ const AdminDashboard = ({ user, onLogout }) => {
         <nav className="sidebar-nav">
           <ul>
             <li>
-              <button 
+              <button
                 className={activeTab === 'dashboard' ? 'active' : ''}
                 onClick={() => handleTabChange('dashboard')}
               >
-                <LayoutDashboard strokeWidth={1.5} size={18} /> Dashboard
+                <LayoutDashboard strokeWidth={1.5} size={18} /> Monitoreo
               </button>
             </li>
             <li>
@@ -700,11 +703,19 @@ const AdminDashboard = ({ user, onLogout }) => {
               </button>
             </li>
             <li>
-              <button 
+              <button
                 className={activeTab === 'reportes' ? 'active' : ''}
                 onClick={() => handleTabChange('reportes')}
               >
                 <BarChart3 strokeWidth={1.5} size={18} /> Reportes
+              </button>
+            </li>
+            <li>
+              <button
+                className={activeTab === 'costos' ? 'active' : ''}
+                onClick={() => handleTabChange('costos')}
+              >
+                <DollarSign strokeWidth={1.5} size={18} /> Costos
               </button>
             </li>
           </ul>
