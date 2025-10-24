@@ -91,7 +91,7 @@ export const DEMO_ROUTES = [
     estado: 'activa',
     paradas: [
       { id: 1, nombre: 'Estacionamiento Diana Morán 2066', latitud: 8.9720, longitud: -79.5380, orden: 1, completada: true, hora_completada: '05:30', tipo: 'inicio' },
-      { id: 2, nombre: 'Mercado San Felipe Neri', latitud: 8.9535, longitud: -79.5332, orden: 2, completada: true, hora_completada: '06:30' },
+      { id: 2, nombre: 'Mercado San Felipe Neri', latitud: 8.9535, longitud: -79.5332, orden: 2, completada: false },
       { id: 3, nombre: 'Cerro Patacón (Relleno Sanitario)', latitud: 9.0450, longitud: -79.4650, orden: 3, completada: false },
       { id: 4, nombre: 'Estacionamiento Diana Morán 2066', latitud: 8.9720, longitud: -79.5380, orden: 4, completada: false, tipo: 'regreso' }
     ],
@@ -221,25 +221,25 @@ export const DEMO_VEHICLES = [
     tipo_vehiculo: 'pickup',
     capacidad_carga: 1000,
     estado: 'En ruta',
-    lat: 8.9535,
-    lng: -79.5332,
+    lat: 8.9620,
+    lng: -79.5355,
     rutaAsignada: 'demo-ruta-5',
     ruta_id: 'demo-ruta-5',
     conductorAsignado: 'demo-conductor-4',
     conductor_id: 'demo-conductor-4',
     indiceRuta: undefined,
-    paradaActual: 3,
+    paradaActual: 2,
     totalParadas: 4,
     ultimaActualizacion: Date.now(),
-    horaInicio: Date.now() - (1 * 60 * 60 * 1000),
-    direccion: 0,
-    pesoAcumulado: 850,
-    contenedoresRecogidos: 18,
-    combustible: 68,
+    horaInicio: Date.now() - (30 * 60 * 1000),
+    direccion: 180,
+    pesoAcumulado: 0,
+    contenedoresRecogidos: 0,
+    combustible: 72,
     _necesitaRecalcularIndice: true,
     historialPosiciones: [
-      { lat: 8.9720, lng: -79.5380, timestamp: new Date(Date.now() - 3600000).toISOString() },
-      { lat: 8.9535, lng: -79.5332, timestamp: new Date().toISOString() }
+      { lat: 8.9720, lng: -79.5380, timestamp: new Date(Date.now() - 1800000).toISOString() },
+      { lat: 8.9620, lng: -79.5355, timestamp: new Date().toISOString() }
     ]
   },
   // Cisternas (2)
