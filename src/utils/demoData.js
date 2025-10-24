@@ -79,6 +79,26 @@ export const DEMO_ROUTES = [
     ],
     distancia_km: 8.2,
     tiempo_estimado_min: 300
+  },
+  {
+    id: 'demo-ruta-5',
+    nombre: 'Recolección Casco Antiguo - San Felipe Neri',
+    tipo_servicio: 'recoleccion',
+    descripcion: 'Ruta de recolección: Casco Antiguo (San Felipe Neri) y traslado a Cerro Patacón',
+    hora_inicio: '05:30',
+    hora_fin: '17:00',
+    dias_operacion: ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'],
+    estado: 'activa',
+    paradas: [
+      { id: 1, nombre: 'Estacionamiento Diana Morán 2066', latitud: 8.9720, longitud: -79.5380, orden: 1, completada: true, hora_completada: '05:30', tipo: 'inicio' },
+      { id: 2, nombre: 'Mercado San Felipe Neri', latitud: 8.9535, longitud: -79.5332, orden: 2, completada: true, hora_completada: '06:30' },
+      { id: 3, nombre: 'Cerro Patacón (Relleno Sanitario)', latitud: 9.0450, longitud: -79.4650, orden: 3, completada: false },
+      { id: 4, nombre: 'Estacionamiento Diana Morán 2066', latitud: 8.9720, longitud: -79.5380, orden: 4, completada: false, tipo: 'regreso' }
+    ],
+    distancia_km: 16.8,
+    tiempo_estimado_min: 660,
+    contenedores: 18,
+    equipamiento: ['escobas', 'palas', 'recogedores', 'bolsas industriales']
   }
 ];
 
@@ -195,19 +215,32 @@ export const DEMO_VEHICLES = [
     marca: 'Toyota',
     modelo: 'Hilux',
     año: 2021,
-    tipoServicio: 'limpieza',
-    tipo_servicio: 'limpieza',
+    tipoServicio: 'recoleccion',
+    tipo_servicio: 'recoleccion',
     tipoVehiculo: 'pickup',
     tipo_vehiculo: 'pickup',
     capacidad_carga: 1000,
-    estado: 'Disponible',
-    lat: 9.0950,
-    lng: -79.5100,
-    rutaAsignada: null,
-    ruta_id: null,
-    conductorAsignado: null,
-    conductor_id: null,
-    direccion: 0
+    estado: 'En ruta',
+    lat: 8.9900,
+    lng: -79.5050,
+    rutaAsignada: 'demo-ruta-5',
+    ruta_id: 'demo-ruta-5',
+    conductorAsignado: 'demo-conductor-4',
+    conductor_id: 'demo-conductor-4',
+    indiceRuta: 2,
+    paradaActual: 3,
+    totalParadas: 4,
+    ultimaActualizacion: Date.now(),
+    horaInicio: Date.now() - (2 * 60 * 60 * 1000),
+    direccion: 30,
+    pesoAcumulado: 850,
+    contenedoresRecogidos: 18,
+    combustible: 68,
+    historialPosiciones: [
+      { lat: 8.9720, lng: -79.5380, timestamp: new Date(Date.now() - 7200000).toISOString() },
+      { lat: 8.9535, lng: -79.5332, timestamp: new Date(Date.now() - 3600000).toISOString() },
+      { lat: 8.9900, lng: -79.5050, timestamp: new Date().toISOString() }
+    ]
   },
   // Cisternas (2)
   {
