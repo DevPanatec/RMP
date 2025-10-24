@@ -69,9 +69,6 @@ export const SupabaseAuthProvider = ({ children }) => {
             await loadUserProfile(userId);
             loadedUserIds.current.add(userId);
             console.log('✅ Perfil cargado correctamente');
-            
-            // Pequeño delay para asegurar que React actualice el estado
-            await new Promise(resolve => setTimeout(resolve, 100));
           } else {
             console.log('✅ Perfil ya existe en memoria, usando caché');
           }
@@ -82,7 +79,6 @@ export const SupabaseAuthProvider = ({ children }) => {
           // SIEMPRE poner loading en false
           console.log('🏁 Finalizando carga, setLoading(false)');
           setLoading(false);
-          console.log('🏁 Loading ahora es: false');
         }
       }
     );
