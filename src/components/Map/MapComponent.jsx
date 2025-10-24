@@ -361,6 +361,8 @@ const calcularRutaCompleta = async (paradas) => {
     const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
 
     console.log(`🗺️ Calculando ruta con Mapbox Directions: ${paradas.length} paradas`);
+    console.log(`📍 Coordenadas enviadas a Mapbox: ${coordinates}`);
+    console.log(`🔗 URL Mapbox (sin token):`, url.replace(MAPBOX_TOKEN, 'HIDDEN'));
 
     const response = await fetch(url);
 
@@ -374,6 +376,8 @@ const calcularRutaCompleta = async (paradas) => {
       // Mapbox devuelve coordenadas en formato [lng, lat], necesitamos [lat, lng]
       const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
       console.log(`✅ Ruta calculada con Mapbox: ${routeCoords.length} puntos siguiendo calles reales`);
+      console.log(`🎯 Primer punto de ruta: [${routeCoords[0]}]`);
+      console.log(`🎯 Último punto de ruta: [${routeCoords[routeCoords.length - 1]}]`);
       return routeCoords;
     } else {
       console.warn(`⚠️ Mapbox no pudo calcular la ruta (code: ${data.code}). Usando líneas directas`);
