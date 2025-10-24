@@ -131,11 +131,18 @@ export const SupabaseAuthProvider = ({ children }) => {
       setLoadingProfile(true);
       console.log('📋 Cargando perfil de usuario:', userId);
 
-      const { data: profile, error } = await supabaseClient.supabase
+      // Timeout de 15 segundos para evitar cuelgue infinito
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout cargando perfil')), 15000)
+      );
+
+      const profilePromise = supabaseClient.supabase
         .from('perfiles_usuarios')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
+
+      const { data: profile, error } = await Promise.race([profilePromise, timeoutPromise]);
 
       if (error) {
         console.error('Error cargando perfil:', error);
@@ -164,6 +171,8 @@ export const SupabaseAuthProvider = ({ children }) => {
         throw error;
       }
 
+      console.log('🔍 Consulta completada, procesando perfil...');
+      
       if (profile) {
         console.log('✅ Perfil base cargado:', profile);
         
@@ -357,19 +366,24 @@ export const SupabaseAuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
+      console.log('🚪 Iniciando cierre de sesión...');
       setLoading(true);
+      
       const { error } = await supabaseClient.supabase.auth.signOut();
       
       if (error) throw error;
       
+      // Limpiar todo el estado
       setUser(null);
       setSession(null);
+      loadedUserIds.current.clear();
       localStorage.removeItem('rmp_auth_state');
-      console.log('🚪 Sesión cerrada y estado limpiado');
+      
+      console.log('✅ Sesión cerrada y estado limpiado');
       
       return { success: true };
     } catch (err) {
-      console.error('Error signing out:', err);
+      console.error('❌ Error cerrando sesión:', err);
       setError(err.message);
       return { success: false, error: err.message };
     } finally {
