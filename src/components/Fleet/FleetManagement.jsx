@@ -133,25 +133,25 @@ const FleetManagement = () => {
             className={`filter-btn ${filterType === 'all' ? 'active' : ''}`}
             onClick={() => { setFilterType('all'); setFilterVehicleType('all'); }}
           >
-            Todos ({vehicles.length})
+            Todos
           </button>
           <button
             className={`filter-btn filter-limpieza ${filterType === 'limpieza' ? 'active' : ''}`}
             onClick={() => { setFilterType('limpieza'); setFilterVehicleType('all'); }}
           >
-            🧹 Limpieza ({limpiezaCount})
+            🧹 Limpieza
           </button>
           <button
             className={`filter-btn filter-recoleccion ${filterType === 'recoleccion' ? 'active' : ''}`}
             onClick={() => { setFilterType('recoleccion'); setFilterVehicleType('all'); }}
           >
-            🚛 Recolección ({recoleccionCount})
+            🚛 Recolección
           </button>
           <button
             className={`filter-btn filter-fumigacion ${filterType === 'fumigacion' ? 'active' : ''}`}
             onClick={() => { setFilterType('fumigacion'); setFilterVehicleType('all'); }}
           >
-            🦟 Fumigación ({fumigacionCount})
+            🦟 Fumigación
           </button>
         </div>
 

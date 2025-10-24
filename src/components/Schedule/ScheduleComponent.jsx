@@ -15,6 +15,16 @@ import WeekdayPicker from './WeekdayPicker';
 import './ScheduleComponent.css';
 import './ScheduleModal.css';
 
+// Helper para convertir formato 24h a 12h (AM/PM)
+const formatTime12h = (time24) => {
+  if (!time24) return '';
+  const [hours, minutes] = time24.split(':');
+  const hour = parseInt(hours);
+  const period = hour >= 12 ? 'p.m.' : 'a.m.';
+  const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${hour12}:${minutes} ${period}`;
+};
+
 const ScheduleComponent = () => {
   const {
     assignments: scheduleAssignments,
@@ -104,6 +114,7 @@ const ScheduleComponent = () => {
     fecha: getStartOfWeek(),
     dias_semana: [],
     vehiculo_id: '',
+    viajes_diarios: 1,
     observaciones: ''
   });
 
@@ -635,7 +646,7 @@ const ScheduleComponent = () => {
                       <div className="assignment-details-unified">
                         <div className="detail-item">
                           <Clock size={14} />
-                          <span>{assignment.hora_inicio} - {assignment.hora_fin}</span>
+                          <span>{formatTime12h(assignment.hora_inicio)} - {formatTime12h(assignment.hora_fin)}</span>
                         </div>
                         <div className="detail-item">
                           <Users size={14} />
@@ -643,7 +654,7 @@ const ScheduleComponent = () => {
                         </div>
                         <div className="detail-item">
                           <Truck size={14} />
-                          <span>{assignment.vehiculo?.placa}</span>
+                          <span>{assignment.vehiculo?.nombre || assignment.vehiculo?.placa}</span>
                         </div>
                       </div>
                       {assignment.observaciones && (
@@ -871,7 +882,7 @@ const ScheduleComponent = () => {
                           fontWeight: '500'
                         }}>
                           <Clock size={18} />
-                          <span>Horario de la ruta: {selectedRoute.hora_inicio} - {selectedRoute.hora_fin}</span>
+                          <span>Horario de la ruta: {formatTime12h(selectedRoute.hora_inicio)} - {formatTime12h(selectedRoute.hora_fin)}</span>
                         </div>
                       ) : null;
                     })()}

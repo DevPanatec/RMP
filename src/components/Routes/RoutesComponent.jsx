@@ -1,8 +1,18 @@
 import { useState } from 'react';
 import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
 import RouteModal from '../RouteModal/RouteModal';
-import { Map, Edit, Trash2 } from '../Icons';
+import { Map, Edit, Trash2, MapPin, Clock, Truck } from '../Icons';
 import './RoutesComponent.css';
+
+// Helper para convertir formato 24h a 12h (AM/PM)
+const formatTime12h = (time24) => {
+  if (!time24) return '';
+  const [hours, minutes] = time24.split(':');
+  const hour = parseInt(hours);
+  const period = hour >= 12 ? 'p.m.' : 'a.m.';
+  const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${hour12}:${minutes} ${period}`;
+};
 
 const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
   const { routes, loading, addRoute, updateRoute, deleteRoute } = useSupabaseRoutes();
@@ -93,7 +103,7 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
                   <div className="route-info">
                     <h4>{route.name || route.nombre}</h4>
                     <span className={`route-type-badge type-${tipoServicio}`}>
-                      {tipoServicio === 'recoleccion' ? '🚛 Recolección' : '🦟 Fumigación'}
+                      {tipoServicio === 'recoleccion' ? <><Truck size={12} /> Recolección</> : <><Map size={12} /> Fumigación</>}
                     </span>
                   </div>
                 </div>
@@ -104,21 +114,21 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
 
                 <div className="route-stats">
                   <div className="route-stat">
-                    <span className="stat-icon">📍</span>
+                    <MapPin size={16} className="stat-icon" />
                     <div>
                       <span className="stat-value">{paradasArray.length}</span>
                       <span className="stat-label">Paradas</span>
                     </div>
                   </div>
                   <div className="route-stat">
-                    <span className="stat-icon">⏱️</span>
+                    <Clock size={16} className="stat-icon" />
                     <div>
                       <span className="stat-value">{route.tiempo_estimado || route.tiempoEstimado || 0}</span>
                       <span className="stat-label">Min</span>
                     </div>
                   </div>
                   <div className="route-stat">
-                    <span className="stat-icon">📏</span>
+                    <Map size={16} className="stat-icon" />
                     <div>
                       <span className="stat-value">{route.distancia_total || route.distanciaTotal || 0}</span>
                       <span className="stat-label">Km</span>
@@ -128,9 +138,9 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
 
                 {route.hora_inicio && (
                   <div className="route-schedule">
-                    <span className="schedule-icon">🕐</span>
-                    <span>{route.hora_inicio}</span>
-                    {route.hora_fin && <span> - {route.hora_fin}</span>}
+                    <Clock size={16} className="schedule-icon" />
+                    <span>{formatTime12h(route.hora_inicio)}</span>
+                    {route.hora_fin && <span> - {formatTime12h(route.hora_fin)}</span>}
                   </div>
                 )}
 

@@ -133,9 +133,9 @@ export const SupabasePersonnelProvider = ({ children }) => {
         };
       });
 
-      // Si el modo demo está activo, agregar datos demo
-      let allEmployees = realEmployees;
+      // Si el modo demo está activo, usar SOLO datos demo
       if (isDemoMode) {
+        console.log('🎯 Modo Demo: Usando SOLO datos demo de personal');
         const demoEmployees = DEMO_PERSONNEL.map(emp => {
           // Buscar el vehículo asignado
           const vehiculo = DEMO_VEHICLES.find(v => v.id === emp.vehiculo_asignado);
@@ -171,10 +171,10 @@ export const SupabasePersonnelProvider = ({ children }) => {
           };
         });
 
-        allEmployees = mergeDemoData(realEmployees, demoEmployees);
+        dispatch({ type: ACTIONS.SET_PERSONNEL, payload: demoEmployees });
+      } else {
+        dispatch({ type: ACTIONS.SET_PERSONNEL, payload: realEmployees });
       }
-
-      dispatch({ type: ACTIONS.SET_PERSONNEL, payload: allEmployees });
     } catch (error) {
       console.error('Error loading personnel:', error);
       dispatch({ type: ACTIONS.SET_ERROR, payload: error.message });

@@ -1,5 +1,7 @@
 import { createContext, useContext, useReducer, useEffect } from 'react';
 import supabaseClient from '../utils/supabaseClient';
+import { useDemoMode } from '../hooks/useDemoMode';
+import { DEMO_VEHICLES } from '../utils/demoData';
 
 // Crear el contexto
 const SupabaseFleetContext = createContext();
@@ -73,18 +75,27 @@ const initialState = {
 
 // Provider del contexto
 export const SupabaseFleetProvider = ({ children }) => {
+  const { isDemoMode } = useDemoMode();
   const [state, dispatch] = useReducer(fleetReducer, initialState);
 
   // Cargar vehículos al iniciar
   useEffect(() => {
     loadVehicles();
-  }, []);
+  }, [isDemoMode]);
 
   // Función para cargar vehículos
   const loadVehicles = async () => {
     dispatch({ type: ACTIONS.LOAD_VEHICLES });
     
     try {
+      // Si está en modo demo, usar SOLO datos demo
+      if (isDemoMode) {
+        console.log('🎯 Modo Demo: Usando datos demo de flota');
+        dispatch({ type: ACTIONS.SET_VEHICLES, payload: DEMO_VEHICLES });
+        return;
+      }
+
+      // Si no está en modo demo, cargar datos de Supabase normalmente
       const result = await supabaseClient.getVehicles();
       
       // Formatear datos para que coincidan con la estructura esperada

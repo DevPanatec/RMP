@@ -1,5 +1,7 @@
 import { createContext, useContext, useReducer, useEffect } from 'react';
 import supabaseClient from '../utils/supabaseClient';
+import { useDemoMode } from '../hooks/useDemoMode';
+import { DEMO_ROUTES } from '../utils/demoData';
 
 // Crear el contexto
 const SupabaseRoutesContext = createContext();
@@ -85,17 +87,63 @@ const initialState = {
 // Provider del contexto
 export const SupabaseRoutesProvider = ({ children }) => {
   const [state, dispatch] = useReducer(routesReducer, initialState);
+  const { isDemoMode } = useDemoMode();
 
   // Cargar rutas al iniciar
   useEffect(() => {
     loadRoutes();
-  }, []);
+  }, [isDemoMode]);
 
   // Función para cargar rutas
   const loadRoutes = async () => {
     dispatch({ type: ACTIONS.LOAD_ROUTES });
     
     try {
+      if (isDemoMode) {
+        console.log('🎯 Modo Demo: Usando datos demo de rutas');
+        
+        const formattedRoutes = DEMO_ROUTES.map(route => {
+          const paradas = Array.isArray(route.paradas) ? route.paradas : [];
+          const diasOperacion = Array.isArray(route.dias_operacion) ? route.dias_operacion : [];
+          
+          const coordenadasCompletas = paradas
+            .filter(parada => parada.latitud && parada.longitud)
+            .map(parada => [parseFloat(parada.latitud), parseFloat(parada.longitud)]);
+
+          return {
+            id: route.id,
+            name: route.nombre,
+            nombre: route.nombre,
+            descripcion: route.descripcion,
+            type: route.tipo_servicio,
+            tipoServicio: route.tipo_servicio,
+            tipo_servicio: route.tipo_servicio,
+            stops: paradas,
+            paradas: paradas,
+            coordenadasCompletas: coordenadasCompletas,
+            distanciaTotal: route.distancia_km || 0,
+            distancia_total: route.distancia_km || 0,
+            tiempoEstimado: route.tiempo_estimado_min || 0,
+            tiempo_estimado: route.tiempo_estimado_min || 0,
+            estimatedTime: route.tiempo_estimado_min ? `${Math.ceil(route.tiempo_estimado_min / 60)}h` : '1h',
+            color: route.color || '#22c55e',
+            status: route.estado === 'activa' ? 'active' : 'inactive',
+            estado: route.estado,
+            fecha_programada: null,
+            hora_inicio: route.hora_inicio,
+            hora_fin: route.hora_fin,
+            dias_operacion: diasOperacion,
+            proyecto: null,
+            proyectoId: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+        });
+        
+        dispatch({ type: ACTIONS.SET_ROUTES, payload: formattedRoutes });
+        return;
+      }
+      
       const result = await supabaseClient.getRoutes();
       
       // Formatear datos para que coincidan con la estructura esperada

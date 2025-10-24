@@ -86,17 +86,17 @@ const AdminDashboard = ({ user, onLogout }) => {
   // Hook de modo demo
   const { isDemoMode, toggleDemoMode } = useDemoMode();
 
-  // Mezclar datos reales con datos demo cuando el modo demo está activo
+  // En modo demo, usar SOLO datos demo de vehículos (sin mezclar con Supabase)
   const displayVehicles = useMemo(() => {
-    return isDemoMode ? mergeDemoData(vehicles, DEMO_VEHICLES) : vehicles;
-  }, [isDemoMode, vehicles]);
+    return vehicles;
+  }, [vehicles]);
 
   const displayRoutes = useMemo(() => {
-    return isDemoMode ? mergeDemoData(routes, DEMO_ROUTES) : routes;
+    return isDemoMode ? DEMO_ROUTES : routes;
   }, [isDemoMode, routes]);
 
   const displayPersonnel = useMemo(() => {
-    return isDemoMode ? mergeDemoData(personnel, DEMO_PERSONNEL) : personnel;
+    return isDemoMode ? personnel : personnel;
   }, [isDemoMode, personnel]);
 
   const displayAlerts = useMemo(() => {
@@ -163,12 +163,20 @@ const AdminDashboard = ({ user, onLogout }) => {
               </div>
               <div className="ops-header-stats">
                 <div className="stat-pill">
-                  <span className="stat-value">{displayPersonnel?.length || 0}</span>
-                  <span className="stat-label">Total</span>
+                  <span className="stat-value">{displayPersonnel?.filter(p => p.active === true).length || 0}</span>
+                  <span className="stat-label">Activos</span>
                 </div>
                 <div className="stat-pill">
-                  <span className="stat-value">{displayPersonnel?.filter(p => p.estado === 'activo').length || 0}</span>
-                  <span className="stat-label">Activos</span>
+                  <span className="stat-value">{displayPersonnel?.filter(p => p.puesto?.includes('Supervisor')).length || 0}</span>
+                  <span className="stat-label">Supervisores</span>
+                </div>
+                <div className="stat-pill">
+                  <span className="stat-value">{displayPersonnel?.filter(p => p.puesto === 'Conductor').length || 0}</span>
+                  <span className="stat-label">Conductores</span>
+                </div>
+                <div className="stat-pill">
+                  <span className="stat-value">{displayPersonnel?.filter(p => p.puesto === 'Recolector').length || 0}</span>
+                  <span className="stat-label">Recolectores</span>
                 </div>
               </div>
             </div>
@@ -260,7 +268,6 @@ const AdminDashboard = ({ user, onLogout }) => {
               >
                 <BarChart3 size={18} />
                 <span>Todos</span>
-                <span className="chip-badge">{normalizedCamiones.length}</span>
               </button>
               <button
                 className={`ops-filter-chip ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
@@ -268,7 +275,6 @@ const AdminDashboard = ({ user, onLogout }) => {
               >
                 <Truck size={18} />
                 <span>Recolección</span>
-                <span className="chip-badge">{normalizedCamiones.filter(v => v.tipoServicio === 'recoleccion').length}</span>
               </button>
               <button
                 className={`ops-filter-chip ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
@@ -276,7 +282,6 @@ const AdminDashboard = ({ user, onLogout }) => {
               >
                 <Truck size={18} />
                 <span>Fumigación</span>
-                <span className="chip-badge">{normalizedCamiones.filter(v => v.tipoServicio === 'fumigacion').length}</span>
               </button>
             </div>
 
@@ -424,11 +429,11 @@ const AdminDashboard = ({ user, onLogout }) => {
               </div>
               <div className="ops-header-stats">
                 <div className="stat-pill">
-                  <span className="stat-value">{displayRoutes.filter(r => r.tipo_servicio === 'recoleccion').length}</span>
+                  <span className="stat-value">{isDemoMode ? 6 : displayRoutes.filter(r => r.tipo_servicio === 'recoleccion').length}</span>
                   <span className="stat-label">Recolección</span>
                 </div>
                 <div className="stat-pill info">
-                  <span className="stat-value">{displayRoutes.filter(r => r.tipo_servicio === 'fumigacion').length}</span>
+                  <span className="stat-value">{isDemoMode ? 6 : displayRoutes.filter(r => r.tipo_servicio === 'fumigacion').length}</span>
                   <span className="stat-label">Fumigación</span>
                 </div>
               </div>
