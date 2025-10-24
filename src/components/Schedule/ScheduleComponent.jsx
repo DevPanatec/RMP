@@ -697,10 +697,10 @@ const ScheduleComponent = () => {
                           {assignment.estado}
                         </span>
                       </div>
-                      <div className="assignment-details-unified">
+                       <div className="assignment-details-unified">
                         <div className="detail-item">
                           <Clock size={14} />
-                          <span>{assignment.hora}</span>
+                          <span>{formatTime12h(assignment.hora)}</span>
                         </div>
                         {assignment.fotos && assignment.fotos.length > 0 && (
                           <div className="detail-item">
@@ -1120,160 +1120,180 @@ const ScheduleComponent = () => {
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-content modal-large" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>
-                <Plus size={20} /> Nueva Asignación de Limpieza
-              </h3>
+              <div className="header-content">
+                <div className="header-icon">
+                  <Sparkles size={28} />
+                </div>
+                <div className="header-text">
+                  <h3 className="modal-title">Nueva Asignación de Limpieza</h3>
+                  <p className="modal-subtitle">Complete los detalles para crear la asignación</p>
+                </div>
+              </div>
               <button className="modal-close" onClick={handleCloseModal}>
-                <X size={20} />
+                <X size={24} />
               </button>
             </div>
 
             <form onSubmit={handleCleaningSubmit}>
               <div className="modal-body">
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Lugar *</label>
-                  <select
-                    value={cleaningFormData.lugar_id}
-                    onChange={handleLugarChange}
-                    className={errors.lugar_id ? 'error' : ''}
-                    required
-                  >
-                    <option value="">Seleccionar lugar</option>
-                    {lugares.map(lugar => (
-                      <option key={lugar.id} value={lugar.id}>
-                        {lugar.nombre}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.lugar_id && <span className="error-text">{errors.lugar_id}</span>}
-                </div>
-
-                <div className="form-group">
-                  <label>Área *</label>
-                  <select
-                    value={cleaningFormData.area_id}
-                    onChange={handleAreaChange}
-                    disabled={!cleaningFormData.lugar_id}
-                    className={errors.area_id ? 'error' : ''}
-                    required
-                  >
-                    <option value="">Seleccionar área</option>
-                    {availableAreas.map(area => (
-                      <option key={area.id} value={area.id}>
-                        {area.nombre}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.area_id && <span className="error-text">{errors.area_id}</span>}
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Fecha y Hora *</label>
-                  <input
-                    type="datetime-local"
-                    value={`${cleaningFormData.fecha}T${cleaningFormData.hora}`}
-                    onChange={(e) => {
-                      const [date, time] = e.target.value.split('T');
-                      setCleaningFormData({ 
-                        ...cleaningFormData, 
-                        fecha: date, 
-                        hora: time 
-                      });
-                      setErrors({ ...errors, fecha: '', hora: '' });
-                    }}
-                    step="900"
-                    className={errors.fecha || errors.hora ? 'error' : ''}
-                    required
-                  />
-                  {(errors.fecha || errors.hora) && (
-                    <span className="error-text">{errors.fecha || errors.hora}</span>
-                  )}
-                </div>
-              </div>
-
-              {cleaningFormData.area_id && (
-                <div className="photos-section-enhanced">
-                  <div className="photos-header">
-                    <div className="photos-header-icon">
-                      <Camera size={20} />
+                <div className="form-grid-2col">
+                  <div className="form-group-card">
+                    <div className="card-label">
+                      <Map size={18} />
+                      <span>Ubicación</span>
                     </div>
-                    <div className="photos-header-content">
-                      <h4>Evidencia Fotográfica Requerida</h4>
-                      <p>Sube 3 fotos: la primera será "Antes", la segunda "Durante" y la tercera "Después"</p>
-                    </div>
-                    <div className="photos-progress-indicator">
-                      <div className="progress-count">
-                        <span className="progress-number">
-                          {photos.before.length + photos.during.length + photos.after.length}
-                        </span>
-                        <span className="progress-total">/3</span>
-                      </div>
-                      <span className="progress-label">Fotos</span>
-                    </div>
-                  </div>
-
-                  <div className="photos-progress-bar">
-                    <div
-                      className="progress-fill"
-                      style={{
-                        width: `${((photos.before.length + photos.during.length + photos.after.length) / 3) * 100}%`
+                    
+                    <CustomSelect
+                      label="Lugar"
+                      required
+                      value={cleaningFormData.lugar_id}
+                      onChange={(value) => {
+                        setCleaningFormData({ ...cleaningFormData, lugar_id: value, area_id: '' });
+                        setAvailableAreas(getAreasByLugar(value));
+                        setErrors({ ...errors, lugar_id: '' });
                       }}
+                      options={lugares.map(lugar => ({
+                        value: lugar.id,
+                        label: lugar.nombre
+                      }))}
+                      placeholder="Seleccionar lugar"
+                      searchable
+                    />
+
+                    <CustomSelect
+                      label="Área"
+                      required
+                      value={cleaningFormData.area_id}
+                      onChange={(value) => {
+                        setCleaningFormData({ ...cleaningFormData, area_id: value });
+                        setErrors({ ...errors, area_id: '' });
+                      }}
+                      options={availableAreas.map(area => ({
+                        value: area.id,
+                        label: area.nombre
+                      }))}
+                      placeholder={cleaningFormData.lugar_id ? "Seleccionar área" : "Primero selecciona un lugar"}
+                      searchable
+                      disabled={!cleaningFormData.lugar_id}
                     />
                   </div>
 
-                  <PhotoUploadField
-                    label=""
-                    photos={[...photos.before, ...photos.during, ...photos.after]}
-                    onChange={(newPhotos) => {
-                      // Distribuir automáticamente: 1ra = antes, 2da = durante, 3ra = después
-                      const before = newPhotos[0] ? [newPhotos[0]] : [];
-                      const during = newPhotos[1] ? [newPhotos[1]] : [];
-                      const after = newPhotos[2] ? [newPhotos[2]] : [];
-
-                      setPhotos({
-                        before,
-                        during,
-                        after
-                      });
-                    }}
-                    maxPhotos={3}
-                  />
-
-                  {/* Indicadores de qué foto va a qué etapa */}
-                  {(photos.before.length > 0 || photos.during.length > 0 || photos.after.length > 0) && (
-                    <div className="photo-stage-indicators">
-                      {photos.before.length > 0 && (
-                        <div className="stage-indicator">
-                          <div className="stage-badge completed">1</div>
-                          <span>Antes</span>
-                        </div>
-                      )}
-                      {photos.during.length > 0 && (
-                        <div className="stage-indicator">
-                          <div className="stage-badge completed">2</div>
-                          <span>Durante</span>
-                        </div>
-                      )}
-                      {photos.after.length > 0 && (
-                        <div className="stage-indicator">
-                          <div className="stage-badge completed">3</div>
-                          <span>Después</span>
-                        </div>
+                  <div className="form-group-card">
+                    <div className="card-label">
+                      <Calendar size={18} />
+                      <span>Fecha y Hora</span>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label>Fecha y Hora *</label>
+                      <input
+                        type="datetime-local"
+                        value={`${cleaningFormData.fecha}T${cleaningFormData.hora}`}
+                        onChange={(e) => {
+                          const [date, time] = e.target.value.split('T');
+                          setCleaningFormData({ 
+                            ...cleaningFormData, 
+                            fecha: date, 
+                            hora: time 
+                          });
+                          setErrors({ ...errors, fecha: '', hora: '' });
+                        }}
+                        step="900"
+                        className={errors.fecha || errors.hora ? 'error' : ''}
+                        required
+                      />
+                      {(errors.fecha || errors.hora) && (
+                        <span className="error-text">{errors.fecha || errors.hora}</span>
                       )}
                     </div>
-                  )}
-
-                  {errors.photos && (
-                    <div className="error-message-enhanced">
-                      <AlertTriangle size={16} />
-                      <span>{errors.photos}</span>
-                    </div>
-                  )}
+                  </div>
                 </div>
-              )}
+
+                {cleaningFormData.area_id && (
+                  <div className="form-group-card form-full-width">
+                    <div className="card-label">
+                      <Camera size={18} />
+                      <span>Evidencia Fotográfica</span>
+                    </div>
+                    
+                    <div className="photos-section-enhanced">
+                      <div className="photos-header">
+                        <div className="photos-header-icon">
+                          <Camera size={20} />
+                        </div>
+                        <div className="photos-header-content">
+                          <h4>Evidencia Fotográfica Requerida</h4>
+                          <p>Sube 3 fotos: la primera será "Antes", la segunda "Durante" y la tercera "Después"</p>
+                        </div>
+                        <div className="photos-progress-indicator">
+                          <div className="progress-count">
+                            <span className="progress-number">
+                              {photos.before.length + photos.during.length + photos.after.length}
+                            </span>
+                            <span className="progress-total">/3</span>
+                          </div>
+                          <span className="progress-label">Fotos</span>
+                        </div>
+                      </div>
+
+                      <div className="photos-progress-bar">
+                        <div
+                          className="progress-fill"
+                          style={{
+                            width: `${((photos.before.length + photos.during.length + photos.after.length) / 3) * 100}%`
+                          }}
+                        />
+                      </div>
+
+                      <PhotoUploadField
+                        label=""
+                        photos={[...photos.before, ...photos.during, ...photos.after]}
+                        onChange={(newPhotos) => {
+                          const before = newPhotos[0] ? [newPhotos[0]] : [];
+                          const during = newPhotos[1] ? [newPhotos[1]] : [];
+                          const after = newPhotos[2] ? [newPhotos[2]] : [];
+
+                          setPhotos({
+                            before,
+                            during,
+                            after
+                          });
+                        }}
+                        maxPhotos={3}
+                      />
+
+                      {(photos.before.length > 0 || photos.during.length > 0 || photos.after.length > 0) && (
+                        <div className="photo-stage-indicators">
+                          {photos.before.length > 0 && (
+                            <div className="stage-indicator">
+                              <div className="stage-badge completed">1</div>
+                              <span>Antes</span>
+                            </div>
+                          )}
+                          {photos.during.length > 0 && (
+                            <div className="stage-indicator">
+                              <div className="stage-badge completed">2</div>
+                              <span>Durante</span>
+                            </div>
+                          )}
+                          {photos.after.length > 0 && (
+                            <div className="stage-indicator">
+                              <div className="stage-badge completed">3</div>
+                              <span>Después</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {errors.photos && (
+                        <div className="error-message-enhanced">
+                          <AlertTriangle size={16} />
+                          <span>{errors.photos}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="modal-footer">
