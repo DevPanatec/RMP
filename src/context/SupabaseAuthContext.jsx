@@ -134,9 +134,9 @@ export const SupabaseAuthProvider = ({ children }) => {
       setLoadingProfile(true);
       console.log('📋 Cargando perfil de usuario:', userId);
 
-      // Timeout de 30 segundos para conexiones lentas
+      // Timeout de 10 segundos
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout cargando perfil')), 30000)
+        setTimeout(() => reject(new Error('Timeout cargando perfil')), 10000)
       );
 
       const profilePromise = supabaseClient.supabase
@@ -145,36 +145,16 @@ export const SupabaseAuthProvider = ({ children }) => {
         .eq('id', userId)
         .maybeSingle();
 
-      const { data: profile, error } = await Promise.race([profilePromise, timeoutPromise]);
+      console.log('🔄 Ejecutando consulta a Supabase...');
+      const result = await Promise.race([profilePromise, timeoutPromise]);
+      console.log('🔍 Consulta completada:', result);
+
+      const { data: profile, error } = result;
 
       if (error) {
-        console.error('Error cargando perfil:', error);
-        setLoadingProfile(false);
-        
-        if (error.code === 'PGRST116') {
-          console.warn('Perfil de usuario no encontrado, creando perfil básico...');
-          setUser({
-            id: userId,
-            email: null,
-            nombre: 'Usuario',
-            tipo: 'conductor',
-            telefono: null,
-            documento: null,
-            foto_url: null,
-            vehiculo_asignado_id: null,
-            vehiculo_placa: null,
-            camionAsignado: null,
-            proyecto_id: null,
-            proyecto_nombre: null,
-            activo: true
-          });
-          return;
-        }
-        
+        console.error('Error en la consulta:', error);
         throw error;
       }
-
-      console.log('🔍 Consulta completada, procesando perfil...');
       
       if (profile) {
         console.log('✅ Perfil base cargado:', profile);
