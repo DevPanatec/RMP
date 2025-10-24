@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import supabaseClient from '../utils/supabaseClient';
 
 const SupabaseAuthContext = createContext();
@@ -16,6 +16,10 @@ export const SupabaseAuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const isCheckingSession = useRef(false);
+  const lastVisibilityCheck = useRef(0);
+  const isCheckingSession = useRef(false);
+  const lastVisibilityCheck = useRef(0);
 
   useEffect(() => {
     const savedAuthState = localStorage.getItem('rmp_auth_state');
@@ -77,18 +81,19 @@ export const SupabaseAuthProvider = ({ children }) => {
   }, []);
 
   const checkSession = async () => {
+    // Prevenir verificaciones múltiples simultáneas
+    if (isCheckingSession.current) {
+      console.log('⏭️ Ya hay una verificación de sesión en progreso');
+      return;
+    }
+    
+    isCheckingSession.current = true;
+    
     try {
       console.log('Verificando sesión...');
       setLoading(true);
 
-      // Add timeout to prevent infinite loading
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Session check timeout')), 10000)
-      );
-
-      const sessionPromise = supabaseClient.supabase.auth.getSession();
-
-      const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
+      const { data: { session }, error } = await supabaseClient.supabase.auth.getSession();
 
       if (error) throw error;
 
@@ -106,6 +111,7 @@ export const SupabaseAuthProvider = ({ children }) => {
     } finally {
       console.log('Verificación de sesión completada');
       setLoading(false);
+      isCheckingSession.current = false;
     }
   };
 
@@ -120,18 +126,11 @@ export const SupabaseAuthProvider = ({ children }) => {
       setLoadingProfile(true);
       console.log('📋 Cargando perfil de usuario:', userId);
 
-      // Add timeout to prevent infinite loading
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Profile load timeout')), 10000)
-      );
-
-      const profilePromise = supabaseClient.supabase
+      const { data: profile, error } = await supabaseClient.supabase
         .from('perfiles_usuarios')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
-
-      const { data: profile, error } = await Promise.race([profilePromise, timeoutPromise]);
 
       if (error) {
         console.error('Error cargando perfil:', error);
@@ -239,37 +238,47 @@ export const SupabaseAuthProvider = ({ children }) => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('👁️ Pestaña visible, verificando sesión...');
-        const savedAuthState = localStorage.getItem('rmp_auth_state');
+        const now = Date.now();
+        const timeSinceLastCheck = now - lastVisibilityCheck.current;
         
-        if (!user && savedAuthState) {
-          try {
-            const { user: savedUser, session: savedSession, timestamp } = JSON.parse(savedAuthState);
-            const isExpired = Date.now() - timestamp > 3600000;
-            
-            if (!isExpired && savedUser && savedSession) {
-              console.log('🔄 Restaurando sesión desde localStorage');
-              setUser(savedUser);
-              setSession(savedSession);
-              setLoading(false);
-            } else {
-              console.log('⏰ Sesión expirada, verificando con servidor');
-              localStorage.removeItem('rmp_auth_state');
-              checkSession();
+        // Debounce: solo verificar si han pasado más de 5 segundos desde la última verificación
+        if (timeSinceLastCheck < 5000) {
+          console.log('⏭️ Verificación de sesión omitida (debounce)');
+          return;
+        }
+        
+        lastVisibilityCheck.current = now;
+        
+        // Solo verificar si NO hay usuario Y NO estamos ya verificando
+        if (!user && !isCheckingSession.current && !loadingProfile) {
+          console.log('👁️ Pestaña visible, verificando sesión...');
+          const savedAuthState = localStorage.getItem('rmp_auth_state');
+          
+          if (savedAuthState) {
+            try {
+              const { user: savedUser, session: savedSession, timestamp } = JSON.parse(savedAuthState);
+              const isExpired = Date.now() - timestamp > 3600000;
+              
+              if (!isExpired && savedUser && savedSession) {
+                console.log('🔄 Restaurando sesión desde localStorage');
+                setUser(savedUser);
+                setSession(savedSession);
+                setLoading(false);
+              } else {
+                console.log('⏰ Sesión expirada, limpiando');
+                localStorage.removeItem('rmp_auth_state');
+              }
+            } catch (err) {
+              console.error('❌ Error restaurando sesión:', err);
             }
-          } catch (err) {
-            console.error('❌ Error restaurando sesión:', err);
           }
-        } else if (!user && !loading) {
-          console.log('🔍 Sin usuario, verificando sesión con servidor');
-          checkSession();
         }
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [user, loading]);
+  }, [user, loadingProfile]);
 
   const signIn = async (email, password) => {
     try {
