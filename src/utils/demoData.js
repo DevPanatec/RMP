@@ -221,8 +221,8 @@ export const DEMO_VEHICLES = [
     tipo_vehiculo: 'pickup',
     capacidad_carga: 1000,
     estado: 'En ruta',
-    lat: 8.9750,
-    lng: -79.5100,
+    lat: 8.9800,
+    lng: -79.5200,
     rutaAsignada: 'demo-ruta-5',
     ruta_id: 'demo-ruta-5',
     conductorAsignado: 'demo-conductor-4',
@@ -232,14 +232,14 @@ export const DEMO_VEHICLES = [
     totalParadas: 4,
     ultimaActualizacion: Date.now(),
     horaInicio: Date.now() - (3 * 60 * 60 * 1000),
-    direccion: 45,
+    direccion: 30,
     pesoAcumulado: 850,
     contenedoresRecogidos: 18,
     combustible: 68,
     historialPosiciones: [
       { lat: 8.9720, lng: -79.5380, timestamp: new Date(Date.now() - 10800000).toISOString() },
       { lat: 8.9535, lng: -79.5332, timestamp: new Date(Date.now() - 7200000).toISOString() },
-      { lat: 8.9750, lng: -79.5100, timestamp: new Date().toISOString() }
+      { lat: 8.9800, lng: -79.5200, timestamp: new Date().toISOString() }
     ]
   },
   // Cisternas (2)
