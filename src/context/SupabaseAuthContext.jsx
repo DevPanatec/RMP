@@ -131,9 +131,9 @@ export const SupabaseAuthProvider = ({ children }) => {
       setLoadingProfile(true);
       console.log('📋 Cargando perfil de usuario:', userId);
 
-      // Timeout de 15 segundos para evitar cuelgue infinito
+      // Timeout de 30 segundos para conexiones lentas
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout cargando perfil')), 15000)
+        setTimeout(() => reject(new Error('Timeout cargando perfil')), 30000)
       );
 
       const profilePromise = supabaseClient.supabase
