@@ -1,5 +1,13 @@
 /* ===== MODAL LIMPIEZA - DISEÑO MODERNO ===== */
 
+/* Asegurar box-sizing en todo el modal */
+.modal-overlay,
+.modal-overlay *,
+.modal-overlay *::before,
+.modal-overlay *::after {
+  box-sizing: border-box;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -25,6 +33,7 @@
   width: 100%;
   max-width: 600px;
   max-height: 90vh;
+  height: auto;
   display: flex;
   flex-direction: column;
   animation: slideUp 0.3s ease-out;
@@ -32,7 +41,8 @@
 }
 
 .modal-content.modal-large {
-  max-width: 900px;
+  max-width: 950px;
+  max-height: 95vh;
 }
 
 @keyframes slideUp {
@@ -123,10 +133,12 @@
 }
 
 .modal-body {
-  flex: 1;
+  flex: 1 1 auto;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 24px;
   min-height: 0;
+  max-height: calc(95vh - 200px);
 }
 
 .modal-body::-webkit-scrollbar {
@@ -211,6 +223,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   margin-bottom: 20px;
+  width: 100%;
 }
 
 .form-row {
@@ -225,6 +238,8 @@
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 20px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .form-group-card.form-full-width {
@@ -506,16 +521,93 @@
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .form-grid-2col {
     grid-template-columns: 1fr;
   }
+  
+  .modal-content.modal-large {
+    max-width: 95%;
+  }
+}
 
+@media (max-width: 768px) {
   .form-row {
     grid-template-columns: 1fr;
   }
 
+  .modal-content {
+    max-height: 100vh;
+    border-radius: 0;
+    height: 100%;
+  }
+  
   .modal-content.modal-large {
     max-width: 100%;
+    max-height: 100vh;
   }
+  
+  .modal-overlay {
+    padding: 0;
+  }
+  
+  .modal-body {
+    max-height: calc(100vh - 180px);
+  }
+}
+
+/* Asegurar que los componentes internos no se desborden */
+.form-group-card * {
+  box-sizing: border-box;
+}
+
+/* Fix para elementos con width fijos */
+.form-group input[type="date"],
+.form-group input[type="time"],
+.form-group input[type="datetime-local"] {
+  max-width: 100%;
+}
+
+/* Mejorar scroll en navegadores */
+.modal-body {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+/* Asegurar que textareas respeten el contenedor */
+.form-group textarea {
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Fix para dropdowns largos */
+.form-group select {
+  max-width: 100%;
+  text-overflow: ellipsis;
+}
+
+/* Prevenir overflow de texto largo */
+.modal-content span,
+.modal-content p,
+.modal-content li,
+.modal-content label {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Asegurar que los inputs respeten su contenedor */
+.modal-body input,
+.modal-body select,
+.modal-body textarea,
+.modal-body button {
+  max-width: 100%;
+}
+
+/* Fix específico para elementos con estilos inline */
+.modal-body > div,
+.form-grid-2col > div,
+.form-group-card > div {
+  max-width: 100%;
 }
