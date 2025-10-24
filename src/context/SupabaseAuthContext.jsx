@@ -18,6 +18,7 @@ export const SupabaseAuthProvider = ({ children }) => {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const isCheckingSession = useRef(false);
   const lastVisibilityCheck = useRef(0);
+  const loadedUserIds = useRef(new Set());
 
   useEffect(() => {
     const savedAuthState = localStorage.getItem('rmp_auth_state');
@@ -46,23 +47,29 @@ export const SupabaseAuthProvider = ({ children }) => {
     
     const { data: authListener } = supabaseClient.supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔐 Auth state changed:', event, session?.user?.id, 'User loaded:', !!user, 'User ID:', user?.id);
+        console.log('🔐 Auth state changed:', event, session?.user?.id);
         setSession(session);
 
         try {
           if (session?.user) {
-            if (!user || user.id !== session.user.id) {
-              console.log('📥 Cargando perfil...');
+            const userId = session.user.id;
+            
+            // Solo cargar si NO hemos cargado este usuario antes
+            if (!loadedUserIds.current.has(userId)) {
+              console.log('📥 Cargando perfil nuevo...');
               setLoading(true);
-              await loadUserProfile(session.user.id);
-              console.log('✅ Perfil cargado');
+              await loadUserProfile(userId);
+              loadedUserIds.current.add(userId);
+              console.log('✅ Perfil cargado y registrado');
               setLoading(false);
             } else {
-              console.log('✅ Usuario ya cargado, saltando carga de perfil');
+              console.log('✅ Usuario ya cargado previamente, omitiendo');
+              setLoading(false);
             }
           } else {
             console.log('❌ Sin sesión, limpiando usuario');
             setUser(null);
+            loadedUserIds.current.clear();
             localStorage.removeItem('rmp_auth_state');
           }
         } catch (err) {
