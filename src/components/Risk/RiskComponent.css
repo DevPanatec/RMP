@@ -346,11 +346,7 @@
 }
 
 .spinner {
-  width: 60px;
-  height: 60px;
-  background: url('/Favicon.png') center/contain no-repeat;
-  animation: pulse 1.5s ease-in-out infinite;
-  border: none;
+  display: none;
 }
 
 @keyframes spin {

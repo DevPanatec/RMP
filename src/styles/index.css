@@ -922,20 +922,11 @@ select.form-control:focus {
   gap: var(--space-16);
 }
 
-/* Reemplazar spinner giratorio con logo FMP */
+/* Ocultar spinners giratorios */
 .spinner,
 .loading-spinner:empty,
-.loading-state .loading-spinner,
 .loading-state .loading-spinner:empty {
-  width: 60px !important;
-  height: 60px !important;
-  min-width: 60px !important;
-  min-height: 60px !important;
-  border: none !important;
-  background: url('/Favicon.png') center/contain no-repeat !important;
-  animation: pulse 1.5s ease-in-out infinite !important;
-  display: block !important;
-  margin: 0 auto !important;
+  display: none !important;
 }
 
 /* Modal actions */
