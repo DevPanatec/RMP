@@ -922,17 +922,32 @@ select.form-control:focus {
   gap: var(--space-16);
 }
 
+/* Reemplazar spinner giratorio con logo FMP */
 .spinner {
-  display: none;
+  width: 60px;
+  height: 60px;
+  border: none;
+  background-image: url('/Favicon.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  animation: pulse 1.5s ease-in-out infinite;
 }
 
-/* Ocultar spinners vacíos que solo giran */
 .loading-spinner:empty {
-  display: none;
+  width: 60px;
+  height: 60px;
+  background-image: url('/Favicon.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  animation: pulse 1.5s ease-in-out infinite;
+  border: none;
+  margin: 0 auto;
 }
 
 .loading-state .loading-spinner:empty {
-  display: none;
+  display: block;
 }
 
 /* Modal actions */
