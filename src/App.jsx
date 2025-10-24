@@ -28,7 +28,7 @@ const AppContent = () => {
       <div className="loading-container">
         <div className="loading-spinner">
           <div className="rmp-logo">
-            <h1>🌱 RMP</h1>
+            <img src="/Favicon.png" alt="FMP Logo" style={{ width: '120px', height: '120px', marginBottom: '20px' }} />
             <p>Cargando...</p>
           </div>
         </div>
