@@ -1100,16 +1100,15 @@
 }
 
 .spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #e5e7eb;
-  border-top-color: var(--inventory-primary);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  width: 60px;
+  height: 60px;
+  background: url('/Favicon.png') center/contain no-repeat;
+  animation: pulse 1.5s ease-in-out infinite;
+  border: none;
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
 }
 
 .loading-spinner p {
