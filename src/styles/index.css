@@ -923,31 +923,19 @@ select.form-control:focus {
 }
 
 /* Reemplazar spinner giratorio con logo FMP */
-.spinner {
-  width: 60px;
-  height: 60px;
-  border: none;
-  background-image: url('/Favicon.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-.loading-spinner:empty {
-  width: 60px;
-  height: 60px;
-  background-image: url('/Favicon.png');
-  background-size: contain;
-  background-repeat: no-repeat;
-  background-position: center;
-  animation: pulse 1.5s ease-in-out infinite;
-  border: none;
-  margin: 0 auto;
-}
-
+.spinner,
+.loading-spinner:empty,
+.loading-state .loading-spinner,
 .loading-state .loading-spinner:empty {
-  display: block;
+  width: 60px !important;
+  height: 60px !important;
+  min-width: 60px !important;
+  min-height: 60px !important;
+  border: none !important;
+  background: url('/Favicon.png') center/contain no-repeat !important;
+  animation: pulse 1.5s ease-in-out infinite !important;
+  display: block !important;
+  margin: 0 auto !important;
 }
 
 /* Modal actions */
@@ -1033,7 +1021,7 @@ select.form-control:focus {
 
 @keyframes spin {
   from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
 }
 
 @keyframes shimmer {
