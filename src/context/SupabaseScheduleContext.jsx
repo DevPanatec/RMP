@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { DEMO_SCHEDULE_ASSIGNMENTS, mergeDemoData } from '../utils/demoData';
+import { DEMO_SCHEDULE_ASSIGNMENTS, DEMO_ROUTES, DEMO_VEHICLES, mergeDemoData } from '../utils/demoData';
 import { useDemoMode } from '../hooks/useDemoMode';
 
 const SupabaseScheduleContext = createContext();
@@ -55,6 +55,35 @@ export const SupabaseScheduleProvider = ({ children }) => {
 
   const addAssignment = async (assignmentData) => {
     try {
+      if (isDemoMode) {
+        const route = DEMO_ROUTES.find(r => r.id === assignmentData.ruta_id);
+        const vehicle = DEMO_VEHICLES.find(v => v.id === assignmentData.vehiculo_id);
+
+        const newAssignment = {
+          ...assignmentData,
+          id: `demo-schedule-new-${Date.now()}`,
+          ruta: route ? {
+            id: route.id,
+            nombre: route.nombre,
+            tipo_servicio: route.tipo_servicio,
+            paradas: route.paradas,
+            hora_inicio: route.hora_inicio,
+            hora_fin: route.hora_fin
+          } : null,
+          vehiculo: vehicle ? {
+            id: vehicle.id,
+            placa: vehicle.placa,
+            nombre: vehicle.nombre,
+            tipo_servicio: vehicle.tipo_servicio
+          } : null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        setAssignments(prev => [newAssignment, ...prev]);
+        return { success: true, data: newAssignment };
+      }
+
       const { data, error: insertError } = await supabase
         .from('asignaciones_rutas')
         .insert([assignmentData])
@@ -76,6 +105,19 @@ export const SupabaseScheduleProvider = ({ children }) => {
 
   const updateAssignment = async (id, updates) => {
     try {
+      if (isDemoMode) {
+        const updatedAssignment = {
+          ...assignments.find(a => a.id === id),
+          ...updates,
+          updated_at: new Date().toISOString()
+        };
+
+        setAssignments(prev =>
+          prev.map(assignment => (assignment.id === id ? updatedAssignment : assignment))
+        );
+        return { success: true, data: updatedAssignment };
+      }
+
       const { data, error: updateError } = await supabase
         .from('asignaciones_rutas')
         .update(updates)
@@ -100,6 +142,11 @@ export const SupabaseScheduleProvider = ({ children }) => {
 
   const deleteAssignment = async (id) => {
     try {
+      if (isDemoMode) {
+        setAssignments(prev => prev.filter(assignment => assignment.id !== id));
+        return { success: true };
+      }
+
       const { error: deleteError } = await supabase
         .from('asignaciones_rutas')
         .delete()

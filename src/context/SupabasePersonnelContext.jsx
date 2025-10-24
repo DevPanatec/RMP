@@ -108,7 +108,10 @@ export const SupabasePersonnelProvider = ({ children }) => {
         return {
           id: emp.id,
           nombre: `${emp.nombre || ''} ${emp.apellido || ''}`.trim() || 'Sin nombre',
+          name: `${emp.nombre || ''} ${emp.apellido || ''}`.trim() || 'Sin nombre',
           puesto: emp.cargo || 'Conductor',
+          position: emp.cargo || 'Conductor',
+          cargo: emp.cargo || 'Conductor',
           email: emp.email || '',
           telefono: emp.telefono || '',
           estado: estado,
@@ -158,7 +161,10 @@ export const SupabasePersonnelProvider = ({ children }) => {
           return {
             id: emp.id,
             nombre: `${emp.nombre} ${emp.apellido}`,
+            name: `${emp.nombre} ${emp.apellido}`,
             puesto: emp.cargo || 'Conductor',
+            position: emp.cargo || 'Conductor',
+            cargo: emp.cargo || 'Conductor',
             email: emp.email,
             telefono: emp.telefono,
             estado: estado,

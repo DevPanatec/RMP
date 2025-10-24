@@ -171,6 +171,28 @@ export const SupabaseCleaningProvider = ({ children }) => {
   // Crear una nueva asignación
   const addAssignment = async (assignmentData) => {
     try {
+      if (isDemoMode) {
+        const lugar = state.lugares.find(l => l.id === assignmentData.lugar_id);
+        const area = state.areas.find(a => a.id === assignmentData.area_id);
+
+        const newAssignment = {
+          id: `demo-cleaning-new-${Date.now()}`,
+          lugar_id: assignmentData.lugar_id,
+          area_id: assignmentData.area_id,
+          fecha: assignmentData.fecha,
+          hora: assignmentData.hora,
+          estado: 'pendiente',
+          notas: assignmentData.notas || null,
+          lugar: lugar ? { id: lugar.id, nombre: lugar.nombre } : null,
+          area: area ? { id: area.id, nombre: area.nombre } : null,
+          fotos: [],
+          created_at: new Date().toISOString()
+        };
+
+        dispatch({ type: ACTIONS.ADD_ASSIGNMENT, payload: newAssignment });
+        return { success: true, data: newAssignment };
+      }
+
       const { data, error } = await supabaseClient.supabase
         .from('cleaning_assignments')
         .insert([{
@@ -202,6 +224,18 @@ export const SupabaseCleaningProvider = ({ children }) => {
   // Actualizar una asignación
   const updateAssignment = async (id, updates) => {
     try {
+      if (isDemoMode) {
+        const existing = state.assignments.find(a => a.id === id);
+        const updatedAssignment = {
+          ...existing,
+          ...updates,
+          updated_at: new Date().toISOString()
+        };
+
+        dispatch({ type: ACTIONS.UPDATE_ASSIGNMENT, payload: updatedAssignment });
+        return { success: true, data: updatedAssignment };
+      }
+
       const { data, error } = await supabaseClient.supabase
         .from('cleaning_assignments')
         .update(updates)
@@ -228,6 +262,11 @@ export const SupabaseCleaningProvider = ({ children }) => {
   // Eliminar una asignación
   const deleteAssignment = async (id) => {
     try {
+      if (isDemoMode) {
+        dispatch({ type: ACTIONS.DELETE_ASSIGNMENT, payload: id });
+        return { success: true };
+      }
+
       const { error } = await supabaseClient.supabase
         .from('cleaning_assignments')
         .delete()
@@ -247,6 +286,22 @@ export const SupabaseCleaningProvider = ({ children }) => {
   // Subir una foto
   const uploadPhoto = async (assignmentId, etapa, file) => {
     try {
+      if (isDemoMode) {
+        const demoPhoto = {
+          id: `demo-photo-${Date.now()}-${Math.random()}`,
+          assignment_id: assignmentId,
+          etapa,
+          file_name: file.name,
+          file_path: `demo-path/${file.name}`,
+          url: URL.createObjectURL(file),
+          file_size: file.size,
+          mime_type: file.type,
+          created_at: new Date().toISOString()
+        };
+
+        return { success: true, data: demoPhoto };
+      }
+
       // Generar nombre único para el archivo
       const fileExt = file.name.split('.').pop();
       const fileName = `${assignmentId}_${etapa}_${Date.now()}.${fileExt}`;

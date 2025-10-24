@@ -135,12 +135,13 @@ const ScheduleComponent = () => {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  const activeRoutes = routes.filter(r => r.activa !== false);
+  const activeRoutes = routes.filter(r => r.estado === 'activa' || r.status === 'active');
   const activePersonnel = personnel.filter(p => p.active === true);
   const activeVehicles = vehicles.filter(v =>
     v.estado === 'activo' ||
     v.estado === 'Disponible' ||
-    v.estado === 'disponible'
+    v.estado === 'disponible' ||
+    v.estado === 'En ruta'
   );
   const loading = scheduleLoading || cleaningLoading;
 
@@ -148,11 +149,11 @@ const ScheduleComponent = () => {
   const getCompatibleVehicles = () => {
     if (!routeFormData.ruta_id) return activeVehicles;
 
-    const selectedRoute = routes.find(r => r.id === parseInt(routeFormData.ruta_id));
+    const selectedRoute = routes.find(r => String(r.id) === String(routeFormData.ruta_id));
     if (!selectedRoute) return activeVehicles;
 
     const routeType = selectedRoute.tipo_servicio;
-    return activeVehicles.filter(v => v.tipo_servicio === routeType);
+    return activeVehicles.filter(v => v.tipo_servicio === routeType || v.tipoServicio === routeType);
   };
 
   const compatibleVehicles = getCompatibleVehicles();
@@ -231,7 +232,7 @@ const ScheduleComponent = () => {
     }
 
     // Obtener la ruta seleccionada
-    const selectedRoute = routes.find(r => r.id === parseInt(routeFormData.ruta_id));
+    const selectedRoute = routes.find(r => String(r.id) === String(routeFormData.ruta_id));
 
     console.log('🔍 DEBUG - Ruta seleccionada:', selectedRoute);
     console.log('🔍 DEBUG - dias_operacion:', selectedRoute?.dias_operacion);
@@ -266,7 +267,7 @@ const ScheduleComponent = () => {
     // Bloquear días ya asignados a otros conductores
     if (routeFormData.fecha) {
       const conflictos = scheduleAssignments.filter(assignment =>
-        assignment.ruta_id === parseInt(routeFormData.ruta_id) &&
+        String(assignment.ruta_id) === String(routeFormData.ruta_id) &&
         assignment.fecha === routeFormData.fecha &&
         assignment.id !== editingAssignment?.id
       );
@@ -299,7 +300,7 @@ const ScheduleComponent = () => {
 
     // Buscar otras asignaciones del mismo vehículo en la misma semana
     const vehicleAssignments = scheduleAssignments.filter(assignment =>
-      assignment.vehiculo_id === parseInt(vehiculoId) &&
+      String(assignment.vehiculo_id) === String(vehiculoId) &&
       assignment.fecha === fecha &&
       assignment.id !== editingAssignment?.id
     );
@@ -378,8 +379,8 @@ const ScheduleComponent = () => {
     }
 
     // Validar compatibilidad vehículo-ruta
-    const selectedRoute = routes.find(r => r.id === parseInt(routeFormData.ruta_id));
-    const selectedVehicle = vehicles.find(v => v.id === parseInt(routeFormData.vehiculo_id));
+    const selectedRoute = routes.find(r => String(r.id) === String(routeFormData.ruta_id));
+    const selectedVehicle = vehicles.find(v => String(v.id) === String(routeFormData.vehiculo_id));
 
     if (selectedRoute && selectedVehicle) {
       if (selectedRoute.tipo_servicio !== selectedVehicle.tipo_servicio) {
@@ -423,8 +424,8 @@ const ScheduleComponent = () => {
     // Crear assignmentData con horarios copiados de la ruta
     const assignmentData = {
       ...routeFormData,
-      ruta_id: parseInt(routeFormData.ruta_id),
-      vehiculo_id: parseInt(routeFormData.vehiculo_id),
+      ruta_id: routeFormData.ruta_id,
+      vehiculo_id: routeFormData.vehiculo_id,
       estado: 'programada',
       hora_inicio: selectedRoute?.hora_inicio || null,
       hora_fin: selectedRoute?.hora_fin || null
@@ -867,7 +868,7 @@ const ScheduleComponent = () => {
                     />
 
                     {routeFormData.ruta_id && (() => {
-                      const selectedRoute = routes.find(r => r.id === parseInt(routeFormData.ruta_id));
+                      const selectedRoute = routes.find(r => String(r.id) === String(routeFormData.ruta_id));
                       return selectedRoute && selectedRoute.hora_inicio && selectedRoute.hora_fin ? (
                         <div style={{
                           marginTop: '12px',
