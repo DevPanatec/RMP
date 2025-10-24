@@ -52,7 +52,7 @@ export const DEMO_ROUTES = [
     paradas: [
       { id: 1, nombre: 'Estacionamiento Diana Morán 2066', latitud: 8.9720, longitud: -79.5380, orden: 1, completada: true, hora_completada: '06:00', tipo: 'inicio' },
       { id: 2, nombre: 'Mercado de Mariscos', latitud: 8.9670, longitud: -79.5350, orden: 2, completada: true, hora_completada: '06:45' },
-      { id: 3, nombre: 'Cerro Patacón (Relleno Sanitario)', latitud: 9.0450, longitud: -79.4650, orden: 3, completada: false },
+      { id: 3, nombre: 'Cerro Patacón (Relleno Sanitario)', latitud: 9.0450, longitud: -79.4650, orden: 3, completada: true, hora_completada: '09:30' },
       { id: 4, nombre: 'Estacionamiento Diana Morán 2066', latitud: 8.9720, longitud: -79.5380, orden: 4, completada: false, tipo: 'regreso' }
     ],
     distancia_km: 18.5,
@@ -315,26 +315,26 @@ export const DEMO_VEHICLES = [
     capacidad_carga: 12000,
     capacidad_volumen: 12.5,
     estado: 'En ruta',
-    lat: 9.0350,
-    lng: -79.4750,
+    lat: 9.0085,
+    lng: -79.5015,
     rutaAsignada: 'demo-ruta-3',
     ruta_id: 'demo-ruta-3',
     conductorAsignado: 'demo-conductor-6',
     conductor_id: 'demo-conductor-6',
-    indiceRuta: 2,
-    paradaActual: 3,
+    indiceRuta: 3,
+    paradaActual: 4,
     totalParadas: 4,
     ultimaActualizacion: Date.now(),
-    horaInicio: Date.now() - (2 * 60 * 60 * 1000 + 30 * 60 * 1000),
-    direccion: 45,
+    horaInicio: Date.now() - (4 * 60 * 60 * 1000),
+    direccion: 225,
     pesoAcumulado: 4800,
     contenedoresRecogidos: 24,
-    combustible: 62,
+    combustible: 58,
     historialPosiciones: [
-      { lat: 8.9720, lng: -79.5380, timestamp: new Date(Date.now() - 9000000).toISOString() },
-      { lat: 8.9670, lng: -79.5350, timestamp: new Date(Date.now() - 6000000).toISOString() },
-      { lat: 8.9950, lng: -79.5100, timestamp: new Date(Date.now() - 3000000).toISOString() },
-      { lat: 9.0350, lng: -79.4750, timestamp: new Date().toISOString() }
+      { lat: 8.9720, lng: -79.5380, timestamp: new Date(Date.now() - 12000000).toISOString() },
+      { lat: 8.9670, lng: -79.5350, timestamp: new Date(Date.now() - 9000000).toISOString() },
+      { lat: 9.0450, lng: -79.4650, timestamp: new Date(Date.now() - 3000000).toISOString() },
+      { lat: 9.0085, lng: -79.5015, timestamp: new Date().toISOString() }
     ]
   },
   // Vehículos de fumigación

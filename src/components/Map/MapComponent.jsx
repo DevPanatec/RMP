@@ -212,6 +212,7 @@ const createLocationIcon = () => {
 };
 
 const MAPBOX_TOKEN = 'pk.eyJ1Ijoia2V2aW5uMjMiLCJhIjoiY204Y2J0bWN1MTg5ZzJtb2xobXljODM0MiJ9.48MFADtQhp_sFuQjewLFeA';
+const GOOGLE_MAPS_API_KEY = 'AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8';
 
 // Funciones de utilidad para simulación de movimiento siguiendo rutas reales
 const simularMovimientoReal = (camion, ruta, rutaCalculada) => {
@@ -326,7 +327,7 @@ const simularMovimientoReal = (camion, ruta, rutaCalculada) => {
   };
 };
 
-// Función para calcular ruta real usando OSRM (Open Source Routing Machine)
+// Función para calcular ruta real usando Mapbox Directions API
 const calcularRutaCompleta = async (paradas) => {
   if (!paradas || paradas.length < 2) {
     console.log('No hay suficientes paradas para calcular ruta');
@@ -334,10 +335,16 @@ const calcularRutaCompleta = async (paradas) => {
   }
 
   try {
-    // Construir coordenadas en formato lon,lat para OSRM
+    // Mapbox Directions API soporta hasta 25 coordenadas totales
+    if (paradas.length > 25) {
+      console.warn(`⚠️ Ruta tiene ${paradas.length} paradas (máximo 25 para Mapbox). Usando solo las primeras 25.`);
+    }
+
+    // Construir coordenadas en formato lng,lat para Mapbox
     const coordinates = paradas
+      .slice(0, 25) // Limitar a 25 paradas
       .map(p => {
-        const lng = p.lng || p.longitud || p.lon;
+        const lng = p.lng || p.longitud;
         const lat = p.lat || p.latitud;
         if (!lng || !lat) return null;
         return `${lng},${lat}`;
@@ -345,30 +352,35 @@ const calcularRutaCompleta = async (paradas) => {
       .filter(coord => coord !== null)
       .join(';');
 
-    if (!coordinates) {
-      console.log('No se pudieron extraer coordenadas válidas');
+    if (!coordinates || coordinates.split(';').length < 2) {
+      console.log('No se pudieron extraer suficientes coordenadas válidas');
       return paradas.map(p => [p.lat || p.latitud, p.lng || p.longitud]);
     }
 
-    // Llamar a OSRM API pública
-    const url = `https://router.project-osrm.org/route/v1/driving/${coordinates}?overview=full&geometries=geojson`;
+    // Llamar a Mapbox Directions API
+    const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordinates}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
 
-    console.log(`Calculando ruta con OSRM: ${paradas.length} paradas`);
+    console.log(`🗺️ Calculando ruta con Mapbox Directions: ${paradas.length} paradas`);
 
     const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
     const data = await response.json();
 
     if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-      // OSRM devuelve coordenadas en formato [lon, lat], necesitamos [lat, lon]
+      // Mapbox devuelve coordenadas en formato [lng, lat], necesitamos [lat, lng]
       const routeCoords = data.routes[0].geometry.coordinates.map(coord => [coord[1], coord[0]]);
-      console.log(`Ruta calculada: ${routeCoords.length} puntos`);
+      console.log(`✅ Ruta calculada con Mapbox: ${routeCoords.length} puntos siguiendo calles reales`);
       return routeCoords;
     } else {
-      console.warn('OSRM no pudo calcular la ruta, usando líneas directas');
+      console.warn(`⚠️ Mapbox no pudo calcular la ruta (code: ${data.code}). Usando líneas directas`);
       return paradas.map(p => [p.lat || p.latitud, p.lng || p.longitud]);
     }
   } catch (error) {
-    console.error('Error calculando ruta con OSRM:', error);
+    console.error('❌ Error calculando ruta con Mapbox Directions:', error);
     // Fallback: devolver líneas directas entre paradas
     return paradas.map(p => [p.lat || p.latitud, p.lng || p.longitud]);
   }
@@ -501,13 +513,13 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
   }, [selectedTruck]);
 
   /* ------------------------------------------------------------
-   * Precalcular rutas reales usando OSRM para TODAS las rutas al montar.
+   * Precalcular rutas reales usando Mapbox Directions para TODAS las rutas al montar.
    * ----------------------------------------------------------*/
   useEffect(() => {
     let mounted = true;
 
     const buildAllRoutes = async () => {
-      console.log(`🚀 Iniciando cálculo de ${rutas.length} rutas con OSRM...`);
+      console.log(`🚀 Iniciando cálculo de ${rutas.length} rutas con Mapbox Directions API...`);
       setRoutesLoading(true);
       const newMap = {};
 
@@ -538,8 +550,8 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
             newMap[ruta.id] = paradasNormalizadas.map(p => [p.lat, p.lng]);
           }
 
-          // Pequeño delay para no sobrecargar la API
-          await new Promise(resolve => setTimeout(resolve, 300));
+          // Pequeño delay para no sobrecargar la API (Mapbox tiene límites de rate)
+          await new Promise(resolve => setTimeout(resolve, 500));
 
         } catch (error) {
           console.error(`❌ Error calculando ruta ${ruta.nombre}:`, error);
@@ -558,7 +570,7 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
       if (mounted) {
         setRoadRoutes(newMap);
         setRoutesLoading(false);
-        console.log(`🎉 ¡Rutas calculadas completadas! ${Object.keys(newMap).length} rutas listas`);
+        console.log(`🎉 ¡Rutas calculadas completadas con Mapbox! ${Object.keys(newMap).length} rutas listas`);
         console.log('📊 IDs de rutas calculadas:', Object.keys(newMap));
       }
     };
