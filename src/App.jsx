@@ -17,6 +17,9 @@ import { SupabaseMaintenanceProvider } from './context/SupabaseMaintenanceContex
 const AppContent = () => {
   const { user, loading, signOut } = useSupabaseAuth();
 
+  // Debug: ver estado en cada render
+  console.log('🎯 AppContent render - loading:', loading, 'user:', user ? `${user.tipo} - ${user.nombre}` : 'null');
+
   const handleLogout = async () => {
     await signOut();
     console.log('Usuario deslogueado');
@@ -24,6 +27,7 @@ const AppContent = () => {
 
   // Mostrar pantalla de carga
   if (loading) {
+    console.log('⏳ Mostrando pantalla de carga...');
     return (
       <div className="loading-container">
         <div className="loading-spinner">
@@ -38,8 +42,11 @@ const AppContent = () => {
 
   // Si no hay usuario logueado, mostrar login
   if (!user) {
+    console.log('🔓 Mostrando login (sin usuario)');
     return <Login />;
   }
+
+  console.log('✅ Mostrando dashboard para:', user.tipo);
 
   // Mostrar dashboard según el tipo de usuario
   const renderDashboard = () => {
