@@ -18,8 +18,6 @@ export const SupabaseAuthProvider = ({ children }) => {
   const [loadingProfile, setLoadingProfile] = useState(false);
   const isCheckingSession = useRef(false);
   const lastVisibilityCheck = useRef(0);
-  const isCheckingSession = useRef(false);
-  const lastVisibilityCheck = useRef(0);
 
   useEffect(() => {
     const savedAuthState = localStorage.getItem('rmp_auth_state');
