@@ -468,28 +468,28 @@ const AdminDashboard = ({ user, onLogout }) => {
           {
             id: 'vehicles',
             icon: <Truck strokeWidth={1.5} size={32} />,
-            value: 13,
+            value: normalizedCamiones.length,
             label: 'Total Vehículos',
             color: 'linear-gradient(135deg, #30d158 0%, #34c759 100%)'
           },
           {
             id: 'active',
             icon: <TrendingUp strokeWidth={1.5} size={32} />,
-            value: 5,
+            value: normalizedCamiones.filter(c => c.estado === 'En ruta' || c.estado === 'en_ruta').length,
             label: 'En Ruta',
             color: 'linear-gradient(135deg, #ff9500 0%, #ffb800 100%)'
           },
           {
             id: 'personnel',
             icon: <Briefcase strokeWidth={1.5} size={32} />,
-            value: 16,
+            value: displayPersonnel?.length || 0,
             label: 'Personal',
             color: 'linear-gradient(135deg, #007aff 0%, #4da3ff 100%)'
           },
           {
             id: 'routes',
             icon: <MapPin strokeWidth={1.5} size={32} />,
-            value: 3,
+            value: displayRoutes.filter(r => r.estado === 'activa' || r.status === 'active').length,
             label: 'Rutas Activas',
             color: 'linear-gradient(135deg, #00d4ff 0%, #0091ff 100%)'
           }
