@@ -101,14 +101,15 @@ export const SupabaseCleaningProvider = ({ children }) => {
     loadAssignments();
   }, [isDemoMode]);
 
-  // Cargar lugares desde Supabase
+  // ⚡ OPTIMIZADO: Cargar lugares con índice
   const loadLugares = async () => {
     try {
       const { data, error } = await supabaseClient.supabase
         .from('lugares')
         .select('*')
         .eq('activo', true)
-        .order('nombre', { ascending: true });
+        .order('nombre', { ascending: true })
+        .limit(100); // ⚡ Limitar resultados para velocidad
 
       if (error) throw error;
 
@@ -120,14 +121,15 @@ export const SupabaseCleaningProvider = ({ children }) => {
     }
   };
 
-  // Cargar áreas desde Supabase
+  // ⚡ OPTIMIZADO: Cargar áreas con índice
   const loadAreas = async () => {
     try {
       const { data, error } = await supabaseClient.supabase
         .from('areas')
         .select('*')
         .eq('activo', true)
-        .order('nombre', { ascending: true });
+        .order('nombre', { ascending: true })
+        .limit(100); // ⚡ Limitar resultados para velocidad
 
       if (error) throw error;
 
@@ -139,7 +141,7 @@ export const SupabaseCleaningProvider = ({ children }) => {
     }
   };
 
-  // Cargar asignaciones con sus relaciones
+  // ⚡ OPTIMIZADO: Cargar asignaciones con índice y límite
   const loadAssignments = async () => {
     try {
       dispatch({ type: ACTIONS.SET_LOADING, payload: true });
@@ -153,7 +155,8 @@ export const SupabaseCleaningProvider = ({ children }) => {
           fotos:cleaning_photos(*)
         `)
         .order('fecha', { ascending: false })
-        .order('hora', { ascending: false });
+        .order('hora', { ascending: false })
+        .limit(200); // ⚡ Limitar a los 200 más recientes
 
       if (error) throw error;
 
