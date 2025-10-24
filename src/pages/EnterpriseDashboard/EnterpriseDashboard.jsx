@@ -211,8 +211,8 @@ const EnterpriseDashboard = ({ user, onLogout }) => {
           <div className="operations-content-modern">
             <div className="ops-header">
               <div className="ops-header-content">
-                <h2><Clock size={24} /> Programación</h2>
-                <p>Programa y asigna rutas a conductores y vehículos</p>
+                <h2><Clock size={24} /> Asignación</h2>
+                <p>Asigna rutas a conductores y vehículos</p>
               </div>
             </div>
             <ScheduleComponent userType={user.tipo} />
@@ -390,7 +390,7 @@ const EnterpriseDashboard = ({ user, onLogout }) => {
                       className={activeSubTab === 'programacion' ? 'active' : ''}
                       onClick={() => setActiveSubTab('programacion')}
                     >
-                      <Clock size={16} /> Programación
+                      <Clock size={16} /> Asignación
                     </button>
                   </li>
                 </ul>

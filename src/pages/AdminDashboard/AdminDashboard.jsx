@@ -623,7 +623,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 onClick={() => setActiveSubTab('programacion')}
               >
                 <Calendar strokeWidth={1.5} size={20} />
-                <span>Programación</span>
+                <span>Asignación</span>
               </button>
             </div>
             {renderOperationsContent()}

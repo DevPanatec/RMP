@@ -564,15 +564,15 @@ const ScheduleComponent = () => {
     <div className="schedule-unified">
       <div className="schedule-header">
         <div className="schedule-title">
-          <h2><Calendar size={24} /> Programación Unificada</h2>
+          <h2><Calendar size={24} /> Asignaciones Unificadas</h2>
           <p>Gestiona todas las asignaciones de rutas y limpieza en un solo lugar</p>
         </div>
         <div className="schedule-actions">
           <button className="btn btn--primary" onClick={() => handleOpenRouteModal()}>
-            <Truck size={16} /> Nueva Ruta
+            <Truck size={16} /> Nueva Ruta de Seguimiento
           </button>
           <button className="btn btn--primary" onClick={handleOpenCleaningModal}>
-            <Sparkles size={16} /> Nueva Limpieza
+            <Sparkles size={16} /> Nueva Asignación
           </button>
         </div>
       </div>
@@ -583,7 +583,7 @@ const ScheduleComponent = () => {
           onClick={() => setActiveTab('routes')}
         >
           <Truck size={18} />
-          <span>Rutas Programadas</span>
+          <span>Rutas de Seguimiento</span>
           <span className="tab-badge">{scheduleAssignments.length}</span>
         </button>
         <button 
@@ -591,7 +591,7 @@ const ScheduleComponent = () => {
           onClick={() => setActiveTab('cleaning')}
         >
           <Sparkles size={18} />
-          <span>Limpieza Programada</span>
+          <span>Asignaciones de Limpieza</span>
           <span className="tab-badge">{cleaningAssignments.length}</span>
         </button>
       </div>
@@ -611,7 +611,7 @@ const ScheduleComponent = () => {
                   <h3>No hay rutas programadas</h3>
                   <p>Comienza agregando una nueva asignación de ruta</p>
                   <button className="btn btn--primary" onClick={() => handleOpenRouteModal()}>
-                    <Plus size={16} /> Nueva Ruta
+                    <Plus size={16} /> Nueva Ruta de Seguimiento
                   </button>
                 </div>
               ) : (
@@ -677,7 +677,7 @@ const ScheduleComponent = () => {
                   <h3>No hay tareas de limpieza programadas</h3>
                   <p>Comienza agregando una nueva asignación de limpieza</p>
                   <button className="btn btn--primary" onClick={handleOpenCleaningModal}>
-                    <Plus size={16} /> Nueva Limpieza
+                    <Plus size={16} /> Nueva Asignación
                   </button>
                 </div>
               ) : (
