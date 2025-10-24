@@ -427,6 +427,68 @@ export const DEMO_VEHICLES = [
     conductor_id: null,
     velocidad: 0,
     direccion: 0
+  },
+  // Vehículos estacionados en Mi Pueblito
+  {
+    id: 'demo-vehicle-13',
+    nombre: 'Camión Carga 01',
+    placa: 'RMP-CL01',
+    marca: 'Isuzu',
+    modelo: 'FTR',
+    año: 2021,
+    tipoServicio: 'limpieza',
+    tipo_servicio: 'limpieza',
+    tipoVehiculo: 'camion_carga',
+    tipo_vehiculo: 'camion_carga',
+    capacidad_carga: 5000,
+    estado: 'En ruta',
+    lat: 8.9650,
+    lng: -79.5520,
+    rutaAsignada: null,
+    ruta_id: null,
+    conductorAsignado: null,
+    conductor_id: null,
+    indiceRuta: 0,
+    paradaActual: 1,
+    totalParadas: 1,
+    velocidad: 0,
+    direccion: 0,
+    pesoAcumulado: 0,
+    combustible: 75,
+    historialPosiciones: [
+      { lat: 8.9650, lng: -79.5520, timestamp: new Date().toISOString() }
+    ]
+  },
+  {
+    id: 'demo-vehicle-14',
+    nombre: 'Cisterna 03',
+    placa: 'RMP-CI03',
+    marca: 'Mercedes-Benz',
+    modelo: 'Atego',
+    año: 2022,
+    tipoServicio: 'limpieza',
+    tipo_servicio: 'limpieza',
+    tipoVehiculo: 'cisterna',
+    tipo_vehiculo: 'cisterna',
+    capacidad_carga: 8000,
+    capacidad_volumen: 10,
+    estado: 'En ruta',
+    lat: 8.9652,
+    lng: -79.5522,
+    rutaAsignada: null,
+    ruta_id: null,
+    conductorAsignado: null,
+    conductor_id: null,
+    indiceRuta: 0,
+    paradaActual: 1,
+    totalParadas: 1,
+    velocidad: 0,
+    direccion: 0,
+    pesoAcumulado: 0,
+    combustible: 80,
+    historialPosiciones: [
+      { lat: 8.9652, lng: -79.5522, timestamp: new Date().toISOString() }
+    ]
   }
 ];
 
