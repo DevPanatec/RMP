@@ -1,27 +1,22 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
+import { useState, useMemo, useEffect, memo } from 'react';
 import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
 import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
 import { useSupabaseReports } from '../../context/SupabaseReportsContext';
-import { BarChart3, Truck, Zap, Sparkles, Wrench, ChevronRight, MapPin, Calendar, Camera } from '../Icons';
-import { Card, Badge } from '../UI';
+import { BarChart3, Truck, Zap, Sparkles, Wrench, MapPin } from '../Icons';
 import ReportsDashboard from './ReportsDashboard';
-import RouteHistory from './RouteHistory';
 import LocationReportsModal from './LocationReportsModal';
 import { DEMO_LUGARES, DEMO_CLEANING_ASSIGNMENTS, mergeDemoData } from '../../utils/demoData';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import './ReportsComponent.css';
 
-const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, onClearSelection = null }) => {
+const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = null }) => {
   const [activeCategory, setActiveCategory] = useState('dashboard');
-  const [selectedRouteType, setSelectedRouteType] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const { isDemoMode } = useDemoMode();
   const [routeReports, setRouteReports] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 6;
 
-  const { routes } = useSupabaseRoutes();
   const { assignments, loading: cleaningLoading, lugares } = useSupabaseCleaning();
   const { tasks: maintenanceTasks, loading: maintenanceLoading } = useSupabaseMaintenance();
   const { getRouteCompletionReports } = useSupabaseReports();
@@ -74,9 +69,6 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
       }
     }
   }, [preSelectedLocationId, displayLugares, displayAssignments]);
-
-  const rutasRecoleccion = routes.filter(r => r.type === 'recoleccion' || r.tipoServicio === 'recoleccion');
-  const rutasFumigacion = routes.filter(r => r.type === 'fumigacion' || r.tipoServicio === 'fumigacion');
 
   const categories = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -154,73 +146,47 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
     });
   }, [displayLugares, displayAssignments, routeReports]);
 
-  // Component para tarjeta de mapa con carga diferida
-  const MapCard = ({ location, icon: Icon }) => {
-    const [loadMap, setLoadMap] = useState(false);
-    const cardRef = useRef(null);
+  // ⚡ Component para tarjeta con imagen estática de mapa (carga rápida)
+  const MapCard = memo(({ location, icon: Icon }) => {
+    // Mapeo de lugares a imágenes de mapa estático
+    const mapImageMap = {
+      'Complejo Turístico Mi Pueblito': 'mi-pueblito-map.png',
+      'Mercado de Alcalde Díaz': 'alcalde-diaz-map.png',
+      'Mercado de Pacora': 'pacora-map.png',
+      'Mercado de Pueblo Nuevo': 'pueblo-nuevo-map.png',
+      'Mercado del Marisco': 'marisco-map.png',
+      'Mercado San Felipe Neri': 'san-felipe-map.png'
+    };
 
-    useEffect(() => {
-      if (!cardRef.current) return;
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              // Cargar mapa cuando esté cerca del viewport
-              setLoadMap(true);
-            }
-          });
-        },
-        { rootMargin: '100px' } // Cargar 100px antes de entrar al viewport
-      );
-
-      observer.observe(cardRef.current);
-
-      return () => {
-        if (cardRef.current) {
-          observer.unobserve(cardRef.current);
-        }
-      };
-    }, []);
-
-    const mapEmbedUrl = location.nombre
-      ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(location.nombre + ', Panama City, Panama')}&zoom=15`
-      : null;
+    const mapImage = mapImageMap[location.nombre];
+    const imageUrl = mapImage ? `/mapas/${mapImage}` : null;
 
     return (
       <div
-        ref={cardRef}
         className="location-map-card"
         onClick={() => setSelectedLocation(location)}
-        onMouseEnter={() => setLoadMap(true)}
+        style={{ cursor: 'pointer' }}
       >
         <div className="location-image-wrapper">
-          {!loadMap ? (
-            <div className="map-placeholder">
-              <div className="map-placeholder-gradient"></div>
-              <Icon size={56} className="map-placeholder-icon" />
-              <span className="map-placeholder-text">Vista de mapa</span>
-            </div>
-          ) : mapEmbedUrl ? (
-            <iframe
-              src={mapEmbedUrl}
-              width="100%"
-              height="100%"
-              style={{ border: 0, pointerEvents: 'none' }}
-              allowFullScreen=""
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={`Mapa de ${location.nombre}`}
+              className="location-image"
               loading="lazy"
-              importance="low"
-              referrerPolicy="no-referrer-when-downgrade"
-              title={`Mapa de ${location.nombre}`}
+              onError={(e) => {
+                console.error('Error cargando imagen de mapa:', imageUrl);
+                e.target.style.display = 'none';
+                e.target.nextElementSibling.style.display = 'flex';
+              }}
             />
-          ) : (
-            <div className="location-image-fallback" style={{ display: 'flex' }}>
-              <Icon size={48} />
-              <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
-                {location.nombre}
-              </p>
-            </div>
-          )}
+          ) : null}
+          <div className="location-image-fallback" style={{ display: imageUrl ? 'none' : 'flex' }}>
+            <Icon size={48} />
+            <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
+              {location.nombre}
+            </p>
+          </div>
         </div>
         <div className="map-card-overlay">
           <h4>{location.nombre}</h4>
@@ -228,7 +194,7 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
         </div>
       </div>
     );
-  };
+  });
 
   const renderRecoleccion = () => {
     // Paginación
@@ -503,6 +469,7 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
                   key={location.id}
                   className="location-map-card"
                   onClick={() => setSelectedLocation(location)}
+                  style={{ cursor: 'pointer' }}
                 >
                   <div className="location-image-wrapper">
                     {imageUrl ? (
@@ -511,6 +478,8 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
                           src={imageUrl}
                           alt={location.nombre}
                           className="location-image"
+                          loading="eager"
+                          decoding="async"
                           onError={(e) => {
                             console.error('Error cargando imagen:', imageUrl);
                             e.target.style.display = 'none';
@@ -620,6 +589,37 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
 
   // Agrupar tareas de mantenimiento por lugar (Planta de Tratamiento San Felipe Neri)
   const maintenanceByLocation = useMemo(() => {
+    // Buscar San Felipe Neri en los lugares disponibles
+    const sanFelipeNeri = displayLugares.find(l =>
+      l.nombre === 'Mercado San Felipe Neri' ||
+      l.nombre === 'Planta de tratamiento (Mercado San Felipe Neri)'
+    );
+
+    // Si no hay tareas pero existe el lugar, mostrar la ubicación sin tareas
+    if (maintenanceTasks.length === 0) {
+      if (sanFelipeNeri) {
+        return [{
+          id: sanFelipeNeri.id,
+          nombre: sanFelipeNeri.nombre,
+          latitud: sanFelipeNeri.latitud,
+          longitud: sanFelipeNeri.longitud,
+          assignments: [],
+          assignmentsCount: 0,
+          completedCount: 0
+        }];
+      }
+      // Si no existe el lugar, crear uno por defecto
+      return [{
+        id: 'san-felipe-default',
+        nombre: 'Planta de tratamiento (Mercado San Felipe Neri)',
+        latitud: null,
+        longitud: null,
+        assignments: [],
+        assignmentsCount: 0,
+        completedCount: 0
+      }];
+    }
+
     // Agrupar tareas por lugar_id
     const locationMap = new Map();
 
@@ -658,14 +658,21 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
       assignmentsCount: location.assignments.length,
       completedCount: location.assignments.filter(a => a.estado === 'completado').length
     }));
-  }, [maintenanceTasks]);
+  }, [maintenanceTasks, displayLugares]);
 
   const renderMantenimiento = () => {
+    console.log('🔧 DEBUG Mantenimiento:', {
+      maintenanceLoading,
+      maintenanceTasks: maintenanceTasks.length,
+      maintenanceByLocation: maintenanceByLocation.length,
+      locations: maintenanceByLocation
+    });
+
     return (
       <div className="reports-category reports-mantenimiento">
         <div className="category-header">
           <h3>Reportes de Mantenimiento - Planta de Tratamiento</h3>
-          <p>Mercado San Felipe Neri</p>
+          <p>Mercado San Felipe Neri ({maintenanceByLocation.length} ubicaciones)</p>
         </div>
 
         {maintenanceLoading ? (
@@ -677,6 +684,9 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
           <div className="empty-state">
             <Wrench size={48} />
             <p>No hay reportes de mantenimiento registrados</p>
+            <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
+              Debug: {maintenanceTasks.length} tareas encontradas
+            </p>
           </div>
         ) : (
           <div className="locations-grid">
@@ -688,12 +698,15 @@ const ReportsComponent = ({ userType = 'admin', preSelectedLocationId = null, on
                   key={location.id}
                   className="location-map-card"
                   onClick={() => setSelectedLocation(location)}
+                  style={{ cursor: 'pointer' }}
                 >
                   <div className="location-image-wrapper">
                     <img
                       src={imageUrl}
                       alt={location.nombre}
                       className="location-image"
+                      loading="eager"
+                      decoding="async"
                       onError={(e) => {
                         e.target.style.display = 'none';
                         e.target.nextElementSibling.style.display = 'flex';
