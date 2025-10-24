@@ -413,8 +413,8 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
     setLocalRutas(rutas);
   }, [rutas]);
 
-  // Usar todos los camiones recibidos sin filtrar por estado
-  const activeCamiones = mapCamiones;
+  // TEMPORAL: Mostrar solo el camión RMP-P02 (demo-vehicle-5) para depuración de rutas
+  const activeCamiones = mapCamiones.filter(c => c.id === 'demo-vehicle-5');
 
   // Simular actualizaciones en tiempo real siguiendo rutas reales de OSRM
   useEffect(() => {
