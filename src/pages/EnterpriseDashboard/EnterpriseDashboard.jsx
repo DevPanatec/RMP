@@ -107,10 +107,28 @@ const EnterpriseDashboard = ({ user, onLogout }) => {
     camion.tipoServicio ? camion : { ...camion, tipoServicio: 'recoleccion' }
   ));
 
-  // Obtener estadísticas reales
-  const personnelStats = getPersonnelStats();
-  const fleetStats = getFleetStats();
-  const routesStats = getRoutesStats();
+  // Obtener estadísticas - valores fijos para presentación
+  const personnelStats = {
+    total: 16,
+    activos: 14,
+    conductores: 8,
+    tecnicos: 6,
+    supervisores: 2
+  };
+
+  const fleetStats = {
+    total: 13,
+    enRuta: 5,
+    disponibles: 8,
+    mantenimiento: 0
+  };
+
+  const routesStats = {
+    total: 5,
+    activas: 3,
+    completadas: 2,
+    programadas: 0
+  };
 
   // Calcular estadísticas operativas basadas en datos activos (reales o demo)
   const operationalStats = useMemo(() => {
@@ -209,15 +227,40 @@ const EnterpriseDashboard = ({ user, onLogout }) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
+        const heroStatsData = [
+          {
+            id: 'vehicles',
+            icon: <Truck strokeWidth={1.5} size={32} />,
+            value: fleetStats.total,
+            label: 'Total Vehículos',
+            color: 'linear-gradient(135deg, #30d158 0%, #34c759 100%)'
+          },
+          {
+            id: 'active',
+            icon: <TrendingUp strokeWidth={1.5} size={32} />,
+            value: fleetStats.enRuta,
+            label: 'En Ruta',
+            color: 'linear-gradient(135deg, #ff9500 0%, #ffb800 100%)'
+          },
+          {
+            id: 'personnel',
+            icon: <Briefcase strokeWidth={1.5} size={32} />,
+            value: personnelStats.total,
+            label: 'Personal',
+            color: 'linear-gradient(135deg, #007aff 0%, #4da3ff 100%)'
+          },
+          {
+            id: 'routes',
+            icon: <MapPin strokeWidth={1.5} size={32} />,
+            value: routesStats.activas,
+            label: 'Rutas Activas',
+            color: 'linear-gradient(135deg, #00d4ff 0%, #0091ff 100%)'
+          }
+        ];
+
         return (
           <div className="dashboard-content">
-            <HeroStats
-              vehiclesStats={fleetStats}
-              personnelStats={personnelStats}
-              routesStats={routesStats}
-              operationalStats={operationalStats}
-              userRole="enterprise"
-            />
+            <HeroStats stats={heroStatsData} />
 
             <div className="dashboard-grid">
               <div className="dashboard-section dashboard-section-map">

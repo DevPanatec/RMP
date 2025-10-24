@@ -417,8 +417,23 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
     setLocalRutas(rutas);
   }, [rutas]);
 
-  // Usar todos los camiones recibidos sin filtrar por estado
-  const activeCamiones = mapCamiones;
+  // TEMPORAL: Mostrar vehículos seleccionados
+  const activeCamiones = mapCamiones.filter(c =>
+    c.id === 'demo-vehicle-5' ||   // RMP-P02 (Pickup con ruta San Felipe Neri)
+    c.id === 'demo-vehicle-17' ||  // RMP-CC02 (Compactador en Pueblo Nuevo)
+    c.id === 'demo-vehicle-18' ||  // RMP-CL02 (Camión Carga en Pueblo Nuevo)
+    c.id === 'demo-vehicle-19' ||  // RMP-B03 (Bus cerca Palacio Municipal)
+    c.id === 'demo-vehicle-20' ||  // RMP-CI04 (Cisterna cerca Palacio Municipal)
+    // Vehículos estacionados en Diana Morán 2066
+    c.id === 'demo-vehicle-21' ||  // RMP-CC03 (Compactador)
+    c.id === 'demo-vehicle-22' ||  // RMP-CC04 (Compactador)
+    c.id === 'demo-vehicle-23' ||  // RMP-CV01 (Volteo)
+    c.id === 'demo-vehicle-24' ||  // RMP-CV02 (Volteo)
+    c.id === 'demo-vehicle-25' ||  // RMP-P04 (Pickup)
+    c.id === 'demo-vehicle-26' ||  // RMP-P05 (Pickup)
+    c.id === 'demo-vehicle-27' ||  // RMP-BR03 (Barredora)
+    c.id === 'demo-vehicle-28'     // RMP-CI05 (Cisterna)
+  );
 
   // Simular actualizaciones en tiempo real siguiendo rutas reales de OSRM
   useEffect(() => {
