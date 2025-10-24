@@ -926,6 +926,15 @@ select.form-control:focus {
   display: none;
 }
 
+/* Ocultar spinners vacíos que solo giran */
+.loading-spinner:empty {
+  display: none;
+}
+
+.loading-state .loading-spinner:empty {
+  display: none;
+}
+
 /* Modal actions */
 .modal-actions {
   padding: var(--space-16) var(--space-20);
