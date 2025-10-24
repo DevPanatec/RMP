@@ -468,33 +468,28 @@ const AdminDashboard = ({ user, onLogout }) => {
           {
             id: 'vehicles',
             icon: <Truck strokeWidth={1.5} size={32} />,
-            value: serviceTypeFilter === 'todos' 
-              ? normalizedCamiones.length 
-              : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter).length,
-            label: serviceTypeFilter === 'todos' ? 'Total Vehículos' : 
-                   serviceTypeFilter === 'recoleccion' ? 'Camiones Recolección' : 'Vehículos Fumigación',
+            value: 13,
+            label: 'Total Vehículos',
             color: 'linear-gradient(135deg, #30d158 0%, #34c759 100%)'
           },
           {
             id: 'active',
             icon: <TrendingUp strokeWidth={1.5} size={32} />,
-            value: serviceTypeFilter === 'todos' 
-              ? normalizedCamiones.filter(c => c.estado === 'En ruta' || c.estado === 'en_ruta').length
-              : normalizedCamiones.filter(c => (c.estado === 'En ruta' || c.estado === 'en_ruta') && c.tipoServicio === serviceTypeFilter).length,
+            value: 5,
             label: 'En Ruta',
             color: 'linear-gradient(135deg, #ff9500 0%, #ffb800 100%)'
           },
           {
             id: 'personnel',
             icon: <Briefcase strokeWidth={1.5} size={32} />,
-            value: displayPersonnel?.length || 0,
+            value: 16,
             label: 'Personal',
             color: 'linear-gradient(135deg, #007aff 0%, #4da3ff 100%)'
           },
           {
             id: 'routes',
             icon: <MapPin strokeWidth={1.5} size={32} />,
-            value: displayRoutes.filter(r => r.activa !== false).length,
+            value: 3,
             label: 'Rutas Activas',
             color: 'linear-gradient(135deg, #00d4ff 0%, #0091ff 100%)'
           }
