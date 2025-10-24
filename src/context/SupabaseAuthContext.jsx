@@ -50,31 +50,34 @@ export const SupabaseAuthProvider = ({ children }) => {
         console.log('🔐 Auth state changed:', event, session?.user?.id);
         setSession(session);
 
+        if (!session?.user) {
+          console.log('❌ Sin sesión, limpiando usuario');
+          setUser(null);
+          setLoading(false);
+          loadedUserIds.current.clear();
+          localStorage.removeItem('rmp_auth_state');
+          return;
+        }
+
+        const userId = session.user.id;
+        
         try {
-          if (session?.user) {
-            const userId = session.user.id;
-            
-            // Solo cargar si NO hemos cargado este usuario antes
-            if (!loadedUserIds.current.has(userId)) {
-              console.log('📥 Cargando perfil nuevo...');
-              setLoading(true);
-              await loadUserProfile(userId);
-              loadedUserIds.current.add(userId);
-              console.log('✅ Perfil cargado y registrado');
-              setLoading(false);
-            } else {
-              console.log('✅ Usuario ya cargado previamente, omitiendo');
-              setLoading(false);
-            }
+          // SIEMPRE cargar el perfil en SIGNED_IN, independientemente del Set
+          if (event === 'SIGNED_IN' || !loadedUserIds.current.has(userId)) {
+            console.log('📥 Cargando perfil para evento:', event);
+            setLoading(true);
+            await loadUserProfile(userId);
+            loadedUserIds.current.add(userId);
+            console.log('✅ Perfil cargado correctamente');
           } else {
-            console.log('❌ Sin sesión, limpiando usuario');
-            setUser(null);
-            loadedUserIds.current.clear();
-            localStorage.removeItem('rmp_auth_state');
+            console.log('✅ Perfil ya existe en memoria, usando caché');
           }
         } catch (err) {
-          console.error('❌ Error en auth state change:', err);
+          console.error('❌ Error cargando perfil:', err);
           setError(err.message);
+        } finally {
+          // SIEMPRE poner loading en false
+          console.log('🏁 Finalizando carga, setLoading(false)');
           setLoading(false);
         }
       }
@@ -227,12 +230,17 @@ export const SupabaseAuthProvider = ({ children }) => {
         };
         setUser(userData);
         console.log('✅ Usuario establecido correctamente');
+        console.log('👤 Usuario final:', userData.tipo, userData.nombre);
+      } else {
+        console.warn('⚠️ No se encontró perfil para el usuario');
+        setUser(null);
       }
     } catch (err) {
       console.error('Error loading user profile:', err);
       setError(err.message);
       setUser(null);
     } finally {
+      console.log('🔚 loadUserProfile finalizado, setLoadingProfile(false)');
       setLoadingProfile(false);
     }
   };
@@ -308,14 +316,14 @@ export const SupabaseAuthProvider = ({ children }) => {
       if (error) throw error;
 
       console.log('✅ Auth exitoso, el perfil se cargará automáticamente vía onAuthStateChange');
+      // NO ponemos setLoading(false) aquí, lo manejará onAuthStateChange
       
       return { success: true, user: data.user };
     } catch (err) {
       console.error('❌ Error signing in:', err);
       setError(err.message);
+      setLoading(false); // Solo si hay error
       return { success: false, error: err.message };
-    } finally {
-      setLoading(false);
     }
   };
 
