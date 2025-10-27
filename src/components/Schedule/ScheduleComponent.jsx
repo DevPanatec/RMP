@@ -914,9 +914,9 @@ const ScheduleComponent = () => {
                       required
                       value={routeFormData.conductor_nombre}
                       onChange={(value) => handleRouteInputChange('conductor_nombre', value)}
-                      options={activePersonnel.map(person => ({
-                        value: person.name,
-                        label: `${person.name} - ${person.position}`
+                      options={activePersonnel.filter(p => p.puesto === 'Conductor').map(person => ({
+                        value: `${person.nombre} ${person.apellido}`,
+                        label: `${person.nombre} ${person.apellido} - ${person.puesto}`
                       }))}
                       placeholder="Seleccionar conductor"
                       searchable
