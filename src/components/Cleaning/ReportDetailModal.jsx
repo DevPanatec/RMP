@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Download, Calendar, MapPin, Image as ImageIcon } from '../Icons';
 import { Button } from '../UI';
-import supabaseClient from '../../utils/supabaseClient';
+// import supabaseClient from '../../utils/supabaseClient'; // Removed: Migrated to Convex
 import './ReportDetailModal.css';
 
 const ReportDetailModal = ({ isOpen, onClose, report, onDownload }) => {
@@ -27,17 +27,19 @@ const ReportDetailModal = ({ isOpen, onClose, report, onDownload }) => {
 
       for (const photo of photos) {
         try {
-          const { data } = supabaseClient.supabase.storage
-            .from('cleaning-evidences')
-            .getPublicUrl(photo.file_path);
+          // TODO: Implement Convex file storage URL retrieval
+          // const { data } = supabaseClient.supabase.storage
+          //   .from('cleaning-evidences')
+          //   .getPublicUrl(photo.file_path);
 
-          if (data?.publicUrl) {
-            urlsByStage[photo.etapa].push({
-              url: data.publicUrl,
-              name: photo.file_name,
-              id: photo.id
-            });
-          }
+          // if (data?.publicUrl) {
+          //   urlsByStage[photo.etapa].push({
+          //     url: data.publicUrl,
+          //     name: photo.file_name,
+          //     id: photo.id
+          //   });
+          // }
+          console.warn('Photo loading disabled - needs Convex file storage implementation');
         } catch (error) {
           console.error('Error loading photo URL:', error);
         }

@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
-import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
-import { useSupabaseSchedule } from '../../context/SupabaseScheduleContext';
-import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
+import { useRoutes } from '../../context/RoutesContext';
+import { useCleaning } from '../../context/CleaningContext';
+import { useSchedule } from '../../context/ScheduleContext';
+import { useMaintenance } from '../../context/MaintenanceContext';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter } from '../Icons';
 import CalendarDay from './CalendarDay';
 import DayDetailsModal from './DayDetailsModal';
@@ -17,10 +17,10 @@ const CALENDAR_CONFIG = {
 };
 
 const CalendarComponent = () => {
-  const { routes, loading: routesLoading } = useSupabaseRoutes();
-  const { assignments: cleaningAssignments, loading: cleaningLoading } = useSupabaseCleaning();
-  const { assignments: scheduleAssignments, loading: scheduleLoading, getDayNameFromDate, getStartOfWeekFromDate } = useSupabaseSchedule();
-  const { tasks: maintenanceTasks, loading: maintenanceLoading } = useSupabaseMaintenance();
+  const { routes, loading: routesLoading } = useRoutes();
+  const { assignments: cleaningAssignments, loading: cleaningLoading } = useCleaning();
+  const { assignments: scheduleAssignments, loading: scheduleLoading, getDayNameFromDate, getStartOfWeekFromDate } = useSchedule();
+  const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenance();
 
   console.log('📅 DEBUG CalendarComponent - cleaningAssignments:', cleaningAssignments);
   console.log('📅 DEBUG CalendarComponent - Cantidad:', cleaningAssignments.length);

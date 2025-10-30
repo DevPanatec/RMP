@@ -1,10 +1,10 @@
-import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
-import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
+import { useMaintenance } from '../../context/MaintenanceContext';
+import { useAuth } from '../../context/AuthContext';
 import { AlertTriangle, Clock, X, Wrench } from '../Icons';
 
 const MaintenanceAlerts = ({ userRole }) => {
-  const { user } = useSupabaseAuth();
-  const { alerts, dismissAlert, tasks } = useSupabaseMaintenance();
+  const { user } = useAuth();
+  const { alerts, dismissAlert, tasks } = useMaintenance();
   const isAdmin = userRole === 'admin' || user?.tipo === 'admin';
 
   const activeAlerts = alerts.filter(a => a.status === 'active');

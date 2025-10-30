@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
-import supabaseClient from '../../utils/supabaseClient';
+import { useMaintenance } from '../../context/MaintenanceContext';
+// import supabaseClient from '../../utils/supabaseClient'; // Removed: Migrated to Convex
 import { X, Upload, Image as ImageIcon, Check, Trash2 } from '../Icons';
 import { MAINTENANCE_PRESETS } from '../../constants/maintenancePresets';
 
 const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
-  const { createTask, updateTask, completeTask } = useSupabaseMaintenance();
+  const { addTask, updateTask, deleteTask } = useMaintenance();
   const [loading, setLoading] = useState(false);
   const isAdmin = userRole === 'admin';
   const isEnterprise = userRole === 'enterprise';
@@ -117,17 +117,13 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
         operational_data: operationalData
       };
 
-      // Si está completando la tarea (con fotos y datos operativos)
-      if (task && formData.status === 'completada' && isAdmin) {
-        await completeTask(task.id, operationalData, photos);
-      }
       // Si está actualizando una tarea existente
-      else if (task) {
-        await updateTask(task.id, taskData);
+      if (task) {
+        await updateTask(task._id || task.id, taskData);
       }
       // Si está creando una nueva tarea
       else {
-        await createTask(taskData);
+        await addTask(taskData);
       }
 
       onClose();
@@ -142,33 +138,37 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
   const handlePhotoUpload = async (file, stage) => {
     setUploadingPhotos(true);
     try {
-      // Generar nombre único para el archivo
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${task?.id || 'new'}_${stage}_${Date.now()}.${fileExt}`;
-      const filePath = `maintenance-photos/${fileName}`;
+      // TODO: Implement Convex file storage upload
+      console.warn('Photo upload disabled - needs Convex file storage implementation');
+      alert('Carga de fotos temporalmente deshabilitada. Necesita implementación con Convex.');
 
-      // Subir archivo a Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabaseClient.supabase.storage
-        .from('maintenance-evidences')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+      // // Generar nombre único para el archivo
+      // const fileExt = file.name.split('.').pop();
+      // const fileName = `${task?.id || 'new'}_${stage}_${Date.now()}.${fileExt}`;
+      // const filePath = `maintenance-photos/${fileName}`;
 
-      if (uploadError) throw uploadError;
+      // // Subir archivo a Supabase Storage
+      // const { data: uploadData, error: uploadError } = await supabaseClient.supabase.storage
+      //   .from('maintenance-evidences')
+      //   .upload(filePath, file, {
+      //     cacheControl: '3600',
+      //     upsert: false
+      //   });
 
-      // Obtener URL pública
-      const { data: { publicUrl } } = supabaseClient.supabase.storage
-        .from('maintenance-evidences')
-        .getPublicUrl(filePath);
+      // if (uploadError) throw uploadError;
 
-      // Agregar URL al estado de fotos
-      setPhotos(prev => ({
-        ...prev,
-        [stage]: [...prev[stage], publicUrl]
-      }));
+      // // Obtener URL pública
+      // const { data: { publicUrl } } = supabaseClient.supabase.storage
+      //   .from('maintenance-evidences')
+      //   .getPublicUrl(filePath);
 
-      console.log('Foto subida exitosamente:', publicUrl);
+      // // Agregar URL al estado de fotos
+      // setPhotos(prev => ({
+      //   ...prev,
+      //   [stage]: [...prev[stage], publicUrl]
+      // }));
+
+      // console.log('Foto subida exitosamente:', publicUrl);
     } catch (error) {
       console.error('Error uploading photo:', error);
       alert('Error al subir la foto: ' + error.message);

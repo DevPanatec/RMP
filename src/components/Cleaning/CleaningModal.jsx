@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { 
-  Plus, X, FileText, Camera, CheckCircle, 
+import {
+  Plus, X, FileText, Camera, CheckCircle,
   AlertTriangle, MapPin, Calendar, Clock,
   Edit, Save, Image as ImageIcon
 } from '../Icons';
-import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
+import { useCleaning } from '../../context/CleaningContext';
 import PhotoUploadField from './PhotoUploadField';
 import './CleaningModal.css';
 
@@ -15,7 +15,7 @@ const TABS = {
 };
 
 const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
-  const { lugares, areas, getAreasByLugar, uploadPhoto } = useSupabaseCleaning();
+  const { lugares, areas, getAreasByLugar, uploadPhoto } = useCleaning();
 
   const [activeTab, setActiveTab] = useState(TABS.INFO);
   const [formData, setFormData] = useState({

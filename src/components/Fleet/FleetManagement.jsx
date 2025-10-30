@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
+import { useFleet } from '../../context/FleetContext';
 import { Truck, Plus, History, X } from '../Icons';
 import './FleetManagement.css';
 
 const FleetManagement = () => {
-  const { vehicles, addVehicle, getVehicleHistory } = useSupabaseFleet();
+  const { vehicles, addVehicle, getVehicleHistory } = useFleet();
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);

@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Search, Download, Eye, Trash2, Filter, FileText } from '../Icons';
 import { Button, Card } from '../UI';
-import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
+import { useCleaning } from '../../context/CleaningContext';
 import ReportDetailModal from './ReportDetailModal';
 import './CleaningReports.css';
 
 const CleaningReports = ({ userRole }) => {
-  const { assignments, loading, deleteAssignment } = useSupabaseCleaning();
+  const { assignments, loading, deleteAssignment } = useCleaning();
   const [filters, setFilters] = useState({
     fecha: '',
     lugar: '',

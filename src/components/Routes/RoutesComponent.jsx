@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
+import { useRoutes } from '../../context/RoutesContext';
 import RouteModal from '../RouteModal/RouteModal';
 import { Map, Edit, Trash2, MapPin, Clock, Truck } from '../Icons';
 import './RoutesComponent.css';
@@ -15,7 +15,7 @@ const formatTime12h = (time24) => {
 };
 
 const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
-  const { routes, loading, addRoute, updateRoute, deleteRoute } = useSupabaseRoutes();
+  const { routes, loading, addRoute, updateRoute, deleteRoute } = useRoutes();
   const [showModal, setShowModal] = useState(false);
   const [editingRoute, setEditingRoute] = useState(null);
   const [isEditing, setIsEditing] = useState(false);

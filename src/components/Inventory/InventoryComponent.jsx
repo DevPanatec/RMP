@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSupabaseInventory } from '../../context/SupabaseInventoryContext';
+import { useInventory } from '../../context/InventoryContext';
 import { Package, FileText, AlertTriangle, X, Loader, CheckCircle, Search, Filter, LayoutGrid, List, Eye, Edit, Trash2, TrendingUp, TrendingDown } from '../Icons';
 import './InventoryComponent.css';
 
 const InventoryComponent = ({ userType = 'admin' }) => {
-  const { materials, loading, error, getInventoryStats, searchMaterials, addMaterial, updateMaterial, deleteMaterial } = useSupabaseInventory();
+  const { materials, loading, error, getInventoryStats, searchMaterials, addMaterial, updateMaterial, deleteMaterial } = useInventory();
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -30,6 +30,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
 
   // Filtrar y buscar materiales
   const filteredMaterials = useMemo(() => {
+    if (!materials) return [];
     let filtered = [...materials];
 
     // Filtrar por búsqueda

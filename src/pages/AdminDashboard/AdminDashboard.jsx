@@ -10,11 +10,11 @@ import FleetManagement from '../../components/Fleet/FleetManagement';
 import CalendarComponent from '../../components/Calendar/CalendarComponent';
 import MaintenanceComponent from '../../components/Maintenance/MaintenanceComponent';
 import CostosComponent from '../../components/Costos/CostosComponent';
-import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
-import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
-import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
-import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
-import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
+import { usePersonnel } from '../../context/PersonnelContext';
+import { useFleet } from '../../context/FleetContext';
+import { useRoutes } from '../../context/RoutesContext';
+import { useRiskReports } from '../../context/RiskReportsContext';
+import { useCleaning } from '../../context/CleaningContext';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { DEMO_VEHICLES, DEMO_ROUTES, DEMO_PERSONNEL, DEMO_ALERTS, DEMO_RECENT_ACTIVITY, mergeDemoData } from '../../utils/demoData';
 import {
@@ -45,16 +45,17 @@ const AdminDashboard = ({ user, onLogout }) => {
   });
   
   // Hooks de contextos reales
-  const { 
-    personnel, 
-    loading: personnelLoading, 
-    moveEmployee, 
-    addEmployee, 
-    updateEmployee, 
+  const {
+    personnel,
+    loading: personnelLoading,
+    moveEmployee,
+    addEmployee,
+    updateEmployee,
     deleteEmployee,
-    getPersonnelStats 
-  } = useSupabasePersonnel();
-  
+    getPersonnelStats,
+    getAllEmployees
+  } = usePersonnel();
+
   const {
     vehicles,
     loading: fleetLoading,
@@ -62,27 +63,27 @@ const AdminDashboard = ({ user, onLogout }) => {
     addVehicle,
     deleteVehicle,
     getFleetStats
-  } = useSupabaseFleet();
+  } = useFleet();
 
   const {
     routes,
     loading: routesLoading,
     getRoutesStats
-  } = useSupabaseRoutes();
+  } = useRoutes();
 
   const {
-    alerts,
+    reports: alerts,
     loading: alertsLoading,
-    addAlert,
-    updateAlert,
-    deleteAlert,
-    getAlertsStats
-  } = useSupabaseRiskReports();
+    addReport: addAlert,
+    updateReportStatus: updateAlert,
+    deleteReport: deleteAlert,
+    getReportStats: getAlertsStats
+  } = useRiskReports();
 
   const {
     lugares,
     loading: lugaresLoading
-  } = useSupabaseCleaning();
+  } = useCleaning();
 
   // Hook de modo demo
   const { isDemoMode, toggleDemoMode } = useDemoMode();
@@ -97,8 +98,10 @@ const AdminDashboard = ({ user, onLogout }) => {
   }, [isDemoMode, routes]);
 
   const displayPersonnel = useMemo(() => {
-    return isDemoMode ? personnel : personnel;
-  }, [isDemoMode, personnel]);
+    // Convertir objeto de turnos a array plano
+    const allEmployees = getAllEmployees();
+    return isDemoMode ? DEMO_PERSONNEL : allEmployees;
+  }, [isDemoMode, getAllEmployees]);
 
   const displayAlerts = useMemo(() => {
     return isDemoMode ? mergeDemoData(alerts, DEMO_ALERTS) : alerts;

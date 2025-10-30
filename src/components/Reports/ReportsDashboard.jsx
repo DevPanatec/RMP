@@ -1,15 +1,15 @@
 import { useState, useMemo } from 'react';
-import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
-import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
-import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
+import { useRoutes } from '../../context/RoutesContext';
+import { useCleaning } from '../../context/CleaningContext';
+import { useMaintenance } from '../../context/MaintenanceContext';
 import { Truck, Zap, Sparkles, Wrench, TrendingUp, CheckCircle, Clock, Download, ChevronRight, Calendar } from '../Icons';
 import { Card } from '../UI';
 import './ReportsDashboard.css';
 
 const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
-  const { routes } = useSupabaseRoutes();
-  const { assignments } = useSupabaseCleaning();
-  const { tasks: maintenanceTasks } = useSupabaseMaintenance();
+  const { routes } = useRoutes();
+  const { assignments } = useCleaning();
+  const { tasks: maintenanceTasks } = useMaintenance();
   const [isDownloading, setIsDownloading] = useState(false);
 
   const rutasRecoleccion = routes.filter(r => r.type === 'recoleccion' || r.tipoServicio === 'recoleccion');

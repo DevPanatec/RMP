@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, memo } from 'react';
-import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
-import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
-import { useSupabaseReports } from '../../context/SupabaseReportsContext';
+import { useCleaning } from '../../context/CleaningContext';
+import { useMaintenance } from '../../context/MaintenanceContext';
+import { useReports } from '../../context/ReportsContext';
 import { BarChart3, Truck, Zap, Sparkles, Wrench, MapPin } from '../Icons';
 import ReportsDashboard from './ReportsDashboard';
 import LocationReportsModal from './LocationReportsModal';
@@ -17,9 +17,9 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 6;
 
-  const { assignments, loading: cleaningLoading, lugares } = useSupabaseCleaning();
-  const { tasks: maintenanceTasks, loading: maintenanceLoading } = useSupabaseMaintenance();
-  const { getRouteCompletionReports } = useSupabaseReports();
+  const { assignments, loading: cleaningLoading, lugares } = useCleaning();
+  const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenance();
+  const { getRouteCompletionReports } = useReports();
 
   // Resetear página cuando cambie de categoría
   useEffect(() => {
@@ -88,8 +88,11 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     }
   };
 
+  // TODO: Implement with Convex File Storage
   const getPhotoUrl = (filePath) => {
-    return `https://your-supabase-url.supabase.co/storage/v1/object/public/${filePath}`;
+    // Placeholder - Convex File Storage not implemented yet
+    console.warn('Photo URLs disabled - needs Convex File Storage implementation');
+    return null;
   };
 
   // Filtrar lugares para recolección - solo mercados y Mi Pueblito

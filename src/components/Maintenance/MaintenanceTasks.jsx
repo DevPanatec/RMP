@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
+import { useMaintenance } from '../../context/MaintenanceContext';
 import { Plus, Eye, Trash2, CheckCircle, Calendar, Wrench, FileText } from '../Icons';
 import MaintenanceTaskModal from './MaintenanceTaskModal';
 
 const MaintenanceTasks = ({ userRole }) => {
-  const { tasks, deleteTask } = useSupabaseMaintenance();
+  const { tasks, deleteTask } = useMaintenance();
   const [filter, setFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);

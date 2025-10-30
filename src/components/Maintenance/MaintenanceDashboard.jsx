@@ -1,8 +1,8 @@
-import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
+import { useMaintenance } from '../../context/MaintenanceContext';
 import { Calendar, Clock, CheckCircle, AlertTriangle, TrendingUp, Package } from '../Icons';
 
 const MaintenanceDashboard = ({ userRole }) => {
-  const { tasks, alerts, getUpcomingTasks, getTasksByStatus, getOperationalStats } = useSupabaseMaintenance();
+  const { tasks, alerts, getUpcomingTasks, getTasksByStatus, getOperationalStats } = useMaintenance();
 
   const upcomingTasks = getUpcomingTasks(7);
   const programmedTasks = getTasksByStatus('programada');

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useSupabaseMaintenance } from '../../context/SupabaseMaintenanceContext';
+import { useMaintenance } from '../../context/MaintenanceContext';
 import { ChevronLeft, ChevronRight, Clock, AlertTriangle } from '../Icons';
 import MaintenanceTaskModal from './MaintenanceTaskModal';
 
 const MaintenanceCalendar = () => {
-  const { tasks, alerts } = useSupabaseMaintenance();
+  const { tasks, alerts } = useMaintenance();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedTask, setSelectedTask] = useState(null);
   const [showModal, setShowModal] = useState(false);

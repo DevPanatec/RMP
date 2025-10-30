@@ -40,13 +40,18 @@ const CreateTestUsers = ({ onClose, onSuccess }) => {
     setLoading(true);
     setError(null);
     setResults([]);
-    
+
+    // TODO: Implement with Convex Auth
+    alert('Creación de usuarios temporalmente deshabilitada. La app ahora usa Convex en lugar de Supabase.');
+    setLoading(false);
+
+    /* OLD SUPABASE CODE - DISABLED
     const creationResults = [];
 
     for (const user of testUsers) {
       try {
         console.log(`Creando usuario: ${user.email}`);
-        
+
         // Crear usuario en Auth
         const { data: authData, error: authError } = await supabaseClient.supabase.auth.signUp({
           email: user.email,
@@ -62,7 +67,7 @@ const CreateTestUsers = ({ onClose, onSuccess }) => {
 
         if (authError) {
           console.error(`Error en auth para ${user.email}:`, authError);
-          
+
           // Si el usuario ya existe, intentar obtenerlo
           if (authError.message.includes('already registered')) {
             creationResults.push({
@@ -71,12 +76,12 @@ const CreateTestUsers = ({ onClose, onSuccess }) => {
               message: 'Usuario ya existe',
               existed: true
             });
-            
+
             // Intentar crear/actualizar solo el perfil
             await createUserProfile(user.email, user);
             continue;
           }
-          
+
           creationResults.push({
             email: user.email,
             success: false,
@@ -112,8 +117,10 @@ const CreateTestUsers = ({ onClose, onSuccess }) => {
     if (successCount === testUsers.length && onSuccess) {
       setTimeout(() => onSuccess(), 2000);
     }
+    */
   };
 
+  /* OLD SUPABASE CODE - DISABLED
   const createUserProfile = async (userId, userData) => {
     const query = `
       INSERT INTO perfiles_usuarios (
@@ -145,6 +152,7 @@ const CreateTestUsers = ({ onClose, onSuccess }) => {
 
     return await supabaseClient.executeSQL(query);
   };
+  */
 
   return (
     <div className="modal-overlay">

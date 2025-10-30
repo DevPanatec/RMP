@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useSupabaseReports } from '../../context/SupabaseReportsContext';
+import { useReports } from '../../context/ReportsContext';
 import { ChevronLeft, Clock, CheckCircle, Truck, AlertTriangle, FileText, BarChart3 } from '../Icons';
 import { Card } from '../UI';
 import './RouteHistory.css';
 
 const RouteHistory = ({ routeType, onBack }) => {
-  const { completedRoutes, loading, error, getCompletedRoutes, exportRoutes } = useSupabaseReports();
+  const { completedRoutes, loading, error, getCompletedRoutes, exportRoutes } = useReports();
   
   const [dateRange, setDateRange] = useState(() => {
     const formatLocalDate = (date) => {

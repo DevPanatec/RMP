@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Plus, Calendar, Image as ImageIcon } from '../Icons';
 import { Button, Card } from '../UI';
-import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
+import { useCleaning } from '../../context/CleaningContext';
 import PhotosModal from './PhotosModal';
 import CleaningModal from './CleaningModal';
 import './CleaningAssignments.css';
 
 const CleaningAssignments = ({ userRole }) => {
-  const { lugares, areas, assignments, loading, addAssignment } = useSupabaseCleaning();
+  const { lugares, areas, assignments, loading, addAssignment } = useCleaning();
 
   const [showModal, setShowModal] = useState(false);
   const [showPhotosModal, setShowPhotosModal] = useState(false);

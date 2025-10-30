@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
-import { 
-  AlertTriangle, ClipboardList, Wrench, AlertOctagon, Zap, 
-  Eye, CheckCircle, FolderOpen, FileText, Users, Truck, 
+import { useRiskReports } from '../../context/RiskReportsContext';
+import {
+  AlertTriangle, ClipboardList, Wrench, AlertOctagon, Zap,
+  Eye, CheckCircle, FolderOpen, FileText, Users, Truck,
   MapPin, Calendar, BarChart3, X
 } from '../Icons';
 import './RiskComponent.css';
 
 const RiskComponent = ({ userType = 'admin' }) => {
-  const { reports, loading, updateReportStatus, getReportStats } = useSupabaseRiskReports();
+  const { reports, loading, updateReportStatus, getReportStats } = useRiskReports();
   const [selectedReport, setSelectedReport] = useState(null);
 
   // Los reportes y funciones vienen del contexto

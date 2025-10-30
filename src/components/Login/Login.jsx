@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { useSupabaseAuth } from '../../context/SupabaseAuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import CreateTestUsers from '../CreateTestUsers/CreateTestUsers';
 import { Settings, Building, Truck, Eye, EyeOff, CheckCircle, XCircle, Sparkles } from '../Icons';
 import './Login.css';
 
 const Login = ({ onLogin }) => {
-  const { signIn, loading, error: authError } = useSupabaseAuth();
+  const { signIn, loading, error: authError } = useAuth();
   const { isDemoMode, toggleDemoMode } = useDemoMode();
   const [formData, setFormData] = useState({
     email: '',
@@ -148,8 +148,8 @@ const Login = ({ onLogin }) => {
 
           <input type="hidden" name="tipo" value="admin" />
           
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="btn btn--primary btn--full-width"
             disabled={loading}
           >
@@ -157,6 +157,19 @@ const Login = ({ onLogin }) => {
           </button>
         </form>
 
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <a
+            href="?seed"
+            style={{
+              color: '#667eea',
+              textDecoration: 'none',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+          >
+            ¿No tienes usuarios? Crear usuarios de prueba
+          </a>
+        </div>
 
       </div>
 

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { X, Upload, Trash2, Check, Camera } from '../Icons';
 import { Button } from '../UI';
-import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
+import { useCleaning } from '../../context/CleaningContext';
 import './PhotosModal.css';
 
 const PHOTO_STAGES = [
@@ -14,7 +14,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 
 const PhotosModal = ({ isOpen, onClose, onComplete, assignmentId, assignmentData }) => {
-  const { uploadPhoto } = useSupabaseCleaning();
+  const { uploadPhoto } = useCleaning();
   const [photos, setPhotos] = useState({
     antes: [],
     durante: [],

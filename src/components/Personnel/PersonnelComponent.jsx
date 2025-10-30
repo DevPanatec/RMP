@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
+import { usePersonnel } from '../../context/PersonnelContext';
 import { Users, Plus, Edit, Trash2, Phone, Mail, Briefcase, CheckCircle, X } from '../Icons';
 import './PersonnelComponent.css';
 
 const PersonnelComponent = ({ userType = 'admin' }) => {
-  const { personnel, loading, addEmployee, updateEmployee, deleteEmployee } = useSupabasePersonnel();
+  const { getAllEmployees, loading, addEmployee, updateEmployee, deleteEmployee } = usePersonnel();
+  const personnel = getAllEmployees(); // Convert object to array
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showEmployeeModal, setShowEmployeeModal] = useState(false);
   const [employeeForm, setEmployeeForm] = useState({

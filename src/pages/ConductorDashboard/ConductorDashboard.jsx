@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import WeightModal from '../../components/WeightModal/WeightModal';
 import RouteCompletionModal from '../../components/RouteCompletionModal/RouteCompletionModal';
 import MapComponent from '../../components/Map/MapComponent';
-import { useSupabaseRiskReports } from '../../context/SupabaseRiskReportsContext';
-import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
-import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
-import { useSupabaseSchedule } from '../../context/SupabaseScheduleContext';
-import { useSupabaseReports } from '../../context/SupabaseReportsContext';
-import supabaseClient from '../../utils/supabaseClient';
+import { useRiskReports } from '../../context/RiskReportsContext';
+import { useFleet } from '../../context/FleetContext';
+import { useRoutes } from '../../context/RoutesContext';
+import { useSchedule } from '../../context/ScheduleContext';
+import { useReports } from '../../context/ReportsContext';
+// import supabaseClient from '../../utils/supabaseClient'; // Removed: Migrated to Convex
 import {
   Truck, LogOut, Download, Map, Clock, AlertTriangle,
   ClipboardList, Package, TrendingUp, FileText, MapPin,
@@ -51,11 +51,23 @@ const usePWAInstallPrompt = () => {
 
 const ConductorDashboard = ({ user, onLogout }) => {
   const { isInstallable, installPWA } = usePWAInstallPrompt();
-  const { addReport, getReportsByDriver, loading: reportsLoading, reports } = useSupabaseRiskReports();
-  const { vehicles, loading: vehiclesLoading } = useSupabaseFleet();
-  const { routes, loading: routesLoading } = useSupabaseRoutes();
-  const { assignments, loading: assignmentsLoading, getAssignmentsByConductor, getDayNameFromDate } = useSupabaseSchedule();
-  const { saveCompletedRoute } = useSupabaseReports();
+  const { addReport, getReportsByDriver, loading: reportsLoading, reports } = useRiskReports();
+  const { vehicles, loading: vehiclesLoading } = useFleet();
+  const { routes, loading: routesLoading } = useRoutes();
+  const { assignments, loading: assignmentsLoading } = useSchedule();
+  const { saveRouteCompletionReport } = useReports();
+
+  // Helper to get assignments by conductor
+  const getAssignmentsByConductor = (conductorName) => {
+    return assignments.filter(a => a.conductor === conductorName);
+  };
+
+  // Helper to get day name from date
+  const getDayNameFromDate = (dateString) => {
+    const date = new Date(dateString);
+    const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    return dayNames[date.getDay()];
+  };
 
   // Helper: parsear array de paradas desde JSONB
   const getParadasArray = (paradas) => {

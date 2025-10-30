@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useSupabaseSchedule } from '../../context/SupabaseScheduleContext';
-import { useSupabaseRoutes } from '../../context/SupabaseRoutesContext';
-import { useSupabasePersonnel } from '../../context/SupabasePersonnelContext';
-import { useSupabaseFleet } from '../../context/SupabaseFleetContext';
-import { useSupabaseCleaning } from '../../context/SupabaseCleaningContext';
+import { useSchedule } from '../../context/ScheduleContext';
+import { useRoutes } from '../../context/RoutesContext';
+import { usePersonnel } from '../../context/PersonnelContext';
+import { useFleet } from '../../context/FleetContext';
+import { useCleaning } from '../../context/CleaningContext';
 import {
   Calendar, Plus, Edit, Trash2, AlertTriangle, CheckCircle,
   Truck, Users, Map, Clock, X, Sparkles, Camera, Info
@@ -32,20 +32,20 @@ const ScheduleComponent = () => {
     addAssignment: addScheduleAssignment,
     updateAssignment: updateScheduleAssignment,
     deleteAssignment: deleteScheduleAssignment
-  } = useSupabaseSchedule();
+  } = useSchedule();
 
-  const { routes } = useSupabaseRoutes();
-  const { personnel } = useSupabasePersonnel();
-  const { vehicles } = useSupabaseFleet();
+  const { routes } = useRoutes();
+  const { getAllEmployees } = usePersonnel();
+  const personnel = getAllEmployees(); // Convertir objeto de turnos a array
+  const { vehicles } = useFleet();
   const {
     lugares,
     areas,
     assignments: cleaningAssignments,
     loading: cleaningLoading,
     addAssignment: addCleaningAssignment,
-    getAreasByLugar,
     uploadPhoto
-  } = useSupabaseCleaning();
+  } = useCleaning();
 
   console.log('🎯 DEBUG Schedule Component - scheduleAssignments:', scheduleAssignments);
   console.log('🎯 DEBUG Schedule Component - routes:', routes);
