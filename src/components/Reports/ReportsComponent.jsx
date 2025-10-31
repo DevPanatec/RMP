@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect, memo } from 'react';
 import { useCleaning } from '../../context/CleaningContext';
+import { useFumigation } from '../../context/FumigationContext';
 import { useMaintenance } from '../../context/MaintenanceContext';
 import { useReports } from '../../context/ReportsContext';
-import { BarChart3, Truck, Zap, Sparkles, Wrench, MapPin } from '../Icons';
+import { BarChart3, Truck, Bug, Sparkles, Wrench, MapPin } from '../Icons';
 import ReportsDashboard from './ReportsDashboard';
 import LocationReportsModal from './LocationReportsModal';
 import { DEMO_LUGARES, DEMO_CLEANING_ASSIGNMENTS, mergeDemoData } from '../../utils/demoData';
@@ -18,6 +19,11 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
   const ITEMS_PER_PAGE = 6;
 
   const { assignments, loading: cleaningLoading, lugares } = useCleaning();
+  const {
+    assignments: fumigationAssignments,
+    lugares: fumigationLugares,
+    loading: fumigationLoading
+  } = useFumigation();
   const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenance();
   const { getRouteCompletionReports } = useReports();
 
@@ -73,7 +79,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
   const categories = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'recoleccion', label: 'Recolección', icon: Truck },
-    { id: 'fumigacion', label: 'Fumigación', icon: Zap },
+    { id: 'fumigacion', label: 'Fumigación', icon: Bug },
     { id: 'limpieza', label: 'Limpieza', icon: Sparkles },
     { id: 'mantenimiento', label: 'Mantenimiento', icon: Wrench }
   ];
@@ -314,54 +320,177 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     );
   };
 
-  // Filtrar lugares para fumigación - solo mercados y Mi Pueblito
-  const fumigacionLocations = useMemo(() => {
-    const fumigacionPlaces = displayLugares.filter(lugar =>
-      (lugar.nombre.includes('Mercado') || lugar.nombre.includes('Complejo')) &&
-      !lugar.nombre.includes('Planta de tratamiento') &&
-      lugar.activo !== false
-    );
+  // Agrupar fumigaciones por lugar
+  const fumigacionByLocation = useMemo(() => {
+    return fumigationLugares
+      .filter(lugar => lugar.activo !== false)
+      .map(lugar => {
+        const lugarFumigations = fumigationAssignments.filter(a =>
+          a.lugar_id === lugar._id
+        );
 
-    return fumigacionPlaces.map(lugar => {
-      const lugarAssignments = displayAssignments.filter(a => {
-        const matchLocation = a.lugar?.id === lugar.id || a.lugar_id === lugar.id;
-        const matchType = a.tipo === 'fumigacion' || a.tipoServicio === 'fumigacion';
-        return matchLocation && matchType;
+        // Calcular cumplimiento de frecuencia
+        const now = new Date();
+        const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const thisWeekStart = new Date(now);
+        thisWeekStart.setDate(now.getDate() - now.getDay());
+        const thisWeekStartStr = thisWeekStart.toISOString().split('T')[0];
+
+        const internasThisMonth = lugarFumigations.filter(f =>
+          f.tipo_fumigacion === 'interna' &&
+          f.fecha.startsWith(thisMonth)
+        ).length;
+
+        const externasThisWeek = lugarFumigations.filter(f =>
+          f.tipo_fumigacion === 'externa' &&
+          f.fecha >= thisWeekStartStr
+        ).length;
+
+        // Calcular compliance para AMBOS tipos (todos los lugares pueden tener ambos)
+        const internaCompliance = Math.min((internasThisMonth / 1) * 100, 100);
+        const externaCompliance = Math.min((externasThisWeek / 3) * 100, 100);
+
+        return {
+          ...lugar,
+          id: lugar._id, // Para compatibilidad con MapCard
+          assignmentsCount: lugarFumigations.length,
+          completedCount: lugarFumigations.filter(a => a.estado === 'reportada').length,
+          assignments: lugarFumigations,
+          internaCompliance,
+          externaCompliance,
+          internasThisMonth,
+          externasThisWeek
+        };
       });
-
-      return {
-        ...lugar,
-        assignmentsCount: lugarAssignments.length,
-        completedCount: lugarAssignments.filter(a => a.estado === 'completado').length,
-        assignments: lugarAssignments
-      };
-    });
-  }, [lugares, assignments]);
+  }, [fumigationLugares, fumigationAssignments]);
 
   const renderFumigacion = () => {
+    // Paginación
+    const totalPages = Math.ceil(fumigacionByLocation.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedLocations = fumigacionByLocation.slice(startIndex, endIndex);
+
     return (
       <div className="reports-category reports-fumigacion">
         <div className="category-header">
-          <h3>Reportes de Fumigación por Ubicación</h3>
-          <p>Selecciona un mercado para ver sus reportes de fumigación</p>
+          <div className="category-header-content">
+            <h3>🦟 Reportes de Fumigación</h3>
+            <p>Visualiza fumigaciones internas (mensuales) y externas (semanales) por ubicación</p>
+          </div>
+          <div className="category-stats">
+            <div className="stat-badge">
+              <span className="stat-value">{fumigationAssignments.length}</span>
+              <span className="stat-label">Total Fumigaciones</span>
+            </div>
+            <div className="stat-badge stat-badge--success">
+              <span className="stat-value">{fumigationAssignments.filter(f => f.estado === 'reportada').length}</span>
+              <span className="stat-label">Reportadas</span>
+            </div>
+            <div className="stat-badge stat-badge--warning">
+              <span className="stat-value">{fumigationLugares.length}</span>
+              <span className="stat-label">Lugares</span>
+            </div>
+          </div>
         </div>
 
-        {cleaningLoading ? (
+        {fumigationLoading ? (
           <div className="loading-state">
             <div className="loading-spinner"></div>
             <p>Cargando ubicaciones...</p>
           </div>
-        ) : fumigacionLocations.length === 0 ? (
+        ) : fumigacionByLocation.length === 0 ? (
           <div className="empty-state">
-            <Zap size={48} />
-            <p>No hay ubicaciones de fumigación registradas</p>
+            <Bug size={48} />
+            <h4>No hay lugares de fumigación registrados</h4>
+            <p>Registra lugares internos o externos en Asignaciones → Fumigación</p>
           </div>
         ) : (
-          <div className="locations-grid">
-            {fumigacionLocations.map(location => (
-              <MapCard key={location.id} location={location} icon={Zap} />
-            ))}
-          </div>
+          <>
+            <div className="locations-grid limpieza-grid-3col">
+              {paginatedLocations.map(location => {
+                // Mapeo de imágenes para lugares
+                const imageMap = {
+                  'Mercado de Mariscos': 'mercado de mariscos.jpg',
+                  'Mercado San Felipe Neri': 'san felipe neri.jpeg',
+                  'Mercado de Alcalde Díaz': 'Mercado Alcalde Diaz.jpeg',
+                  'Mercado de Pueblo Nuevo': 'Mercado Pueblo Nuevo.jpg',
+                  'Mercado de Pacora': 'Mercado de Pacora.jpg',
+                  'Complejo Turístico Mi Pueblito': 'Mi Pueblito.jpeg'
+                };
+
+                const imageName = imageMap[location.nombre];
+                const imageUrl = imageName ? `/lugares/${imageName}` : null;
+
+                return (
+                  <div
+                    key={location.id}
+                    className="location-map-card"
+                    onClick={() => setSelectedLocation(location)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="location-image-wrapper">
+                      {imageUrl ? (
+                        <>
+                          <img
+                            src={imageUrl}
+                            alt={location.nombre}
+                            className="location-image"
+                            loading="eager"
+                            decoding="async"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextElementSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div className="location-image-fallback" style={{ display: 'none' }}>
+                            <Bug size={48} />
+                            <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
+                              {location.nombre}
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="location-image-fallback" style={{ display: 'flex' }}>
+                          <Bug size={48} />
+                          <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
+                            {location.nombre}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="map-card-overlay">
+                      <h4>{location.nombre}</h4>
+                      <span className="report-badge">{location.assignmentsCount} reportes</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Paginación */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Anterior
+                </button>
+                <span className="pagination-info">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <button
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {selectedLocation && (

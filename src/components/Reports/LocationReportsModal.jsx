@@ -364,10 +364,12 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
                     <div className="report-info-main">
                       <h4>
                         {report.area?.nombre ||
-                         (report.tipo === 'recoleccion' || report.tipoServicio === 'recoleccion'
+                         (modalType === 'recoleccion'
                            ? 'Reporte de Recolección'
-                           : report.tipo === 'fumigacion' || report.tipoServicio === 'fumigacion'
+                           : modalType === 'fumigacion'
                            ? 'Reporte de Fumigación'
+                           : modalType === 'mantenimiento'
+                           ? 'Reporte de Mantenimiento'
                            : 'Reporte de Limpieza')}
                       </h4>
                       <div className="report-meta-inline">
@@ -434,10 +436,12 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
             hora: selectedReport.hora,
             sala: location.nombre,
             area: selectedReport.area?.nombre ||
-                  (selectedReport.tipo === 'recoleccion' || selectedReport.tipoServicio === 'recoleccion'
+                  (modalType === 'recoleccion'
                     ? 'Reporte de Recolección'
-                    : selectedReport.tipo === 'fumigacion' || selectedReport.tipoServicio === 'fumigacion'
+                    : modalType === 'fumigacion'
                     ? 'Reporte de Fumigación'
+                    : modalType === 'mantenimiento'
+                    ? 'Reporte de Mantenimiento'
                     : 'Reporte de Limpieza'),
             rawAssignment: selectedReport
           }}
