@@ -323,87 +323,88 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
           </div>
 
           <div className="controls-body">
-          {/* Rango de Fechas */}
-          <div className="date-range-controls">
-            <div className="date-input-group">
-              <label><Calendar size={16} /> Desde</label>
-              <input
-                type="date"
-                value={dateRange.desde}
-                onChange={(e) => setDateRange(prev => ({ ...prev, desde: e.target.value }))}
-                max={dateRange.hasta}
-              />
+            {/* Rango de Fechas */}
+            <div className="date-range-controls">
+              <div className="date-input-group">
+                <label><Calendar size={16} /> Desde</label>
+                <input
+                  type="date"
+                  value={dateRange.desde}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, desde: e.target.value }))}
+                  max={dateRange.hasta}
+                />
+              </div>
+              <div className="date-input-group">
+                <label><Calendar size={16} /> Hasta</label>
+                <input
+                  type="date"
+                  value={dateRange.hasta}
+                  onChange={(e) => setDateRange(prev => ({ ...prev, hasta: e.target.value }))}
+                  min={dateRange.desde}
+                />
+              </div>
             </div>
-            <div className="date-input-group">
-              <label><Calendar size={16} /> Hasta</label>
-              <input
-                type="date"
-                value={dateRange.hasta}
-                onChange={(e) => setDateRange(prev => ({ ...prev, hasta: e.target.value }))}
-                min={dateRange.desde}
-              />
+
+            {/* Selección de Módulos */}
+            <div className="modules-selection">
+              <label className="modules-label">Módulos a incluir:</label>
+              <div className="modules-checkboxes">
+                <label className={`module-checkbox ${selectedModules.recoleccion ? 'checked' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={selectedModules.recoleccion}
+                    onChange={() => toggleModule('recoleccion')}
+                  />
+                  <Truck size={18} />
+                  <span>Recolección</span>
+                </label>
+
+                <label className={`module-checkbox ${selectedModules.fumigacion ? 'checked' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={selectedModules.fumigacion}
+                    onChange={() => toggleModule('fumigacion')}
+                  />
+                  <Bug size={18} />
+                  <span>Fumigación</span>
+                </label>
+
+                <label className={`module-checkbox ${selectedModules.limpieza ? 'checked' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={selectedModules.limpieza}
+                    onChange={() => toggleModule('limpieza')}
+                  />
+                  <Sparkles size={18} />
+                  <span>Limpieza</span>
+                </label>
+
+                <label className={`module-checkbox ${selectedModules.mantenimiento ? 'checked' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={selectedModules.mantenimiento}
+                    onChange={() => toggleModule('mantenimiento')}
+                  />
+                  <Wrench size={18} />
+                  <span>Mantenimiento</span>
+                </label>
+              </div>
             </div>
-          </div>
 
-          {/* Selección de Módulos */}
-          <div className="modules-selection">
-            <label className="modules-label">Módulos a incluir:</label>
-            <div className="modules-checkboxes">
-              <label className={`module-checkbox ${selectedModules.recoleccion ? 'checked' : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={selectedModules.recoleccion}
-                  onChange={() => toggleModule('recoleccion')}
-                />
-                <Truck size={18} />
-                <span>Recolección</span>
-              </label>
-
-              <label className={`module-checkbox ${selectedModules.fumigacion ? 'checked' : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={selectedModules.fumigacion}
-                  onChange={() => toggleModule('fumigacion')}
-                />
-                <Bug size={18} />
-                <span>Fumigación</span>
-              </label>
-
-              <label className={`module-checkbox ${selectedModules.limpieza ? 'checked' : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={selectedModules.limpieza}
-                  onChange={() => toggleModule('limpieza')}
-                />
-                <Sparkles size={18} />
-                <span>Limpieza</span>
-              </label>
-
-              <label className={`module-checkbox ${selectedModules.mantenimiento ? 'checked' : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={selectedModules.mantenimiento}
-                  onChange={() => toggleModule('mantenimiento')}
-                />
-                <Wrench size={18} />
-                <span>Mantenimiento</span>
-              </label>
+            {/* Botón de Descarga */}
+            <div className="download-action">
+              <button
+                className="btn-download-combined"
+                onClick={handleCombinedDownload}
+                disabled={isDownloading || !Object.values(selectedModules).some(v => v)}
+              >
+                <Download size={20} />
+                {isDownloading ? 'Generando PDF...' : 'Descargar Selección'}
+              </button>
+              {!Object.values(selectedModules).some(v => v) && (
+                <span className="validation-hint">Selecciona al menos un módulo</span>
+              )}
             </div>
-          </div>
-
-          {/* Botón de Descarga */}
-          <div className="download-action">
-            <button
-              className="btn-download-combined"
-              onClick={handleCombinedDownload}
-              disabled={isDownloading || !Object.values(selectedModules).some(v => v)}
-            >
-              <Download size={20} />
-              {isDownloading ? 'Generando PDF...' : 'Descargar Selección'}
-            </button>
-            {!Object.values(selectedModules).some(v => v) && (
-              <span className="validation-hint">Selecciona al menos un módulo</span>
-            )}
           </div>
         </div>
       )}
