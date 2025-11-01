@@ -1512,3 +1512,279 @@
     box-shadow: 0 0 5px rgba(61, 82, 41, 0.2);
   }
 }
+
+/* ============================================
+   FUMIGATION REPORTS - SPECIFIC STYLES
+   ============================================ */
+
+/* Info Banner */
+.category-info-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(61, 82, 41, 0.08) 0%, rgba(90, 122, 51, 0.08) 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(61, 82, 41, 0.15);
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.category-info-banner strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* Fumigation Location Card */
+.location-card--fumigation {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.location-card--fumigation:hover {
+  border-color: var(--color-primary) !important;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(61, 82, 41, 0.12) !important;
+}
+
+/* Compliance Indicator */
+.compliance-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--color-background-secondary);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.compliance-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.compliance-percent {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.compliance-percent.compliance-ok {
+  color: #30D158;
+}
+
+.compliance-percent.compliance-warning {
+  color: #FF9F0A;
+}
+
+/* Compliance Bar */
+.compliance-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.compliance-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.compliance-indicator small {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+/* Category Stats */
+.category-stats {
+  display: flex;
+  gap: 12px;
+}
+
+.stat-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: var(--color-background-secondary);
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+}
+
+.stat-badge--success {
+  background: rgba(48, 209, 88, 0.08);
+  border-color: rgba(48, 209, 88, 0.2);
+}
+
+.stat-badge--warning {
+  background: rgba(255, 159, 10, 0.08);
+  border-color: rgba(255, 159, 10, 0.2);
+}
+
+.stat-badge .stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.stat-badge .stat-label {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* View Reports Button */
+.view-reports-btn {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.location-card--fumigation:hover .view-reports-btn {
+  gap: 8px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .reports-fumigacion .locations-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .category-stats {
+    flex-wrap: wrap;
+  }
+}
+
+/* Module Download Controls */
+.module-download-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  margin-bottom: 24px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.download-date-inputs {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.date-input-small {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.date-input-small label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.date-input-small input[type="date"] {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  background: white;
+  transition: all 0.2s ease;
+  min-width: 150px;
+}
+
+.date-input-small input[type="date"]:hover {
+  border-color: #3D5229;
+}
+
+.date-input-small input[type="date"]:focus {
+  outline: none;
+  border-color: #3D5229;
+  box-shadow: 0 0 0 3px rgba(61, 82, 41, 0.1);
+}
+
+.btn-download-module {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #3D5229 0%, #2a3a1d 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(61, 82, 41, 0.25);
+  white-space: nowrap;
+}
+
+.btn-download-module:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2a3a1d 0%, #3D5229 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(61, 82, 41, 0.35);
+}
+
+.btn-download-module:disabled {
+  background: rgba(61, 82, 41, 0.4);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 768px) {
+  .reports-fumigacion .locations-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .category-info-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .module-download-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .download-date-inputs {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .date-input-small {
+    width: 100%;
+  }
+
+  .date-input-small input[type="date"] {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .btn-download-module {
+    width: 100%;
+    justify-content: center;
+  }
+}

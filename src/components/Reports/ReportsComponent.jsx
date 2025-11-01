@@ -3,12 +3,17 @@ import { useCleaning } from '../../context/CleaningContext';
 import { useFumigation } from '../../context/FumigationContext';
 import { useMaintenance } from '../../context/MaintenanceContext';
 import { useReports } from '../../context/ReportsContext';
-import { BarChart3, Truck, Bug, Sparkles, Wrench, MapPin } from '../Icons';
+import { useAuth } from '../../context/AuthContext';
+import { BarChart3, Truck, Bug, Sparkles, Wrench, MapPin, Download, Calendar } from '../Icons';
 import ReportsDashboard from './ReportsDashboard';
 import LocationReportsModal from './LocationReportsModal';
 import { DEMO_LUGARES, DEMO_CLEANING_ASSIGNMENTS, mergeDemoData } from '../../utils/demoData';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import pdfMake from 'pdfmake/build/pdfmake';
+import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import './ReportsComponent.css';
+
+pdfMake.vfs = pdfFonts.vfs;
 
 const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = null }) => {
   const [activeCategory, setActiveCategory] = useState('dashboard');
@@ -18,6 +23,28 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 6;
 
+  // Estados para descarga por módulo
+  const [moduleDownloading, setModuleDownloading] = useState(null);
+  const [moduleDateRanges, setModuleDateRanges] = useState({
+    recoleccion: {
+      desde: new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0],
+      hasta: new Date().toISOString().split('T')[0]
+    },
+    fumigacion: {
+      desde: new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0],
+      hasta: new Date().toISOString().split('T')[0]
+    },
+    limpieza: {
+      desde: new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0],
+      hasta: new Date().toISOString().split('T')[0]
+    },
+    mantenimiento: {
+      desde: new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0],
+      hasta: new Date().toISOString().split('T')[0]
+    }
+  });
+
+  const { user } = useAuth();
   const { assignments, loading: cleaningLoading, lugares } = useCleaning();
   const {
     assignments: fumigationAssignments,
@@ -99,6 +126,205 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     // Placeholder - Convex File Storage not implemented yet
     console.warn('Photo URLs disabled - needs Convex File Storage implementation');
     return null;
+  };
+
+  // Función para descargar reportes por módulo
+  const handleModuleDownload = async (module) => {
+    // Validar permisos
+    if (user?.tipo === 'conductor') {
+      alert('No tiene permisos para descargar reportes');
+      return;
+    }
+
+    const dateRange = moduleDateRanges[module];
+
+    // Validar rango de fechas
+    if (dateRange.desde > dateRange.hasta) {
+      alert('La fecha "Desde" debe ser anterior a la fecha "Hasta"');
+      return;
+    }
+
+    setModuleDownloading(module);
+
+    try {
+      const content = [];
+      const desde = new Date(dateRange.desde);
+      const hasta = new Date(dateRange.hasta);
+
+      // Header
+      const moduleNames = {
+        recoleccion: 'RECOLECCIÓN',
+        fumigacion: 'FUMIGACIÓN',
+        limpieza: 'LIMPIEZA',
+        mantenimiento: 'MANTENIMIENTO'
+      };
+
+      content.push({
+        text: `REPORTES DE ${moduleNames[module]} - RMP`,
+        style: 'header',
+        alignment: 'center',
+        margin: [0, 0, 0, 10]
+      });
+
+      content.push({
+        columns: [
+          { text: `Periodo: ${desde.toLocaleDateString('es-ES')} - ${hasta.toLocaleDateString('es-ES')}`, width: '*' },
+          { text: `Generado: ${new Date().toLocaleString('es-ES')}`, width: 'auto', alignment: 'right' }
+        ],
+        margin: [0, 0, 0, 20]
+      });
+
+      content.push({
+        canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1 }],
+        margin: [0, 0, 0, 20]
+      });
+
+      // Generar contenido según el módulo
+      if (module === 'recoleccion') {
+        const reports = await getRouteCompletionReports({ tipo_ruta: 'recoleccion' });
+        const filtered = reports.filter(r => {
+          const rDate = new Date(r.fecha_completacion);
+          return rDate >= desde && rDate <= hasta;
+        });
+
+        content.push({ text: `Total de reportes: ${filtered.length}`, margin: [0, 0, 0, 15], bold: true });
+
+        if (filtered.length > 0) {
+          filtered.forEach((report, idx) => {
+            content.push({
+              text: `${idx + 1}. ${report.ruta_nombre || 'Ruta'}`,
+              style: 'reportTitle',
+              margin: [0, 10, 0, 5]
+            });
+            content.push({ text: `Fecha: ${new Date(report.fecha_completacion).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
+            content.push({ text: `Conductor: ${report.conductor_nombre}`, margin: [10, 0, 0, 2], fontSize: 10 });
+            content.push({ text: `Vehículo: ${report.vehiculo_placa}`, margin: [10, 0, 0, 2], fontSize: 10 });
+            content.push({ text: `Paradas completadas: ${report.paradas_completadas?.length || 0}`, margin: [10, 0, 0, 5], fontSize: 10 });
+          });
+        } else {
+          content.push({ text: 'No hay reportes en el periodo seleccionado', italics: true, color: '#999', margin: [0, 10, 0, 0] });
+        }
+      } else if (module === 'fumigacion' && fumigationAssignments) {
+        const filtered = fumigationAssignments.filter(f => {
+          const fDate = new Date(f.fecha);
+          return fDate >= desde && fDate <= hasta;
+        });
+
+        content.push({ text: `Total de reportes: ${filtered.length}`, margin: [0, 0, 0, 15], bold: true });
+
+        if (filtered.length > 0) {
+          filtered.forEach((fumigation, idx) => {
+            const tipo = fumigation.tipo_fumigacion === 'interna' ? 'Interna' : 'Externa';
+            content.push({
+              text: `${idx + 1}. Fumigación ${tipo} - ${fumigation.lugar_nombre}`,
+              style: 'reportTitle',
+              margin: [0, 10, 0, 5]
+            });
+            content.push({ text: `Fecha: ${new Date(fumigation.fecha).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
+            content.push({ text: `Horario: ${fumigation.horario_inicio} - ${fumigation.horario_fin}`, margin: [10, 0, 0, 2], fontSize: 10 });
+            if (fumigation.observaciones) {
+              content.push({ text: `Observaciones: ${fumigation.observaciones}`, margin: [10, 0, 0, 5], fontSize: 10 });
+            }
+          });
+        } else {
+          content.push({ text: 'No hay reportes en el periodo seleccionado', italics: true, color: '#999', margin: [0, 10, 0, 0] });
+        }
+      } else if (module === 'limpieza' && assignments) {
+        const filtered = assignments.filter(a => {
+          const aDate = new Date(a.fecha);
+          return aDate >= desde && aDate <= hasta;
+        });
+
+        content.push({ text: `Total de reportes: ${filtered.length}`, margin: [0, 0, 0, 15], bold: true });
+
+        if (filtered.length > 0) {
+          filtered.forEach((cleaning, idx) => {
+            content.push({
+              text: `${idx + 1}. ${cleaning.lugar?.nombre || 'Lugar'} - ${cleaning.area?.nombre || 'Área'}`,
+              style: 'reportTitle',
+              margin: [0, 10, 0, 5]
+            });
+            content.push({ text: `Fecha: ${new Date(cleaning.fecha).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
+            content.push({ text: `Hora: ${cleaning.hora}`, margin: [10, 0, 0, 2], fontSize: 10 });
+            content.push({ text: `Estado: ${cleaning.estado}`, margin: [10, 0, 0, 5], fontSize: 10 });
+          });
+        } else {
+          content.push({ text: 'No hay reportes en el periodo seleccionado', italics: true, color: '#999', margin: [0, 10, 0, 0] });
+        }
+      } else if (module === 'mantenimiento' && maintenanceTasks) {
+        const filtered = maintenanceTasks.filter(t => {
+          const tDate = new Date(t.scheduled_date);
+          return tDate >= desde && tDate <= hasta;
+        });
+
+        content.push({ text: `Total de reportes: ${filtered.length}`, margin: [0, 0, 0, 15], bold: true });
+
+        if (filtered.length > 0) {
+          filtered.forEach((task, idx) => {
+            content.push({
+              text: `${idx + 1}. Mantenimiento ${task.type}`,
+              style: 'reportTitle',
+              margin: [0, 10, 0, 5]
+            });
+            content.push({ text: `Fecha programada: ${new Date(task.scheduled_date).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
+            content.push({ text: `Hora: ${task.scheduled_time || 'No especificada'}`, margin: [10, 0, 0, 2], fontSize: 10 });
+            content.push({ text: `Estado: ${task.status}`, margin: [10, 0, 0, 2], fontSize: 10 });
+            if (task.observations) {
+              content.push({ text: `Observaciones: ${task.observations}`, margin: [10, 0, 0, 5], fontSize: 10 });
+            }
+          });
+        } else {
+          content.push({ text: 'No hay reportes en el periodo seleccionado', italics: true, color: '#999', margin: [0, 10, 0, 0] });
+        }
+      }
+
+      // Generar PDF
+      const docDefinition = {
+        content,
+        footer: (currentPage, pageCount) => ({
+          text: `Página ${currentPage} de ${pageCount} | RMP - ${moduleNames[module]}`,
+          alignment: 'center',
+          fontSize: 8,
+          italics: true,
+          margin: [0, 10, 0, 0]
+        }),
+        styles: {
+          header: {
+            fontSize: 18,
+            bold: true
+          },
+          reportTitle: {
+            fontSize: 12,
+            bold: true,
+            color: '#3D5229'
+          }
+        },
+        defaultStyle: {
+          fontSize: 11
+        }
+      };
+
+      const fileName = `${moduleNames[module]}_${desde.toISOString().split('T')[0]}_${hasta.toISOString().split('T')[0]}.pdf`;
+      pdfMake.createPdf(docDefinition).download(fileName);
+
+      console.log(`✅ PDF de ${module} generado exitosamente:`, fileName);
+    } catch (error) {
+      console.error(`Error generando PDF de ${module}:`, error);
+      alert(`Error al generar el reporte de ${module}. Por favor intenta nuevamente.`);
+    } finally {
+      setModuleDownloading(null);
+    }
+  };
+
+  // Actualizar rango de fechas por módulo
+  const updateModuleDateRange = (module, field, value) => {
+    setModuleDateRanges(prev => ({
+      ...prev,
+      [module]: {
+        ...prev[module],
+        [field]: value
+      }
+    }));
   };
 
   // Filtrar lugares para recolección - solo mercados y Mi Pueblito
@@ -392,6 +618,38 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
               <span className="stat-label">Lugares</span>
             </div>
           </div>
+        </div>
+
+        {/* Controles de descarga */}
+        <div className="module-download-controls">
+          <div className="download-date-inputs">
+            <div className="date-input-small">
+              <label><Calendar size={14} /> Desde</label>
+              <input
+                type="date"
+                value={moduleDateRanges.fumigacion.desde}
+                onChange={(e) => updateModuleDateRange('fumigacion', 'desde', e.target.value)}
+                max={moduleDateRanges.fumigacion.hasta}
+              />
+            </div>
+            <div className="date-input-small">
+              <label><Calendar size={14} /> Hasta</label>
+              <input
+                type="date"
+                value={moduleDateRanges.fumigacion.hasta}
+                onChange={(e) => updateModuleDateRange('fumigacion', 'hasta', e.target.value)}
+                min={moduleDateRanges.fumigacion.desde}
+              />
+            </div>
+          </div>
+          <button
+            className="btn-download-module"
+            onClick={() => handleModuleDownload('fumigacion')}
+            disabled={moduleDownloading === 'fumigacion'}
+          >
+            <Download size={18} />
+            {moduleDownloading === 'fumigacion' ? 'Generando PDF...' : 'Descargar Fumigación'}
+          </button>
         </div>
 
         {fumigationLoading ? (
