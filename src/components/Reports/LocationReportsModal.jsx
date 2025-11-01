@@ -3,6 +3,7 @@ import { X, Calendar, Download, FileText, Camera, Check, Eye, Truck, Zap, Sparkl
 import { Card, Badge } from '../UI';
 import ReportDetailModal from '../Cleaning/ReportDetailModal';
 import RouteReportDetailModal from './RouteReportDetailModal';
+import FumigationReportDetailModal from '../Fumigation/FumigationReportDetailModal';
 import pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import './LocationReportsModal.css';
@@ -427,6 +428,14 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
           location={location}
           onClose={() => setSelectedReport(null)}
         />
+      ) : selectedReport && modalType === 'fumigacion' ? (
+        <FumigationReportDetailModal
+          isOpen={!!selectedReport}
+          assignment={selectedReport}
+          location={location}
+          onClose={() => setSelectedReport(null)}
+          onDownload={() => handleDownloadReport(null, selectedReport)}
+        />
       ) : selectedReport && (
         <ReportDetailModal
           isOpen={!!selectedReport}
@@ -436,11 +445,7 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
             hora: selectedReport.hora,
             sala: location.nombre,
             area: selectedReport.area?.nombre ||
-                  (modalType === 'recoleccion'
-                    ? 'Reporte de Recolección'
-                    : modalType === 'fumigacion'
-                    ? 'Reporte de Fumigación'
-                    : modalType === 'mantenimiento'
+                  (modalType === 'mantenimiento'
                     ? 'Reporte de Mantenimiento'
                     : 'Reporte de Limpieza'),
             rawAssignment: selectedReport
