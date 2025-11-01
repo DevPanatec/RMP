@@ -2,6 +2,226 @@
   animation: fadeInUp 0.5s ease-out;
 }
 
+/* Global Controls Panel */
+.global-controls-panel {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 16px;
+  border: 1px solid #e0e0e0;
+  padding: 24px;
+  margin-bottom: 32px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  animation: slideInFromTop 0.5s ease-out;
+}
+
+.controls-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #3D5229;
+}
+
+.controls-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #3D5229;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.controls-header p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.controls-body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Date Range Controls */
+.date-range-controls {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+}
+
+.date-input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.date-input-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.date-input-group input[type="date"] {
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.date-input-group input[type="date"]:hover {
+  border-color: #3D5229;
+}
+
+.date-input-group input[type="date"]:focus {
+  outline: none;
+  border-color: #3D5229;
+  box-shadow: 0 0 0 3px rgba(61, 82, 41, 0.1);
+}
+
+/* Modules Selection */
+.modules-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modules-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.modules-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.module-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: white;
+  border: 2px solid #d1d5db;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  user-select: none;
+}
+
+.module-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #3D5229;
+}
+
+.module-checkbox:hover {
+  border-color: #3D5229;
+  background: #f9fafb;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.module-checkbox.checked {
+  border-color: #3D5229;
+  background: linear-gradient(135deg, #f0f7f0 0%, #ffffff 100%);
+  box-shadow: 0 2px 6px rgba(61, 82, 41, 0.15);
+}
+
+.module-checkbox.checked:hover {
+  background: linear-gradient(135deg, #e8f5e8 0%, #f9fafb 100%);
+}
+
+.module-checkbox svg {
+  flex-shrink: 0;
+  color: #3D5229;
+}
+
+/* Download Action */
+.download-action {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.btn-download-combined {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #3D5229 0%, #2a3a1d 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(61, 82, 41, 0.3);
+}
+
+.btn-download-combined:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2a3a1d 0%, #3D5229 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(61, 82, 41, 0.4);
+}
+
+.btn-download-combined:disabled {
+  background: rgba(61, 82, 41, 0.4);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.validation-hint {
+  font-size: 13px;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .global-controls-panel {
+    padding: 16px;
+  }
+
+  .date-range-controls {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .modules-checkboxes {
+    flex-direction: column;
+  }
+
+  .module-checkbox {
+    width: 100%;
+  }
+
+  .download-action {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .btn-download-combined {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .dashboard-header {
   margin-bottom: 32px;
   display: flex;
