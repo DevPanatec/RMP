@@ -19,7 +19,7 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
   const { assignments: cleaningAssignments } = useCleaning();
   const { assignments: fumigationAssignments } = useFumigation();
   const { tasks: maintenanceTasks } = useMaintenance();
-  const { getRouteCompletionReports } = useReports();
+  const { reports } = useReports();
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [showGlobalControls, setShowGlobalControls] = useState(false); // Panel colapsado por defecto
@@ -143,7 +143,6 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
 
       // Recolección
       if (selectedModules.recoleccion) {
-        const reports = await getRouteCompletionReports({ tipo_ruta: 'recoleccion' });
         const filtered = reports.filter(r => {
           const rDate = new Date(r.fecha_completacion);
           return rDate >= desde && rDate <= hasta;
@@ -406,7 +405,6 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
               <span className="validation-hint">Selecciona al menos un módulo</span>
             )}
           </div>
-        </div>
         </div>
       )}
 

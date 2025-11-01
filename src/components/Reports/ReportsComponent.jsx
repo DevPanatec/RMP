@@ -52,7 +52,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     loading: fumigationLoading
   } = useFumigation();
   const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenance();
-  const { getRouteCompletionReports } = useReports();
+  const { reports: reportsData } = useReports();
 
   // Resetear página cuando cambie de categoría
   useEffect(() => {
@@ -61,19 +61,11 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
 
   // Cargar reportes de rutas completadas
   useEffect(() => {
-    const loadRouteReports = async () => {
-      try {
-        const reports = await getRouteCompletionReports({ tipo_ruta: 'recoleccion' });
-        console.log('📊 Reportes cargados:', reports);
-        setRouteReports(reports);
-      } catch (error) {
-        console.error('Error cargando reportes de rutas:', error);
-      }
-    };
-    if (activeCategory === 'recoleccion') {
-      loadRouteReports();
+    if (activeCategory === 'recoleccion' && reportsData) {
+      console.log('📊 Reportes cargados:', reportsData);
+      setRouteReports(reportsData);
     }
-  }, [activeCategory, getRouteCompletionReports]);
+  }, [activeCategory, reportsData]);
 
   // Mergear datos demo con datos reales si el modo demo está activo
   const displayLugares = isDemoMode ? mergeDemoData(lugares, DEMO_LUGARES) : lugares;
@@ -181,8 +173,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
 
       // Generar contenido según el módulo
       if (module === 'recoleccion') {
-        const reports = await getRouteCompletionReports({ tipo_ruta: 'recoleccion' });
-        const filtered = reports.filter(r => {
+        const filtered = reportsData.filter(r => {
           const rDate = new Date(r.fecha_completacion);
           return rDate >= desde && rDate <= hasta;
         });
@@ -1145,7 +1136,6 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
           className={`category-tab ${activeCategory === category.id ? 'category-tab--active' : ''}`}
           onClick={() => {
             setActiveCategory(category.id);
-            setSelectedRouteType(null);
           }}
         >
           <category.icon size={20} strokeWidth={1.5} />
