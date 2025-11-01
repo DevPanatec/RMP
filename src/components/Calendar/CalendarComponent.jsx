@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRoutes } from '../../context/RoutesContext';
 import { useCleaning } from '../../context/CleaningContext';
+import { useFumigation } from '../../context/FumigationContext';
 import { useSchedule } from '../../context/ScheduleContext';
 import { useMaintenance } from '../../context/MaintenanceContext';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter } from '../Icons';
@@ -19,11 +20,14 @@ const CALENDAR_CONFIG = {
 const CalendarComponent = () => {
   const { routes, loading: routesLoading } = useRoutes();
   const { assignments: cleaningAssignments, loading: cleaningLoading } = useCleaning();
+  const { assignments: fumigationAssignments, loading: fumigationLoading } = useFumigation();
   const { assignments: scheduleAssignments, loading: scheduleLoading, getDayNameFromDate, getStartOfWeekFromDate } = useSchedule();
   const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenance();
 
   console.log('📅 DEBUG CalendarComponent - cleaningAssignments:', cleaningAssignments);
   console.log('📅 DEBUG CalendarComponent - Cantidad:', cleaningAssignments.length);
+  console.log('📅 DEBUG CalendarComponent - fumigationAssignments:', fumigationAssignments);
+  console.log('📅 DEBUG CalendarComponent - Fumigaciones:', fumigationAssignments?.length || 0);
 
   const [viewMode, setViewMode] = useState('month');
   const [selectedDate, setSelectedDate] = useState(new Date()); // Default to current date
@@ -36,7 +40,7 @@ const CalendarComponent = () => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  const loading = routesLoading || cleaningLoading || scheduleLoading || maintenanceLoading;
+  const loading = routesLoading || cleaningLoading || fumigationLoading || scheduleLoading || maintenanceLoading;
 
   const getActivityTypeIcon = (type) => {
     switch (type) {
@@ -71,6 +75,7 @@ const CalendarComponent = () => {
       return false;
     });
 
+    // Rutas de recolección programadas
     routeAssignments.forEach(assignment => {
       const routeType = assignment.ruta?.tipo_servicio || 'recoleccion';
       const timeDisplay = assignment.hora_inicio || assignment.ruta?.hora_inicio || '08:00';
@@ -79,22 +84,6 @@ const CalendarComponent = () => {
         activities.push({
           id: `route-rec-${assignment.id}`,
           type: 'recoleccion',
-          title: assignment.ruta?.nombre || 'Ruta sin nombre',
-          time: timeDisplay,
-          status: assignment.estado || 'programada',
-          data: {
-            ...assignment,
-            conductor_nombre: assignment.conductor_nombre,
-            ayudantes: assignment.ayudantes || [],
-            vehiculo: assignment.vehiculo
-          }
-        });
-      }
-
-      if (filters.fumigacion && routeType === 'fumigacion') {
-        activities.push({
-          id: `route-fum-${assignment.id}`,
-          type: 'fumigacion',
           title: assignment.ruta?.nombre || 'Ruta sin nombre',
           time: timeDisplay,
           status: assignment.estado || 'programada',
@@ -131,6 +120,29 @@ const CalendarComponent = () => {
 
         console.log('🗓️ DEBUG Calendario - Actividad agregada:', activity);
         activities.push(activity);
+      });
+    }
+
+    // Fumigaciones (eventos nocturnos)
+    if (filters.fumigacion && fumigationAssignments) {
+      const fumigationsForDate = fumigationAssignments.filter(
+        f => f.fecha === dateStr
+      );
+
+      console.log('🦟 DEBUG Calendario - Fumigaciones para fecha:', dateStr, fumigationsForDate);
+
+      fumigationsForDate.forEach(fumigation => {
+        const tipoLabel = fumigation.tipo_fumigacion === 'interna' ? 'Interna' : 'Externa';
+        const timeDisplay = fumigation.horario_inicio || '19:00'; // Preset nocturno
+
+        activities.push({
+          id: `fumigation-${fumigation._id}`,
+          type: 'fumigacion',
+          title: `Fumigación ${tipoLabel} - ${fumigation.lugar_nombre || 'Lugar'}`,
+          time: timeDisplay,
+          status: fumigation.estado || 'reportada',
+          data: fumigation
+        });
       });
     }
 
