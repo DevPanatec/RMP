@@ -22,6 +22,7 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
   const { getRouteCompletionReports } = useReports();
 
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showGlobalControls, setShowGlobalControls] = useState(false); // Panel colapsado por defecto
 
   // Estado para controles globales
   const [dateRange, setDateRange] = useState({
@@ -300,16 +301,29 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
 
   return (
     <div className="reports-dashboard">
-      {/* Panel de Controles Globales */}
-      <div className="global-controls-panel">
-        <div className="controls-header">
-          <div>
-            <h3>📊 Controles Globales de Reportes</h3>
-            <p>Filtra y descarga reportes combinados de múltiples módulos</p>
-          </div>
-        </div>
+      {/* Botón para expandir/colapsar controles globales */}
+      <div className="global-controls-toggle">
+        <button
+          className="btn-toggle-controls"
+          onClick={() => setShowGlobalControls(!showGlobalControls)}
+        >
+          <Download size={20} />
+          <span>Descargar Reportes Combinados</span>
+          <span className={`toggle-icon ${showGlobalControls ? 'open' : ''}`}>▼</span>
+        </button>
+      </div>
 
-        <div className="controls-body">
+      {/* Panel de Controles Globales (colapsable) */}
+      {showGlobalControls && (
+        <div className="global-controls-panel">
+          <div className="controls-header">
+            <div>
+              <h3>📊 Controles Globales de Reportes</h3>
+              <p>Filtra y descarga reportes combinados de múltiples módulos</p>
+            </div>
+          </div>
+
+          <div className="controls-body">
           {/* Rango de Fechas */}
           <div className="date-range-controls">
             <div className="date-input-group">
@@ -393,7 +407,8 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
             )}
           </div>
         </div>
-      </div>
+        </div>
+      )}
 
       <div className="dashboard-header">
         <div>
