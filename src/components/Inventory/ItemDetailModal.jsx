@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useInventory } from '../../context/InventoryContext';
-import { Package, MapPin, Plus, Edit, Trash2, X, Save, AlertCircle } from '../Icons';
+import { Package, MapPin, Plus, Edit, Trash2, X, Save, AlertTriangle } from '../Icons';
 import './ItemDetailModal.css';
 
 const ItemDetailModal = ({ item, onClose }) => {
@@ -217,7 +217,7 @@ const ItemDetailModal = ({ item, onClose }) => {
             {/* Locations List */}
             {(!item.ubicaciones || item.ubicaciones.length === 0) ? (
               <div className="empty-locations">
-                <AlertCircle size={48} />
+                <AlertTriangle size={48} />
                 <p>No hay ubicaciones asignadas para este item</p>
               </div>
             ) : (

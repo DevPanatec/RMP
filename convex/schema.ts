@@ -162,7 +162,7 @@ export default defineSchema({
 
   // 10. Inventario
   inventario: defineTable({
-    codigo: v.string(), // Código único auto-generado (MAT-001, MAT-002, etc.)
+    codigo: v.optional(v.string()), // Código único auto-generado (MAT-001, MAT-002, etc.)
     nombre: v.string(),
     descripcion: v.optional(v.string()),
     tipo_articulo: v.string(), // "herramienta", "insumo", "equipo", "uniforme"
@@ -171,9 +171,10 @@ export default defineSchema({
     unidad_medida: v.optional(v.string()),
     precio_unitario: v.optional(v.number()),
     proveedor: v.optional(v.string()),
+    // Legacy field - mantener para compatibilidad con datos antiguos
+    cantidad_disponible: v.optional(v.number()),
   })
-    .index("by_tipo", ["tipo_articulo"])
-    .index("by_codigo", ["codigo"]),
+    .index("by_tipo", ["tipo_articulo"]),
 
   // 10b. Inventario por Ubicación (distribuye items en múltiples lugares)
   inventario_ubicaciones: defineTable({
