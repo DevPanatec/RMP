@@ -15,16 +15,18 @@ const InventoryComponent = ({ userType = 'admin' }) => {
   const [categoryFilter, setCategoryFilter] = useState('todos');
   const [newMaterialData, setNewMaterialData] = useState({
     nombre: '',
-    unidad: '',
-    stockActual: 0,
-    stockMinimo: '',
-    stockMaximo: '',
+    tipo_articulo: 'insumo',
+    descripcion: '',
+    unidad_medida: '',
+    cantidad_disponible: 0,
+    cantidad_minima: '',
+    cantidad_maxima: '',
     proveedor: ''
   });
   const [editMaterialData, setEditMaterialData] = useState({
-    stockActual: 0,
-    stockMinimo: '',
-    stockMaximo: '',
+    cantidad_disponible: 0,
+    cantidad_minima: '',
+    cantidad_maxima: '',
     proveedor: ''
   });
 
@@ -37,23 +39,23 @@ const InventoryComponent = ({ userType = 'admin' }) => {
     if (searchQuery.trim()) {
       filtered = filtered.filter(material =>
         material.nombre?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        material.codigo?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        material.tipo_articulo?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         material.proveedor?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
-    // Filtrar por categoría
+    // Filtrar por tipo de artículo
     if (categoryFilter !== 'todos') {
-      filtered = filtered.filter(material => material.categoria === categoryFilter);
+      filtered = filtered.filter(material => material.tipo_articulo === categoryFilter);
     }
 
     return filtered;
   }, [materials, searchQuery, categoryFilter]);
 
-  // Obtener categorías únicas
+  // Obtener tipos de artículos únicos
   const categories = useMemo(() => {
-    const cats = [...new Set(materials.map(m => m.categoria || 'General'))];
-    return ['todos', ...cats];
+    const tipos = [...new Set(materials.map(m => m.tipo_articulo || 'insumo'))];
+    return ['todos', ...tipos];
   }, [materials]);
 
   // Generar alertas cuando los materiales cambien
@@ -67,16 +69,17 @@ const InventoryComponent = ({ userType = 'admin' }) => {
 
   const generateAlerts = (materials) => {
     const alerts = [];
-    
+
     materials.forEach(material => {
-      if (material.stockActual <= material.stockMinimo) {
+      const minStock = material.cantidad_minima || 0;
+      if (material.cantidad_disponible <= minStock) {
         alerts.push({
-          id: `ALERT${material.id}`,
-          tipo: material.stockActual < material.stockMinimo * 0.5 ? 'crítico' : 'advertencia',
+          id: `ALERT${material._id}`,
+          tipo: material.cantidad_disponible < minStock * 0.5 ? 'crítico' : 'advertencia',
           material: material.nombre,
-          mensaje: material.stockActual < material.stockMinimo * 0.5 
-            ? `Stock crítico: ${material.stockActual} ${material.unidad}s restantes`
-            : `Stock bajo: ${material.stockActual} ${material.unidad}s restantes`,
+          mensaje: material.cantidad_disponible < minStock * 0.5
+            ? `Stock crítico: ${material.cantidad_disponible} ${material.unidad_medida || 'unidades'} restantes`
+            : `Stock bajo: ${material.cantidad_disponible} ${material.unidad_medida || 'unidades'} restantes`,
           fecha: (() => {
             const now = new Date();
             return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -85,21 +88,25 @@ const InventoryComponent = ({ userType = 'admin' }) => {
         });
       }
     });
-    
+
     return alerts;
   };
 
   const getStockStatus = (material) => {
-    if (material.stockActual < material.stockMinimo * 0.5) return 'crítico';
-    if (material.stockActual <= material.stockMinimo) return 'bajo';
-    if (material.stockActual >= material.stockMaximo * 0.8) return 'alto';
+    const minStock = material.cantidad_minima || 0;
+    const maxStock = material.cantidad_maxima || 100;
+    if (material.cantidad_disponible < minStock * 0.5) return 'crítico';
+    if (material.cantidad_disponible <= minStock) return 'bajo';
+    if (material.cantidad_disponible >= maxStock * 0.8) return 'alto';
     return 'normal';
   };
 
   const getStockPercentage = (material) => {
-    const range = material.stockMaximo - material.stockMinimo;
+    const minStock = material.cantidad_minima || 0;
+    const maxStock = material.cantidad_maxima || 100;
+    const range = maxStock - minStock;
     if (range <= 0) return 100;
-    const current = material.stockActual - material.stockMinimo;
+    const current = material.cantidad_disponible - minStock;
     return Math.min(100, Math.max(0, (current / range) * 100));
   };
 
@@ -130,10 +137,12 @@ const InventoryComponent = ({ userType = 'admin' }) => {
   const resetForm = () => {
     setNewMaterialData({
       nombre: '',
-      unidad: '',
-      stockActual: 0,
-      stockMinimo: '',
-      stockMaximo: '',
+      tipo_articulo: 'insumo',
+      descripcion: '',
+      unidad_medida: '',
+      cantidad_disponible: 0,
+      cantidad_minima: '',
+      cantidad_maxima: '',
       proveedor: ''
     });
   };
@@ -141,10 +150,15 @@ const InventoryComponent = ({ userType = 'admin' }) => {
   // Manejar envío del formulario
   const handleSubmitMaterial = async (e) => {
     e.preventDefault();
-    
+
     // Validación básica
     if (!newMaterialData.nombre.trim()) {
       alert('Por favor ingresa el nombre del material');
+      return;
+    }
+
+    if (!newMaterialData.tipo_articulo) {
+      alert('Por favor selecciona el tipo de artículo');
       return;
     }
 
@@ -152,14 +166,14 @@ const InventoryComponent = ({ userType = 'admin' }) => {
 
     try {
       const materialToAdd = {
-        codigo: generateCode(),
         nombre: newMaterialData.nombre,
-        categoria: 'General', // Categoría por defecto
-        unidad: newMaterialData.unidad || 'Unidad',
-        stockActual: newMaterialData.stockActual || 0,
-        stockMinimo: newMaterialData.stockMinimo ? parseInt(newMaterialData.stockMinimo) : 0,
-        stockMaximo: newMaterialData.stockMaximo ? parseInt(newMaterialData.stockMaximo) : 100,
-        proveedor: newMaterialData.proveedor || ''
+        descripcion: newMaterialData.descripcion || undefined,
+        tipo_articulo: newMaterialData.tipo_articulo,
+        cantidad_disponible: parseFloat(newMaterialData.cantidad_disponible) || 0,
+        cantidad_minima: newMaterialData.cantidad_minima ? parseFloat(newMaterialData.cantidad_minima) : undefined,
+        cantidad_maxima: newMaterialData.cantidad_maxima ? parseFloat(newMaterialData.cantidad_maxima) : undefined,
+        unidad_medida: newMaterialData.unidad_medida || undefined,
+        proveedor: newMaterialData.proveedor || undefined
       };
 
       await addMaterial(materialToAdd);
@@ -177,15 +191,15 @@ const InventoryComponent = ({ userType = 'admin' }) => {
   // Funciones para los botones de acciones
   const handleViewMaterial = (material) => {
     setSelectedMaterial(material);
-    alert(`Material: ${material.nombre}\nCódigo: ${material.codigo}\nStock: ${material.stockActual} ${material.unidad}s\nProveedor: ${material.proveedor || 'No especificado'}`);
+    alert(`Material: ${material.nombre}\nTipo: ${material.tipo_articulo}\nStock: ${material.cantidad_disponible} ${material.unidad_medida || 'unidades'}\nProveedor: ${material.proveedor || 'No especificado'}`);
   };
 
   const handleEditMaterial = (material) => {
     setSelectedMaterial(material);
     setEditMaterialData({
-      stockActual: material.stockActual,
-      stockMinimo: material.stockMinimo || '',
-      stockMaximo: material.stockMaximo || '',
+      cantidad_disponible: material.cantidad_disponible,
+      cantidad_minima: material.cantidad_minima || '',
+      cantidad_maxima: material.cantidad_maxima || '',
       proveedor: material.proveedor || ''
     });
     setShowEditModal(true);
@@ -197,11 +211,11 @@ const InventoryComponent = ({ userType = 'admin' }) => {
 
     setIsSubmitting(true);
     try {
-      await updateMaterial(selectedMaterial.codigo, {
-        stockActual: parseInt(editMaterialData.stockActual),
-        stockMinimo: editMaterialData.stockMinimo ? parseInt(editMaterialData.stockMinimo) : 0,
-        stockMaximo: editMaterialData.stockMaximo ? parseInt(editMaterialData.stockMaximo) : 100,
-        proveedor: editMaterialData.proveedor
+      await updateMaterial(selectedMaterial._id, {
+        cantidad_disponible: parseFloat(editMaterialData.cantidad_disponible),
+        cantidad_minima: editMaterialData.cantidad_minima ? parseFloat(editMaterialData.cantidad_minima) : undefined,
+        cantidad_maxima: editMaterialData.cantidad_maxima ? parseFloat(editMaterialData.cantidad_maxima) : undefined,
+        proveedor: editMaterialData.proveedor || undefined
       });
       alert('Material actualizado exitosamente');
       setShowEditModal(false);
@@ -216,7 +230,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
   const handleDeleteMaterial = async (material) => {
     if (window.confirm(`¿Estás seguro de eliminar "${material.nombre}"?`)) {
       try {
-        await deleteMaterial(material.codigo);
+        await deleteMaterial(material._id);
         alert('Material eliminado exitosamente');
       } catch (error) {
         alert('Error al eliminar: ' + error.message);
@@ -297,7 +311,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
               <span className="chip-count">
                 {cat === 'todos'
                   ? materials.length
-                  : materials.filter(m => (m.categoria || 'General') === cat).length
+                  : materials.filter(m => m.tipo_articulo === cat).length
                 }
               </span>
             </button>
@@ -411,9 +425,9 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                 const color = getStockColor(status);
 
                 return (
-                  <tr key={material.id} style={{ animationDelay: `${index * 0.05}s` }}>
+                  <tr key={material._id} style={{ animationDelay: `${index * 0.05}s` }}>
                     <td>
-                      <div className="material-code">{material.codigo}</div>
+                      <div className="material-code">{material.tipo_articulo}</div>
                     </td>
                     <td>
                       <div className="material-info-modern">
@@ -423,7 +437,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                     </td>
                     <td>
                       <div className="stock-info-modern">
-                        <div className="stock-amount-modern">{material.stockActual} <span className="stock-unit-modern">{material.unidad}s</span></div>
+                        <div className="stock-amount-modern">{material.cantidad_disponible} <span className="stock-unit-modern">{material.unidad_medida || 'unidades'}</span></div>
                         <div className="stock-progress-bar">
                           <div
                             className="stock-progress-fill"
@@ -437,9 +451,9 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                     </td>
                     <td>
                       <div className="stock-range-modern">
-                        <span className="stock-min-modern">{material.stockMinimo}</span>
+                        <span className="stock-min-modern">{material.cantidad_minima || 0}</span>
                         <span className="stock-separator-modern">/</span>
-                        <span className="stock-max-modern">{material.stockMaximo}</span>
+                        <span className="stock-max-modern">{material.cantidad_maxima || 100}</span>
                       </div>
                     </td>
                     <td className="proveedor-cell">{material.proveedor || '-'}</td>
@@ -513,10 +527,10 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                 </div>
                 <div className="material-card-body">
                   <h4>{material.nombre}</h4>
-                  <p className="material-code-text">{material.codigo}</p>
+                  <p className="material-code-text">{material.tipo_articulo}</p>
                   <div className="material-stock-visual">
                     <div className="stock-value-large">
-                      {material.stockActual} <span>{material.unidad}s</span>
+                      {material.cantidad_disponible} <span>{material.unidad_medida || 'unidades'}</span>
                     </div>
                     <div className="stock-progress-large">
                       <div
@@ -528,7 +542,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                       />
                     </div>
                     <div className="stock-range-text">
-                      Rango: {material.stockMinimo} - {material.stockMaximo}
+                      Rango: {material.cantidad_minima || 0} - {material.cantidad_maxima || 100}
                     </div>
                   </div>
                   {material.proveedor && (
@@ -617,10 +631,6 @@ const InventoryComponent = ({ userType = 'admin' }) => {
             </div>
             <div className="modal-body">
               <form onSubmit={handleSubmitMaterial} className="material-form-simple">
-                <div className="form-info">
-                  <p><FileText size={16} /> El código se generará automáticamente</p>
-                </div>
-
                 <div className="form-group-main">
                   <label htmlFor="nombre">Nombre del Material *</label>
                   <input
@@ -634,25 +644,53 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                   />
                 </div>
 
+                <div className="form-group-main">
+                  <label htmlFor="tipo_articulo">Tipo de Artículo *</label>
+                  <select
+                    id="tipo_articulo"
+                    value={newMaterialData.tipo_articulo}
+                    onChange={(e) => handleInputChange('tipo_articulo', e.target.value)}
+                    required
+                    className="input-main"
+                  >
+                    <option value="insumo">Insumo</option>
+                    <option value="herramienta">Herramienta</option>
+                    <option value="equipo">Equipo</option>
+                    <option value="uniforme">Uniforme</option>
+                  </select>
+                </div>
+
+                <div className="form-group-main">
+                  <label htmlFor="descripcion">Descripción</label>
+                  <textarea
+                    id="descripcion"
+                    value={newMaterialData.descripcion}
+                    onChange={(e) => handleInputChange('descripcion', e.target.value)}
+                    placeholder="Descripción del material (opcional)"
+                    rows="2"
+                  />
+                </div>
+
                 <div className="form-row-simple">
                   <div className="form-group">
-                    <label htmlFor="unidad">Unidad</label>
+                    <label htmlFor="unidad_medida">Unidad de Medida</label>
                     <input
                       type="text"
-                      id="unidad"
-                      value={newMaterialData.unidad}
-                      onChange={(e) => handleInputChange('unidad', e.target.value)}
+                      id="unidad_medida"
+                      value={newMaterialData.unidad_medida}
+                      onChange={(e) => handleInputChange('unidad_medida', e.target.value)}
                       placeholder="Unidad, Paquete, Caja, Litro..."
                     />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="stockActual">Stock Inicial</label>
+                    <label htmlFor="cantidad_disponible">Cantidad Inicial</label>
                     <input
                       type="number"
-                      id="stockActual"
-                      value={newMaterialData.stockActual}
-                      onChange={(e) => handleInputChange('stockActual', parseInt(e.target.value) || 0)}
+                      id="cantidad_disponible"
+                      value={newMaterialData.cantidad_disponible}
+                      onChange={(e) => handleInputChange('cantidad_disponible', parseFloat(e.target.value) || 0)}
                       min="0"
+                      step="0.01"
                       placeholder="0"
                     />
                   </div>
@@ -660,24 +698,26 @@ const InventoryComponent = ({ userType = 'admin' }) => {
 
                 <div className="form-row-simple">
                   <div className="form-group">
-                    <label htmlFor="stockMinimo">Stock Mínimo</label>
+                    <label htmlFor="cantidad_minima">Cantidad Mínima</label>
                     <input
                       type="number"
-                      id="stockMinimo"
-                      value={newMaterialData.stockMinimo}
-                      onChange={(e) => handleInputChange('stockMinimo', e.target.value)}
+                      id="cantidad_minima"
+                      value={newMaterialData.cantidad_minima}
+                      onChange={(e) => handleInputChange('cantidad_minima', e.target.value)}
                       min="0"
+                      step="0.01"
                       placeholder="Opcional"
                     />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="stockMaximo">Stock Máximo</label>
+                    <label htmlFor="cantidad_maxima">Cantidad Máxima</label>
                     <input
                       type="number"
-                      id="stockMaximo"
-                      value={newMaterialData.stockMaximo}
-                      onChange={(e) => handleInputChange('stockMaximo', e.target.value)}
+                      id="cantidad_maxima"
+                      value={newMaterialData.cantidad_maxima}
+                      onChange={(e) => handleInputChange('cantidad_maxima', e.target.value)}
                       min="0"
+                      step="0.01"
                       placeholder="Opcional"
                     />
                   </div>
@@ -739,21 +779,22 @@ const InventoryComponent = ({ userType = 'admin' }) => {
             <div className="modal-body">
               <form onSubmit={handleUpdateStock} className="material-form-simple">
                 <div className="form-info">
-                  <p><FileText size={16} /> Código: {selectedMaterial.codigo}</p>
+                  <p><FileText size={16} /> Tipo: {selectedMaterial.tipo_articulo}</p>
                 </div>
 
                 <div className="form-row-simple">
                   <div className="form-group">
-                    <label htmlFor="editStockActual">Stock Actual</label>
+                    <label htmlFor="editCantidadDisponible">Cantidad Disponible</label>
                     <input
                       type="number"
-                      id="editStockActual"
-                      value={editMaterialData.stockActual}
+                      id="editCantidadDisponible"
+                      value={editMaterialData.cantidad_disponible}
                       onChange={(e) => setEditMaterialData(prev => ({
                         ...prev,
-                        stockActual: parseInt(e.target.value) || 0
+                        cantidad_disponible: parseFloat(e.target.value) || 0
                       }))}
                       min="0"
+                      step="0.01"
                       required
                     />
                   </div>
@@ -774,30 +815,32 @@ const InventoryComponent = ({ userType = 'admin' }) => {
 
                 <div className="form-row-simple">
                   <div className="form-group">
-                    <label htmlFor="editStockMinimo">Stock Mínimo</label>
+                    <label htmlFor="editCantidadMinima">Cantidad Mínima</label>
                     <input
                       type="number"
-                      id="editStockMinimo"
-                      value={editMaterialData.stockMinimo}
+                      id="editCantidadMinima"
+                      value={editMaterialData.cantidad_minima}
                       onChange={(e) => setEditMaterialData(prev => ({
                         ...prev,
-                        stockMinimo: e.target.value
+                        cantidad_minima: e.target.value
                       }))}
                       min="0"
+                      step="0.01"
                       placeholder="Opcional"
                     />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="editStockMaximo">Stock Máximo</label>
+                    <label htmlFor="editCantidadMaxima">Cantidad Máxima</label>
                     <input
                       type="number"
-                      id="editStockMaximo"
-                      value={editMaterialData.stockMaximo}
+                      id="editCantidadMaxima"
+                      value={editMaterialData.cantidad_maxima}
                       onChange={(e) => setEditMaterialData(prev => ({
                         ...prev,
-                        stockMaximo: e.target.value
+                        cantidad_maxima: e.target.value
                       }))}
                       min="0"
+                      step="0.01"
                       placeholder="Opcional"
                     />
                   </div>

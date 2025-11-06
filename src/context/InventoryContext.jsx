@@ -58,11 +58,11 @@ export const InventoryProvider = ({ children }) => {
     const stats = {
       total: inventory.length,
       lowStock: inventory.filter(item =>
-        item.stockActual <= item.stockMinimo && item.stockActual > 0
+        item.cantidad_disponible <= (item.cantidad_minima || 0) && item.cantidad_disponible > 0
       ).length,
-      outOfStock: inventory.filter(item => item.stockActual === 0).length,
+      outOfStock: inventory.filter(item => item.cantidad_disponible === 0).length,
       totalValue: inventory.reduce((sum, item) =>
-        sum + (item.stockActual * (item.precioUnitario || 0)), 0
+        sum + (item.cantidad_disponible * (item.precio_unitario || 0)), 0
       )
     };
 
@@ -76,8 +76,8 @@ export const InventoryProvider = ({ children }) => {
     const lowerQuery = query.toLowerCase();
     return inventory.filter(item =>
       item.nombre?.toLowerCase().includes(lowerQuery) ||
-      item.codigo?.toLowerCase().includes(lowerQuery) ||
-      item.categoria?.toLowerCase().includes(lowerQuery)
+      item.tipo_articulo?.toLowerCase().includes(lowerQuery) ||
+      item.descripcion?.toLowerCase().includes(lowerQuery)
     );
   };
 
