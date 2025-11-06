@@ -183,6 +183,14 @@ export default defineSchema({
     activo: v.boolean(),
   }).index("by_activo", ["activo"]),
 
+  // 11b. Lugares (Fumigación - espacios internos y externos)
+  lugares: defineTable({
+    nombre: v.string(),
+    descripcion: v.optional(v.string()),
+    activo: v.boolean(),
+  })
+    .index("by_activo", ["activo"]),
+
   // 12. Áreas (Cleaning)
   areas: defineTable({
     sala_id: v.id("salas"),
@@ -249,4 +257,36 @@ export default defineSchema({
   })
     .index("by_vehiculo", ["vehiculo_id"])
     .index("by_leida", ["leida"]),
+
+  // 17. Asignaciones de Fumigación
+  fumigation_assignments: defineTable({
+    tipo_fumigacion: v.union(v.literal("interna"), v.literal("externa")),
+    lugar_id: v.id("lugares"), // Referencia a tabla de lugares (internos/externos)
+    fecha: v.string(),
+    horario_inicio: v.string(), // Preset "19:00" (7:00 PM)
+    horario_fin: v.string(), // Preset "23:00" (11:00 PM)
+    productos_utilizados: v.optional(v.array(v.string())),
+    observaciones: v.optional(v.string()),
+    estado: v.union(
+      v.literal("programada"),
+      v.literal("realizada"),
+      v.literal("reportada")
+    ),
+    created_by: v.optional(v.string()),
+  })
+    .index("by_fecha", ["fecha"])
+    .index("by_estado", ["estado"])
+    .index("by_lugar", ["lugar_id"])
+    .index("by_tipo", ["tipo_fumigacion"])
+    .index("by_fecha_lugar_tipo", ["fecha", "lugar_id", "tipo_fumigacion"]),
+
+  // 18. Fotos de Fumigación
+  fumigation_photos: defineTable({
+    assignment_id: v.id("fumigation_assignments"),
+    storage_id: v.id("_storage"), // Convex file storage
+    file_name: v.string(),
+    file_size: v.optional(v.number()),
+    mime_type: v.optional(v.string()),
+  })
+    .index("by_assignment", ["assignment_id"]),
 });

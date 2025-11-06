@@ -12,6 +12,7 @@ import type * as asignaciones from "../asignaciones.js";
 import type * as cleaning from "../cleaning.js";
 import type * as empleados from "../empleados.js";
 import type * as files from "../files.js";
+import type * as fumigaciones from "../fumigaciones.js";
 import type * as inventario from "../inventario.js";
 import type * as maintenance from "../maintenance.js";
 import type * as perfiles from "../perfiles.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   cleaning: typeof cleaning;
   empleados: typeof empleados;
   files: typeof files;
+  fumigaciones: typeof fumigaciones;
   inventario: typeof inventario;
   maintenance: typeof maintenance;
   perfiles: typeof perfiles;

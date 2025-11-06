@@ -64,5 +64,6 @@ export {
   Minimize2,
   LayoutGrid,
   List,
-  DollarSign
+  DollarSign,
+  Bug
 } from 'lucide-react';

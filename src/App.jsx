@@ -15,6 +15,7 @@ import { ReportsProvider } from './context/ReportsContext';
 import { InventoryProvider } from './context/InventoryContext';
 import { ScheduleProvider } from './context/ScheduleContext';
 import { CleaningProvider } from './context/CleaningContext';
+import { FumigationProvider } from './context/FumigationContext';
 import { MaintenanceProvider } from './context/MaintenanceContext';
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
@@ -94,9 +95,11 @@ const AppContent = () => {
               <InventoryProvider>
                 <ScheduleProvider>
                   <CleaningProvider>
-                    <MaintenanceProvider>
-                      {renderDashboard()}
-                    </MaintenanceProvider>
+                    <FumigationProvider>
+                      <MaintenanceProvider>
+                        {renderDashboard()}
+                      </MaintenanceProvider>
+                    </FumigationProvider>
                   </CleaningProvider>
                 </ScheduleProvider>
               </InventoryProvider>

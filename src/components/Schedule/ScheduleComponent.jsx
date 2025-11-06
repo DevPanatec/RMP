@@ -4,14 +4,16 @@ import { useRoutes } from '../../context/RoutesContext';
 import { usePersonnel } from '../../context/PersonnelContext';
 import { useFleet } from '../../context/FleetContext';
 import { useCleaning } from '../../context/CleaningContext';
+import { useFumigation } from '../../context/FumigationContext';
 import {
   Calendar, Plus, Edit, Trash2, AlertTriangle, CheckCircle,
-  Truck, Users, Map, Clock, X, Sparkles, Camera, Info
+  Truck, Users, Map, Clock, X, Sparkles, Camera, Info, Bug
 } from '../Icons';
 import { CustomSelect } from '../UI';
 import PhotoUploadField from '../Cleaning/PhotoUploadField';
 import HelperManager from './HelperManager';
 import WeekdayPicker from './WeekdayPicker';
+import { FumigationComponent } from '../Fumigation';
 import './ScheduleComponent.css';
 import './ScheduleModal.css';
 
@@ -46,6 +48,11 @@ const ScheduleComponent = () => {
     addAssignment: addCleaningAssignment,
     uploadPhoto
   } = useCleaning();
+
+  const {
+    assignments: fumigationAssignments,
+    loading: fumigationLoading
+  } = useFumigation();
 
   console.log('🎯 DEBUG Schedule Component - scheduleAssignments:', scheduleAssignments);
   console.log('🎯 DEBUG Schedule Component - routes:', routes);
@@ -143,7 +150,7 @@ const ScheduleComponent = () => {
     v.estado === 'disponible' ||
     v.estado === 'En ruta'
   );
-  const loading = scheduleLoading || cleaningLoading;
+  const loading = scheduleLoading || cleaningLoading || fumigationLoading;
 
   // Filtrar vehículos por tipo de ruta seleccionada
   const getCompatibleVehicles = () => {
@@ -579,7 +586,7 @@ const ScheduleComponent = () => {
       </div>
 
       <div className="schedule-tabs-unified">
-        <button 
+        <button
           className={`tab-unified ${activeTab === 'routes' ? 'active' : ''}`}
           onClick={() => setActiveTab('routes')}
         >
@@ -587,13 +594,21 @@ const ScheduleComponent = () => {
           <span>Rutas de Seguimiento</span>
           <span className="tab-badge">{scheduleAssignments.length}</span>
         </button>
-        <button 
+        <button
           className={`tab-unified ${activeTab === 'cleaning' ? 'active' : ''}`}
           onClick={() => setActiveTab('cleaning')}
         >
           <Sparkles size={18} />
           <span>Asignaciones de Limpieza</span>
           <span className="tab-badge">{cleaningAssignments.length}</span>
+        </button>
+        <button
+          className={`tab-unified ${activeTab === 'fumigation' ? 'active' : ''}`}
+          onClick={() => setActiveTab('fumigation')}
+        >
+          <Bug size={18} />
+          <span>Asignaciones de Fumigación</span>
+          <span className="tab-badge">{fumigationAssignments.length}</span>
         </button>
       </div>
 
@@ -718,6 +733,12 @@ const ScheduleComponent = () => {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'fumigation' && (
+            <div className="fumigation-embedded-container">
+              <FumigationComponent userRole="admin" embedded={true} />
             </div>
           )}
         </div>

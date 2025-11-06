@@ -1,0 +1,131 @@
+/* ============================================
+   FUMIGATION MODULE - APPLE STYLE
+   ============================================ */
+
+.fumigation-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.fumigation-container--embedded {
+  padding: 0;
+}
+
+/* Header */
+.fumigation-header {
+  margin-bottom: 32px;
+}
+
+.fumigation-header__content {
+  margin-bottom: 24px;
+}
+
+.fumigation-header__title-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.fumigation-header__icon {
+  width: 48px;
+  height: 48px;
+  padding: 12px;
+  background: linear-gradient(135deg, #3D5229 0%, #5a7a33 100%);
+  border-radius: 16px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.fumigation-header__title {
+  font-family: var(--font-family-display);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.fumigation-header__subtitle {
+  font-size: 15px;
+  color: var(--color-text-secondary);
+  margin: 4px 0 0 0;
+  font-weight: 400;
+}
+
+/* Información de frecuencia */
+.fumigation-info {
+  display: flex;
+  gap: 24px;
+  padding: 16px 20px;
+  background: var(--color-background-secondary);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.fumigation-info__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fumigation-info__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.fumigation-info__value {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+/* Notice/Alert */
+.fumigation-notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(61, 82, 41, 0.08) 0%, rgba(90, 122, 51, 0.08) 100%);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  border: 1px solid rgba(61, 82, 41, 0.1);
+}
+
+.fumigation-notice strong {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* Content Area */
+.fumigation-content {
+  animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .fumigation-container {
+    padding: 16px;
+  }
+
+  .fumigation-header__title {
+    font-size: 24px;
+  }
+
+  .fumigation-info {
+    flex-direction: column;
+    gap: 12px;
+  }
+}

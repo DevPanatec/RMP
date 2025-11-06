@@ -1,0 +1,199 @@
+/* ============================================
+   FUMIGATION ASSIGNMENTS - APPLE STYLE
+   ============================================ */
+
+.fumigation-assignments {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Header con botón */
+.fumigation-assignments__header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+/* Empty state */
+.fumigation-assignments__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+  text-align: center;
+}
+
+.fumigation-assignments__empty p {
+  margin: 16px 0 4px 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.fumigation-assignments__empty-hint {
+  font-size: 14px !important;
+  color: var(--color-text-secondary) !important;
+  font-weight: 400 !important;
+  margin: 0 !important;
+}
+
+/* Content */
+.fumigation-assignments__content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Lugar header */
+.fumigation-assignments__lugar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fumigation-assignments__lugar-tipo {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.fumigation-assignments__lugar-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  padding: 4px 12px;
+  background: rgba(61, 82, 41, 0.08);
+  border-radius: 12px;
+}
+
+/* Grid de fumigaciones */
+.fumigation-assignments__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+/* Fumigation Card */
+.fumigation-card {
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fumigation-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-primary);
+}
+
+.fumigation-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.fumigation-card__tipo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  flex: 1;
+}
+
+.fumigation-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fumigation-card__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.fumigation-card__row svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.fumigation-card__productos {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  padding: 8px;
+  background: var(--color-background-secondary);
+  border-radius: 8px;
+  margin-top: 4px;
+}
+
+.fumigation-card__productos strong {
+  color: var(--color-text-primary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.fumigation-card__observaciones {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  padding: 8px;
+  background: var(--color-background-secondary);
+  border-radius: 8px;
+  font-style: italic;
+}
+
+.fumigation-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+/* Estados */
+.assignment-card__status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.assignment-card__status--programada {
+  background: rgba(0, 122, 255, 0.1);
+  color: #007AFF;
+}
+
+.assignment-card__status--realizada {
+  background: rgba(255, 159, 10, 0.1);
+  color: #FF9F0A;
+}
+
+.assignment-card__status--reportada {
+  background: rgba(48, 209, 88, 0.1);
+  color: #30D158;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .fumigation-assignments__grid {
+    grid-template-columns: 1fr;
+  }
+}
