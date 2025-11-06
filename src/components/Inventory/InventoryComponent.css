@@ -1450,3 +1450,66 @@
     padding: 20px;
   }
 }
+
+/* ============================================
+   NUEVO - Estilos para Ubicaciones y Código
+   ============================================ */
+
+/* Código Preview en Form */
+.form-info-codigo {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f0f4f8 0%, #e8f0f6 100%);
+  border-radius: 12px;
+  border: 2px solid rgba(61, 82, 41, 0.15);
+}
+
+.form-info-codigo label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--inventory-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.codigo-preview {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  color: var(--inventory-primary);
+  letter-spacing: 1px;
+}
+
+/* Badge de Tipo de Material */
+.material-type-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, var(--inventory-primary) 0%, #556B2F 100%);
+  color: white;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Ubicaciones Count */
+.ubicaciones-count {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+/* Ubicaciones Info en Grid */
+.material-ubicaciones-info {
+  font-size: 13px;
+  color: var(--inventory-info);
+  font-weight: 600;
+  margin: 8px 0;
+  padding: 6px 12px;
+  background: rgba(0, 122, 255, 0.1);
+  border-radius: 8px;
+  display: inline-block;
+}

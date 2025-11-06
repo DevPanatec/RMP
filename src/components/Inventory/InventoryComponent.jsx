@@ -1,13 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useInventory } from '../../context/InventoryContext';
 import { Package, FileText, AlertTriangle, X, Loader, CheckCircle, Search, Filter, LayoutGrid, List, Eye, Edit, Trash2, TrendingUp, TrendingDown } from '../Icons';
+import ItemDetailModal from './ItemDetailModal';
 import './InventoryComponent.css';
 
 const InventoryComponent = ({ userType = 'admin' }) => {
-  const { materials, loading, error, getInventoryStats, searchMaterials, addMaterial, updateMaterial, deleteMaterial } = useInventory();
+  const { materials, lugares, codigoSugerido, loading, error, getInventoryStats, searchMaterials, addMaterial, updateMaterial, deleteMaterial } = useInventory();
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [alerts, setAlerts] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,7 +20,8 @@ const InventoryComponent = ({ userType = 'admin' }) => {
     tipo_articulo: 'insumo',
     descripcion: '',
     unidad_medida: '',
-    cantidad_disponible: 0,
+    lugar_id: '',
+    cantidad_inicial: 0,
     cantidad_minima: '',
     cantidad_maxima: '',
     proveedor: ''
@@ -140,7 +143,8 @@ const InventoryComponent = ({ userType = 'admin' }) => {
       tipo_articulo: 'insumo',
       descripcion: '',
       unidad_medida: '',
-      cantidad_disponible: 0,
+      lugar_id: '',
+      cantidad_inicial: 0,
       cantidad_minima: '',
       cantidad_maxima: '',
       proveedor: ''
@@ -162,14 +166,21 @@ const InventoryComponent = ({ userType = 'admin' }) => {
       return;
     }
 
+    if (!newMaterialData.lugar_id) {
+      alert('Por favor selecciona una ubicación inicial');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const materialToAdd = {
+        codigo: codigoSugerido || `MAT-${String(materials.length + 1).padStart(3, '0')}`,
         nombre: newMaterialData.nombre,
         descripcion: newMaterialData.descripcion || undefined,
         tipo_articulo: newMaterialData.tipo_articulo,
-        cantidad_disponible: parseFloat(newMaterialData.cantidad_disponible) || 0,
+        lugar_id: newMaterialData.lugar_id,
+        cantidad_inicial: parseFloat(newMaterialData.cantidad_inicial) || 0,
         cantidad_minima: newMaterialData.cantidad_minima ? parseFloat(newMaterialData.cantidad_minima) : undefined,
         cantidad_maxima: newMaterialData.cantidad_maxima ? parseFloat(newMaterialData.cantidad_maxima) : undefined,
         unidad_medida: newMaterialData.unidad_medida || undefined,
@@ -191,7 +202,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
   // Funciones para los botones de acciones
   const handleViewMaterial = (material) => {
     setSelectedMaterial(material);
-    alert(`Material: ${material.nombre}\nTipo: ${material.tipo_articulo}\nStock: ${material.cantidad_disponible} ${material.unidad_medida || 'unidades'}\nProveedor: ${material.proveedor || 'No especificado'}`);
+    setShowDetailModal(true);
   };
 
   const handleEditMaterial = (material) => {
@@ -411,7 +422,9 @@ const InventoryComponent = ({ userType = 'admin' }) => {
               <tr>
                 <th>Código</th>
                 <th>Material</th>
-                <th>Stock Actual</th>
+                <th>Tipo</th>
+                <th>Ubicaciones</th>
+                <th>Stock Total</th>
                 <th>Stock Mín/Máx</th>
                 <th>Proveedor</th>
                 <th>Estado</th>
@@ -427,12 +440,20 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                 return (
                   <tr key={material._id} style={{ animationDelay: `${index * 0.05}s` }}>
                     <td>
-                      <div className="material-code">{material.tipo_articulo}</div>
+                      <div className="material-code">{material.codigo || 'N/A'}</div>
                     </td>
                     <td>
                       <div className="material-info-modern">
                         <div className="material-name-modern">{material.nombre}</div>
                         {material.descripcion && <div className="material-description-modern">{material.descripcion}</div>}
+                      </div>
+                    </td>
+                    <td>
+                      <span className="material-type-badge">{material.tipo_articulo}</span>
+                    </td>
+                    <td>
+                      <div className="ubicaciones-count">
+                        {material.num_ubicaciones || 0} ubicación{material.num_ubicaciones !== 1 ? 'es' : ''}
                       </div>
                     </td>
                     <td>
@@ -467,7 +488,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                         <button
                           className="action-btn-modern action-view"
                           onClick={() => handleViewMaterial(material)}
-                          title="Ver detalles"
+                          title="Ver detalles y ubicaciones"
                         >
                           <Eye size={16} />
                         </button>
@@ -527,7 +548,10 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                 </div>
                 <div className="material-card-body">
                   <h4>{material.nombre}</h4>
-                  <p className="material-code-text">{material.tipo_articulo}</p>
+                  <p className="material-code-text">{material.codigo || 'N/A'} • {material.tipo_articulo}</p>
+                  <div className="material-ubicaciones-info">
+                    {material.num_ubicaciones || 0} ubicación{material.num_ubicaciones !== 1 ? 'es' : ''}
+                  </div>
                   <div className="material-stock-visual">
                     <div className="stock-value-large">
                       {material.cantidad_disponible} <span>{material.unidad_medida || 'unidades'}</span>
@@ -631,6 +655,11 @@ const InventoryComponent = ({ userType = 'admin' }) => {
             </div>
             <div className="modal-body">
               <form onSubmit={handleSubmitMaterial} className="material-form-simple">
+                <div className="form-info-codigo">
+                  <label>Código a Asignar</label>
+                  <div className="codigo-preview">{codigoSugerido || 'Cargando...'}</div>
+                </div>
+
                 <div className="form-group-main">
                   <label htmlFor="nombre">Nombre del Material *</label>
                   <input
@@ -671,6 +700,24 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                   />
                 </div>
 
+                <div className="form-group-main">
+                  <label htmlFor="lugar_id">Ubicación Inicial *</label>
+                  <select
+                    id="lugar_id"
+                    value={newMaterialData.lugar_id}
+                    onChange={(e) => handleInputChange('lugar_id', e.target.value)}
+                    required
+                    className="input-main"
+                  >
+                    <option value="">Seleccione una ubicación...</option>
+                    {lugares && lugares.map(lugar => (
+                      <option key={lugar._id} value={lugar._id}>
+                        {lugar.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="form-row-simple">
                   <div className="form-group">
                     <label htmlFor="unidad_medida">Unidad de Medida</label>
@@ -683,15 +730,16 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                     />
                   </div>
                   <div className="form-group">
-                    <label htmlFor="cantidad_disponible">Cantidad Inicial</label>
+                    <label htmlFor="cantidad_inicial">Cantidad Inicial *</label>
                     <input
                       type="number"
-                      id="cantidad_disponible"
-                      value={newMaterialData.cantidad_disponible}
-                      onChange={(e) => handleInputChange('cantidad_disponible', parseFloat(e.target.value) || 0)}
+                      id="cantidad_inicial"
+                      value={newMaterialData.cantidad_inicial}
+                      onChange={(e) => handleInputChange('cantidad_inicial', parseFloat(e.target.value) || 0)}
                       min="0"
                       step="0.01"
                       placeholder="0"
+                      required
                     />
                   </div>
                 </div>
@@ -758,6 +806,17 @@ const InventoryComponent = ({ userType = 'admin' }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de detalles con ubicaciones */}
+      {showDetailModal && selectedMaterial && (
+        <ItemDetailModal
+          item={selectedMaterial}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedMaterial(null);
+          }}
+        />
       )}
 
       {/* Modal de edición */}

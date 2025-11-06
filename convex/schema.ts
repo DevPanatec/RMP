@@ -162,19 +162,28 @@ export default defineSchema({
 
   // 10. Inventario
   inventario: defineTable({
+    codigo: v.string(), // Código único auto-generado (MAT-001, MAT-002, etc.)
     nombre: v.string(),
     descripcion: v.optional(v.string()),
     tipo_articulo: v.string(), // "herramienta", "insumo", "equipo", "uniforme"
-    cantidad_disponible: v.number(),
     cantidad_minima: v.optional(v.number()),
     cantidad_maxima: v.optional(v.number()),
     unidad_medida: v.optional(v.string()),
-    ubicacion: v.optional(v.string()),
     precio_unitario: v.optional(v.number()),
     proveedor: v.optional(v.string()),
   })
     .index("by_tipo", ["tipo_articulo"])
-    .index("by_cantidad", ["cantidad_disponible"]),
+    .index("by_codigo", ["codigo"]),
+
+  // 10b. Inventario por Ubicación (distribuye items en múltiples lugares)
+  inventario_ubicaciones: defineTable({
+    item_id: v.id("inventario"),
+    lugar_id: v.id("lugares"),
+    cantidad: v.number(),
+  })
+    .index("by_item", ["item_id"])
+    .index("by_lugar", ["lugar_id"])
+    .index("by_item_lugar", ["item_id", "lugar_id"]),
 
   // 11. Lugares/Salas (Cleaning)
   salas: defineTable({
