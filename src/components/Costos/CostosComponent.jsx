@@ -1,8 +1,10 @@
 import { useState } from 'react';
+import { useInventory } from '../../context/InventoryContext';
 import { DollarSign, TrendingUp, TrendingDown, Calendar, Package, Fuel, Users, Wrench } from '../Icons';
 import './CostosComponent.css';
 
 const CostosComponent = () => {
+  const { valorTotalInventario } = useInventory();
   const [selectedPeriod, setSelectedPeriod] = useState('mes');
 
   // Índice de costos mensuales
@@ -16,40 +18,54 @@ const CostosComponent = () => {
     { mes: 'Jul', valor: 115, operacion: 51750, combustible: 25300, mantenimiento: 22080, personal: 15870 },
   ];
 
-  // Desglose por categoría
+  // Desglose por categoría (con inventario integrado)
+  const inventarioMonto = valorTotalInventario || 0;
+  const totalSinInventario = 51750 + 25300 + 22080 + 15870;
+  const totalConInventario = totalSinInventario + inventarioMonto;
+
   const desglose = [
     {
       id: 1,
       categoria: 'Operación',
       monto: 51750,
-      porcentaje: 44.1,
+      porcentaje: ((51750 / totalConInventario) * 100).toFixed(1),
       cambio: 2.5,
-      icon: <Package size={24} />,
+      icon: <DollarSign size={24} />,
       color: '#007aff'
     },
     {
       id: 2,
+      categoria: 'Inventario',
+      monto: inventarioMonto,
+      porcentaje: ((inventarioMonto / totalConInventario) * 100).toFixed(1),
+      cambio: 0,
+      icon: <Package size={24} />,
+      color: '#5856d6',
+      isRealTime: true
+    },
+    {
+      id: 3,
       categoria: 'Combustible',
       monto: 25300,
-      porcentaje: 21.5,
+      porcentaje: ((25300 / totalConInventario) * 100).toFixed(1),
       cambio: -1.2,
       icon: <Fuel size={24} />,
       color: '#ff9500'
     },
     {
-      id: 3,
+      id: 4,
       categoria: 'Mantenimiento',
       monto: 22080,
-      porcentaje: 18.8,
+      porcentaje: ((22080 / totalConInventario) * 100).toFixed(1),
       cambio: 3.1,
       icon: <Wrench size={24} />,
       color: '#ff3b30'
     },
     {
-      id: 4,
+      id: 5,
       categoria: 'Personal',
       monto: 15870,
-      porcentaje: 13.5,
+      porcentaje: ((15870 / totalConInventario) * 100).toFixed(1),
       cambio: 0.8,
       icon: <Users size={24} />,
       color: '#34c759'
