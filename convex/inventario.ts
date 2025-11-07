@@ -37,11 +37,28 @@ export const list = query({
         );
 
         // Calcular cantidad total
-        const cantidad_disponible = ubicaciones.reduce((sum, ub) => sum + ub.cantidad, 0);
+        let cantidad_disponible = 0;
+
+        // Para items legacy con cantidad_disponible, usar ese valor
+        if (item.cantidad_disponible !== undefined) {
+          cantidad_disponible = item.cantidad_disponible;
+        } else {
+          // Para items nuevos: calcular desde movimientos de compra
+          // Esto incluye stock sin asignar (almacén principal) + stock asignado
+          const movimientos = await ctx.db
+            .query("inventario_movimientos")
+            .withIndex("by_item", (q) => q.eq("item_id", item._id))
+            .collect();
+
+          // Sumar todas las compras (representa el stock total disponible)
+          cantidad_disponible = movimientos
+            .filter((m) => m.tipo_movimiento === "compra")
+            .reduce((sum, m) => sum + m.cantidad, 0);
+        }
 
         return {
           ...item,
-          cantidad_disponible, // Total de todas las ubicaciones
+          cantidad_disponible, // Total incluyendo almacén principal y ubicaciones
           ubicaciones: ubicacionesConDetalles,
           num_ubicaciones: ubicaciones.length,
         };
