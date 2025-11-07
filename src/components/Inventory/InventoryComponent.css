@@ -1513,3 +1513,14 @@
   border-radius: 8px;
   display: inline-block;
 }
+
+
+/* Form Help Text */
+.form-help-text {
+  display: block;
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 6px;
+  line-height: 1.4;
+  font-style: italic;
+}

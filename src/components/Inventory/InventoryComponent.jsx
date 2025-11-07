@@ -20,6 +20,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
     tipo_articulo: 'insumo',
     descripcion: '',
     unidad_medida: '',
+    precio_unitario: '',
     lugar_id: '',
     cantidad_inicial: 0,
     cantidad_minima: '',
@@ -143,6 +144,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
       tipo_articulo: 'insumo',
       descripcion: '',
       unidad_medida: '',
+      precio_unitario: '',
       lugar_id: '',
       cantidad_inicial: 0,
       cantidad_minima: '',
@@ -157,17 +159,12 @@ const InventoryComponent = ({ userType = 'admin' }) => {
 
     // Validación básica
     if (!newMaterialData.nombre.trim()) {
-      alert('Por favor ingresa el nombre del material');
+      alert('Por favor ingresa el nombre del item');
       return;
     }
 
     if (!newMaterialData.tipo_articulo) {
       alert('Por favor selecciona el tipo de artículo');
-      return;
-    }
-
-    if (!newMaterialData.lugar_id) {
-      alert('Por favor selecciona una ubicación inicial');
       return;
     }
 
@@ -179,7 +176,8 @@ const InventoryComponent = ({ userType = 'admin' }) => {
         nombre: newMaterialData.nombre,
         descripcion: newMaterialData.descripcion || undefined,
         tipo_articulo: newMaterialData.tipo_articulo,
-        lugar_id: newMaterialData.lugar_id,
+        precio_unitario: newMaterialData.precio_unitario ? parseFloat(newMaterialData.precio_unitario) : undefined,
+        lugar_id: newMaterialData.lugar_id || undefined,
         cantidad_inicial: parseFloat(newMaterialData.cantidad_inicial) || 0,
         cantidad_minima: newMaterialData.cantidad_minima ? parseFloat(newMaterialData.cantidad_minima) : undefined,
         cantidad_maxima: newMaterialData.cantidad_maxima ? parseFloat(newMaterialData.cantidad_maxima) : undefined,
@@ -188,12 +186,12 @@ const InventoryComponent = ({ userType = 'admin' }) => {
       };
 
       await addMaterial(materialToAdd);
-      alert('Material agregado exitosamente');
+      alert('Item agregado exitosamente');
       resetForm();
       setShowMaterialModal(false);
     } catch (error) {
-      console.error('Error al agregar material:', error);
-      alert('Error al agregar el material: ' + error.message);
+      console.error('Error al agregar item:', error);
+      alert('Error al agregar el item: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -258,8 +256,8 @@ const InventoryComponent = ({ userType = 'admin' }) => {
               <Package size={32} />
             </div>
             <div>
-              <h3>Gestión de Materiales e Insumos</h3>
-              <p>Control integral de materiales e insumos</p>
+              <h3>Gestión de Items de Inventario</h3>
+              <p>Control integral de items, materiales e insumos</p>
             </div>
           </div>
           <div className="inventory-actions-modern">
@@ -270,7 +268,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
               className="btn-modern btn-primary"
               onClick={() => setShowMaterialModal(true)}
             >
-              <Package size={18} /> Nuevo Material
+              <Package size={18} /> Nuevo Item
             </button>
           </div>
         </div>
@@ -642,8 +640,8 @@ const InventoryComponent = ({ userType = 'admin' }) => {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3><Package size={20} /> Nuevo Material</h3>
-              <button 
+              <h3><Package size={20} /> Nuevo Item</h3>
+              <button
                 className="modal-close"
                 onClick={() => {
                   resetForm();
@@ -661,7 +659,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                 </div>
 
                 <div className="form-group-main">
-                  <label htmlFor="nombre">Nombre del Material *</label>
+                  <label htmlFor="nombre">Nombre del Item *</label>
                   <input
                     type="text"
                     id="nombre"
@@ -695,40 +693,59 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                     id="descripcion"
                     value={newMaterialData.descripcion}
                     onChange={(e) => handleInputChange('descripcion', e.target.value)}
-                    placeholder="Descripción del material (opcional)"
+                    placeholder="Descripción del item (opcional)"
                     rows="2"
                   />
                 </div>
 
+                <div className="form-row-simple">
+                  <div className="form-group">
+                    <label htmlFor="unidad_medida">Unidad de Medida *</label>
+                    <input
+                      type="text"
+                      id="unidad_medida"
+                      value={newMaterialData.unidad_medida}
+                      onChange={(e) => handleInputChange('unidad_medida', e.target.value)}
+                      placeholder="Unidad, Paquete, Caja, Litro, Galón..."
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="precio_unitario">Precio por Unidad *</label>
+                    <input
+                      type="number"
+                      id="precio_unitario"
+                      value={newMaterialData.precio_unitario}
+                      onChange={(e) => handleInputChange('precio_unitario', e.target.value)}
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div className="form-group-main">
-                  <label htmlFor="lugar_id">Ubicación Inicial *</label>
+                  <label htmlFor="lugar_id">Ubicación Inicial (Opcional)</label>
                   <select
                     id="lugar_id"
                     value={newMaterialData.lugar_id}
                     onChange={(e) => handleInputChange('lugar_id', e.target.value)}
-                    required
                     className="input-main"
                   >
-                    <option value="">Seleccione una ubicación...</option>
+                    <option value="">Sin ubicación (almacén principal)</option>
                     {lugares && lugares.map(lugar => (
                       <option key={lugar._id} value={lugar._id}>
                         {lugar.nombre}
                       </option>
                     ))}
                   </select>
+                  <small className="form-help-text">
+                    Si no selecciona ubicación, el item se guardará en el almacén principal y podrá asignarse posteriormente.
+                  </small>
                 </div>
 
                 <div className="form-row-simple">
-                  <div className="form-group">
-                    <label htmlFor="unidad_medida">Unidad de Medida</label>
-                    <input
-                      type="text"
-                      id="unidad_medida"
-                      value={newMaterialData.unidad_medida}
-                      onChange={(e) => handleInputChange('unidad_medida', e.target.value)}
-                      placeholder="Unidad, Paquete, Caja, Litro..."
-                    />
-                  </div>
                   <div className="form-group">
                     <label htmlFor="cantidad_inicial">Cantidad Inicial *</label>
                     <input
@@ -740,6 +757,16 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                       step="0.01"
                       placeholder="0"
                       required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="proveedor">Proveedor</label>
+                    <input
+                      type="text"
+                      id="proveedor"
+                      value={newMaterialData.proveedor}
+                      onChange={(e) => handleInputChange('proveedor', e.target.value)}
+                      placeholder="Nombre del proveedor (opcional)"
                     />
                   </div>
                 </div>
