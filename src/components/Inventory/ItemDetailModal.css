@@ -529,3 +529,78 @@
     justify-content: flex-end;
   }
 }
+
+/* Almacén Principal Section */
+.almacen-principal-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #fff9e6 0%, #fffbf0 100%);
+  border: 2px solid rgba(255, 153, 0, 0.3);
+  border-radius: 12px;
+}
+
+.almacen-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.almacen-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #ff9500;
+}
+
+.almacen-title h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.almacen-badge {
+  padding: 8px 16px;
+  background: #ff9500;
+  color: white;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.almacen-help {
+  font-size: 14px;
+  color: #666;
+  margin: 12px 0;
+  line-height: 1.5;
+}
+
+.btn-asignar-almacen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #ff9500 0%, #ff8800 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-asignar-almacen:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 149, 0, 0.4);
+}
+
+/* Summary Highlight for Valor Total */
+.summary-value-highlight {
+  color: #3D5229 !important;
+  font-size: 36px !important;
+}
+
+.stock-sin-asignar {
+  color: #ff9500 !important;
+}

@@ -1,13 +1,22 @@
 import { useState } from 'react';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { useInventory } from '../../context/InventoryContext';
-import { Package, MapPin, Plus, Edit, Trash2, X, Save, AlertTriangle } from '../Icons';
+import { Package, MapPin, Plus, Edit, Trash2, X, Save, AlertTriangle, Building } from '../Icons';
 import './ItemDetailModal.css';
 
 const ItemDetailModal = ({ item, onClose }) => {
-  const { lugares, addToLocation, updateLocationQuantity, removeFromLocation } = useInventory();
+  const { lugares, addToLocation, updateLocationQuantity, removeFromLocation, asignarDesdeAlmacen } = useInventory();
+  const stockSinAsignar = useQuery(api.inventario.getStockSinAsignar, item ? { itemId: item._id } : "skip");
+
   const [showAddLocation, setShowAddLocation] = useState(false);
+  const [showAsignarDesdeAlmacen, setShowAsignarDesdeAlmacen] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
   const [addLocationData, setAddLocationData] = useState({
+    lugar_id: '',
+    cantidad: 0
+  });
+  const [asignarData, setAsignarData] = useState({
     lugar_id: '',
     cantidad: 0
   });
@@ -15,6 +24,10 @@ const ItemDetailModal = ({ item, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!item) return null;
+
+  // Calcular stock asignado
+  const stockAsignado = item.ubicaciones?.reduce((sum, ub) => sum + ub.cantidad, 0) || 0;
+  const valorTotal = item.precio_unitario ? (item.cantidad_disponible * item.precio_unitario).toFixed(2) : 'N/A';
 
   // Filtrar lugares ya asignados
   const availableLugares = lugares?.filter(
@@ -100,6 +113,46 @@ const ItemDetailModal = ({ item, onClose }) => {
     }
   };
 
+  const handleAsignarDesdeAlmacen = async (e) => {
+    e.preventDefault();
+
+    if (!asignarData.lugar_id) {
+      alert('Por favor selecciona una ubicación');
+      return;
+    }
+
+    if (asignarData.cantidad <= 0) {
+      alert('La cantidad debe ser mayor a 0');
+      return;
+    }
+
+    if (asignarData.cantidad > (stockSinAsignar || 0)) {
+      alert(`No hay suficiente stock sin asignar. Disponible: ${stockSinAsignar || 0}`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await asignarDesdeAlmacen(
+        item._id,
+        asignarData.lugar_id,
+        parseFloat(asignarData.cantidad)
+      );
+
+      if (result.success) {
+        alert('Stock asignado exitosamente desde almacén principal');
+        setShowAsignarDesdeAlmacen(false);
+        setAsignarData({ lugar_id: '', cantidad: 0 });
+      } else {
+        alert('Error al asignar: ' + result.error);
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-detail-content" onClick={(e) => e.stopPropagation()}>
@@ -131,13 +184,27 @@ const ItemDetailModal = ({ item, onClose }) => {
               </div>
             </div>
             <div className="summary-stat">
-              <div className="summary-label">Ubicaciones</div>
-              <div className="summary-value">{item.ubicaciones?.length || 0}</div>
+              <div className="summary-label">Stock Asignado</div>
+              <div className="summary-value">
+                {stockAsignado} <span className="summary-unit">{item.unidad_medida || 'unidades'}</span>
+              </div>
             </div>
             <div className="summary-stat">
-              <div className="summary-label">Rango</div>
+              <div className="summary-label">Stock Sin Asignar</div>
+              <div className="summary-value stock-sin-asignar">
+                {stockSinAsignar !== undefined ? stockSinAsignar : '...'} <span className="summary-unit">{item.unidad_medida || 'unidades'}</span>
+              </div>
+            </div>
+            <div className="summary-stat">
+              <div className="summary-label">Precio/Unidad</div>
               <div className="summary-value">
-                {item.cantidad_minima || 0} - {item.cantidad_maxima || 100}
+                ${item.precio_unitario ? item.precio_unitario.toFixed(2) : 'N/A'}
+              </div>
+            </div>
+            <div className="summary-stat">
+              <div className="summary-label">Valor Total</div>
+              <div className="summary-value summary-value-highlight">
+                ${valorTotal}
               </div>
             </div>
           </div>
@@ -147,6 +214,84 @@ const ItemDetailModal = ({ item, onClose }) => {
             <div className="detail-info-box">
               <h4>Descripción</h4>
               <p>{item.descripcion}</p>
+            </div>
+          )}
+
+          {/* Asignar desde Almacén Principal */}
+          {stockSinAsignar > 0 && (
+            <div className="almacen-principal-section">
+              <div className="almacen-header">
+                <div className="almacen-title">
+                  <Building size={20} />
+                  <h4>Almacén Principal</h4>
+                </div>
+                <span className="almacen-badge">
+                  {stockSinAsignar} {item.unidad_medida || 'unidades'} disponibles
+                </span>
+              </div>
+              <p className="almacen-help">
+                Este stock aún no ha sido asignado a ninguna ubicación específica. Puede distribuirlo a continuación:
+              </p>
+
+              {!showAsignarDesdeAlmacen ? (
+                <button
+                  className="btn-asignar-almacen"
+                  onClick={() => setShowAsignarDesdeAlmacen(true)}
+                >
+                  <MapPin size={16} /> Asignar a Ubicación
+                </button>
+              ) : (
+                <div className="add-location-form">
+                  <form onSubmit={handleAsignarDesdeAlmacen}>
+                    <div className="form-row-inline">
+                      <div className="form-group-inline">
+                        <label>Ubicación Destino</label>
+                        <select
+                          value={asignarData.lugar_id}
+                          onChange={(e) => setAsignarData(prev => ({ ...prev, lugar_id: e.target.value }))}
+                          required
+                        >
+                          <option value="">Seleccionar...</option>
+                          {lugares.map(lugar => (
+                            <option key={lugar._id} value={lugar._id}>
+                              {lugar.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-group-inline">
+                        <label>Cantidad a Asignar</label>
+                        <input
+                          type="number"
+                          value={asignarData.cantidad}
+                          onChange={(e) => setAsignarData(prev => ({ ...prev, cantidad: e.target.value }))}
+                          min="0"
+                          max={stockSinAsignar}
+                          step="0.01"
+                          required
+                          placeholder={`Máx: ${stockSinAsignar}`}
+                        />
+                      </div>
+                      <div className="form-actions-inline">
+                        <button type="submit" className="btn-save-inline" disabled={isSubmitting}>
+                          <Save size={16} /> Asignar
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-cancel-inline"
+                          onClick={() => {
+                            setShowAsignarDesdeAlmacen(false);
+                            setAsignarData({ lugar_id: '', cantidad: 0 });
+                          }}
+                          disabled={isSubmitting}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              )}
             </div>
           )}
 
