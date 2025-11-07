@@ -186,6 +186,24 @@ export default defineSchema({
     .index("by_lugar", ["lugar_id"])
     .index("by_item_lugar", ["item_id", "lugar_id"]),
 
+  // 10c. Movimientos de Inventario (para tracking histórico y costos)
+  inventario_movimientos: defineTable({
+    item_id: v.id("inventario"),
+    tipo_movimiento: v.string(), // "compra", "asignacion", "consumo", "ajuste"
+    cantidad: v.number(),
+    precio_unitario: v.optional(v.number()),
+    costo_total: v.optional(v.number()),
+    lugar_origen_id: v.optional(v.id("lugares")),
+    lugar_destino_id: v.optional(v.id("lugares")),
+    usuario_id: v.optional(v.id("perfiles_usuarios")),
+    notas: v.optional(v.string()),
+    fecha: v.number(), // timestamp
+  })
+    .index("by_item", ["item_id"])
+    .index("by_fecha", ["fecha"])
+    .index("by_tipo", ["tipo_movimiento"])
+    .index("by_item_fecha", ["item_id", "fecha"]),
+
   // 11. Lugares/Salas (Cleaning)
   salas: defineTable({
     nombre: v.string(),

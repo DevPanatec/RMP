@@ -100,7 +100,7 @@ export const getByTipo = query({
   },
 });
 
-// Crear nuevo item con ubicación inicial
+// Crear nuevo item con ubicación inicial OPCIONAL
 export const add = mutation({
   args: {
     codigo: v.string(),
@@ -112,21 +112,49 @@ export const add = mutation({
     unidad_medida: v.optional(v.string()),
     precio_unitario: v.optional(v.number()),
     proveedor: v.optional(v.string()),
-    // Ubicación inicial
-    lugar_id: v.id("lugares"),
-    cantidad_inicial: v.number(),
+    // Ubicación inicial OPCIONAL
+    lugar_id: v.optional(v.id("lugares")),
+    cantidad_inicial: v.optional(v.number()),
+    usuario_id: v.optional(v.id("perfiles_usuarios")),
   },
   handler: async (ctx, args) => {
-    const { lugar_id, cantidad_inicial, ...itemData } = args;
+    const { lugar_id, cantidad_inicial, usuario_id, ...itemData } = args;
 
     // Crear el item
     const itemId = await ctx.db.insert("inventario", itemData);
 
-    // Crear la ubicación inicial
-    await ctx.db.insert("inventario_ubicaciones", {
+    // Si se proporciona ubicación, crear la ubicación inicial
+    if (lugar_id && cantidad_inicial !== undefined && cantidad_inicial > 0) {
+      await ctx.db.insert("inventario_ubicaciones", {
+        item_id: itemId,
+        lugar_id: lugar_id,
+        cantidad: cantidad_inicial,
+      });
+
+      // Registrar movimiento de asignación
+      await ctx.db.insert("inventario_movimientos", {
+        item_id: itemId,
+        tipo_movimiento: "asignacion",
+        cantidad: cantidad_inicial,
+        precio_unitario: args.precio_unitario,
+        costo_total: args.precio_unitario ? cantidad_inicial * args.precio_unitario : undefined,
+        lugar_destino_id: lugar_id,
+        usuario_id: usuario_id,
+        fecha: Date.now(),
+        notas: "Asignación inicial al crear item",
+      });
+    }
+
+    // Registrar movimiento de compra (entrada al almacén principal)
+    await ctx.db.insert("inventario_movimientos", {
       item_id: itemId,
-      lugar_id: lugar_id,
-      cantidad: cantidad_inicial,
+      tipo_movimiento: "compra",
+      cantidad: cantidad_inicial || 0,
+      precio_unitario: args.precio_unitario,
+      costo_total: args.precio_unitario && cantidad_inicial ? cantidad_inicial * args.precio_unitario : undefined,
+      usuario_id: usuario_id,
+      fecha: Date.now(),
+      notas: `Compra inicial: ${args.nombre}`,
     });
 
     return itemId;
@@ -225,5 +253,190 @@ export const getLugaresActivos = query({
       .query("lugares")
       .withIndex("by_activo", (q) => q.eq("activo", true))
       .collect();
+  },
+});
+
+// Obtener stock sin asignar de un item (almacén principal)
+export const getStockSinAsignar = query({
+  args: { itemId: v.id("inventario") },
+  handler: async (ctx, args) => {
+    const item = await ctx.db.get(args.itemId);
+    if (!item) return 0;
+
+    // Para items legacy con cantidad_disponible
+    if (item.cantidad_disponible !== undefined) {
+      return item.cantidad_disponible;
+    }
+
+    // Para items nuevos: calcular desde movimientos
+    const movimientos = await ctx.db
+      .query("inventario_movimientos")
+      .withIndex("by_item", (q) => q.eq("item_id", args.itemId))
+      .collect();
+
+    // Sumar compras
+    const totalComprado = movimientos
+      .filter((m) => m.tipo_movimiento === "compra")
+      .reduce((sum, m) => sum + m.cantidad, 0);
+
+    // Restar asignaciones a ubicaciones
+    const ubicaciones = await ctx.db
+      .query("inventario_ubicaciones")
+      .withIndex("by_item", (q) => q.eq("item_id", args.itemId))
+      .collect();
+
+    const totalAsignado = ubicaciones.reduce((sum, ub) => sum + ub.cantidad, 0);
+
+    return Math.max(0, totalComprado - totalAsignado);
+  },
+});
+
+// Asignar desde almacén principal a una ubicación
+export const asignarDesdeAlmacen = mutation({
+  args: {
+    item_id: v.id("inventario"),
+    lugar_id: v.id("lugares"),
+    cantidad: v.number(),
+    usuario_id: v.optional(v.id("perfiles_usuarios")),
+  },
+  handler: async (ctx, args) => {
+    // Verificar que haya suficiente stock sin asignar
+    const stockSinAsignar = await ctx.db
+      .query("inventario_movimientos")
+      .withIndex("by_item", (q) => q.eq("item_id", args.item_id))
+      .collect();
+
+    const totalComprado = stockSinAsignar
+      .filter((m) => m.tipo_movimiento === "compra")
+      .reduce((sum, m) => sum + m.cantidad, 0);
+
+    const ubicaciones = await ctx.db
+      .query("inventario_ubicaciones")
+      .withIndex("by_item", (q) => q.eq("item_id", args.item_id))
+      .collect();
+
+    const totalAsignado = ubicaciones.reduce((sum, ub) => sum + ub.cantidad, 0);
+    const disponible = totalComprado - totalAsignado;
+
+    if (disponible < args.cantidad) {
+      throw new Error(`Stock insuficiente. Disponible: ${disponible}, solicitado: ${args.cantidad}`);
+    }
+
+    // Verificar si ya existe esta ubicación
+    const existing = await ctx.db
+      .query("inventario_ubicaciones")
+      .withIndex("by_item_lugar", (q) =>
+        q.eq("item_id", args.item_id).eq("lugar_id", args.lugar_id)
+      )
+      .first();
+
+    if (existing) {
+      // Sumar a la ubicación existente
+      await ctx.db.patch(existing._id, {
+        cantidad: existing.cantidad + args.cantidad,
+      });
+    } else {
+      // Crear nueva ubicación
+      await ctx.db.insert("inventario_ubicaciones", {
+        item_id: args.item_id,
+        lugar_id: args.lugar_id,
+        cantidad: args.cantidad,
+      });
+    }
+
+    // Registrar movimiento de asignación
+    const item = await ctx.db.get(args.item_id);
+    await ctx.db.insert("inventario_movimientos", {
+      item_id: args.item_id,
+      tipo_movimiento: "asignacion",
+      cantidad: args.cantidad,
+      precio_unitario: item?.precio_unitario,
+      costo_total: item?.precio_unitario ? args.cantidad * item.precio_unitario : undefined,
+      lugar_destino_id: args.lugar_id,
+      usuario_id: args.usuario_id,
+      fecha: Date.now(),
+      notas: "Asignación desde almacén principal",
+    });
+
+    return { success: true };
+  },
+});
+
+// Calcular valor total del inventario (para costos)
+export const getValorTotalInventario = query({
+  handler: async (ctx) => {
+    const items = await ctx.db.query("inventario").collect();
+
+    let valorTotal = 0;
+
+    for (const item of items) {
+      if (!item.precio_unitario) continue;
+
+      // Calcular cantidad total
+      const ubicaciones = await ctx.db
+        .query("inventario_ubicaciones")
+        .withIndex("by_item", (q) => q.eq("item_id", item._id))
+        .collect();
+
+      const cantidadTotal = ubicaciones.reduce((sum, ub) => sum + ub.cantidad, 0);
+
+      // Para items legacy
+      const cantidad = item.cantidad_disponible || cantidadTotal;
+
+      valorTotal += cantidad * item.precio_unitario;
+    }
+
+    return Math.round(valorTotal * 100) / 100; // Redondear a 2 decimales
+  },
+});
+
+// Obtener movimientos por periodo (para historial y gráficas)
+export const getMovimientosPorPeriodo = query({
+  args: {
+    desde: v.optional(v.number()), // timestamp
+    hasta: v.optional(v.number()), // timestamp
+    tipo_movimiento: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let query = ctx.db.query("inventario_movimientos");
+
+    // Filtrar por fecha si se proporciona
+    if (args.desde || args.hasta) {
+      query = query.withIndex("by_fecha");
+    }
+
+    let movimientos = await query.collect();
+
+    // Filtrar por rango de fechas
+    if (args.desde) {
+      movimientos = movimientos.filter((m) => m.fecha >= args.desde!);
+    }
+    if (args.hasta) {
+      movimientos = movimientos.filter((m) => m.fecha <= args.hasta!);
+    }
+
+    // Filtrar por tipo
+    if (args.tipo_movimiento) {
+      movimientos = movimientos.filter((m) => m.tipo_movimiento === args.tipo_movimiento);
+    }
+
+    // Enriquecer con datos del item
+    const movimientosConDatos = await Promise.all(
+      movimientos.map(async (mov) => {
+        const item = await ctx.db.get(mov.item_id);
+        const lugar_destino = mov.lugar_destino_id ? await ctx.db.get(mov.lugar_destino_id) : null;
+
+        return {
+          ...mov,
+          item_nombre: item?.nombre || "Desconocido",
+          item_codigo: item?.codigo,
+          item_tipo: item?.tipo_articulo,
+          lugar_destino_nombre: lugar_destino?.nombre,
+        };
+      })
+    );
+
+    // Ordenar por fecha descendente
+    return movimientosConDatos.sort((a, b) => b.fecha - a.fecha);
   },
 });

@@ -9,6 +9,7 @@ export const InventoryProvider = ({ children }) => {
   const inventoryData = useQuery(api.inventario.list);
   const lugaresData = useQuery(api.inventario.getLugaresActivos);
   const codigoSugerido = useQuery(api.inventario.generateCodigo);
+  const valorTotalInventario = useQuery(api.inventario.getValorTotalInventario);
 
   // Mutations
   const addItemMutation = useMutation(api.inventario.add);
@@ -17,6 +18,7 @@ export const InventoryProvider = ({ children }) => {
   const addToLocationMutation = useMutation(api.inventario.addToLocation);
   const updateLocationQuantityMutation = useMutation(api.inventario.updateLocationQuantity);
   const removeFromLocationMutation = useMutation(api.inventario.removeFromLocation);
+  const asignarDesdeAlmacenMutation = useMutation(api.inventario.asignarDesdeAlmacen);
 
   const inventory = inventoryData || [];
   const lugares = lugaresData || [];
@@ -88,6 +90,17 @@ export const InventoryProvider = ({ children }) => {
     }
   };
 
+  // Asignar desde almacén principal a ubicación
+  const asignarDesdeAlmacen = async (item_id, lugar_id, cantidad, usuario_id) => {
+    try {
+      await asignarDesdeAlmacenMutation({ item_id, lugar_id, cantidad, usuario_id });
+      return { success: true };
+    } catch (error) {
+      console.error('Error asignando desde almacén:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   // Estadísticas de inventario
   const getInventoryStats = () => {
     if (!inventory || inventory.length === 0) {
@@ -131,6 +144,7 @@ export const InventoryProvider = ({ children }) => {
     materials: inventory, // Alias para compatibilidad
     lugares,
     codigoSugerido,
+    valorTotalInventario: valorTotalInventario || 0,
     loading,
     error: null,
     addItem,
@@ -139,6 +153,7 @@ export const InventoryProvider = ({ children }) => {
     addToLocation,
     updateLocationQuantity,
     removeFromLocation,
+    asignarDesdeAlmacen,
     // Aliases para compatibilidad con código existente
     addMaterial: addItem,
     updateMaterial: updateItem,
