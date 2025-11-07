@@ -372,18 +372,25 @@ export const getValorTotalInventario = query({
     for (const item of items) {
       if (!item.precio_unitario) continue;
 
-      // Calcular cantidad total
-      const ubicaciones = await ctx.db
-        .query("inventario_ubicaciones")
+      // Para items legacy con cantidad_disponible, usar ese valor
+      if (item.cantidad_disponible !== undefined) {
+        valorTotal += item.cantidad_disponible * item.precio_unitario;
+        continue;
+      }
+
+      // Para items nuevos: calcular cantidad total desde movimientos de compra
+      // Esto incluye el stock sin asignar (almacén principal) + stock asignado
+      const movimientos = await ctx.db
+        .query("inventario_movimientos")
         .withIndex("by_item", (q) => q.eq("item_id", item._id))
         .collect();
 
-      const cantidadTotal = ubicaciones.reduce((sum, ub) => sum + ub.cantidad, 0);
+      // Sumar todas las compras (representa el stock total disponible)
+      const totalComprado = movimientos
+        .filter((m) => m.tipo_movimiento === "compra")
+        .reduce((sum, m) => sum + m.cantidad, 0);
 
-      // Para items legacy
-      const cantidad = item.cantidad_disponible || cantidadTotal;
-
-      valorTotal += cantidad * item.precio_unitario;
+      valorTotal += totalComprado * item.precio_unitario;
     }
 
     return Math.round(valorTotal * 100) / 100; // Redondear a 2 decimales
