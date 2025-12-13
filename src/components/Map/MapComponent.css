@@ -47,7 +47,7 @@
   outline: none !important;
 }
 
-/* Tiles individuales - OCULTAR HASTA CARGA COMPLETA */
+/* Tiles individuales - Aparecer inmediatamente con transición suave */
 .leaflet-tile {
   image-rendering: -webkit-optimize-contrast;
   image-rendering: optimizeQuality;
@@ -62,28 +62,14 @@
   padding: 0 !important;
   vertical-align: top;
   display: block;
-  /* CRÍTICO: Ocultar tiles no cargados completamente */
-  opacity: 0 !important;
-  visibility: hidden !important;
-  transition: opacity 0.05s ease-out !important;
+  /* Aparecer con fade rápido */
+  opacity: 1 !important;
+  transition: opacity 0.15s ease-out !important;
 }
 
-/* Tiles cargados - Aparecer con animación suave y rápida */
+/* Tiles cargados - Sin animación adicional, ya visibles */
 .leaflet-tile-loaded {
   opacity: 1 !important;
-  visibility: visible !important;
-  animation: tileAppear 0.08s ease-out forwards !important;
-}
-
-@keyframes tileAppear {
-  from {
-    opacity: 0;
-    transform: scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
 }
 
 /* DOBLE BUFFER: Tiles viejos visibles durante zoom */
