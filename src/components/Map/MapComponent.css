@@ -47,10 +47,12 @@
   outline: none !important;
 }
 
-/* Tiles individuales - Aparecer inmediatamente con transición suave */
+/* Tiles individuales - APARECER INMEDIATAMENTE */
 .leaflet-tile {
+  transition: none !important;
+  opacity: 1 !important;
   image-rendering: -webkit-optimize-contrast;
-  image-rendering: optimizeQuality;
+  image-rendering: crisp-edges;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   transform: translateZ(0);
@@ -58,46 +60,24 @@
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  vertical-align: top;
-  display: block;
-  /* Aparecer con fade rápido */
-  opacity: 1 !important;
-  transition: opacity 0.15s ease-out !important;
 }
 
-/* Tiles cargados - Sin animación adicional, ya visibles */
+/* Tiles cargados - SIN animación, aparecer de una */
 .leaflet-tile-loaded {
   opacity: 1 !important;
-}
-
-/* DOBLE BUFFER: Tiles viejos visibles durante zoom */
-.leaflet-zoom-anim .leaflet-tile-container {
-  opacity: 1 !important;
-  transition: none !important;
+  animation: none !important;
 }
 
 /* Durante el zoom - tiles visibles TODO EL TIEMPO */
 .leaflet-zoom-anim .leaflet-zoom-animated {
-  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   will-change: transform;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-/* Tiles durante zoom - SIEMPRE VISIBLES */
-.leaflet-zoom-anim .leaflet-tile-loaded {
-  opacity: 1 !important;
-  visibility: visible !important;
 }
 
 /* Pan (arrastre) RÁPIDO */
 .leaflet-pan-anim {
-  transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
   will-change: transform;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 
 /* Marcadores - NO animar durante zoom */
@@ -145,27 +125,6 @@
 .leaflet-fade-anim .leaflet-tile {
   opacity: 1 !important;
   transition: none !important;
-}
-
-/* Clase especial: no-fade-tiles */
-.no-fade-tiles {
-  animation: none !important;
-  transition: none !important;
-}
-
-.no-fade-tiles .leaflet-tile {
-  animation: tileAppear 0.08s ease-out forwards !important;
-}
-
-/* Background matching para ocultar gaps durante carga */
-.gps-map.leaflet-container {
-  background-color: #2d2d2d !important; /* Dark mode por defecto */
-}
-
-/* Si el mapa es light theme */
-.gps-map.leaflet-container[style*="light"],
-.gps-map.leaflet-container.light-theme {
-  background-color: #e8e8e8 !important;
 }
 
 /* Popups visibles durante zoom */

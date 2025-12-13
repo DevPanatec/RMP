@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, useMap, Tooltip, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { useAction, useQuery, useMutation } from 'convex/react';
@@ -22,102 +22,46 @@ function MapClickHandler({ onClick, active }) {
   return null;
 }
 
-// Componente para optimizar el mapa y pre-cargar tiles - VERSIÓN ULTRA
+// Componente para optimizar el mapa y pre-cargar tiles
 function MapOptimizer() {
   const map = useMap();
 
   useEffect(() => {
     if (!map) return;
 
-    // Configurar opciones de rendimiento MÁXIMA
-    map.options.zoomSnap = 1;
-    map.options.zoomDelta = 1;
+    // Configurar opciones de rendimiento
+    map.options.zoomSnap = 0.5;
+    map.options.zoomDelta = 0.5;
     map.options.wheelDebounceTime = 40;
     map.options.wheelPxPerZoomLevel = 60;
-    map.options.zoomAnimation = true;
-    map.options.fadeAnimation = false;
-    map.options.markerZoomAnimation = false;
+    
+    // Pre-cargar tiles cercanos
+    map.on('zoomend moveend', () => {
+      const bounds = map.getBounds();
+      const zoom = map.getZoom();
+      
+      // Pre-cargar tiles de niveles de zoom adyacentes
+      const tileLayers = [];
+      map.eachLayer((layer) => {
+        if (layer instanceof L.TileLayer) {
+          tileLayers.push(layer);
+        }
+      });
 
-    // Optimizar contenedor principal con GPU acceleration
+      tileLayers.forEach((layer) => {
+        // Forzar carga de tiles visibles
+        if (layer._tileZoom !== undefined) {
+          layer._resetView();
+        }
+      });
+    });
+
+    // Optimizar animaciones
     const container = map.getContainer();
     container.style.willChange = 'transform';
-    container.style.transform = 'translate3d(0, 0, 0)';
-    container.style.backfaceVisibility = 'hidden';
-
-    // Optimizar todos los panes
-    const panes = map.getPanes();
-    if (panes) {
-      Object.values(panes).forEach(pane => {
-        if (pane && pane.style) {
-          pane.style.transform = 'translate3d(0, 0, 0)';
-          pane.style.willChange = 'transform';
-          pane.style.backfaceVisibility = 'hidden';
-        }
-      });
-    }
-
-    // PRE-CARGA INTELIGENTE: tiles adyacentes en múltiples niveles de zoom
-    let preloadTimeout;
-    const preloadAdjacentTiles = () => {
-      clearTimeout(preloadTimeout);
-      preloadTimeout = setTimeout(() => {
-        const currentZoom = map.getZoom();
-        const bounds = map.getBounds();
-
-        // Extender bounds para pre-cargar área extra
-        const extendedBounds = bounds.pad(1.5); // 150% más de área
-
-        map.eachLayer((layer) => {
-          if (layer instanceof L.TileLayer) {
-            // Pre-cargar tiles del nivel actual y adyacentes (±1 zoom)
-            [Math.floor(currentZoom) - 1, Math.floor(currentZoom), Math.floor(currentZoom) + 1].forEach(zoomLevel => {
-              if (zoomLevel >= layer.options.minZoom && zoomLevel <= layer.options.maxNativeZoom) {
-                // Forzar carga de tiles en este nivel
-                if (layer._tileZoom !== zoomLevel) {
-                  const oldZoom = layer._tileZoom;
-                  layer._tileZoom = zoomLevel;
-                  layer._update();
-                  layer._tileZoom = oldZoom;
-                }
-              }
-            });
-
-            // Forzar redraw del nivel actual
-            layer.redraw();
-          }
-        });
-      }, 50);
-    };
-
-    // DOBLE BUFFER: Mantener tiles viejos durante zoom
-    map.on('zoomstart', () => {
-      map.eachLayer((layer) => {
-        if (layer instanceof L.TileLayer && layer._container) {
-          // Mantener tiles viejos visibles durante transición
-          layer._container.style.opacity = '1';
-        }
-      });
-    });
-
-    map.on('zoomend', () => {
-      // Solo mostrar nuevos tiles cuando estén completamente cargados
-      requestAnimationFrame(() => {
-        preloadAdjacentTiles();
-      });
-    });
-
-    map.on('moveend', preloadAdjacentTiles);
-
-    // Pre-carga inicial
-    requestAnimationFrame(() => {
-      setTimeout(preloadAdjacentTiles, 100);
-    });
-
+    
     return () => {
-      map.off('zoomstart');
-      map.off('zoomend');
-      map.off('moveend');
-      clearTimeout(preloadTimeout);
+      map.off('zoomend moveend');
     };
   }, [map]);
 
@@ -728,25 +672,8 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
     setLocalRutas(rutas);
   }, [rutas]);
 
-  // Mostrar todos los vehículos (demo y reales) - OPTIMIZADO CON USEMEMO
-  const activeCamiones = useMemo(() => {
-    return mapCamiones.filter(camion =>
-      camion.lat !== undefined &&
-      camion.lng !== undefined &&
-      !isNaN(camion.lat) &&
-      !isNaN(camion.lng)
-    );
-  }, [mapCamiones]);
-
-  // Lugares filtrados - OPTIMIZADO CON USEMEMO
-  const lugaresValidos = useMemo(() => {
-    return lugares.filter(lugar =>
-      lugar.latitud &&
-      lugar.longitud &&
-      !isNaN(lugar.latitud) &&
-      !isNaN(lugar.longitud)
-    );
-  }, [lugares]);
+  // Mostrar todos los vehículos (demo y reales)
+  const activeCamiones = mapCamiones;
 
   // ⚠️ SIMULACIÓN DESACTIVADA - Ahora usa datos GPS reales desde Convex
   // La simulación solo se activa en modo demo
@@ -1077,15 +1004,13 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
           style={{ height: '1000px', width: '100%' }}
           className="leaflet-container gps-map"
           zoomAnimation={true}
-          zoomAnimationThreshold={1}
-          fadeAnimation={false}
+          zoomAnimationThreshold={4}
+          fadeAnimation={true}
           markerZoomAnimation={false}
           preferCanvas={true}
-          renderer={L.canvas({ tolerance: 5, padding: 0.5 })}
           zoomSnap={1}
           zoomDelta={1}
-          wheelPxPerZoomLevel={60}
-          wheelDebounceTime={40}
+          wheelPxPerZoomLevel={120}
           doubleClickZoom={true}
           scrollWheelZoom={true}
           touchZoom={true}
@@ -1101,17 +1026,13 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
             tileSize={512}
             zoomOffset={-1}
             minZoom={3}
-            maxZoom={20}
-            maxNativeZoom={18}
-            keepBuffer={10}
+            maxZoom={19}
+            keepBuffer={4}
             updateWhenIdle={false}
             updateWhenZooming={true}
-            updateInterval={16}
+            updateInterval={100}
             crossOrigin={true}
-            className="map-tiles-optimized no-fade-tiles"
-            detectRetina={true}
-            noWrap={false}
-            bounds={undefined}
+            className="map-tiles-optimized"
           />
 
           {/* Optimizador de mapa para zoom fluido */}
@@ -1166,7 +1087,9 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
           
           {/* NO mostrar rutas aquí - se muestran individualmente por camión seleccionado */}
 
-          {activeCamiones.map(camion => {
+          {activeCamiones
+            .filter(camion => camion.lat !== undefined && camion.lng !== undefined)
+            .map(camion => {
             const loadStatus = getLoadStatus(camion.pesoAcumulado);
             const isSelected = selectedTruckId === camion.id;
 
@@ -1582,7 +1505,9 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
           )}
 
           {/* Marcadores de puntos de limpieza */}
-          {lugaresValidos.map(lugar => (
+          {lugares
+            .filter(lugar => lugar.latitud && lugar.longitud)
+            .map(lugar => (
               <Marker
                 key={lugar.id}
                 position={[lugar.latitud, lugar.longitud]}

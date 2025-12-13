@@ -1400,7 +1400,7 @@
   position: relative;
   border-radius: 6px;
   overflow: hidden;
-  height: 1200px; /* Mucho más grande aprovechando KPIs compactos */
+  height: 1400px; /* Mucho más grande - casi fullscreen */
   background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
   box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.3),
