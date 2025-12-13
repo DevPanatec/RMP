@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useInventory } from '../../context/InventoryContext';
-import { Package, MapPin, Plus, Edit, Trash2, X, Save, AlertTriangle, Building } from '../Icons';
+import { Package, MapPin, Plus, Edit, Trash2, X, Save, AlertTriangle, Building, ShoppingCart, Clock, DollarSign, Info } from '../Icons';
+import toast, { Toaster } from 'react-hot-toast';
 import './ItemDetailModal.css';
 
 const ItemDetailModal = ({ item, onClose }) => {
-  const { lugares, addToLocation, updateLocationQuantity, removeFromLocation, asignarDesdeAlmacen } = useInventory();
+  const { lugares, addToLocation, updateLocationQuantity, removeFromLocation, asignarDesdeAlmacen, registrarCompra } = useInventory();
   const stockSinAsignar = useQuery(api.inventario.getStockSinAsignar, item ? { itemId: item._id } : "skip");
+  const movimientos = useQuery(api.inventario.getMovimientosByItem, item ? { itemId: item._id } : "skip");
 
   const [showAddLocation, setShowAddLocation] = useState(false);
   const [showAsignarDesdeAlmacen, setShowAsignarDesdeAlmacen] = useState(false);
+  const [showNuevaCompra, setShowNuevaCompra] = useState(false);
   const [editingLocation, setEditingLocation] = useState(null);
   const [addLocationData, setAddLocationData] = useState({
     lugar_id: '',
@@ -20,8 +23,28 @@ const ItemDetailModal = ({ item, onClose }) => {
     lugar_id: '',
     cantidad: 0
   });
+  const [nuevaCompraData, setNuevaCompraData] = useState({
+    cantidad: 0,
+    precio_unitario: 0,
+    proveedor: '',
+    notas: ''
+  });
   const [editQuantity, setEditQuantity] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [filtroMovimiento, setFiltroMovimiento] = useState('todos');
+  const [validationErrors, setValidationErrors] = useState({});
+
+  // Actualizar nuevaCompraData cuando cambia el item
+  useEffect(() => {
+    if (item) {
+      setNuevaCompraData({
+        cantidad: 0,
+        precio_unitario: item.precio_unitario || 0,
+        proveedor: item.proveedor || '',
+        notas: ''
+      });
+    }
+  }, [item]);
 
   if (!item) return null;
 
@@ -38,12 +61,12 @@ const ItemDetailModal = ({ item, onClose }) => {
     e.preventDefault();
 
     if (!addLocationData.lugar_id) {
-      alert('Por favor selecciona una ubicación');
+      toast.error('Por favor selecciona una ubicación');
       return;
     }
 
     if (addLocationData.cantidad <= 0) {
-      alert('La cantidad debe ser mayor a 0');
+      toast.error('La cantidad debe ser mayor a 0');
       return;
     }
 
@@ -56,14 +79,14 @@ const ItemDetailModal = ({ item, onClose }) => {
       );
 
       if (result.success) {
-        alert('Ubicación agregada exitosamente');
+        toast.success('Ubicación agregada exitosamente');
         setShowAddLocation(false);
         setAddLocationData({ lugar_id: '', cantidad: 0 });
       } else {
-        alert('Error al agregar ubicación: ' + result.error);
+        toast.error('Error al agregar ubicación: ' + result.error);
       }
     } catch (error) {
-      alert('Error: ' + error.message);
+      toast.error('Error: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -71,7 +94,7 @@ const ItemDetailModal = ({ item, onClose }) => {
 
   const handleUpdateQuantity = async (ubicacion_id) => {
     if (editQuantity <= 0) {
-      alert('La cantidad debe ser mayor a 0');
+      toast.error('La cantidad debe ser mayor a 0');
       return;
     }
 
@@ -80,13 +103,13 @@ const ItemDetailModal = ({ item, onClose }) => {
       const result = await updateLocationQuantity(ubicacion_id, parseFloat(editQuantity));
 
       if (result.success) {
-        alert('Cantidad actualizada exitosamente');
+        toast.success('Cantidad actualizada exitosamente');
         setEditingLocation(null);
       } else {
-        alert('Error al actualizar: ' + result.error);
+        toast.error('Error al actualizar: ' + result.error);
       }
     } catch (error) {
-      alert('Error: ' + error.message);
+      toast.error('Error: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -102,12 +125,12 @@ const ItemDetailModal = ({ item, onClose }) => {
       const result = await removeFromLocation(ubicacion_id);
 
       if (result.success) {
-        alert('Ubicación eliminada exitosamente');
+        toast.success('Ubicación eliminada exitosamente');
       } else {
-        alert('Error al eliminar: ' + result.error);
+        toast.error('Error al eliminar: ' + result.error);
       }
     } catch (error) {
-      alert('Error: ' + error.message);
+      toast.error('Error: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -117,17 +140,17 @@ const ItemDetailModal = ({ item, onClose }) => {
     e.preventDefault();
 
     if (!asignarData.lugar_id) {
-      alert('Por favor selecciona una ubicación');
+      toast.error('Por favor selecciona una ubicación');
       return;
     }
 
     if (asignarData.cantidad <= 0) {
-      alert('La cantidad debe ser mayor a 0');
+      toast.error('La cantidad debe ser mayor a 0');
       return;
     }
 
     if (asignarData.cantidad > (stockSinAsignar || 0)) {
-      alert(`No hay suficiente stock sin asignar. Disponible: ${stockSinAsignar || 0}`);
+      toast.error(`No hay suficiente stock sin asignar. Disponible: ${stockSinAsignar || 0} ${item.unidad_medida || 'unidades'}`);
       return;
     }
 
@@ -140,21 +163,144 @@ const ItemDetailModal = ({ item, onClose }) => {
       );
 
       if (result.success) {
-        alert('Stock asignado exitosamente desde almacén principal');
+        toast.success(`Stock asignado exitosamente: ${asignarData.cantidad} ${item.unidad_medida || 'unidades'}`);
         setShowAsignarDesdeAlmacen(false);
         setAsignarData({ lugar_id: '', cantidad: 0 });
       } else {
-        alert('Error al asignar: ' + result.error);
+        toast.error('Error al asignar: ' + result.error);
       }
     } catch (error) {
-      alert('Error: ' + error.message);
+      toast.error('Error: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleNuevaCompra = async (e) => {
+    e.preventDefault();
+
+    if (nuevaCompraData.cantidad <= 0) {
+      toast.error('La cantidad debe ser mayor a 0');
+      return;
+    }
+
+    if (nuevaCompraData.precio_unitario <= 0) {
+      toast.error('El precio unitario debe ser mayor a 0');
+      return;
+    }
+
+    // Validar stock máximo si existe
+    if (item.cantidad_maxima && item.cantidad_maxima > 0) {
+      const nuevoTotal = (item.cantidad_disponible || 0) + parseFloat(nuevaCompraData.cantidad);
+      if (nuevoTotal > item.cantidad_maxima) {
+        const disponibleAñadir = item.cantidad_maxima - (item.cantidad_disponible || 0);
+        toast.error(`No puedes añadir ${nuevaCompraData.cantidad} ${item.unidad_medida || 'unidades'}. Solo puedes añadir ${disponibleAñadir} más (máximo: ${item.cantidad_maxima})`);
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await registrarCompra(
+        item._id,
+        parseFloat(nuevaCompraData.cantidad),
+        parseFloat(nuevaCompraData.precio_unitario),
+        nuevaCompraData.proveedor,
+        nuevaCompraData.notas
+      );
+
+      if (result.success) {
+        toast.success(`Stock añadido exitosamente: ${nuevaCompraData.cantidad} ${item.unidad_medida || 'unidades'}`);
+        setShowNuevaCompra(false);
+        setNuevaCompraData({
+          cantidad: 0,
+          precio_unitario: item.precio_unitario || 0,
+          proveedor: item.proveedor || '',
+          notas: ''
+        });
+      } else {
+        toast.error('Error al registrar compra: ' + result.error);
+      }
+    } catch (error) {
+      toast.error('Error: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Validación en tiempo real para nueva compra
+  const validateNuevaCompra = () => {
+    const errors = {};
+
+    if (nuevaCompraData.cantidad > 0 && item.cantidad_maxima && item.cantidad_maxima > 0) {
+      const nuevoTotal = (item.cantidad_disponible || 0) + parseFloat(nuevaCompraData.cantidad);
+      const disponibleAñadir = item.cantidad_maxima - (item.cantidad_disponible || 0);
+
+      if (nuevoTotal > item.cantidad_maxima) {
+        errors.cantidad = `Excede el máximo. Solo puedes añadir ${disponibleAñadir} ${item.unidad_medida || 'unidades'} más`;
+      }
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Efecto para validar en tiempo real
+  useEffect(() => {
+    if (showNuevaCompra && nuevaCompraData.cantidad > 0) {
+      validateNuevaCompra();
+    }
+  }, [nuevaCompraData.cantidad, showNuevaCompra]);
+
+  // Filtrar movimientos
+  const movimientosFiltrados = filtroMovimiento === 'todos'
+    ? movimientos
+    : movimientos?.filter(m => m.tipo_movimiento === filtroMovimiento);
+
+  // Calcular porcentaje de stock si hay máximo
+  const stockPercentage = item.cantidad_maxima > 0
+    ? ((item.cantidad_disponible || 0) / item.cantidad_maxima) * 100
+    : null;
+
+  // Determinar color del stock basado en mínimo/máximo
+  const getStockStatus = () => {
+    const current = item.cantidad_disponible || 0;
+    if (current === 0) return 'critical';
+    if (item.cantidad_minima && current <= item.cantidad_minima) return 'warning';
+    if (item.cantidad_maxima && current >= item.cantidad_maxima * 0.9) return 'near-max';
+    return 'normal';
+  };
+
+  const stockStatus = getStockStatus();
+
   return (
     <div className="modal-overlay" onClick={onClose}>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+            fontWeight: '500',
+            fontSize: '14px',
+            borderRadius: '10px',
+            padding: '12px 20px',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
       <div className="modal-detail-content" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-detail-header">
@@ -168,9 +314,18 @@ const ItemDetailModal = ({ item, onClose }) => {
               <span className="modal-detail-tipo">{item.tipo_articulo}</span>
             </div>
           </div>
-          <button className="modal-close-detail" onClick={onClose}>
-            <X size={24} />
-          </button>
+          <div className="modal-header-actions">
+            <button
+              className="btn-add-stock"
+              onClick={() => setShowNuevaCompra(!showNuevaCompra)}
+              title="Añadir stock (nueva compra)"
+            >
+              <ShoppingCart size={18} /> Añadir Stock
+            </button>
+            <button className="modal-close-detail" onClick={onClose}>
+              <X size={24} />
+            </button>
+          </div>
         </div>
 
         {/* Body */}
@@ -178,19 +333,47 @@ const ItemDetailModal = ({ item, onClose }) => {
           {/* Total Summary */}
           <div className="detail-summary-card">
             <div className="summary-stat">
-              <div className="summary-label">Stock Total</div>
-              <div className="summary-value">
-                {item.cantidad_disponible} <span className="summary-unit">{item.unidad_medida || 'unidades'}</span>
+              <div className="summary-label">
+                Stock Total
+                {item.cantidad_maxima > 0 && (
+                  <span className="tooltip-trigger">
+                    <Info size={12} />
+                    <span className="tooltip-text">Capacidad máxima: {item.cantidad_maxima} {item.unidad_medida || 'unidades'}</span>
+                  </span>
+                )}
               </div>
+              <div className="summary-value">
+                {item.cantidad_disponible} <span className="summary-unit">/ {item.cantidad_maxima || '∞'}</span>
+              </div>
+              {stockPercentage !== null && (
+                <div className="stock-progress-bar">
+                  <div
+                    className={`stock-progress-fill ${stockStatus}`}
+                    style={{ width: `${Math.min(stockPercentage, 100)}%` }}
+                  ></div>
+                </div>
+              )}
             </div>
             <div className="summary-stat">
-              <div className="summary-label">Stock Asignado</div>
+              <div className="summary-label">
+                Stock Asignado
+                <span className="tooltip-trigger">
+                  <Info size={12} />
+                  <span className="tooltip-text">Ya distribuido en ubicaciones específicas</span>
+                </span>
+              </div>
               <div className="summary-value">
                 {stockAsignado} <span className="summary-unit">{item.unidad_medida || 'unidades'}</span>
               </div>
             </div>
             <div className="summary-stat">
-              <div className="summary-label">Stock Sin Asignar</div>
+              <div className="summary-label">
+                Disponible en Almacén
+                <span className="tooltip-trigger">
+                  <Info size={12} />
+                  <span className="tooltip-text">Stock listo para distribuir a ubicaciones</span>
+                </span>
+              </div>
               <div className="summary-value stock-sin-asignar">
                 {stockSinAsignar !== undefined ? stockSinAsignar : '...'} <span className="summary-unit">{item.unidad_medida || 'unidades'}</span>
               </div>
@@ -209,6 +392,94 @@ const ItemDetailModal = ({ item, onClose }) => {
             </div>
           </div>
 
+          <div className="section-divider"></div>
+
+          {/* Formulario Nueva Compra */}
+          {showNuevaCompra && (
+            <div className="nueva-compra-section">
+              <h3><ShoppingCart size={20} /> Registrar Nueva Compra</h3>
+              <p className="section-help">Añade stock mediante una nueva compra. El stock se agregará al almacén principal.</p>
+              <form onSubmit={handleNuevaCompra} className="nueva-compra-form">
+                <div className="form-row-compra">
+                  <div className="form-group-compra">
+                    <label>Cantidad a añadir *</label>
+                    <input
+                      type="number"
+                      value={nuevaCompraData.cantidad}
+                      onChange={(e) => setNuevaCompraData(prev => ({ ...prev, cantidad: e.target.value }))}
+                      min="0"
+                      step="0.01"
+                      required
+                      placeholder={`Ej: 100`}
+                      className={validationErrors.cantidad ? 'input-error' : ''}
+                    />
+                    {validationErrors.cantidad && (
+                      <span className="validation-error">{validationErrors.cantidad}</span>
+                    )}
+                    {item.cantidad_maxima > 0 && !validationErrors.cantidad && (
+                      <span className="validation-hint">
+                        Capacidad restante: {item.cantidad_maxima - (item.cantidad_disponible || 0)} {item.unidad_medida || 'unidades'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="form-group-compra">
+                    <label>Precio por unidad *</label>
+                    <input
+                      type="number"
+                      value={nuevaCompraData.precio_unitario}
+                      onChange={(e) => setNuevaCompraData(prev => ({ ...prev, precio_unitario: e.target.value }))}
+                      min="0"
+                      step="0.01"
+                      required
+                      placeholder="5.00"
+                    />
+                  </div>
+                  <div className="form-group-compra">
+                    <label>Costo Total</label>
+                    <div className="costo-total-display">
+                      ${((nuevaCompraData.cantidad || 0) * (nuevaCompraData.precio_unitario || 0)).toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+                <div className="form-row-compra">
+                  <div className="form-group-compra">
+                    <label>Proveedor</label>
+                    <input
+                      type="text"
+                      value={nuevaCompraData.proveedor}
+                      onChange={(e) => setNuevaCompraData(prev => ({ ...prev, proveedor: e.target.value }))}
+                      placeholder="Nombre del proveedor"
+                    />
+                  </div>
+                  <div className="form-group-compra full-width">
+                    <label>Notas</label>
+                    <input
+                      type="text"
+                      value={nuevaCompraData.notas}
+                      onChange={(e) => setNuevaCompraData(prev => ({ ...prev, notas: e.target.value }))}
+                      placeholder="Información adicional sobre esta compra"
+                    />
+                  </div>
+                </div>
+                <div className="form-actions-compra">
+                  <button type="submit" className="btn-save-compra" disabled={isSubmitting}>
+                    <Save size={16} /> Registrar Compra
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-cancel-compra"
+                    onClick={() => setShowNuevaCompra(false)}
+                    disabled={isSubmitting}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {showNuevaCompra && <div className="section-divider"></div>}
+
           {/* Descripción */}
           {item.descripcion && (
             <div className="detail-info-box">
@@ -216,6 +487,8 @@ const ItemDetailModal = ({ item, onClose }) => {
               <p>{item.descripcion}</p>
             </div>
           )}
+
+          {item.descripcion && <div className="section-divider"></div>}
 
           {/* Asignar desde Almacén Principal */}
           {stockSinAsignar > 0 && (
@@ -295,6 +568,8 @@ const ItemDetailModal = ({ item, onClose }) => {
             </div>
           )}
 
+          {stockSinAsignar > 0 && <div className="section-divider"></div>}
+
           {/* Locations Table */}
           <div className="detail-locations-section">
             <div className="detail-locations-header">
@@ -362,8 +637,19 @@ const ItemDetailModal = ({ item, onClose }) => {
             {/* Locations List */}
             {(!item.ubicaciones || item.ubicaciones.length === 0) ? (
               <div className="empty-locations">
-                <AlertTriangle size={48} />
-                <p>No hay ubicaciones asignadas para este item</p>
+                <MapPin size={48} style={{ opacity: 0.3 }} />
+                <p className="empty-title">No hay ubicaciones asignadas</p>
+                {stockSinAsignar > 0 ? (
+                  <p className="empty-hint">
+                    Tienes {stockSinAsignar} {item.unidad_medida || 'unidades'} en Almacén Principal.
+                    <br />
+                    Usa el botón "Asignar a Ubicación" arriba para distribuirlas.
+                  </p>
+                ) : (
+                  <p className="empty-hint">
+                    Añade stock con el botón "Añadir Stock" en la esquina superior.
+                  </p>
+                )}
               </div>
             ) : (
               <div className="locations-table">
@@ -442,6 +728,95 @@ const ItemDetailModal = ({ item, onClose }) => {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          <div className="section-divider"></div>
+
+          {/* Historial de Movimientos */}
+          <div className="historial-section">
+            <div className="historial-header">
+              <h3><Clock size={20} /> Historial de Movimientos</h3>
+              <div className="filtros-movimiento">
+                <button
+                  className={filtroMovimiento === 'todos' ? 'active' : ''}
+                  onClick={() => setFiltroMovimiento('todos')}
+                >
+                  Todos
+                </button>
+                <button
+                  className={filtroMovimiento === 'compra' ? 'active' : ''}
+                  onClick={() => setFiltroMovimiento('compra')}
+                >
+                  Compras
+                </button>
+                <button
+                  className={filtroMovimiento === 'asignacion' ? 'active' : ''}
+                  onClick={() => setFiltroMovimiento('asignacion')}
+                >
+                  Asignaciones
+                </button>
+                <button
+                  className={filtroMovimiento === 'consumo' ? 'active' : ''}
+                  onClick={() => setFiltroMovimiento('consumo')}
+                >
+                  Consumos
+                </button>
+              </div>
+            </div>
+
+            {!movimientos || movimientos.length === 0 ? (
+              <div className="empty-movimientos">
+                <Clock size={48} style={{ opacity: 0.3 }} />
+                <p className="empty-title">No hay movimientos aún</p>
+                <p className="empty-hint">
+                  Los movimientos aparecerán aquí cuando añadas stock o asignes a ubicaciones.
+                </p>
+              </div>
+            ) : (
+              <div className="movimientos-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Tipo</th>
+                      <th>Cantidad</th>
+                      <th>Costo</th>
+                      <th>Ubicación</th>
+                      <th>Usuario</th>
+                      <th>Notas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {movimientosFiltrados?.slice(0, 15).map((mov, idx) => {
+                      const fecha = new Date(mov.fecha);
+                      const tipoClasses = {
+                        compra: 'tipo-compra',
+                        asignacion: 'tipo-asignacion',
+                        consumo: 'tipo-consumo',
+                        ajuste: 'tipo-ajuste'
+                      };
+
+                      return (
+                        <tr key={idx}>
+                          <td>{fecha.toLocaleDateString()} {fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                          <td><span className={`tipo-badge ${tipoClasses[mov.tipo_movimiento] || ''}`}>{mov.tipo_movimiento}</span></td>
+                          <td>{mov.cantidad} {item.unidad_medida || 'un.'}</td>
+                          <td>${mov.costo_total ? mov.costo_total.toFixed(2) : 'N/A'}</td>
+                          <td>{mov.lugar_destino_nombre || mov.lugar_origen_nombre || '-'}</td>
+                          <td>{mov.usuario_nombre || '-'}</td>
+                          <td className="notas-cell">{mov.notas || '-'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {movimientosFiltrados && movimientosFiltrados.length > 15 && (
+                  <div className="movimientos-footer">
+                    Mostrando 15 de {movimientosFiltrados.length} movimientos
+                  </div>
+                )}
               </div>
             )}
           </div>

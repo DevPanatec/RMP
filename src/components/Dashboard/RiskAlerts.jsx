@@ -21,7 +21,7 @@ const RiskAlerts = ({ alerts = [], onViewDetails }) => {
           </span>
         </div>
         <div className="no-alerts">
-          <div className="no-alerts-icon"><CheckCircle strokeWidth={1.5} size={64} color="#22c55e" /></div>
+          <div className="no-alerts-icon"><CheckCircle strokeWidth={2} size={32} /></div>
           <p>Todo está funcionando correctamente</p>
           <span>No hay riesgos o alertas que requieran atención</span>
         </div>
@@ -85,15 +85,9 @@ const AlertCard = ({ alert, onViewDetails, delay }) => {
   };
 
   return (
-    <div 
-      className={`alert-risk-card priority-${priorityClass}`}
-      style={{ animationDelay: `${delay}ms` }}
-    >
+    <div className={`alert-risk-card priority-${priorityClass}`}>
       <div className="alert-risk-header">
         <div className={`priority-badge priority-${priorityClass}`}>
-          {priorityClass === 'high' && '🔴'}
-          {priorityClass === 'medium' && '🟡'}
-          {priorityClass === 'low' && '🔵'}
           <span>{priorityLabel}</span>
         </div>
         <div className="alert-time">

@@ -588,3 +588,117 @@
     padding: 8px;
   }
 }
+
+/* === GPS SafeTag Integration === */
+
+/* Vehicle Actions Container */
+.vehicle-actions {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+  margin-top: var(--space-12);
+}
+
+/* Botón de reproducción GPS */
+.btn-gps-playback {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  padding: var(--space-10) var(--space-12);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.btn-gps-playback:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(61, 82, 41, 0.3);
+}
+
+.btn-gps-playback:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(61, 82, 41, 0.2);
+}
+
+/* GPS Indicator */
+.gps-indicator {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.gps-indicator:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+.gps-online-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  background: #34c759;
+  border: 2px solid white;
+  border-radius: 50%;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
+}
+
+/* Form Section Divider */
+.form-section-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: var(--space-20) 0 var(--space-16);
+  padding-top: var(--space-20);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+}
+
+.form-hint {
+  display: block;
+  margin-top: var(--space-4);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* Responsive adjustments for GPS features */
+@media (max-width: 768px) {
+  .vehicle-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .btn-gps-playback {
+    width: 100%;
+  }
+}

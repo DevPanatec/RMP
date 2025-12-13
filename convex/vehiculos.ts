@@ -41,21 +41,28 @@ export const getById = query({
 // Add vehicle
 export const add = mutation({
   args: {
+    nombre: v.optional(v.string()),
     placa: v.string(),
-    marca: v.string(),
-    modelo: v.string(),
+    marca: v.optional(v.string()),
+    modelo: v.optional(v.string()),
     anio: v.optional(v.number()),
-    tipo: v.string(),
+    tipo: v.optional(v.string()),
     tipo_servicio: v.string(),
     capacidad_carga: v.optional(v.number()),
     proyecto_asignado_id: v.optional(v.id("proyectos")),
+    // Campos GPS opcionales
+    gps_imei: v.optional(v.string()),
+    gps_protocolo: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("vehiculos", {
       ...args,
+      tipo: args.tipo || "camion", // Tipo por defecto si no se especifica
       estado: "disponible",
       combustible_nivel: 100,
       kilometraje: 0,
+      // Inicializar GPS como desconectado hasta recibir primer dato
+      gps_conectado: args.gps_imei ? false : undefined,
     });
   },
 });

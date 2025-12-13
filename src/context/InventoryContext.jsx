@@ -11,6 +11,11 @@ export const InventoryProvider = ({ children }) => {
   const codigoSugerido = useQuery(api.inventario.generateCodigo);
   const valorTotalInventario = useQuery(api.inventario.getValorTotalInventario);
 
+  // Queries de costos/estadísticas
+  const costosPorTipo = useQuery(api.inventario.getCostosPorTipo);
+  const historialComprasPorMes = useQuery(api.inventario.getHistorialComprasPorMes, { meses: 12 });
+  const topItemsMasCostosos = useQuery(api.inventario.getTopItemsMasCostosos, { limit: 10 });
+
   // Mutations
   const addItemMutation = useMutation(api.inventario.add);
   const updateItemMutation = useMutation(api.inventario.update);
@@ -19,6 +24,7 @@ export const InventoryProvider = ({ children }) => {
   const updateLocationQuantityMutation = useMutation(api.inventario.updateLocationQuantity);
   const removeFromLocationMutation = useMutation(api.inventario.removeFromLocation);
   const asignarDesdeAlmacenMutation = useMutation(api.inventario.asignarDesdeAlmacen);
+  const registrarCompraMutation = useMutation(api.inventario.registrarCompra);
 
   const inventory = inventoryData || [];
   const lugares = lugaresData || [];
@@ -101,6 +107,17 @@ export const InventoryProvider = ({ children }) => {
     }
   };
 
+  // Registrar nueva compra (añadir stock)
+  const registrarCompra = async (item_id, cantidad, precio_unitario, proveedor, notas, usuario_id) => {
+    try {
+      await registrarCompraMutation({ item_id, cantidad, precio_unitario, proveedor, notas, usuario_id });
+      return { success: true };
+    } catch (error) {
+      console.error('Error registrando compra:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   // Estadísticas de inventario
   const getInventoryStats = () => {
     if (!inventory || inventory.length === 0) {
@@ -145,6 +162,10 @@ export const InventoryProvider = ({ children }) => {
     lugares,
     codigoSugerido,
     valorTotalInventario: valorTotalInventario || 0,
+    // Queries de costos
+    costosPorTipo: costosPorTipo || [],
+    historialComprasPorMes: historialComprasPorMes || [],
+    topItemsMasCostosos: topItemsMasCostosos || [],
     loading,
     error: null,
     addItem,
@@ -154,6 +175,7 @@ export const InventoryProvider = ({ children }) => {
     updateLocationQuantity,
     removeFromLocation,
     asignarDesdeAlmacen,
+    registrarCompra,
     // Aliases para compatibilidad con código existente
     addMaterial: addItem,
     updateMaterial: updateItem,

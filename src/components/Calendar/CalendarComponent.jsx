@@ -123,17 +123,15 @@ const CalendarComponent = () => {
       });
     }
 
-    // Fumigaciones (eventos nocturnos)
+    // Fumigaciones
     if (filters.fumigacion && fumigationAssignments) {
       const fumigationsForDate = fumigationAssignments.filter(
         f => f.fecha === dateStr
       );
 
-      console.log('🦟 DEBUG Calendario - Fumigaciones para fecha:', dateStr, fumigationsForDate);
-
       fumigationsForDate.forEach(fumigation => {
         const tipoLabel = fumigation.tipo_fumigacion === 'interna' ? 'Interna' : 'Externa';
-        const timeDisplay = fumigation.horario_inicio || '19:00'; // Preset nocturno
+        const timeDisplay = fumigation.horario_inicio || '08:00';
 
         activities.push({
           id: `fumigation-${fumigation._id}`,

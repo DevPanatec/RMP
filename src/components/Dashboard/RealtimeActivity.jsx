@@ -174,15 +174,9 @@ const ActivityItem = ({ activity, delay }) => {
   const config = getActivityConfig(activity.tipo);
 
   return (
-    <div
-      className="activity-item"
-      style={{ animationDelay: `${delay}ms` }}
-    >
+    <div className="activity-item">
       <div className="activity-timeline">
-        <div
-          className="activity-icon"
-          style={{ backgroundColor: config.bgColor, color: config.color }}
-        >
+        <div className="activity-icon">
           {config.icon}
         </div>
         <div className="activity-line"></div>
@@ -191,14 +185,7 @@ const ActivityItem = ({ activity, delay }) => {
       <div className="activity-content">
         <div className="activity-main">
           <div className="activity-header-row">
-            <span
-              className="activity-badge"
-              style={{
-                backgroundColor: `${config.badgeColor}15`,
-                color: config.badgeColor,
-                borderColor: `${config.badgeColor}30`
-              }}
-            >
+            <span className="activity-badge">
               {config.label}
             </span>
             <span className="time-exact">{formatTimeExact(activity.timestamp)}</span>

@@ -1,259 +1,308 @@
 import { useState } from 'react';
 import { useInventory } from '../../context/InventoryContext';
-import { DollarSign, TrendingUp, TrendingDown, Calendar, Package, Fuel, Users, Wrench } from '../Icons';
+import { DollarSign, TrendingUp, TrendingDown, Package, ShoppingCart, Wrench, Shield, Users as UsersIcon, Calendar } from '../Icons';
 import './CostosComponent.css';
 
 const CostosComponent = () => {
-  const { valorTotalInventario } = useInventory();
-  const [selectedPeriod, setSelectedPeriod] = useState('mes');
+  const {
+    valorTotalInventario,
+    costosPorTipo,
+    historialComprasPorMes,
+    topItemsMasCostosos,
+    inventory
+  } = useInventory();
 
-  // Índice de costos mensuales
-  const costIndex = [
-    { mes: 'Ene', valor: 100, operacion: 45000, combustible: 22000, mantenimiento: 18000, personal: 15000 },
-    { mes: 'Feb', valor: 105, operacion: 47250, combustible: 23100, mantenimiento: 19500, personal: 15600 },
-    { mes: 'Mar', valor: 103, operacion: 46350, combustible: 22660, mantenimiento: 18540, personal: 15450 },
-    { mes: 'Abr', valor: 108, operacion: 48600, combustible: 23760, mantenimiento: 20160, personal: 15480 },
-    { mes: 'May', valor: 110, operacion: 49500, combustible: 24200, mantenimiento: 20900, personal: 15400 },
-    { mes: 'Jun', valor: 112, operacion: 50400, combustible: 24640, mantenimiento: 21280, personal: 15680 },
-    { mes: 'Jul', valor: 115, operacion: 51750, combustible: 25300, mantenimiento: 22080, personal: 15870 },
-  ];
+  const [selectedPeriod, setSelectedPeriod] = useState('12');
 
-  // Desglose por categoría (con inventario integrado)
-  const inventarioMonto = valorTotalInventario || 0;
-  const totalSinInventario = 51750 + 25300 + 22080 + 15870;
-  const totalConInventario = totalSinInventario + inventarioMonto;
+  // Calcular estadísticas
+  const totalItems = inventory?.length || 0;
 
-  const desglose = [
-    {
-      id: 1,
-      categoria: 'Operación',
-      monto: 51750,
-      porcentaje: ((51750 / totalConInventario) * 100).toFixed(1),
-      cambio: 2.5,
-      icon: <DollarSign size={24} />,
-      color: '#007aff'
-    },
-    {
-      id: 2,
-      categoria: 'Inventario',
-      monto: inventarioMonto,
-      porcentaje: ((inventarioMonto / totalConInventario) * 100).toFixed(1),
-      cambio: 0,
-      icon: <Package size={24} />,
-      color: '#5856d6',
-      isRealTime: true
-    },
-    {
-      id: 3,
-      categoria: 'Combustible',
-      monto: 25300,
-      porcentaje: ((25300 / totalConInventario) * 100).toFixed(1),
-      cambio: -1.2,
-      icon: <Fuel size={24} />,
-      color: '#ff9500'
-    },
-    {
-      id: 4,
-      categoria: 'Mantenimiento',
-      monto: 22080,
-      porcentaje: ((22080 / totalConInventario) * 100).toFixed(1),
-      cambio: 3.1,
-      icon: <Wrench size={24} />,
-      color: '#ff3b30'
-    },
-    {
-      id: 5,
-      categoria: 'Personal',
-      monto: 15870,
-      porcentaje: ((15870 / totalConInventario) * 100).toFixed(1),
-      cambio: 0.8,
-      icon: <Users size={24} />,
-      color: '#34c759'
-    },
-  ];
+  // Calcular total gastado este mes
+  const ahora = new Date();
+  const mesActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`;
+  const mesAnterior = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
+  const mesAnteriorKey = `${mesAnterior.getFullYear()}-${String(mesAnterior.getMonth() + 1).padStart(2, '0')}`;
 
-  // Calcular dimensiones del gráfico
+  const gastoMesActual = historialComprasPorMes?.find(m => m.mes === mesActual)?.total || 0;
+  const gastoMesAnterior = historialComprasPorMes?.find(m => m.mes === mesAnteriorKey)?.total || 0;
+  const cambioMensual = gastoMesAnterior > 0
+    ? (((gastoMesActual - gastoMesAnterior) / gastoMesAnterior) * 100).toFixed(1)
+    : 0;
+
+  // Iconos y colores por tipo
+  const tipoConfig = {
+    herramienta: { icon: <Wrench size={24} />, color: '#007aff', nombre: 'Herramientas' },
+    insumo: { icon: <Package size={24} />, color: '#5856d6', nombre: 'Insumos' },
+    equipo: { icon: <Shield size={24} />, color: '#ff9500', nombre: 'Equipos' },
+    uniforme: { icon: <UsersIcon size={24} />, color: '#34c759', nombre: 'Uniformes' }
+  };
+
+  // Preparar datos para gráfica
+  const chartData = historialComprasPorMes || [];
+  const maxGasto = Math.max(...chartData.map(d => d.total || 0), 100);
+
+  // Dimensiones del gráfico
   const chartWidth = 1000;
   const chartHeight = 400;
-  const padding = { top: 20, right: 40, bottom: 30, left: 50 };
+  const padding = { top: 20, right: 40, bottom: 30, left: 60 };
   const innerWidth = chartWidth - padding.left - padding.right;
   const innerHeight = chartHeight - padding.top - padding.bottom;
 
-  const maxValue = Math.max(...costIndex.map(d => d.valor));
-  const minValue = Math.min(...costIndex.map(d => d.valor));
-
   // Escalas
-  const xScale = (index) => (index / (costIndex.length - 1)) * innerWidth + padding.left;
-  const yScale = (value) => innerHeight - ((value - minValue) / (maxValue - minValue)) * innerHeight + padding.top;
+  const xScale = (index) => (index / Math.max(chartData.length - 1, 1)) * innerWidth + padding.left;
+  const yScale = (value) => innerHeight - ((value / maxGasto) * innerHeight) + padding.top;
 
-  // Generar path de la línea
-  const linePath = costIndex.map((d, i) => {
+  // Generar paths de la línea y área
+  const linePath = chartData.map((d, i) => {
     const x = xScale(i);
-    const y = yScale(d.valor);
+    const y = yScale(d.total);
     return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
   }).join(' ');
 
-  // Generar path del área
-  const areaPath = `${linePath} L ${xScale(costIndex.length - 1)} ${innerHeight + padding.top} L ${padding.left} ${innerHeight + padding.top} Z`;
+  const areaPath = chartData.length > 0
+    ? `${linePath} L ${xScale(chartData.length - 1)} ${innerHeight + padding.top} L ${padding.left} ${innerHeight + padding.top} Z`
+    : '';
+
+  // Formatear nombre de mes
+  const formatMes = (mesStr) => {
+    const [year, month] = mesStr.split('-');
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return meses[parseInt(month) - 1] || mesStr;
+  };
 
   return (
     <div className="costos-container">
       <div className="costos-header">
         <div>
-          <h2>Índice de Costos Operacionales</h2>
-          <p className="costos-subtitle">Seguimiento mensual del índice de costos (Base: Enero = 100)</p>
+          <h2>Análisis de Costos de Inventario</h2>
+          <p className="costos-subtitle">Control y seguimiento de gastos en materiales e insumos</p>
         </div>
         <div className="period-selector">
-          <button className={selectedPeriod === 'semana' ? 'active' : ''} onClick={() => setSelectedPeriod('semana')}>
-            Semana
+          <button className={selectedPeriod === '6' ? 'active' : ''} onClick={() => setSelectedPeriod('6')}>
+            6 Meses
           </button>
-          <button className={selectedPeriod === 'mes' ? 'active' : ''} onClick={() => setSelectedPeriod('mes')}>
-            Mes
-          </button>
-          <button className={selectedPeriod === 'trimestre' ? 'active' : ''} onClick={() => setSelectedPeriod('trimestre')}>
-            Trimestre
+          <button className={selectedPeriod === '12' ? 'active' : ''} onClick={() => setSelectedPeriod('12')}>
+            12 Meses
           </button>
         </div>
       </div>
 
-      {/* Gráfico de índice de costos */}
-      <div className="costos-chart-container">
-        <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none" className="cost-chart">
-          <defs>
-            <linearGradient id="areaGradient" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#007aff" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#007aff" stopOpacity="0" />
-            </linearGradient>
-          </defs>
+      {/* KPI Cards */}
+      <div className="kpi-summary-grid">
+        <div className="kpi-card">
+          <div className="kpi-icon" style={{ backgroundColor: '#007aff15' }}>
+            <DollarSign size={32} style={{ color: '#007aff' }} />
+          </div>
+          <div className="kpi-content">
+            <div className="kpi-label">Valor Total Inventario</div>
+            <div className="kpi-value">${valorTotalInventario.toLocaleString()}</div>
+          </div>
+        </div>
 
-          {/* Área bajo la línea */}
-          <path d={areaPath} fill="url(#areaGradient)" />
+        <div className="kpi-card">
+          <div className="kpi-icon" style={{ backgroundColor: '#5856d615' }}>
+            <ShoppingCart size={32} style={{ color: '#5856d6' }} />
+          </div>
+          <div className="kpi-content">
+            <div className="kpi-label">Gastado Este Mes</div>
+            <div className="kpi-value">${gastoMesActual.toLocaleString()}</div>
+            <div className={`kpi-change ${cambioMensual >= 0 ? 'positive' : 'negative'}`}>
+              {cambioMensual >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+              <span>{Math.abs(cambioMensual)}% vs mes anterior</span>
+            </div>
+          </div>
+        </div>
 
-          {/* Línea principal */}
-          <path d={linePath} fill="none" stroke="#007aff" strokeWidth="3" />
+        <div className="kpi-card">
+          <div className="kpi-icon" style={{ backgroundColor: '#ff950015' }}>
+            <Package size={32} style={{ color: '#ff9500' }} />
+          </div>
+          <div className="kpi-content">
+            <div className="kpi-label">Total de Items</div>
+            <div className="kpi-value">{totalItems}</div>
+          </div>
+        </div>
 
-          {/* Puntos */}
-          {costIndex.map((d, i) => (
-            <g key={i}>
-              <circle
-                cx={xScale(i)}
-                cy={yScale(d.valor)}
-                r="5"
-                fill="#007aff"
-                stroke="white"
-                strokeWidth="2"
-              />
-              <text
-                x={xScale(i)}
-                y={yScale(d.valor) - 15}
-                textAnchor="middle"
-                fontSize="12"
-                fill="#666"
-              >
-                {d.valor}
-              </text>
-            </g>
-          ))}
+        <div className="kpi-card">
+          <div className="kpi-icon" style={{ backgroundColor: '#34c75915' }}>
+            <Calendar size={32} style={{ color: '#34c759' }} />
+          </div>
+          <div className="kpi-content">
+            <div className="kpi-label">Promedio Mensual</div>
+            <div className="kpi-value">
+              ${chartData.length > 0
+                ? Math.round(chartData.reduce((sum, d) => sum + d.total, 0) / chartData.length).toLocaleString()
+                : '0'}
+            </div>
+          </div>
+        </div>
+      </div>
 
-          {/* Eje X - Etiquetas de mes */}
-          {costIndex.map((d, i) => (
-            <text
-              key={i}
-              x={xScale(i)}
-              y={chartHeight - 10}
-              textAnchor="middle"
-              fontSize="12"
-              fill="#666"
-            >
-              {d.mes}
-            </text>
-          ))}
-
-          {/* Líneas de cuadrícula horizontales */}
-          {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
-            const y = innerHeight * (1 - t) + padding.top;
-            const value = Math.round(minValue + (maxValue - minValue) * t);
+      {/* Desglose por Tipo */}
+      <div className="breakdown-section">
+        <h3>Desglose por Tipo de Artículo</h3>
+        <div className="breakdown-grid">
+          {costosPorTipo.map((tipo, idx) => {
+            const config = tipoConfig[tipo.tipo] || { icon: <Package size={24} />, color: '#666', nombre: tipo.tipo };
             return (
-              <g key={i}>
-                <line
-                  x1={padding.left}
-                  y1={y}
-                  x2={chartWidth - padding.right}
-                  y2={y}
-                  stroke="#e5e7eb"
-                  strokeDasharray="4"
-                />
-                <text x={padding.left - 10} y={y + 4} textAnchor="end" fontSize="11" fill="#666">
-                  {value}
-                </text>
-              </g>
+              <div key={idx} className="breakdown-card" style={{ borderLeft: `4px solid ${config.color}` }}>
+                <div className="breakdown-header">
+                  <div className="breakdown-icon" style={{ backgroundColor: `${config.color}15` }}>
+                    {config.icon}
+                  </div>
+                  <div className="breakdown-info">
+                    <span className="breakdown-category">{config.nombre}</span>
+                    <span className="breakdown-percentage">{tipo.porcentaje}%</span>
+                  </div>
+                </div>
+                <div className="breakdown-amount">
+                  ${tipo.valor.toLocaleString()}
+                </div>
+                <div className="breakdown-meta">
+                  {tipo.cantidad_items} items · {tipo.cantidad_unidades.toFixed(0)} unidades
+                </div>
+              </div>
             );
           })}
-        </svg>
-      </div>
-
-      {/* Desglose por categoría */}
-      <div className="breakdown-section">
-        <h3>Desglose por Categoría</h3>
-        <div className="breakdown-grid">
-          {desglose.map((item) => (
-            <div key={item.id} className="breakdown-card" style={{ borderLeft: `4px solid ${item.color}` }}>
-              <div className="breakdown-header">
-                <div className="breakdown-icon" style={{ backgroundColor: `${item.color}15` }}>
-                  {item.icon}
-                </div>
-                <div className="breakdown-info">
-                  <span className="breakdown-category">{item.categoria}</span>
-                  <span className="breakdown-percentage">{item.porcentaje}%</span>
-                </div>
-              </div>
-              <div className="breakdown-amount">
-                ${item.monto.toLocaleString()}
-              </div>
-              <div className={`breakdown-change ${item.cambio >= 0 ? 'positive' : 'negative'}`}>
-                {item.cambio >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                <span>{Math.abs(item.cambio)}% vs mes anterior</span>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 
-      {/* Tabla de evolución mensual */}
-      <div className="evolution-section">
-        <h3>Evolución Mensual</h3>
-        <div className="evolution-table-container">
-          <table className="evolution-table">
-            <thead>
-              <tr>
-                <th>Mes</th>
-                <th>Índice</th>
-                <th>Operación</th>
-                <th>Combustible</th>
-                <th>Mantenimiento</th>
-                <th>Personal</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {costIndex.map((d, i) => {
-                const total = d.operacion + d.combustible + d.mantenimiento + d.personal;
+      {/* Gráfica de Tendencia */}
+      <div className="tendencia-section">
+        <h3>Tendencia de Gastos en Compras</h3>
+        <div className="costos-chart-container">
+          {chartData.length === 0 ? (
+            <div className="empty-chart">
+              <Package size={64} />
+              <p>No hay datos de compras disponibles</p>
+            </div>
+          ) : (
+            <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none" className="cost-chart">
+              <defs>
+                <linearGradient id="areaGradientInventario" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stopColor="#5856d6" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="#5856d6" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+
+              {/* Líneas de cuadrícula horizontales */}
+              {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
+                const y = innerHeight * (1 - t) + padding.top;
+                const value = Math.round(maxGasto * t);
                 return (
-                  <tr key={i}>
-                    <td><strong>{d.mes}</strong></td>
-                    <td>
-                      <span className="index-badge">{d.valor}</span>
-                    </td>
-                    <td>${d.operacion.toLocaleString()}</td>
-                    <td>${d.combustible.toLocaleString()}</td>
-                    <td>${d.mantenimiento.toLocaleString()}</td>
-                    <td>${d.personal.toLocaleString()}</td>
-                    <td><strong>${total.toLocaleString()}</strong></td>
-                  </tr>
+                  <g key={i}>
+                    <line
+                      x1={padding.left}
+                      y1={y}
+                      x2={chartWidth - padding.right}
+                      y2={y}
+                      stroke="#e5e7eb"
+                      strokeDasharray="4"
+                    />
+                    <text x={padding.left - 10} y={y + 4} textAnchor="end" fontSize="11" fill="#666">
+                      ${value}
+                    </text>
+                  </g>
                 );
               })}
-            </tbody>
-          </table>
+
+              {/* Área bajo la línea */}
+              <path d={areaPath} fill="url(#areaGradientInventario)" />
+
+              {/* Línea principal */}
+              <path d={linePath} fill="none" stroke="#5856d6" strokeWidth="3" />
+
+              {/* Puntos */}
+              {chartData.map((d, i) => (
+                <g key={i}>
+                  <circle
+                    cx={xScale(i)}
+                    cy={yScale(d.total)}
+                    r="5"
+                    fill="#5856d6"
+                    stroke="white"
+                    strokeWidth="2"
+                  />
+                  <text
+                    x={xScale(i)}
+                    y={yScale(d.total) - 15}
+                    textAnchor="middle"
+                    fontSize="12"
+                    fill="#666"
+                  >
+                    ${d.total.toFixed(0)}
+                  </text>
+                </g>
+              ))}
+
+              {/* Eje X - Etiquetas de mes */}
+              {chartData.map((d, i) => (
+                <text
+                  key={i}
+                  x={xScale(i)}
+                  y={chartHeight - 10}
+                  textAnchor="middle"
+                  fontSize="12"
+                  fill="#666"
+                >
+                  {formatMes(d.mes)}
+                </text>
+              ))}
+            </svg>
+          )}
+        </div>
+      </div>
+
+      {/* Top Items Más Costosos */}
+      <div className="top-items-section">
+        <h3>Top Items por Valor Total</h3>
+        <div className="top-items-table-container">
+          {!topItemsMasCostosos || topItemsMasCostosos.length === 0 ? (
+            <div className="empty-top-items">
+              <Package size={48} />
+              <p>No hay items con precio asignado</p>
+            </div>
+          ) : (
+            <table className="top-items-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Código</th>
+                  <th>Nombre</th>
+                  <th>Tipo</th>
+                  <th>Cantidad</th>
+                  <th>Precio Unit.</th>
+                  <th>Valor Total</th>
+                  <th>% del Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topItemsMasCostosos.slice(0, 10).map((item, idx) => {
+                  const porcentaje = valorTotalInventario > 0
+                    ? ((item.valor_total / valorTotalInventario) * 100).toFixed(1)
+                    : 0;
+                  const config = tipoConfig[item.tipo_articulo] || { color: '#666' };
+
+                  return (
+                    <tr key={idx}>
+                      <td><strong>#{idx + 1}</strong></td>
+                      <td><code>{item.codigo}</code></td>
+                      <td><strong>{item.nombre}</strong></td>
+                      <td>
+                        <span className="tipo-badge" style={{ backgroundColor: `${config.color}15`, color: config.color }}>
+                          {item.tipo_articulo}
+                        </span>
+                      </td>
+                      <td>{item.cantidad} {item.unidad_medida || 'un.'}</td>
+                      <td>${item.precio_unitario.toFixed(2)}</td>
+                      <td><strong>${item.valor_total.toLocaleString()}</strong></td>
+                      <td>{porcentaje}%</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

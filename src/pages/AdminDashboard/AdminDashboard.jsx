@@ -10,12 +10,15 @@ import FleetManagement from '../../components/Fleet/FleetManagement';
 import CalendarComponent from '../../components/Calendar/CalendarComponent';
 import MaintenanceComponent from '../../components/Maintenance/MaintenanceComponent';
 import CostosComponent from '../../components/Costos/CostosComponent';
+import GeofenceAlertPopup from '../../components/GeofenceAlert/GeofenceAlertPopup';
+
 import { usePersonnel } from '../../context/PersonnelContext';
 import { useFleet } from '../../context/FleetContext';
 import { useRoutes } from '../../context/RoutesContext';
 import { useRiskReports } from '../../context/RiskReportsContext';
 import { useCleaning } from '../../context/CleaningContext';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import { useGeofenceAlerts } from '../../hooks/useGeofenceAlerts';
 import { DEMO_VEHICLES, DEMO_ROUTES, DEMO_PERSONNEL, DEMO_ALERTS, DEMO_RECENT_ACTIVITY, mergeDemoData } from '../../utils/demoData';
 import {
   LayoutDashboard, Truck, AlertTriangle, Package,
@@ -31,7 +34,6 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSubTab, setActiveSubTab] = useState('');
   const [selectedTruck, setSelectedTruck] = useState(null);
-  const [serviceTypeFilter, setServiceTypeFilter] = useState('todos');
   const [selectedLocationId, setSelectedLocationId] = useState(null);
   const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
   const [isMapMaximized, setIsMapMaximized] = useState(false);
@@ -40,8 +42,10 @@ const AdminDashboard = ({ user, onLogout }) => {
     placa: '',
     marca: '',
     modelo: '',
-    año: new Date().getFullYear(),
-    tipoServicio: 'recoleccion'
+    anio: new Date().getFullYear(),
+    tipo_servicio: 'recoleccion',
+    gps_imei: '',
+    gps_protocolo: 'GT06'
   });
   
   // Hooks de contextos reales
@@ -80,6 +84,14 @@ const AdminDashboard = ({ user, onLogout }) => {
     getReportStats: getAlertsStats
   } = useRiskReports();
 
+  // Hook de alertas de geofence
+  const { 
+    activeAlerts: geofenceAlerts, 
+    dismissAlert: dismissGeofenceAlert, 
+    viewOnMap: viewGeofenceOnMap,
+    hasActiveAlerts: hasGeofenceAlerts 
+  } = useGeofenceAlerts();
+
   const {
     lugares,
     loading: lugaresLoading
@@ -108,9 +120,23 @@ const AdminDashboard = ({ user, onLogout }) => {
   }, [isDemoMode, alerts]);
 
   // Usar datos reales o demo según el modo activo
-  const normalizedCamiones = displayVehicles.map(camion => (
-    camion.tipoServicio ? camion : { ...camion, tipoServicio: 'recoleccion' }
-  ));
+  const normalizedCamiones = displayVehicles.map(camion => {
+    // Normalizar tipoServicio
+    const normalized = camion.tipoServicio ? camion : { ...camion, tipoServicio: 'recoleccion' };
+
+    // Transformar coordenadas GPS de Convex (gps_latitud/gps_longitud) a formato mapa (lat/lng)
+    if (normalized.gps_latitud !== undefined && normalized.gps_longitud !== undefined) {
+      return {
+        ...normalized,
+        lat: normalized.gps_latitud,
+        lng: normalized.gps_longitud,
+        id: normalized._id || normalized.id,
+        placa: normalized.placa || normalized.id,
+      };
+    }
+
+    return normalized;
+  });
   
   // Obtener estadísticas reales
   const personnelStats = getPersonnelStats();
@@ -205,220 +231,7 @@ const AdminDashboard = ({ user, onLogout }) => {
           </div>
         );
       case 'flota':
-        const filteredVehicles = normalizedCamiones.filter(vehicle =>
-          serviceTypeFilter === 'todos' || vehicle.tipoServicio === serviceTypeFilter
-        );
-
-        const handleVehicleInputChange = (e) => {
-          const { name, value } = e.target;
-          setVehicleFormData(prev => ({ ...prev, [name]: value }));
-        };
-
-        const handleAddVehicle = async (e) => {
-          e.preventDefault();
-          try {
-            await addVehicle(vehicleFormData);
-            setShowAddVehicleModal(false);
-            setVehicleFormData({
-              nombre: '',
-              placa: '',
-              marca: '',
-              modelo: '',
-              año: new Date().getFullYear(),
-              tipoServicio: 'recoleccion'
-            });
-          } catch (error) {
-            console.error('Error adding vehicle:', error);
-            alert('Error al agregar vehículo');
-          }
-        };
-
-        return (
-          <div className="operations-content-modern">
-            <div className="ops-header">
-              <div className="ops-header-content">
-                <Truck strokeWidth={1.5} size={26} className="ops-header-icon" />
-                <div className="ops-header-text">
-                  <h2>Gestión de Flota</h2>
-                  <p>Monitorea y administra todos los vehículos</p>
-                </div>
-              </div>
-              <div className="ops-header-actions">
-                <div className="ops-header-stats">
-                  <div className="stat-pill">
-                    <span className="stat-value">{normalizedCamiones.length}</span>
-                    <span className="stat-label">Total</span>
-                  </div>
-                  <div className="stat-pill success">
-                    <span className="stat-value">{normalizedCamiones.filter(v => v.estado === 'En ruta' || v.estado === 'en_ruta').length}</span>
-                    <span className="stat-label">En Ruta</span>
-                  </div>
-                  <div className="stat-pill info">
-                    <span className="stat-value">{normalizedCamiones.filter(v => v.estado === 'Disponible').length}</span>
-                    <span className="stat-label">Disponibles</span>
-                  </div>
-                </div>
-                <button className="btn-add-modern" onClick={() => setShowAddVehicleModal(true)}>
-                  <Plus size={20} />
-                  <span>Agregar Vehículo</span>
-                </button>
-              </div>
-            </div>
-            
-            <div className="ops-filters-modern">
-              <button
-                className={`ops-filter-chip ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
-                onClick={() => setServiceTypeFilter('todos')}
-              >
-                <BarChart3 size={18} />
-                <span>Todos</span>
-              </button>
-              <button
-                className={`ops-filter-chip ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
-                onClick={() => setServiceTypeFilter('recoleccion')}
-              >
-                <Truck size={18} />
-                <span>Recolección</span>
-              </button>
-              <button
-                className={`ops-filter-chip ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
-                onClick={() => setServiceTypeFilter('fumigacion')}
-              >
-                <Truck size={18} />
-                <span>Fumigación</span>
-              </button>
-            </div>
-
-            <div className="ops-content-wrapper">
-              {filteredVehicles.length > 0 ? (
-                <div className="vehicle-grid-modern">
-                  {filteredVehicles.map((vehicle, index) => (
-                    <div key={vehicle.id} style={{ animationDelay: `${index * 50}ms` }}>
-                      <VehicleCard
-                        vehicle={vehicle}
-                        onLocationClick={(vehicle) => handleGoToVehicleLocation(vehicle.id)}
-                        onMaintenanceClick={(vehicle) => {
-                          console.log('Maintenance for vehicle:', vehicle);
-                        }}
-                        onHistoryClick={(vehicle) => {
-                          console.log('History for vehicle:', vehicle);
-                        }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-state-modern">
-                  <div className="empty-icon-modern">
-                    <Truck strokeWidth={1.5} size={64} />
-                  </div>
-                  <h3>No hay vehículos</h3>
-                  <p>No se encontraron vehículos para el filtro seleccionado</p>
-                </div>
-              )}
-            </div>
-
-            {/* Modal Agregar Vehículo */}
-            {showAddVehicleModal && (
-              <div className="modal-overlay" onClick={() => setShowAddVehicleModal(false)}>
-                <div className="modal-content" onClick={e => e.stopPropagation()}>
-                  <div className="modal-header">
-                    <h2>Agregar Vehículo</h2>
-                    <button className="btn-close" onClick={() => setShowAddVehicleModal(false)}>
-                      ✕
-                    </button>
-                  </div>
-
-                  <form onSubmit={handleAddVehicle} className="vehicle-form">
-                    <div className="form-group">
-                      <label>Nombre *</label>
-                      <input
-                        type="text"
-                        name="nombre"
-                        value={vehicleFormData.nombre}
-                        onChange={handleVehicleInputChange}
-                        placeholder="Ej: Camión Recolector 1"
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Placa *</label>
-                      <input
-                        type="text"
-                        name="placa"
-                        value={vehicleFormData.placa}
-                        onChange={handleVehicleInputChange}
-                        placeholder="Ej: ABC-123"
-                        required
-                      />
-                    </div>
-
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Marca</label>
-                        <input
-                          type="text"
-                          name="marca"
-                          value={vehicleFormData.marca}
-                          onChange={handleVehicleInputChange}
-                          placeholder="Ej: Ford"
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label>Modelo</label>
-                        <input
-                          type="text"
-                          name="modelo"
-                          value={vehicleFormData.modelo}
-                          onChange={handleVehicleInputChange}
-                          placeholder="Ej: F-350"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Año</label>
-                        <input
-                          type="number"
-                          name="año"
-                          value={vehicleFormData.año}
-                          onChange={handleVehicleInputChange}
-                          min="1990"
-                          max={new Date().getFullYear() + 1}
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label>Tipo de Servicio *</label>
-                        <select
-                          name="tipoServicio"
-                          value={vehicleFormData.tipoServicio}
-                          onChange={handleVehicleInputChange}
-                          required
-                        >
-                          <option value="recoleccion">🚛 Recolección</option>
-                          <option value="fumigacion">🦟 Fumigación</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="modal-actions">
-                      <button type="button" className="btn-cancel" onClick={() => setShowAddVehicleModal(false)}>
-                        Cancelar
-                      </button>
-                      <button type="submit" className="btn-submit">
-                        Agregar Vehículo
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            )}
-          </div>
-        );
+        return <FleetManagement />;
 
       case 'rutas':
         return (
@@ -468,34 +281,49 @@ const AdminDashboard = ({ user, onLogout }) => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
+        // Generate sparkline data (last 14 data points for trend visualization)
+        const generateSparklineData = (baseValue, variance = 0.15) => {
+          const dataPoints = 14;
+          return Array.from({ length: dataPoints }, (_, i) => {
+            const randomVariance = (Math.random() - 0.5) * variance * baseValue;
+            const trendFactor = (i / dataPoints) * 0.1 * baseValue; // slight upward trend
+            return Math.max(0, Math.round(baseValue + randomVariance + trendFactor));
+          });
+        };
+
+        const vehicleCount = normalizedCamiones.length;
+        const activeCount = normalizedCamiones.filter(c => c.estado === 'En ruta' || c.estado === 'en_ruta').length;
+        const personnelCount = 16;
+        const activeRoutesCount = displayRoutes.filter(r => r.estado === 'activa' || r.status === 'active').length;
+
         const heroStatsData = [
           {
             id: 'vehicles',
-            icon: <Truck strokeWidth={1.5} size={32} />,
-            value: normalizedCamiones.length,
+            icon: <Truck strokeWidth={1.5} size={24} />,
+            value: vehicleCount,
             label: 'Total Vehículos',
-            color: 'linear-gradient(135deg, #30d158 0%, #34c759 100%)'
+            sparklineData: generateSparklineData(vehicleCount, 0.1)
           },
           {
             id: 'active',
-            icon: <TrendingUp strokeWidth={1.5} size={32} />,
-            value: normalizedCamiones.filter(c => c.estado === 'En ruta' || c.estado === 'en_ruta').length,
+            icon: <TrendingUp strokeWidth={1.5} size={24} />,
+            value: activeCount,
             label: 'En Ruta',
-            color: 'linear-gradient(135deg, #ff9500 0%, #ffb800 100%)'
+            sparklineData: generateSparklineData(activeCount, 0.25)
           },
           {
             id: 'personnel',
-            icon: <Briefcase strokeWidth={1.5} size={32} />,
-            value: 16,
+            icon: <Briefcase strokeWidth={1.5} size={24} />,
+            value: personnelCount,
             label: 'Personal',
-            color: 'linear-gradient(135deg, #007aff 0%, #4da3ff 100%)'
+            sparklineData: generateSparklineData(personnelCount, 0.05)
           },
           {
             id: 'routes',
-            icon: <MapPin strokeWidth={1.5} size={32} />,
-            value: displayRoutes.filter(r => r.estado === 'activa' || r.status === 'active').length,
+            icon: <MapPin strokeWidth={1.5} size={24} />,
+            value: activeRoutesCount,
             label: 'Rutas Activas',
-            color: 'linear-gradient(135deg, #00d4ff 0%, #0091ff 100%)'
+            sparklineData: generateSparklineData(activeRoutesCount, 0.2)
           }
         ];
 
@@ -505,38 +333,14 @@ const AdminDashboard = ({ user, onLogout }) => {
             
             <div className="map-section">
               <div className="map-header">
-                <div className="map-header-left">
-                  <h3><Satellite strokeWidth={1.5} size={22} /> Monitoreo GPS en Tiempo Real</h3>
-                </div>
-                <div className="map-header-right">
-                  <div className="service-filters-modern">
-                    <button
-                      className={`filter-chip ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
-                      onClick={() => setServiceTypeFilter('todos')}
-                    >
-                      <BarChart3 strokeWidth={1.5} size={16} /> Todos
-                    </button>
-                    <button
-                      className={`filter-chip ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
-                      onClick={() => setServiceTypeFilter('recoleccion')}
-                    >
-                      <Truck strokeWidth={1.5} size={16} /> Recolección
-                    </button>
-                    <button
-                      className={`filter-chip ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
-                      onClick={() => setServiceTypeFilter('fumigacion')}
-                    >
-                      <Truck strokeWidth={1.5} size={16} /> Fumigación
-                    </button>
-                  </div>
-                  <button
-                    className="maximize-btn"
-                    onClick={() => setIsMapMaximized(true)}
-                    title="Maximizar mapa"
-                  >
-                    <Maximize2 size={18} />
-                  </button>
-                </div>
+                <h3><Satellite strokeWidth={2} size={20} /> Monitoreo GPS</h3>
+                <button
+                  className="maximize-btn"
+                  onClick={() => setIsMapMaximized(true)}
+                  title="Maximizar mapa"
+                >
+                  <Maximize2 size={18} />
+                </button>
               </div>
               <div
                 className="map-container-modern"
@@ -558,11 +362,8 @@ const AdminDashboard = ({ user, onLogout }) => {
                 }}
               >
                 <MapComponent
-                  key={`map-${serviceTypeFilter}`}
-                  camiones={serviceTypeFilter === 'todos'
-                    ? normalizedCamiones
-                    : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter)
-                  }
+                  key="map-main"
+                  camiones={normalizedCamiones}
                   rutas={displayRoutes || []}
                   personnel={displayPersonnel || []}
                   lugares={lugares || []}
@@ -570,7 +371,6 @@ const AdminDashboard = ({ user, onLogout }) => {
                   showRealTime={true}
                   selectedTruck={selectedTruck}
                   onViewLocationReports={handleViewLocationReports}
-                  serviceTypeFilter={serviceTypeFilter}
                 />
               </div>
             </div>
@@ -713,6 +513,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 <DollarSign strokeWidth={1.5} size={18} /> Costos
               </button>
             </li>
+
             <li>
               <button
                 className={activeTab === 'reportes' ? 'active' : ''}
@@ -748,44 +549,19 @@ const AdminDashboard = ({ user, onLogout }) => {
                 <Satellite size={24} />
                 <h2>Monitoreo GPS en Tiempo Real</h2>
               </div>
-              <div className="map-maximized-actions">
-                <div className="service-filters-modern">
-                  <button
-                    className={`filter-chip ${serviceTypeFilter === 'todos' ? 'active' : ''}`}
-                    onClick={() => setServiceTypeFilter('todos')}
-                  >
-                    <BarChart3 strokeWidth={1.5} size={16} /> Todos
-                  </button>
-                  <button
-                    className={`filter-chip ${serviceTypeFilter === 'recoleccion' ? 'active' : ''}`}
-                    onClick={() => setServiceTypeFilter('recoleccion')}
-                  >
-                    <Truck strokeWidth={1.5} size={16} /> Recolección
-                  </button>
-                  <button
-                    className={`filter-chip ${serviceTypeFilter === 'fumigacion' ? 'active' : ''}`}
-                    onClick={() => setServiceTypeFilter('fumigacion')}
-                  >
-                    <Truck strokeWidth={1.5} size={16} /> Fumigación
-                  </button>
-                </div>
-                <button
-                  className="minimize-btn"
-                  onClick={() => setIsMapMaximized(false)}
-                  title="Cerrar"
-                >
-                  <X size={20} />
-                </button>
-              </div>
+              <button
+                className="minimize-btn"
+                onClick={() => setIsMapMaximized(false)}
+                title="Cerrar"
+              >
+                <X size={20} />
+              </button>
             </div>
             <div className="map-maximized-content">
               <div className="map-maximized-map-wrapper">
                 <MapComponent
-                  key={`map-maximized-${serviceTypeFilter}`}
-                  camiones={serviceTypeFilter === 'todos'
-                    ? normalizedCamiones
-                    : normalizedCamiones.filter(c => c.tipoServicio === serviceTypeFilter)
-                  }
+                  key="map-maximized"
+                  camiones={normalizedCamiones}
                   rutas={displayRoutes || []}
                   personnel={displayPersonnel || []}
                   lugares={lugares || []}
@@ -793,7 +569,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                   showRealTime={true}
                   selectedTruck={selectedTruck}
                   onViewLocationReports={handleViewLocationReports}
-                  serviceTypeFilter={serviceTypeFilter}
+                  isMaximized={true}
                 />
               </div>
 
@@ -821,6 +597,15 @@ const AdminDashboard = ({ user, onLogout }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Alertas de Geofence - Pop-ups flotantes */}
+      {hasGeofenceAlerts && (
+        <GeofenceAlertPopup
+          alerts={geofenceAlerts}
+          onDismiss={dismissGeofenceAlert}
+          onViewMap={viewGeofenceOnMap}
+        />
       )}
     </div>
   );

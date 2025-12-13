@@ -1,0 +1,393 @@
+/* ============================================
+   GEOFENCE ALERT POPUP - NOTIFICACIONES TOAST
+   ============================================ */
+
+.geofence-alerts-container {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 380px;
+  pointer-events: none;
+}
+
+.geofence-alert-card {
+  display: flex;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 
+    0 10px 40px rgba(0, 0, 0, 0.15),
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  animation: slideInAlert 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  opacity: 0;
+  transform: translateX(100%);
+  pointer-events: all;
+  position: relative;
+}
+
+@keyframes slideInAlert {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Barra de color lateral */
+.alert-color-bar {
+  width: 5px;
+  flex-shrink: 0;
+}
+
+.bar-enter {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+}
+
+.bar-exit {
+  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+}
+
+/* Contenido */
+.alert-content {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Header */
+.alert-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.alert-icon-wrapper {
+  flex-shrink: 0;
+}
+
+.alert-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.alert-icon--enter {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.alert-icon--exit {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.alert-title-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.alert-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 2px 0;
+  line-height: 1.2;
+}
+
+.alert-enter .alert-title {
+  color: #059669;
+}
+
+.alert-exit .alert-title {
+  color: #d97706;
+}
+
+.alert-zone-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.alert-close-btn {
+  width: 28px;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.05);
+  border: none;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.alert-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #6b7280;
+}
+
+/* Vehicle Info */
+.alert-vehicle-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vehicle-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(61, 82, 41, 0.1);
+  border-radius: 6px;
+  color: #3D5229;
+}
+
+.vehicle-placa {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.vehicle-details {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* Meta info */
+.alert-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.meta-item svg {
+  color: #9ca3af;
+}
+
+/* View Map Button */
+.alert-view-map-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #3D5229 0%, #4a6830 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+}
+
+.alert-view-map-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(61, 82, 41, 0.3);
+}
+
+.alert-view-map-btn:active {
+  transform: translateY(0);
+}
+
+/* Progress Bar */
+.alert-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.alert-progress-fill {
+  height: 100%;
+  width: 100%;
+  background: #3D5229;
+  animation: progressShrink 10s linear forwards;
+}
+
+.alert-enter .alert-progress-fill {
+  background: #10b981;
+}
+
+.alert-exit .alert-progress-fill {
+  background: #f59e0b;
+}
+
+@keyframes progressShrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+/* ============================================
+   LEGACY - Modal de pantalla completa
+   (mantener para compatibilidad)
+   ============================================ */
+
+.geofence-alert-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.geofence-alert-popup {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+  animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.geofence-alert-popup.entering {
+  border-top: 5px solid #10b981;
+}
+
+.geofence-alert-popup.exiting {
+  border-top: 5px solid #f59e0b;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .geofence-alerts-container {
+    top: auto;
+    bottom: 20px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+
+  .geofence-alert-card {
+    animation-name: slideInAlertMobile;
+  }
+
+  @keyframes slideInAlertMobile {
+    from {
+      opacity: 0;
+      transform: translateY(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  .geofence-alert-card {
+    background: #1f2937;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .alert-title {
+    color: #f3f4f6;
+  }
+
+  .alert-enter .alert-title {
+    color: #34d399;
+  }
+
+  .alert-exit .alert-title {
+    color: #fbbf24;
+  }
+
+  .alert-zone-name {
+    color: #e5e7eb;
+  }
+
+  .alert-close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #9ca3af;
+  }
+
+  .alert-close-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #d1d5db;
+  }
+
+  .vehicle-badge {
+    background: rgba(61, 82, 41, 0.2);
+    color: #a3c95a;
+  }
+
+  .vehicle-details,
+  .meta-item {
+    color: #9ca3af;
+  }
+
+  .alert-progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .geofence-alert-popup {
+    background: #1f2937;
+    color: white;
+  }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

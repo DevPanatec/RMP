@@ -31,22 +31,42 @@ export default defineSchema({
 
   // 3. Vehículos (Fleet)
   vehiculos: defineTable({
+    nombre: v.optional(v.string()), // Nombre descriptivo del vehículo
     placa: v.string(),
-    marca: v.string(),
-    modelo: v.string(),
+    marca: v.optional(v.string()),
+    modelo: v.optional(v.string()),
     anio: v.optional(v.number()),
-    tipo: v.string(), // "camion", "camioneta", etc.
+    tipo: v.optional(v.string()), // "camion", "camioneta", etc.
     tipo_servicio: v.string(), // "recoleccion", "fumigacion"
     estado: v.string(), // "disponible", "en_ruta", "en_mantenimiento"
     capacidad_carga: v.optional(v.number()),
     combustible_nivel: v.optional(v.number()),
     kilometraje: v.optional(v.number()),
+    // Campos GPS
     gps_latitud: v.optional(v.number()),
     gps_longitud: v.optional(v.number()),
+    gps_imei: v.optional(v.string()), // IMEI único del dispositivo GPS (15 dígitos)
+    gps_protocolo: v.optional(v.string()), // "GT06", "H02", "TK103", etc.
+    gps_ultima_actualizacion: v.optional(v.number()), // Timestamp última posición recibida (number para consistencia)
+    safetag_timestamp: v.optional(v.number()), // Timestamp original de SafeTag (para referencia)
+    gps_conectado: v.optional(v.boolean()), // Estado de conexión GPS (true si reportó en últimos 5 min)
+    gps_velocidad: v.optional(v.number()), // Velocidad actual en km/h
+    gps_rumbo: v.optional(v.number()), // Dirección del movimiento en grados (0-359)
+    gps_altitud: v.optional(v.number()), // Altitud en metros sobre nivel del mar
+    gps_precision: v.optional(v.number()), // Precisión GPS (HDOP - Horizontal Dilution of Precision)
+    gps_satelites: v.optional(v.number()), // Número de satélites GPS en uso
+    // SafeTag Integration
+    safetag_device_id: v.optional(v.string()), // IMEI/Serial del GPS SafeTag
+    safetag_device_name: v.optional(v.string()), // Nombre amigable del dispositivo SafeTag
+    gps_bateria: v.optional(v.number()), // % batería del GPS
+    gps_senal: v.optional(v.number()), // Señal GSM
+    gps_en_linea: v.optional(v.boolean()), // Online status
     proyecto_asignado_id: v.optional(v.id("proyectos")),
   })
     .index("by_estado", ["estado"])
-    .index("by_placa", ["placa"]),
+    .index("by_placa", ["placa"])
+    .index("by_gps_imei", ["gps_imei"]) // Índice para búsqueda rápida por IMEI
+    .index("by_safetag_device", ["safetag_device_id"]), // Índice para búsqueda por SafeTag Device ID
 
   // 4. Rutas
   rutas: defineTable({
@@ -317,4 +337,66 @@ export default defineSchema({
     mime_type: v.optional(v.string()),
   })
     .index("by_assignment", ["assignment_id"]),
+
+  // 19. Geofences (Zonas de monitoreo)
+  geofences: defineTable({
+    nombre: v.string(),
+    descripcion: v.optional(v.string()),
+    latitud: v.number(), // Centro de la zona
+    longitud: v.number(),
+    radio: v.number(), // Radio en metros
+    color: v.optional(v.string()), // Color para visualización
+    tipo: v.optional(v.string()), // "entrada", "salida", "ambos"
+    activo: v.boolean(),
+    created_at: v.number(),
+  })
+    .index("by_activo", ["activo"]),
+
+  // 20. Alertas de Geofence
+  geofence_alerts: defineTable({
+    geofence_id: v.optional(v.id("geofences")),
+    vehiculo_id: v.id("vehiculos"),
+    device_id: v.optional(v.string()),
+    tipo_evento: v.string(), // "entrada", "salida"
+    timestamp: v.number(),
+    category: v.optional(v.string()), // Para compatibilidad con SafeTag
+    alert_title: v.optional(v.string()),
+    alert_body: v.optional(v.string()),
+    location: v.optional(v.string()),
+    speed: v.optional(v.number()),
+    viewed: v.boolean(),
+  })
+    .index("by_timestamp", ["timestamp"])
+    .index("by_vehiculo", ["vehiculo_id"])
+    .index("by_geofence", ["geofence_id"])
+    .index("by_viewed", ["viewed"]),
+
+  // 21. Estado de vehículos en geofences (para detectar entrada/salida)
+  vehicle_geofence_state: defineTable({
+    vehiculo_id: v.id("vehiculos"),
+    geofence_id: v.id("geofences"),
+    inside: v.boolean(), // true = dentro, false = fuera
+    last_check: v.number(), // timestamp
+  })
+    .index("by_vehiculo", ["vehiculo_id"])
+    .index("by_geofence", ["geofence_id"])
+    .index("by_vehiculo_geofence", ["vehiculo_id", "geofence_id"]),
+
+  // 22. Historial de Ubicaciones GPS
+  vehicleHistory: defineTable({
+    vehiculo_id: v.id("vehiculos"),
+    timestamp: v.number(), // Unix timestamp (milisegundos) - cuando NOSOTROS recibimos el dato
+    gps_latitud: v.number(),
+    gps_longitud: v.number(),
+    gps_velocidad: v.optional(v.number()), // km/h
+    gps_rumbo: v.optional(v.number()), // Dirección 0-359 grados
+    gps_altitud: v.optional(v.number()), // Metros sobre nivel del mar
+    gps_precision: v.optional(v.number()), // HDOP
+    gps_satelites: v.optional(v.number()), // Número de satélites
+    source: v.optional(v.string()), // "safetag", "obd", "manual"
+    safetag_timestamp: v.optional(v.number()), // Timestamp original de SafeTag (para debugging/comparación)
+  })
+    .index("by_vehiculo", ["vehiculo_id"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_vehiculo_timestamp", ["vehiculo_id", "timestamp"]),
 });

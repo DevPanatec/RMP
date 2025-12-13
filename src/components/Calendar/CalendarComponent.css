@@ -248,6 +248,48 @@
   color: #6e6e73;
 }
 
+/* Color coding por tipo de actividad */
+.activity-card.type-recoleccion {
+  border-left: 4px solid #3D5229;
+  background: linear-gradient(to right, #f0f7f0 0%, #ffffff 8px);
+}
+
+.activity-card.type-fumigacion {
+  border-left: 4px solid #8B5CF6;
+  background: linear-gradient(to right, #f5f3ff 0%, #ffffff 8px);
+}
+
+.activity-card.type-limpieza {
+  border-left: 4px solid #3B82F6;
+  background: linear-gradient(to right, #eff6ff 0%, #ffffff 8px);
+}
+
+.activity-card.type-mantenimiento {
+  border-left: 4px solid #F59E0B;
+  background: linear-gradient(to right, #fffbeb 0%, #ffffff 8px);
+}
+
+/* Badges de tipo con colores */
+.activity-type-badge.type-recoleccion {
+  background: #e8f5e8;
+  color: #3D5229;
+}
+
+.activity-type-badge.type-fumigacion {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.activity-type-badge.type-limpieza {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.activity-type-badge.type-mantenimiento {
+  background: #fffbeb;
+  color: #d97706;
+}
+
 .status-badge {
   padding: 4px 10px;
   border-radius: 8px;

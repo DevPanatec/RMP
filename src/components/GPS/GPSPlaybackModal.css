@@ -1,0 +1,975 @@
+/* ============================================
+   GPS PLAYBACK MODAL - FULLSCREEN PROFESSIONAL
+   ============================================ */
+
+/* Overlay - FULLSCREEN sobre todo (usando inset para mayor compatibilidad) */
+.gps-playback-modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.95) !important;
+  z-index: 2147483647 !important; /* Máximo z-index posible */
+  isolation: isolate; /* Crear nuevo stacking context */
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Modal Container - FULLSCREEN */
+.gps-playback-modal {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: #0f0f0f !important;
+  z-index: 2147483647 !important;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+
+.gps-playback-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: linear-gradient(180deg, rgba(20, 20, 20, 0.95) 0%, rgba(15, 15, 15, 0.9) 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2147483645; /* Asegurar que todo el header esté sobre el mapa */
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.vehicle-badge {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #3D5229 0%, #6B8E23 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 12px rgba(61, 82, 41, 0.4);
+}
+
+.header-info h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.header-subtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 1px;
+  display: block;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.header-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.header-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.header-btn.close-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.date-btn span {
+  font-family: var(--font-family-mono, monospace);
+}
+
+/* Date Selector */
+.date-selector-wrapper {
+  position: relative;
+  z-index: 2147483646; /* Justo debajo del date picker */
+  isolation: isolate; /* Crear nuevo stacking context */
+}
+
+/* ============================================
+   GPS DATE PICKER - PROFESIONAL Y COMPACTO
+   ============================================ */
+
+.gps-date-picker {
+  position: absolute;
+  top: calc(100% + 8px); /* Se abre hacia ABAJO */
+  right: 0;
+  background: rgba(18, 18, 22, 0.98);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(107, 142, 35, 0.5);
+  border-radius: 12px;
+  padding: 14px;
+  width: 240px;
+  box-shadow: 
+    0 20px 50px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+  z-index: 2147483647 !important; /* MÁXIMO z-index */
+  animation: slideDownFromTop 0.2s ease-out;
+  /* Forzar que esté por encima de TODO */
+  isolation: isolate;
+  pointer-events: auto;
+}
+
+@keyframes slideDownFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gps-date-quick-btns {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.gps-quick-btn {
+  flex: 1;
+  padding: 10px 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.gps-quick-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(107, 142, 35, 0.5);
+  transform: translateY(-1px);
+}
+
+.gps-quick-btn.active {
+  background: rgba(107, 142, 35, 0.3);
+  border-color: #6B8E23;
+  color: #8BC34A;
+  box-shadow: 0 0 12px rgba(107, 142, 35, 0.25);
+}
+
+.gps-date-divider {
+  display: flex;
+  align-items: center;
+  margin: 12px 0;
+  gap: 10px;
+}
+
+.gps-date-divider::before,
+.gps-date-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.gps-date-divider span {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.gps-date-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.gps-date-input:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.gps-date-input:focus {
+  outline: none;
+  border-color: #6B8E23;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 2px rgba(107, 142, 35, 0.15);
+}
+
+.gps-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+  opacity: 0.6;
+  padding: 2px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.gps-date-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  background: rgba(107, 142, 35, 0.2);
+}
+
+/* ============================================
+   MAIN CONTENT - MAP
+   ============================================ */
+
+.gps-playback-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #0a0a0a;
+  z-index: 1; /* Contenido del mapa debe estar DEBAJO del header */
+}
+
+.playback-map-fullscreen {
+  width: 100%;
+  height: 100%;
+  background: #0a0a0a;
+  position: relative;
+  z-index: 1; /* Mapa debe estar DEBAJO del header y controles */
+}
+
+/* Loading State */
+.playback-loading-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.loading-spinner-large {
+  width: 56px;
+  height: 56px;
+  border: 3px solid rgba(61, 82, 41, 0.2);
+  border-top-color: #6B8E23;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.playback-loading-state p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* Error State */
+.playback-error-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.error-icon {
+  font-size: 48px;
+}
+
+.playback-error-state p {
+  color: #ef4444;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.retry-btn {
+  padding: 12px 24px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 10px;
+  color: #ef4444;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-btn:hover {
+  background: rgba(239, 68, 68, 0.25);
+  transform: translateY(-2px);
+}
+
+/* Empty State */
+.playback-empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.9);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.playback-empty-state svg {
+  opacity: 0.3;
+}
+
+.playback-empty-state h3 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.playback-empty-state p {
+  margin: 0;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.select-date-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #3D5229 0%, #6B8E23 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+  box-shadow: 0 4px 16px rgba(61, 82, 41, 0.3);
+}
+
+.select-date-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(61, 82, 41, 0.4);
+}
+
+/* Vehicle Marker - Estilo ultra profesional */
+.playback-vehicle-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.playback-marker-container {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+/* Pulso animado - más suave y profesional */
+.playback-marker-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  background: radial-gradient(circle, rgba(76, 175, 80, 0.4) 0%, rgba(76, 175, 80, 0) 70%);
+  border-radius: 50%;
+  animation: markerPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes markerPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
+.playback-marker-icon {
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+  animation: iconFloat 3s ease-in-out infinite;
+}
+
+/* Animación de flotación sutil */
+@keyframes iconFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+.playback-marker-icon svg {
+  width: 48px;
+  height: 48px;
+  display: block;
+}
+
+/* Efecto hover en el marcador */
+.playback-vehicle-marker:hover .playback-marker-icon {
+  filter: drop-shadow(0 6px 16px rgba(76, 175, 80, 0.5));
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
+/* Vehicle Popup */
+.vehicle-popup-content {
+  padding: 4px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.vehicle-popup-content strong {
+  font-size: 15px;
+  color: #3D5229;
+}
+
+/* ============================================
+   PLAYBACK CONTROLS - FOOTER
+   ============================================ */
+
+.gps-playback-controls {
+  background: linear-gradient(180deg, rgba(18, 18, 18, 0.95) 0%, rgba(10, 10, 10, 1) 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.gps-playback-controls.expanded {
+  padding: 12px 20px 14px;
+}
+
+.gps-playback-controls.collapsed {
+  padding: 8px 20px;
+}
+
+/* Toggle Button */
+.controls-toggle {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 20px;
+  background: rgba(40, 40, 40, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px 10px 0 0;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.controls-toggle:hover {
+  background: rgba(60, 60, 60, 0.95);
+  color: #ffffff;
+}
+
+/* Current Point Info */
+.current-point-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.info-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-family-mono, monospace);
+}
+
+.info-chip svg {
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
+}
+
+.info-chip.speed-chip {
+  background: rgba(var(--speed-color), 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.info-chip.coords-chip {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}
+
+/* Timeline Section */
+.timeline-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.timeline-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: var(--font-family-mono, monospace);
+  min-width: 70px;
+  text-align: center;
+}
+
+.timeline-slider-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.timeline-slider-input {
+  width: 100%;
+  height: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.timeline-slider-input::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: var(--progress, 0%);
+  background: linear-gradient(90deg, #3D5229 0%, #6B8E23 100%);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.timeline-slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #6B8E23 0%, #3D5229 100%);
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(61, 82, 41, 0.5);
+  transition: all 0.15s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.timeline-slider-input::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 20px rgba(61, 82, 41, 0.6);
+}
+
+.timeline-slider-input::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #6B8E23 0%, #3D5229 100%);
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(61, 82, 41, 0.5);
+}
+
+.timeline-slider-input::-moz-range-progress {
+  background: linear-gradient(90deg, #3D5229 0%, #6B8E23 100%);
+  border-radius: 4px;
+  height: 8px;
+}
+
+/* Main Controls */
+.main-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.controls-left,
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 180px;
+}
+
+.controls-right {
+  justify-content: flex-end;
+}
+
+.controls-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Control Buttons */
+.control-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.control-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: scale(1.08);
+}
+
+.control-button:active {
+  transform: scale(0.95);
+}
+
+.control-button.play-button {
+  width: 52px;
+  height: 52px;
+  background: linear-gradient(135deg, #3D5229 0%, #6B8E23 100%);
+  border: none;
+  box-shadow: 0 4px 16px rgba(61, 82, 41, 0.4);
+}
+
+.control-button.play-button:hover {
+  background: linear-gradient(135deg, #4a6330 0%, #7da328 100%);
+  box-shadow: 0 6px 24px rgba(61, 82, 41, 0.5);
+  transform: scale(1.1);
+}
+
+.control-button.speed-button {
+  width: auto;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 18px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-family-mono, monospace);
+}
+
+/* Quick Stats */
+.quick-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.quick-stat .stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+  font-family: var(--font-family-mono, monospace);
+}
+
+.quick-stat .stat-unit {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* Tablets */
+@media (max-width: 1024px) {
+  .gps-playback-header {
+    padding: 14px 20px;
+  }
+
+  .header-info h2 {
+    font-size: 18px;
+  }
+
+  .controls-left,
+  .controls-right {
+    min-width: 140px;
+  }
+
+  .quick-stat .stat-value {
+    font-size: 18px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .gps-playback-header {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .header-left {
+    flex: 1;
+  }
+
+  .vehicle-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  .header-info h2 {
+    font-size: 16px;
+  }
+
+  .header-subtitle {
+    font-size: 12px;
+  }
+
+  .header-btn {
+    padding: 8px 12px;
+  }
+
+  .header-btn.date-btn span {
+    display: none;
+  }
+
+  .gps-playback-controls.expanded {
+    padding: 14px 16px 18px;
+  }
+
+  .current-point-info {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .info-chip {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .info-chip.coords-chip {
+    display: none;
+  }
+
+  .timeline-section {
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .timeline-text {
+    font-size: 11px;
+    min-width: 55px;
+  }
+
+  .main-controls {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .controls-left,
+  .controls-right {
+    display: none;
+  }
+
+  .controls-center {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .control-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .control-button.play-button {
+    width: 56px;
+    height: 56px;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+  .gps-playback-header {
+    padding: 10px 12px;
+  }
+
+  .header-right {
+    gap: 6px;
+  }
+
+  .header-btn {
+    padding: 8px 10px;
+  }
+
+  .gps-playback-controls.expanded {
+    padding: 12px 12px 16px;
+  }
+
+  .current-point-info {
+    padding: 10px;
+  }
+
+  .info-chip {
+    padding: 5px 8px;
+    font-size: 11px;
+    gap: 6px;
+  }
+
+  .control-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .control-button.play-button {
+    width: 52px;
+    height: 52px;
+  }
+
+  .control-button.speed-button {
+    padding: 0 14px;
+    font-size: 13px;
+  }
+}
+
+/* ============================================
+   LEAFLET CUSTOMIZATIONS
+   ============================================ */
+
+.playback-map-fullscreen .leaflet-control-zoom {
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+.playback-map-fullscreen .leaflet-control-zoom a {
+  background: rgba(20, 20, 20, 0.9) !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  width: 36px !important;
+  height: 36px !important;
+  line-height: 36px !important;
+}
+
+.playback-map-fullscreen .leaflet-control-zoom a:hover {
+  background: rgba(40, 40, 40, 0.95) !important;
+  color: #ffffff !important;
+}
+
+.playback-map-fullscreen .leaflet-control-zoom a:last-child {
+  border-bottom: none !important;
+}
+
+.playback-map-fullscreen .leaflet-control-attribution {
+  background: rgba(0, 0, 0, 0.7) !important;
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-size: 10px !important;
+  padding: 4px 8px !important;
+  border-radius: 4px 0 0 0 !important;
+}
+
+.playback-map-fullscreen .leaflet-popup-content-wrapper {
+  background: rgba(20, 20, 20, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+.playback-map-fullscreen .leaflet-popup-content {
+  color: #ffffff !important;
+  margin: 12px 14px !important;
+}
+
+.playback-map-fullscreen .leaflet-popup-tip {
+  background: rgba(20, 20, 20, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}

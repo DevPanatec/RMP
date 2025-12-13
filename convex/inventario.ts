@@ -464,3 +464,244 @@ export const getMovimientosPorPeriodo = query({
     return movimientosConDatos.sort((a, b) => b.fecha - a.fecha);
   },
 });
+
+// Obtener movimientos de un item específico (para historial en modal)
+export const getMovimientosByItem = query({
+  args: { itemId: v.id("inventario") },
+  handler: async (ctx, args) => {
+    const movimientos = await ctx.db
+      .query("inventario_movimientos")
+      .withIndex("by_item", (q) => q.eq("item_id", args.itemId))
+      .collect();
+
+    // Enriquecer con datos relacionados
+    const movimientosConDatos = await Promise.all(
+      movimientos.map(async (mov) => {
+        const item = await ctx.db.get(mov.item_id);
+        const usuario = mov.usuario_id ? await ctx.db.get(mov.usuario_id) : null;
+        const lugar_origen = mov.lugar_origen_id ? await ctx.db.get(mov.lugar_origen_id) : null;
+        const lugar_destino = mov.lugar_destino_id ? await ctx.db.get(mov.lugar_destino_id) : null;
+
+        return {
+          ...mov,
+          item_nombre: item?.nombre || "Desconocido",
+          item_codigo: item?.codigo,
+          usuario_nombre: usuario?.nombre_completo || "Sistema",
+          lugar_origen_nombre: lugar_origen?.nombre,
+          lugar_destino_nombre: lugar_destino?.nombre,
+        };
+      })
+    );
+
+    // Ordenar por fecha descendente
+    return movimientosConDatos.sort((a, b) => b.fecha - a.fecha);
+  },
+});
+
+// Registrar nueva compra (añadir stock a un item existente)
+export const registrarCompra = mutation({
+  args: {
+    item_id: v.id("inventario"),
+    cantidad: v.number(),
+    precio_unitario: v.number(),
+    proveedor: v.optional(v.string()),
+    notas: v.optional(v.string()),
+    usuario_id: v.optional(v.id("perfiles_usuarios")),
+  },
+  handler: async (ctx, args) => {
+    const item = await ctx.db.get(args.item_id);
+    if (!item) {
+      throw new Error("Item no encontrado");
+    }
+
+    // Actualizar precio unitario del item si es diferente
+    if (args.precio_unitario !== item.precio_unitario) {
+      await ctx.db.patch(args.item_id, {
+        precio_unitario: args.precio_unitario,
+      });
+    }
+
+    // Actualizar proveedor si se proporciona
+    if (args.proveedor && args.proveedor !== item.proveedor) {
+      await ctx.db.patch(args.item_id, {
+        proveedor: args.proveedor,
+      });
+    }
+
+    // Incrementar cantidad disponible
+    const nuevaCantidad = (item.cantidad_disponible || 0) + args.cantidad;
+    await ctx.db.patch(args.item_id, {
+      cantidad_disponible: nuevaCantidad,
+    });
+
+    // Registrar movimiento de compra
+    await ctx.db.insert("inventario_movimientos", {
+      item_id: args.item_id,
+      tipo_movimiento: "compra",
+      cantidad: args.cantidad,
+      precio_unitario: args.precio_unitario,
+      costo_total: args.cantidad * args.precio_unitario,
+      usuario_id: args.usuario_id,
+      fecha: Date.now(),
+      notas: args.notas || `Compra: ${item.nombre}`,
+    });
+
+    return { success: true };
+  },
+});
+
+// Obtener costos agrupados por tipo de artículo
+export const getCostosPorTipo = query({
+  handler: async (ctx) => {
+    const items = await ctx.db.query("inventario").collect();
+
+    const costosPorTipo: Record<string, { valor: number; cantidad_items: number; cantidad_unidades: number }> = {
+      herramienta: { valor: 0, cantidad_items: 0, cantidad_unidades: 0 },
+      insumo: { valor: 0, cantidad_items: 0, cantidad_unidades: 0 },
+      equipo: { valor: 0, cantidad_items: 0, cantidad_unidades: 0 },
+      uniforme: { valor: 0, cantidad_items: 0, cantidad_unidades: 0 },
+    };
+
+    for (const item of items) {
+      if (!item.precio_unitario) continue;
+
+      const tipo = item.tipo_articulo || "insumo";
+
+      // Calcular cantidad total (igual que en getValorTotalInventario)
+      let cantidad = 0;
+      if (item.cantidad_disponible !== undefined) {
+        cantidad = item.cantidad_disponible;
+      } else {
+        const movimientos = await ctx.db
+          .query("inventario_movimientos")
+          .withIndex("by_item", (q) => q.eq("item_id", item._id))
+          .collect();
+        cantidad = movimientos
+          .filter((m) => m.tipo_movimiento === "compra")
+          .reduce((sum, m) => sum + m.cantidad, 0);
+      }
+
+      const valor = cantidad * item.precio_unitario;
+
+      if (costosPorTipo[tipo]) {
+        costosPorTipo[tipo].valor += valor;
+        costosPorTipo[tipo].cantidad_items += 1;
+        costosPorTipo[tipo].cantidad_unidades += cantidad;
+      }
+    }
+
+    // Calcular total y porcentajes
+    const valorTotal = Object.values(costosPorTipo).reduce((sum, t) => sum + t.valor, 0);
+
+    return Object.entries(costosPorTipo).map(([tipo, datos]) => ({
+      tipo,
+      valor: Math.round(datos.valor * 100) / 100,
+      porcentaje: valorTotal > 0 ? ((datos.valor / valorTotal) * 100).toFixed(1) : "0.0",
+      cantidad_items: datos.cantidad_items,
+      cantidad_unidades: datos.cantidad_unidades,
+    }));
+  },
+});
+
+// Obtener historial de compras agrupado por mes (para gráficas)
+export const getHistorialComprasPorMes = query({
+  args: {
+    meses: v.optional(v.number()), // Cantidad de meses hacia atrás (default: 12)
+  },
+  handler: async (ctx, args) => {
+    const mesesAtras = args.meses || 12;
+    const ahora = Date.now();
+    const fechaInicio = ahora - mesesAtras * 30 * 24 * 60 * 60 * 1000; // Aproximado
+
+    const movimientos = await ctx.db
+      .query("inventario_movimientos")
+      .withIndex("by_tipo", (q) => q.eq("tipo_movimiento", "compra"))
+      .collect();
+
+    // Filtrar por fecha
+    const movimientosFiltrados = movimientos.filter((m) => m.fecha >= fechaInicio);
+
+    // Agrupar por mes
+    const comprasPorMes: Record<string, number> = {};
+
+    movimientosFiltrados.forEach((mov) => {
+      const fecha = new Date(mov.fecha);
+      const mesKey = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, "0")}`;
+
+      if (!comprasPorMes[mesKey]) {
+        comprasPorMes[mesKey] = 0;
+      }
+      comprasPorMes[mesKey] += mov.costo_total || 0;
+    });
+
+    // Convertir a array y ordenar
+    const resultado = Object.entries(comprasPorMes)
+      .map(([mes, total]) => ({
+        mes,
+        total: Math.round(total * 100) / 100,
+      }))
+      .sort((a, b) => a.mes.localeCompare(b.mes));
+
+    return resultado;
+  },
+});
+
+// Obtener top items más costosos
+export const getTopItemsMasCostosos = query({
+  args: {
+    limit: v.optional(v.number()), // Cantidad de items a retornar (default: 10)
+  },
+  handler: async (ctx, args) => {
+    const limite = args.limit || 10;
+    const items = await ctx.db.query("inventario").collect();
+
+    const itemsConValor = await Promise.all(
+      items.map(async (item) => {
+        if (!item.precio_unitario) return null;
+
+        // Calcular cantidad total
+        let cantidad = 0;
+        if (item.cantidad_disponible !== undefined) {
+          cantidad = item.cantidad_disponible;
+        } else {
+          const movimientos = await ctx.db
+            .query("inventario_movimientos")
+            .withIndex("by_item", (q) => q.eq("item_id", item._id))
+            .collect();
+          cantidad = movimientos
+            .filter((m) => m.tipo_movimiento === "compra")
+            .reduce((sum, m) => sum + m.cantidad, 0);
+        }
+
+        const valorTotal = cantidad * item.precio_unitario;
+
+        return {
+          _id: item._id,
+          codigo: item.codigo,
+          nombre: item.nombre,
+          tipo_articulo: item.tipo_articulo,
+          cantidad,
+          precio_unitario: item.precio_unitario,
+          valor_total: Math.round(valorTotal * 100) / 100,
+          unidad_medida: item.unidad_medida,
+        };
+      })
+    );
+
+    // Filtrar nulls y ordenar por valor descendente
+    const itemsValidos = itemsConValor.filter((item) => item !== null) as Array<{
+      _id: any;
+      codigo: string | undefined;
+      nombre: string;
+      tipo_articulo: string;
+      cantidad: number;
+      precio_unitario: number;
+      valor_total: number;
+      unidad_medida: string | undefined;
+    }>;
+
+    itemsValidos.sort((a, b) => b.valor_total - a.valor_total);
+
+    return itemsValidos.slice(0, limite);
+  },
+});

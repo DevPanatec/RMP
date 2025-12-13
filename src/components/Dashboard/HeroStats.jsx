@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Sparklines, SparklinesLine } from 'react-sparklines';
 import './HeroStats.css';
 
 const HeroStats = ({ stats = [] }) => {
@@ -60,28 +61,40 @@ const StatCard = ({ stat, delay }) => {
   }, [isVisible, stat.value]);
 
   return (
-    <div 
+    <div
       ref={cardRef}
       className="hero-stat-card"
-      style={{ animationDelay: `${delay}ms` }}
     >
-      <div className="stat-icon-wrapper">
-        <div className="stat-icon" style={{ background: stat.color }}>
-          {stat.icon}
+      <div className="stat-header">
+        <div className="stat-icon-wrapper">
+          <div className="stat-icon">
+            {stat.icon}
+          </div>
         </div>
+        <div className="stat-label">{stat.label}</div>
       </div>
       <div className="stat-content">
         <div className="stat-value">
           {count}
           {stat.suffix || ''}
         </div>
-        <div className="stat-label">{stat.label}</div>
         {stat.trend && (
           <div className={`stat-trend ${stat.trend.direction}`}>
             {stat.trend.icon} {stat.trend.value}
           </div>
         )}
       </div>
+
+      {stat.sparklineData && stat.sparklineData.length > 0 && (
+        <div className="stat-sparkline">
+          <Sparklines data={stat.sparklineData} width={120} height={32}>
+            <SparklinesLine
+              color="var(--color-text-secondary)"
+              style={{ fill: "none", strokeWidth: 2 }}
+            />
+          </Sparklines>
+        </div>
+      )}
     </div>
   );
 };

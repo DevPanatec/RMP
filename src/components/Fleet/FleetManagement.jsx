@@ -1,18 +1,36 @@
 import { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
-import { Truck, Plus, History, X } from '../Icons';
+import { Truck, Plus, History, X, Play, Satellite } from '../Icons';
+import RoutePlayback from '../SafeTag/RoutePlayback';
 import './FleetManagement.css';
 
 const FleetManagement = () => {
-  const { vehicles, addVehicle, getVehicleHistory } = useFleet();
+  const { vehicles, addVehicle } = useFleet();
+
+  // Debug: Ver datos de vehículos
+  console.log("🚗 FleetManagement - Vehicles loaded:", vehicles);
+  const safetagVehicles = vehicles.filter(v => v.safetag_device_id);
+  console.log("🚗 SafeTag vehicles:", safetagVehicles);
+
+  if (safetagVehicles.length > 0) {
+    safetagVehicles.forEach(v => {
+      console.log("📍 SafeTag Vehicle Details:", {
+        placa: v.placa,
+        nombre: v.nombre,
+        safetag_device_id: v.safetag_device_id,
+        safetag_device_name: v.safetag_device_name,
+        gps_en_linea: v.gps_en_linea,
+        estado: v.estado
+      });
+    });
+  }
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [vehicleHistory, setVehicleHistory] = useState([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
   const [filterType, setFilterType] = useState('all'); // 'all', 'recoleccion', 'fumigacion', 'limpieza'
   const [filterVehicleType, setFilterVehicleType] = useState('all'); // 'all', 'bus', 'barredora', 'pickup', 'cisterna', 'camion_carga', 'fumigadora'
+
+  // Estado para reproducción GPS
+  const [playbackVehicle, setPlaybackVehicle] = useState(null);
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -21,7 +39,9 @@ const FleetManagement = () => {
     modelo: '',
     año: new Date().getFullYear(),
     tipoServicio: 'limpieza',
-    tipoVehiculo: 'bus'
+    tipoVehiculo: 'bus',
+    safetagDeviceId: '',
+    safetagDeviceName: ''
   });
 
   // Filtrar vehículos por tipo de servicio y tipo de vehículo
@@ -79,7 +99,9 @@ const FleetManagement = () => {
         modelo: '',
         año: new Date().getFullYear(),
         tipoServicio: 'limpieza',
-        tipoVehiculo: 'bus'
+        tipoVehiculo: 'bus',
+        safetagDeviceId: '',
+        safetagDeviceName: ''
       });
     } catch (error) {
       console.error('Error adding vehicle:', error);
@@ -87,27 +109,6 @@ const FleetManagement = () => {
     }
   };
 
-  const handleShowHistory = async (vehicle) => {
-    setSelectedVehicle(vehicle);
-    setShowHistoryModal(true);
-    setLoadingHistory(true);
-    
-    try {
-      const history = await getVehicleHistory(vehicle.id);
-      setVehicleHistory(history);
-    } catch (error) {
-      console.error('Error loading history:', error);
-      alert('Error al cargar historial');
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
-
-  const closeHistoryModal = () => {
-    setShowHistoryModal(false);
-    setSelectedVehicle(null);
-    setVehicleHistory([]);
-  };
 
   return (
     <div className="fleet-management">
@@ -239,7 +240,7 @@ const FleetManagement = () => {
 
       <div className="vehicles-grid">
         {filteredVehicles.map(vehicle => (
-          <div key={vehicle.id} className="vehicle-card">
+          <div key={vehicle._id || vehicle.id} className="vehicle-card">
             <div className="vehicle-icon">
               <Truck size={32} />
             </div>
@@ -270,13 +271,40 @@ const FleetManagement = () => {
                 </span>
               </div>
             </div>
-            <button 
-              className="btn-history"
-              onClick={() => handleShowHistory(vehicle)}
-              title="Ver historial"
-            >
-              <History size={20} />
-            </button>
+            <div className="vehicle-actions">
+              {/* Debug: Mostrar si tiene SafeTag */}
+              {console.log(`🔍 Vehicle ${vehicle.placa} - safetag_device_id:`, vehicle.safetag_device_id)}
+              {vehicle.safetag_device_id ? (
+                <>
+                  {console.log(`✅ Rendering GPS button for ${vehicle.placa}`)}
+                  <button
+                    className="btn-gps-playback"
+                    onClick={() => {
+                      console.log("🎯 GPS Playback button clicked!", vehicle.placa);
+                      setPlaybackVehicle({
+                        deviceId: vehicle.safetag_device_id,
+                        deviceName: vehicle.safetag_device_name,
+                        placa: vehicle.placa,
+                        marca: vehicle.marca,
+                        modelo: vehicle.modelo,
+                      });
+                    }}
+                    title="Ver reproducción de ruta GPS"
+                  >
+                    <Play size={20} />
+                    <span>Ver Historial GPS</span>
+                  </button>
+                  <div className="gps-indicator" title="GPS SafeTag configurado">
+                    <Satellite size={16} />
+                    {vehicle.gps_en_linea && <span className="gps-online-dot"></span>}
+                  </div>
+                </>
+              ) : (
+                <div className="no-gps-message">
+                  <small>Sin GPS configurado</small>
+                </div>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -403,6 +431,44 @@ const FleetManagement = () => {
                 </select>
               </div>
 
+              {/* Configuración GPS SafeTag */}
+              <div className="form-section-divider">
+                <Satellite size={16} />
+                <span>Configuración GPS SafeTag (Opcional)</span>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>IMEI del GPS SafeTag</label>
+                  <input
+                    type="text"
+                    name="safetagDeviceId"
+                    value={formData.safetagDeviceId || ''}
+                    onChange={handleInputChange}
+                    placeholder="Ej: 357956371545858"
+                    pattern="[0-9]{15}"
+                    title="IMEI debe tener 15 dígitos"
+                  />
+                  <small className="form-hint">
+                    IMEI de 15 dígitos del GPS SafeTag (se encuentra en la app SafeTag)
+                  </small>
+                </div>
+
+                <div className="form-group">
+                  <label>Nombre del GPS (Opcional)</label>
+                  <input
+                    type="text"
+                    name="safetagDeviceName"
+                    value={formData.safetagDeviceName || ''}
+                    onChange={handleInputChange}
+                    placeholder="Ej: GPS Principal"
+                  />
+                  <small className="form-hint">
+                    Nombre descriptivo para identificar el GPS
+                  </small>
+                </div>
+              </div>
+
               <div className="modal-actions">
                 <button type="button" className="btn-cancel" onClick={() => setShowAddModal(false)}>
                   Cancelar
@@ -416,50 +482,14 @@ const FleetManagement = () => {
         </div>
       )}
 
-      {showHistoryModal && (
-        <div className="modal-overlay" onClick={closeHistoryModal}>
-          <div className="modal-content modal-history" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Historial - {selectedVehicle?.nombre || selectedVehicle?.placa}</h2>
-              <button className="btn-close" onClick={closeHistoryModal}>
-                <X size={24} />
-              </button>
-            </div>
-            
-            <div className="history-content">
-              {loadingHistory ? (
-                <p className="loading-text">Cargando historial...</p>
-              ) : vehicleHistory.length === 0 ? (
-                <p className="empty-text">No hay registros en el historial</p>
-              ) : (
-                <table className="history-table">
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Conductor</th>
-                      <th>Ruta</th>
-                      <th>Horario</th>
-                      <th>Kilometraje</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {vehicleHistory.map((entry, index) => (
-                      <tr key={index}>
-                        <td>{new Date(entry.fecha).toLocaleDateString()}</td>
-                        <td>{entry.conductor_nombre || 'N/A'}</td>
-                        <td>{entry.ruta_nombre || 'N/A'}</td>
-                        <td>
-                          {entry.hora_inicio} - {entry.hora_fin || 'En curso'}
-                        </td>
-                        <td>{entry.kilometraje || 0} km</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* Modal de Reproducción GPS */}
+      {playbackVehicle && (
+        <RoutePlayback
+          deviceId={playbackVehicle.deviceId}
+          deviceName={playbackVehicle.deviceName}
+          placa={playbackVehicle.placa}
+          onClose={() => setPlaybackVehicle(null)}
+        />
       )}
     </div>
   );
