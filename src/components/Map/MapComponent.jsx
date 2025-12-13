@@ -30,10 +30,10 @@ function MapOptimizer() {
     if (!map) return;
 
     // Configurar opciones de rendimiento MÁXIMA
-    map.options.zoomSnap = 0.1;
-    map.options.zoomDelta = 0.25;
+    map.options.zoomSnap = 0.25;
+    map.options.zoomDelta = 0.5;
     map.options.wheelDebounceTime = 40;
-    map.options.wheelPxPerZoomLevel = 30;
+    map.options.wheelPxPerZoomLevel = 60;
     map.options.zoomAnimation = true;
     map.options.fadeAnimation = false;
     map.options.markerZoomAnimation = false;
@@ -1082,9 +1082,9 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
           markerZoomAnimation={false}
           preferCanvas={true}
           renderer={L.canvas({ tolerance: 5, padding: 0.5 })}
-          zoomSnap={0.1}
-          zoomDelta={0.25}
-          wheelPxPerZoomLevel={30}
+          zoomSnap={0.25}
+          zoomDelta={0.5}
+          wheelPxPerZoomLevel={60}
           wheelDebounceTime={40}
           doubleClickZoom={true}
           scrollWheelZoom={true}
