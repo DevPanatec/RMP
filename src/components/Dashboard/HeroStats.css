@@ -4,19 +4,19 @@
 
 .hero-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: var(--space-20);
-  margin-bottom: 0;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-8);
+  margin-bottom: var(--space-8);
 }
 
 .hero-stat-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-24);
+  border-radius: var(--radius-base);
+  padding: var(--space-12);
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--space-4);
   transition: all var(--duration-fast) var(--ease-out);
   box-shadow: var(--shadow-sm);
   position: relative;
@@ -58,9 +58,9 @@
 }
 
 .stat-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-base);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -75,11 +75,11 @@
 }
 
 .stat-label {
-  font-size: var(--font-size-xs);
+  font-size: 10px;
   color: var(--color-text-secondary);
   font-weight: var(--font-weight-medium);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   line-height: 1.2;
   flex: 1;
   text-align: right;
@@ -89,12 +89,12 @@
 .stat-content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--space-4);
 }
 
 .stat-value {
   font-family: var(--font-family-display);
-  font-size: 36px;
+  font-size: 22px;
   font-weight: var(--font-weight-bold);
   color: var(--color-text);
   line-height: 1;
@@ -130,11 +130,11 @@
 
 /* Sparkline */
 .stat-sparkline {
-  height: 32px;
-  margin-top: var(--space-12);
+  height: 18px;
+  margin-top: var(--space-4);
   opacity: 0.5;
   transition: opacity var(--duration-fast) var(--ease-out);
-  padding-top: var(--space-8);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--color-border);
 }
 
@@ -151,26 +151,26 @@
 @media (max-width: 1024px) {
   .hero-stats {
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-16);
+    gap: var(--space-8);
   }
 }
 
 @media (max-width: 640px) {
   .hero-stats {
-    grid-template-columns: 1fr;
-    gap: var(--space-12);
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6);
   }
 
   .hero-stat-card {
-    padding: var(--space-20);
+    padding: var(--space-10);
   }
 
   .stat-value {
-    font-size: 28px;
+    font-size: 20px;
   }
 
   .stat-icon {
-    width: 36px;
-    height: 36px;
+    width: 24px;
+    height: 24px;
   }
 }

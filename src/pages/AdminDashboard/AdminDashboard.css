@@ -1324,8 +1324,8 @@
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   border: 2px solid rgba(0, 0, 0, 0.06); /* Cambiado a gris neutro */
   border-radius: 6px;
-  padding: 8px 20px 20px 20px; /* Mínimo padding superior */
-  margin-bottom: 20px; /* Reducido de 32px */
+  padding: 6px 16px 16px 16px; /* Padding reducido para más espacio al mapa */
+  margin-bottom: 16px; /* Reducido de 20px */
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1334,9 +1334,9 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
   flex-wrap: wrap;
-  gap: var(--space-16);
+  gap: var(--space-12);
   padding: 0;
 }
 
@@ -1400,7 +1400,7 @@
   position: relative;
   border-radius: 6px;
   overflow: hidden;
-  height: 920px; /* Aumentado aún más aprovechando espacio ganado */
+  height: 1200px; /* Mucho más grande aprovechando KPIs compactos */
   background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
   box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.3),
