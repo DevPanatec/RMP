@@ -193,7 +193,7 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
   // Descargar reportes seleccionados como ZIP
   const handleDownloadSelected = () => {
     const reportsToDownload = selectedReports.length > 0
-      ? filteredReports.filter(r => selectedReports.includes(r.id))
+      ? filteredReports.filter(r => selectedReports.includes(r._id || r.id))
       : filteredReports;
 
     console.log('Descargando reportes seleccionados:', reportsToDownload);
@@ -352,14 +352,14 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
             ) : (
               filteredReports.map(report => (
                 <div
-                  key={report.id}
-                  className={`report-card ${selectedReports.includes(report.id) ? 'selected' : ''}`}
+                  key={report._id || report.id}
+                  className={`report-card ${selectedReports.includes(report._id || report.id) ? 'selected' : ''}`}
                 >
                   <div className="report-card-header">
                     <input
                       type="checkbox"
-                      checked={selectedReports.includes(report.id)}
-                      onChange={() => toggleReportSelection(report.id)}
+                      checked={selectedReports.includes(report._id || report.id)}
+                      onChange={() => toggleReportSelection(report._id || report.id)}
                       className="report-checkbox-custom"
                     />
                     <div className="report-info-main">

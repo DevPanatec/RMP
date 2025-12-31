@@ -43,11 +43,11 @@ export const PersonnelTable = ({
       .slice(0, 2);
   };
 
-  const getRoleBadge = (puesto) => {
-    if (!puesto) return 'default';
-    const role = puesto.toLowerCase();
+  const getRoleBadge = (cargo) => {
+    if (!cargo) return 'default';
+    const role = cargo.toLowerCase();
     if (role.includes('conductor') || role.includes('driver')) return 'conductor';
-    if (role.includes('ayudante') || role.includes('helper')) return 'ayudante';
+    if (role.includes('ayudante') || role.includes('helper') || role.includes('recolector')) return 'ayudante';
     if (role.includes('supervisor') || role.includes('admin')) return 'supervisor';
     return 'default';
   };
@@ -84,29 +84,31 @@ export const PersonnelTable = ({
           </thead>
           <tbody>
             {currentPersonnel.map(employee => (
-              <tr key={employee.id}>
+              <tr key={employee._id || employee.id}>
                 <td>
                   <div className="employee-cell">
                     <div className="employee-avatar">
-                      {getInitials(employee.nombre)}
+                      {getInitials(`${employee.nombre} ${employee.apellido || ''}`)}
                     </div>
                     <div className="employee-info">
-                      <div className="employee-name">{employee.nombre}</div>
+                      <div className="employee-name">
+                        {employee.nombre} {employee.apellido || ''}
+                      </div>
                       <div className="employee-contact">
                         {employee.telefono && <span>📞 {employee.telefono}</span>}
-                        {employee.email && <span>✉️ {employee.email}</span>}
+                        {employee.cedula && <span>🆔 {employee.cedula}</span>}
                       </div>
                     </div>
                   </div>
                 </td>
                 <td>
-                  <span className={`role-badge role-badge--${getRoleBadge(employee.puesto)}`}>
-                    {employee.puesto || 'Sin puesto'}
+                  <span className={`role-badge role-badge--${getRoleBadge(employee.cargo || employee.puesto)}`}>
+                    {employee.cargo || employee.puesto || 'Sin Puesto'}
                   </span>
                 </td>
                 <td>
-                  <span className={`status-badge-table status-badge-table--${getStatusColor(employee.estado)}`}>
-                    {getStatusIcon(employee.estado)} {employee.estado}
+                  <span className={`status-badge-table status-badge-table--${getStatusColor(employee.activo ? 'Activo' : 'Inactivo')}`}>
+                    {getStatusIcon(employee.activo ? 'Activo' : 'Inactivo')} {employee.activo ? 'Activo' : 'Inactivo'}
                   </span>
                 </td>
                 <td>
@@ -125,7 +127,7 @@ export const PersonnelTable = ({
                     </button>
                     <button
                       className="action-btn action-btn--delete"
-                      onClick={() => onDelete(employee.id)}
+                      onClick={() => onDelete(employee._id || employee.id)}
                       title="Eliminar"
                     >
                       <Trash2 size={16} />

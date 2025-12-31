@@ -31,17 +31,17 @@ export const useGeofenceAlerts = () => {
 
     if (newAlerts.length > 0) {
       console.log('🚨 Nuevas alertas de geofence:', newAlerts.length);
-      
+
       // Agregar a la cola de alertas
       setAlertQueue(prev => [...prev, ...newAlerts]);
-      
+
       // Marcar como procesadas
       newAlerts.forEach(alert => {
         processedAlerts.current.add(alert._id);
       });
 
-      // Reproducir sonido
-      playNotificationSound();
+      // Reproducir sonido + voz
+      playNotificationSound(newAlerts);
     }
   }, [unviewedAlerts]);
 
@@ -60,30 +60,74 @@ export const useGeofenceAlerts = () => {
     }
   }, [alertQueue, activeAlerts]);
 
-  // Reproducir sonido de notificación
-  const playNotificationSound = useCallback(() => {
+  // Hablar alerta usando Web Speech API
+  const speakAlert = useCallback((message, isEntering) => {
     try {
-      // Crear sonido con Web Audio API
+      // Verificar si el navegador soporta Web Speech API
+      if (!window.speechSynthesis) {
+        console.log('🔇 Web Speech API no disponible');
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(message);
+
+      // Configurar voz en español
+      utterance.lang = 'es-ES'; // Español (fallback a es-PA si está disponible)
+
+      // Ajustar parámetros según tipo de evento
+      if (isEntering) {
+        utterance.rate = 1.2;    // Más rápido para entrada
+        utterance.pitch = 1.1;   // Más agudo
+      } else {
+        utterance.rate = 1.0;    // Normal para salida
+        utterance.pitch = 0.9;   // Más grave
+      }
+
+      utterance.volume = 0.8;
+
+      // Hablar
+      window.speechSynthesis.speak(utterance);
+
+      console.log(`🎤 Hablando: "${message}"`);
+    } catch (error) {
+      console.log('🔇 Error en Web Speech API:', error);
+    }
+  }, []);
+
+  // Reproducir sonido de notificación + voz
+  const playNotificationSound = useCallback((alerts) => {
+    try {
+      // Crear sonido con Web Audio API (beep de refuerzo)
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
+
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
+
       oscillator.frequency.value = 800;
       oscillator.type = 'sine';
       gainNode.gain.value = 0.3;
-      
+
       oscillator.start();
-      
+
       // Fade out
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
       oscillator.stop(audioContext.currentTime + 0.3);
     } catch (error) {
       console.log('Audio no disponible');
     }
-  }, []);
+
+    // Hablar según el tipo de evento de la primera alerta
+    if (alerts && alerts.length > 0) {
+      const firstAlert = alerts[0];
+      const isEntering = firstAlert.tipo_evento === 'entrada' || firstAlert.category === 'geofence_enter';
+
+      // Decir "como van?" o "se fue"
+      const message = isEntering ? 'como van?' : 'se fue';
+      speakAlert(message, isEntering);
+    }
+  }, [speakAlert]);
 
   // Cerrar alerta
   const dismissAlert = useCallback(async (alertId) => {

@@ -604,32 +604,33 @@ img[src*="api.mapbox.com"] {
 .map-legend {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-radius: 10px;
-  padding: 10px 14px;
-  box-shadow: 
+  border-radius: 6px;
+  padding: 6px 10px;
+  box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.08),
     0 4px 16px rgba(0, 0, 0, 0.04);
   border: 1px solid rgba(0, 0, 0, 0.06);
   margin-top: 8px;
+  align-self: flex-end;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .legend-dot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
-  border: 2px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .legend-moving {
@@ -646,19 +647,20 @@ img[src*="api.mapbox.com"] {
 }
 
 @keyframes legend-pulse {
-  0%, 100% { 
+  0%, 100% {
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
   }
-  50% { 
-    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0);
+  50% {
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0);
   }
 }
 
 .legend-label {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 500;
   color: #4b5563;
   white-space: nowrap;
+  line-height: 1.2;
 }
 
 /* Dark mode para leyenda */
@@ -3293,6 +3295,16 @@ img[src*="api.mapbox.com"] {
     min-width: 40px;
     font-size: 12px;
   }
+
+  .stats-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .stat-icon-small {
+    width: 30px;
+    height: 30px;
+  }
 }
 
 /* ============================================
@@ -3592,9 +3604,9 @@ img[src*="mapbox"],
 .badge-service {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  background: rgba(255, 255, 255, 0.15);
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
   font-size: 12px;
@@ -3736,10 +3748,18 @@ img[src*="mapbox"],
   margin-bottom: 16px;
 }
 
+/* Stats Grid 3 columnas - Profesional */
+.stats-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
 .stat-box {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -3755,8 +3775,15 @@ img[src*="mapbox"],
 }
 
 .stat-icon-small {
-  font-size: 18px;
-  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 6px;
+  color: #3b82f6;
+  background: #eff6ff;
+  border-radius: 8px;
 }
 
 .stat-data {
@@ -3807,8 +3834,15 @@ img[src*="mapbox"],
 }
 
 .coord-icon {
-  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
+  color: #3b82f6;
+  background: #eff6ff;
+  border-radius: 6px;
 }
 
 .coord-values {
@@ -3837,20 +3871,21 @@ img[src*="mapbox"],
   width: 32px;
   height: 32px;
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e5e7eb;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 14px;
+  color: #6b7280;
   transition: all 0.2s ease;
   flex-shrink: 0;
 }
 
 .btn-copy-coords:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #3b82f6;
 }
 
 .btn-copy-coords:active {
@@ -3890,23 +3925,24 @@ img[src*="mapbox"],
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   padding: 24px;
-  background: #f8fafc;
-  border: 1px dashed #e2e8f0;
-  border-radius: 10px;
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
   text-align: center;
 }
 
-.no-gps-message span {
-  font-size: 32px;
-  opacity: 0.5;
+.no-gps-message svg {
+  color: #9ca3af;
+  opacity: 0.6;
 }
 
 .no-gps-message p {
   margin: 0;
   font-size: 13px;
-  color: #9ca3af;
+  color: #6b7280;
+  font-weight: 500;
 }
 
 /* Info Rows */
@@ -4097,6 +4133,11 @@ img[src*="mapbox"],
   .stats-grid-4 {
     grid-template-columns: repeat(2, 1fr);
     gap: 8px;
+  }
+
+  .stats-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
   }
 
   .stat-box {
@@ -4748,4 +4789,235 @@ img[src*="mapbox"],
   .geofence-btn {
     width: 100%;
   }
+}
+
+/* ============================================
+   STOP MARKERS - PARADAS DE RUTA
+   ============================================ */
+
+.custom-stop-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.stop-marker {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.stop-marker.completed {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: 3px solid #34d399;
+}
+
+.stop-marker.pending {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  border: 3px solid #fbbf24;
+}
+
+.stop-marker:hover {
+  transform: scale(1.2);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.stop-number {
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.stop-status-icon {
+  position: absolute;
+  bottom: -8px;
+  right: -8px;
+  background: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.stop-popup {
+  min-width: 200px;
+  padding: 8px;
+}
+
+.stop-popup h4 {
+  margin: 0 0 8px 0;
+  color: var(--color-text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.stop-popup p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+.stop-popup .stop-status {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  display: inline-block;
+  margin-top: 8px;
+}
+
+.stop-popup .stop-status.completed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.stop-popup .stop-status.pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* ============================================
+   ROUTE STOPS LIST - Panel Lateral
+   ============================================ */
+
+.route-stops-list {
+  margin-top: 12px;
+}
+
+.stops-list-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stops-list-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.stop-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.stop-list-item:hover {
+  background: var(--color-hover);
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stop-list-item.completed {
+  border-left: 3px solid #10b981;
+  background: linear-gradient(to right, rgba(16, 185, 129, 0.05), transparent);
+}
+
+.stop-list-item.pending {
+  border-left: 3px solid #f59e0b;
+  background: linear-gradient(to right, rgba(245, 158, 11, 0.05), transparent);
+}
+
+.stop-number-badge {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.stop-list-item.completed .stop-number-badge {
+  background: #10b981;
+}
+
+.stop-list-item.pending .stop-number-badge {
+  background: #f59e0b;
+}
+
+.stop-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stop-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.4;
+}
+
+.stop-category {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  padding: 2px 8px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 4px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.stop-time {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.stop-status-icon {
+  flex-shrink: 0;
+  font-size: 18px;
+  margin-top: 2px;
+}
+
+.stop-list-item.completed .stop-status-icon {
+  color: #10b981;
+}
+
+.stop-list-item.pending .stop-status-icon {
+  color: #f59e0b;
+  opacity: 0.6;
+}
+
+/* Scrollbar para lista de paradas */
+.stops-list-items::-webkit-scrollbar {
+  width: 6px;
+}
+
+.stops-list-items::-webkit-scrollbar-track {
+  background: var(--color-surface);
+  border-radius: 3px;
+}
+
+.stops-list-items::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+.stops-list-items::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary);
 }

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+import { Search, MapPin, CheckCircle, Navigation, Lightbulb } from '../Icons';
 import 'leaflet/dist/leaflet.css';
 import './MapLocationPicker.css';
 
@@ -255,7 +256,9 @@ const MapLocationPicker = ({
       {/* Barra de búsqueda */}
       <div className="search-section">
         <div className="search-input-container">
-          <div className="search-icon">🔍</div>
+          <div className="search-icon">
+            <Search size={18} />
+          </div>
           <input
             ref={inputRef}
             type="text"
@@ -294,7 +297,8 @@ const MapLocationPicker = ({
               onClick={() => setShowManualInput(!showManualInput)}
               title="Ingresar coordenadas manualmente"
             >
-              📍 Coordenadas
+              <Navigation size={14} />
+              <span>Coordenadas</span>
             </button>
           )}
           
@@ -344,11 +348,13 @@ const MapLocationPicker = ({
               className="btn btn--sm btn--primary"
               onClick={handleManualCoordinates}
             >
-              ✅ Aplicar
+              <CheckCircle size={14} />
+              <span>Aplicar</span>
             </button>
           </div>
           <div className="coordinate-help">
-            💡 Ingresa las coordenadas en formato decimal (ej: 8.9824, -79.5199)
+            <Lightbulb size={14} />
+            <span>Ingresa las coordenadas en formato decimal (ej: 8.9824, -79.5199)</span>
           </div>
         </div>
       )}
@@ -362,7 +368,9 @@ const MapLocationPicker = ({
               className="suggestion-item"
               onClick={() => handleSuggestionClick(suggestion)}
             >
-              <div className="suggestion-icon">📍</div>
+              <div className="suggestion-icon">
+                <MapPin size={16} />
+              </div>
               <div className="suggestion-text">
                 <div className="suggestion-address">{suggestion.address}</div>
                 <div className="suggestion-full-address">{suggestion.full_address}</div>
@@ -405,7 +413,8 @@ const MapLocationPicker = ({
         
         {/* Instrucciones del mapa */}
         <div className="map-instructions">
-          📍 Haz clic en el mapa para seleccionar una ubicación
+          <MapPin size={14} />
+          <span>Haz clic en el mapa para seleccionar una ubicación</span>
         </div>
       </div>
 
@@ -413,14 +422,18 @@ const MapLocationPicker = ({
       {selectedLocation && (
         <div className="selected-location-info">
           <div className="location-preview">
-            <div className="location-icon">📍</div>
+            <div className="location-icon">
+              <MapPin size={20} />
+            </div>
             <div className="location-details">
               <div className="location-address">{query}</div>
               <div className="location-coordinates">
                 {selectedLocation[0].toFixed(6)}, {selectedLocation[1].toFixed(6)}
               </div>
             </div>
-            <div className="location-status">✅</div>
+            <div className="location-status">
+              <CheckCircle size={20} />
+            </div>
           </div>
         </div>
       )}

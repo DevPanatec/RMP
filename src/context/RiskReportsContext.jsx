@@ -5,7 +5,7 @@ import { api } from "../../convex/_generated/api";
 const RiskReportsContext = createContext();
 
 export const RiskReportsProvider = ({ children }) => {
-  const reportsData = useQuery(api.reportes_riesgo.list);
+  const reportsData = useQuery(api.reportes_riesgo.listWithDetails);
 
   const addReportMutation = useMutation(api.reportes_riesgo.add);
   const updateReportMutation = useMutation(api.reportes_riesgo.update);
@@ -16,11 +16,11 @@ export const RiskReportsProvider = ({ children }) => {
 
   const addReport = async (reportData) => {
     try {
-      await addReportMutation(reportData);
-      return { success: true };
+      const reportId = await addReportMutation(reportData);
+      return reportId; // 🆕 Retornar el ID del reporte creado
     } catch (error) {
       console.error('Error adding report:', error);
-      return { success: false, error: error.message };
+      throw error; // 🆕 Lanzar error para que handleSubmitRiskReport lo maneje
     }
   };
 

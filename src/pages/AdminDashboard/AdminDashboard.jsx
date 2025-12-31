@@ -17,14 +17,18 @@ import { useFleet } from '../../context/FleetContext';
 import { useRoutes } from '../../context/RoutesContext';
 import { useRiskReports } from '../../context/RiskReportsContext';
 import { useCleaning } from '../../context/CleaningContext';
+import { useAuth } from '../../context/AuthContext';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useGeofenceAlerts } from '../../hooks/useGeofenceAlerts';
+import { useAction, useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { DEMO_VEHICLES, DEMO_ROUTES, DEMO_PERSONNEL, DEMO_ALERTS, DEMO_RECENT_ACTIVITY, mergeDemoData } from '../../utils/demoData';
 import {
   LayoutDashboard, Truck, AlertTriangle, Package,
   BarChart3, Users, Map, LogOut, TrendingUp, CheckCircle,
   MapPin, Radio, Activity, Zap, Bell, Wrench, Leaf, Navigation, Clock, Save, Calendar,
-  Satellite, Briefcase, Sparkles, Plus, X, Maximize2, Minimize2, DollarSign
+  Satellite, Briefcase, Sparkles, Plus, X, Maximize2, Minimize2, DollarSign,
+  UserPlus, Shield, Lock, Mail, Phone
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
 import { DashboardKPI, AlertCard, PersonnelTable, VehicleCard, HeroStats, RealtimeActivity, RiskAlerts } from '../../components/Dashboard';
@@ -36,6 +40,9 @@ const AdminDashboard = ({ user, onLogout }) => {
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [selectedLocationId, setSelectedLocationId] = useState(null);
   const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
+  const [showAddPersonnelModal, setShowAddPersonnelModal] = useState(false);
+  const [showEditPersonnelModal, setShowEditPersonnelModal] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [isMapMaximized, setIsMapMaximized] = useState(false);
   const [vehicleFormData, setVehicleFormData] = useState({
     nombre: '',
@@ -47,7 +54,28 @@ const AdminDashboard = ({ user, onLogout }) => {
     gps_imei: '',
     gps_protocolo: 'GT06'
   });
-  
+  const [personnelFormData, setPersonnelFormData] = useState({
+    nombre: '',
+    apellido: '',
+    cargo: ''
+  });
+
+  // Profile creation states
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    email: '',
+    password: '',
+    nombre_completo: '',
+    tipo_usuario: 'conductor',
+    telefono: '',
+    documento: ''
+  });
+  const [profileStatus, setProfileStatus] = useState({ type: '', message: '' });
+  const [creatingProfile, setCreatingProfile] = useState(false);
+
+  // Route events from Convex
+  const routeEvents = useQuery(api.route_events.getRecent, { limit: 50 }) || [];
+
   // Hooks de contextos reales
   const {
     personnel,
@@ -59,6 +87,11 @@ const AdminDashboard = ({ user, onLogout }) => {
     getPersonnelStats,
     getAllEmployees
   } = usePersonnel();
+
+  const { signOut, user: currentUser } = useAuth();
+
+  // Convex action to create users via Clerk Backend API
+  const createUserAction = useAction(api.perfiles.createUserWithClerk);
 
   const {
     vehicles,
@@ -119,24 +152,68 @@ const AdminDashboard = ({ user, onLogout }) => {
     return isDemoMode ? mergeDemoData(alerts, DEMO_ALERTS) : alerts;
   }, [isDemoMode, alerts]);
 
+  // Convertir route_events de Convex al formato esperado por RealtimeActivity
+  const recentActivity = useMemo(() => {
+    if (isDemoMode) return DEMO_RECENT_ACTIVITY;
+
+    return routeEvents.map((event, index) => ({
+      id: event._id || `event-${index}`,
+      tipo: event.tipo_evento,
+      descripcion: (() => {
+        switch (event.tipo_evento) {
+          case 'ruta_iniciada':
+            return `Ruta "${event.ruta_nombre}" iniciada`;
+          case 'parada_llegada':
+            return `Llegada a parada "${event.parada_nombre}"`;
+          case 'parada_completada':
+            return `Parada "${event.parada_nombre}" completada${event.categoria_carga ? ` (${event.categoria_carga})` : ''}`;
+          case 'ruta_completada':
+            return `Ruta "${event.ruta_nombre}" completada`;
+          default:
+            return event.detalles || 'Actividad registrada';
+        }
+      })(),
+      vehiculo: event.vehiculo_placa,
+      conductor: event.conductor_nombre,
+      ruta: event.ruta_nombre,
+      timestamp: event.timestamp,
+    }));
+  }, [isDemoMode, routeEvents]);
+
+  // Obtener asignaciones activas para enriquecer vehículos
+  const allAssignments = useQuery(api.asignaciones.list) || [];
+  const activeAssignments = useMemo(() => {
+    return allAssignments.filter(a => a.estado === 'en_progreso' || a.estado === 'programada');
+  }, [allAssignments]);
+
   // Usar datos reales o demo según el modo activo
-  const normalizedCamiones = displayVehicles.map(camion => {
-    // Normalizar tipoServicio
-    const normalized = camion.tipoServicio ? camion : { ...camion, tipoServicio: 'recoleccion' };
+  const normalizedCamiones = useMemo(() => {
+    return displayVehicles.map(camion => {
+      // Normalizar tipoServicio
+      const normalized = camion.tipoServicio ? camion : { ...camion, tipoServicio: 'recoleccion' };
 
-    // Transformar coordenadas GPS de Convex (gps_latitud/gps_longitud) a formato mapa (lat/lng)
-    if (normalized.gps_latitud !== undefined && normalized.gps_longitud !== undefined) {
-      return {
-        ...normalized,
-        lat: normalized.gps_latitud,
-        lng: normalized.gps_longitud,
-        id: normalized._id || normalized.id,
-        placa: normalized.placa || normalized.id,
-      };
-    }
+      // Buscar asignación activa del vehículo
+      const assignment = activeAssignments.find(a => a.vehiculo_id === (normalized._id || normalized.id));
 
-    return normalized;
-  });
+      // Transformar coordenadas GPS de Convex (gps_latitud/gps_longitud) a formato mapa (lat/lng)
+      if (normalized.gps_latitud !== undefined && normalized.gps_longitud !== undefined) {
+        return {
+          ...normalized,
+          lat: normalized.gps_latitud,
+          lng: normalized.gps_longitud,
+          id: normalized._id || normalized.id,
+          placa: normalized.placa || normalized.id,
+          // Enriquecer con datos de asignación si existe
+          conductor: assignment?.conductor_nombre,
+          conductor_nombre: assignment?.conductor_nombre,
+          ruta_id: assignment?.ruta_id,
+          rutaAsignada: assignment?.ruta_id, // para compatibilidad
+        };
+      }
+
+      return normalized;
+    });
+  }, [displayVehicles, activeAssignments]);
   
   // Obtener estadísticas reales
   const personnelStats = getPersonnelStats();
@@ -177,6 +254,95 @@ const AdminDashboard = ({ user, onLogout }) => {
     handleTabChange('dashboard');
   };
 
+  // Profile creation handlers
+  const handleProfileInputChange = (field, value) => {
+    setProfileForm(prev => ({ ...prev, [field]: value }));
+    setProfileStatus({ type: '', message: '' });
+  };
+
+  const handleCreateProfile = async (e) => {
+    e.preventDefault();
+    setCreatingProfile(true);
+    setProfileStatus({ type: '', message: '' });
+
+    try {
+      // Validate required fields
+      if (!profileForm.email || !profileForm.password || !profileForm.nombre_completo) {
+        setProfileStatus({
+          type: 'error',
+          message: 'Email, contraseña y nombre completo son requeridos'
+        });
+        setCreatingProfile(false);
+        return;
+      }
+
+      // Validate password strength
+      if (profileForm.password.length < 8) {
+        setProfileStatus({
+          type: 'error',
+          message: 'La contraseña debe tener al menos 8 caracteres'
+        });
+        setCreatingProfile(false);
+        return;
+      }
+
+      // Create user via Clerk Backend API (works even when logged in)
+      await createUserAction({
+        email: profileForm.email,
+        password: profileForm.password,
+        nombre_completo: profileForm.nombre_completo,
+        tipo_usuario: profileForm.tipo_usuario,
+        telefono: profileForm.telefono || undefined,
+        documento: profileForm.documento || undefined
+      });
+
+      setProfileStatus({
+        type: 'success',
+        message: `Perfil de ${profileForm.tipo_usuario} creado exitosamente`
+      });
+
+      // Close modal after 2 seconds
+      setTimeout(() => {
+        setShowProfileModal(false);
+        setProfileForm({
+          email: '',
+          password: '',
+          nombre_completo: '',
+          tipo_usuario: 'conductor',
+          telefono: '',
+          documento: ''
+        });
+        setProfileStatus({ type: '', message: '' });
+      }, 2000);
+
+    } catch (error) {
+      console.error('Error creando perfil:', error);
+
+      // Extract clean error message (remove all Convex technical details)
+      let errorMsg = error.message || 'Error al crear el perfil. Verifica que el email no esté en uso.';
+
+      // Remove [CONVEX] prefix, Request IDs, file paths, etc
+      // Look for "Uncaught Error: " and extract everything after it until "at handler"
+      const uncaughtMatch = errorMsg.match(/Uncaught Error: (.+?)(?:\s+at handler|$)/s);
+      if (uncaughtMatch) {
+        errorMsg = uncaughtMatch[1].trim();
+      } else {
+        // Fallback: try to extract after "Error: "
+        const errorMatch = errorMsg.match(/Error: (.+?)(?:\s+at |$)/s);
+        if (errorMatch) {
+          errorMsg = errorMatch[1].trim();
+        }
+      }
+
+      setProfileStatus({
+        type: 'error',
+        message: errorMsg
+      });
+    } finally {
+      setCreatingProfile(false);
+    }
+  };
+
   const renderOperationsContent = () => {
     const currentSubTab = activeSubTab || 'personal';
     switch (currentSubTab) {
@@ -190,6 +356,22 @@ const AdminDashboard = ({ user, onLogout }) => {
                   <h2>Gestión de Personal</h2>
                   <p>Administra conductores, ayudantes y supervisores</p>
                 </div>
+              </div>
+              <div className="ops-header-buttons">
+                <button
+                  className="btn-add-personnel"
+                  onClick={() => setShowAddPersonnelModal(true)}
+                >
+                  <Plus size={18} />
+                  Agregar Personal
+                </button>
+                <button
+                  className="btn-create-profile"
+                  onClick={() => setShowProfileModal(true)}
+                >
+                  <UserPlus size={18} />
+                  Crear Perfil
+                </button>
               </div>
               <div className="ops-header-stats">
                 <div className="stat-pill">
@@ -214,10 +396,16 @@ const AdminDashboard = ({ user, onLogout }) => {
               <PersonnelTable
                 personnel={displayPersonnel}
                 onEdit={(employee) => {
-                  console.log('Edit employee:', employee);
+                  setSelectedEmployee(employee);
+                  setPersonnelFormData({
+                    nombre: employee.nombre || '',
+                    apellido: employee.apellido || '',
+                    cargo: employee.cargo || ''
+                  });
+                  setShowEditPersonnelModal(true);
                 }}
                 onDelete={(employeeId) => {
-                  if (window.confirm('¿Estás seguro de que quieres eliminar este empleado?')) {
+                  if (window.confirm('¿Estás seguro de que quieres desactivar este empleado?')) {
                     deleteEmployee(employeeId);
                   }
                 }}
@@ -236,34 +424,12 @@ const AdminDashboard = ({ user, onLogout }) => {
       case 'rutas':
         return (
           <div className="operations-content-modern">
-            <div className="ops-header">
-              <div className="ops-header-content">
-                <MapPin strokeWidth={1.5} size={26} className="ops-header-icon" />
-                <div className="ops-header-text">
-                  <h2>Gestión de Rutas</h2>
-                  <p>Define y administra plantillas de rutas</p>
-                </div>
-              </div>
-              <div className="ops-header-stats">
-                <div className="stat-pill">
-                  <span className="stat-value">{isDemoMode ? 6 : displayRoutes.filter(r => r.tipo_servicio === 'recoleccion').length}</span>
-                  <span className="stat-label">Recolección</span>
-                </div>
-                <div className="stat-pill info">
-                  <span className="stat-value">{isDemoMode ? 6 : displayRoutes.filter(r => r.tipo_servicio === 'fumigacion').length}</span>
-                  <span className="stat-label">Fumigación</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="ops-content-wrapper">
-              <RoutesComponent
-                initialRoutes={displayRoutes}
-                onRoutesChange={(updatedRoutes) => {
-                  console.log('Routes updated:', updatedRoutes);
-                }}
-              />
-            </div>
+            <RoutesComponent
+              initialRoutes={displayRoutes}
+              onRoutesChange={(updatedRoutes) => {
+                console.log('Routes updated:', updatedRoutes);
+              }}
+            />
           </div>
         );
       case 'programacion':
@@ -330,7 +496,7 @@ const AdminDashboard = ({ user, onLogout }) => {
         return (
           <div className="dashboard-content">
             <HeroStats stats={heroStatsData} />
-            
+
             <div className="map-section">
               <div className="map-header">
                 <h3><Satellite strokeWidth={2} size={20} /> Monitoreo GPS</h3>
@@ -380,7 +546,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                 vehicles={normalizedCamiones}
                 routes={displayRoutes}
                 personnel={displayPersonnel}
-                recentActivity={isDemoMode ? DEMO_RECENT_ACTIVITY : []}
+                recentActivity={recentActivity}
               />
 
               <RiskAlerts
@@ -580,7 +746,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                     vehicles={normalizedCamiones}
                     routes={displayRoutes}
                     personnel={displayPersonnel}
-                    recentActivity={isDemoMode ? DEMO_RECENT_ACTIVITY : []}
+                    recentActivity={recentActivity}
                   />
                 </div>
 
@@ -606,6 +772,324 @@ const AdminDashboard = ({ user, onLogout }) => {
           onDismiss={dismissGeofenceAlert}
           onViewMap={viewGeofenceOnMap}
         />
+      )}
+
+      {/* Modal Agregar Personal */}
+      {showAddPersonnelModal && (
+        <div className="modal-overlay-v2" onClick={() => setShowAddPersonnelModal(false)}>
+          <div className="modal-content-v2 modal-personnel" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-v2">
+              <h2>Agregar Nuevo Personal</h2>
+              <button className="btn-close-v2" onClick={() => setShowAddPersonnelModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  const dataToSubmit = {
+                    nombre: personnelFormData.nombre,
+                    apellido: personnelFormData.apellido,
+                    cargo: personnelFormData.cargo,
+                    cedula: `${Date.now()}` // Auto-generar cédula temporal
+                  };
+                  
+                  await addEmployee(dataToSubmit);
+                  setShowAddPersonnelModal(false);
+                  setPersonnelFormData({
+                    nombre: '',
+                    apellido: '',
+                    cargo: ''
+                  });
+                } catch (error) {
+                  console.error('Error al agregar personal:', error);
+                  alert('Error al agregar personal: ' + error.message);
+                }
+              }}
+              className="modal-form-v2"
+            >
+              <div className="form-group-v2">
+                <label>Nombre *</label>
+                <input
+                  type="text"
+                  value={personnelFormData.nombre}
+                  onChange={(e) => setPersonnelFormData({...personnelFormData, nombre: e.target.value})}
+                  placeholder="Ej: Juan"
+                  required
+                />
+              </div>
+
+              <div className="form-group-v2">
+                <label>Apellido *</label>
+                <input
+                  type="text"
+                  value={personnelFormData.apellido}
+                  onChange={(e) => setPersonnelFormData({...personnelFormData, apellido: e.target.value})}
+                  placeholder="Ej: Pérez"
+                  required
+                />
+              </div>
+
+              <div className="form-group-v2">
+                <label>Cargo *</label>
+                <select
+                  value={personnelFormData.cargo}
+                  onChange={(e) => setPersonnelFormData({...personnelFormData, cargo: e.target.value})}
+                  className="select-v2"
+                  required
+                >
+                  <option value="">Seleccionar...</option>
+                  <option value="Conductor">Conductor</option>
+                  <option value="Recolector">Recolector</option>
+                  <option value="Supervisor">Supervisor</option>
+                  <option value="Ayudante">Ayudante</option>
+                  <option value="Administrativo">Administrativo</option>
+                </select>
+              </div>
+
+              <div className="modal-actions-v2">
+                <button type="button" className="btn-secondary-v2" onClick={() => setShowAddPersonnelModal(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary-v2">
+                  <CheckCircle size={16} />
+                  Crear Personal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Editar Personal */}
+      {showEditPersonnelModal && selectedEmployee && (
+        <div className="modal-overlay-v2" onClick={() => setShowEditPersonnelModal(false)}>
+          <div className="modal-content-v2 modal-personnel" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header-v2">
+              <h2>Editar Personal</h2>
+              <button className="btn-close-v2" onClick={() => setShowEditPersonnelModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  const dataToSubmit = {
+                    nombre: personnelFormData.nombre,
+                    apellido: personnelFormData.apellido,
+                    cargo: personnelFormData.cargo
+                  };
+                  
+                  await updateEmployee(selectedEmployee._id, dataToSubmit);
+                  setShowEditPersonnelModal(false);
+                  setSelectedEmployee(null);
+                  setPersonnelFormData({ nombre: '', apellido: '', cargo: '' });
+                } catch (error) {
+                  console.error('Error al actualizar personal:', error);
+                  alert('Error al actualizar personal: ' + error.message);
+                }
+              }}
+              className="modal-form-v2"
+            >
+              <div className="form-group-v2">
+                <label>Nombre *</label>
+                <input
+                  type="text"
+                  value={personnelFormData.nombre}
+                  onChange={(e) => setPersonnelFormData({...personnelFormData, nombre: e.target.value})}
+                  placeholder="Ej: Juan"
+                  required
+                />
+              </div>
+
+              <div className="form-group-v2">
+                <label>Apellido *</label>
+                <input
+                  type="text"
+                  value={personnelFormData.apellido}
+                  onChange={(e) => setPersonnelFormData({...personnelFormData, apellido: e.target.value})}
+                  placeholder="Ej: Pérez"
+                  required
+                />
+              </div>
+
+              <div className="form-group-v2">
+                <label>Cargo *</label>
+                <select
+                  value={personnelFormData.cargo}
+                  onChange={(e) => setPersonnelFormData({...personnelFormData, cargo: e.target.value})}
+                  className="select-v2"
+                  required
+                >
+                  <option value="">Seleccionar...</option>
+                  <option value="Conductor">Conductor</option>
+                  <option value="Recolector">Recolector</option>
+                  <option value="Supervisor">Supervisor</option>
+                  <option value="Ayudante">Ayudante</option>
+                  <option value="Administrativo">Administrativo</option>
+                </select>
+              </div>
+
+              <div className="modal-actions-v2">
+                <button type="button" className="btn-secondary-v2" onClick={() => setShowEditPersonnelModal(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary-v2">
+                  <CheckCircle size={16} />
+                  Actualizar Personal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Creation Modal */}
+      {showProfileModal && (
+        <div className="modal-overlay-v2" onClick={() => setShowProfileModal(false)}>
+          <div className="modal-content-v2 modal-profile" onClick={e => e.stopPropagation()}>
+            <div className="modal-header-v2">
+              <div className="modal-header-title">
+                <Shield size={24} />
+                <h2>Crear Perfil de Usuario</h2>
+              </div>
+              <button className="btn-close-v2" onClick={() => setShowProfileModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateProfile} className="modal-form-v2">
+              {/* Status Message */}
+              {profileStatus.message && (
+                <div className={`profile-status ${profileStatus.type}`}>
+                  {profileStatus.type === 'success' ? <CheckCircle size={16} /> : <X size={16} />}
+                  <span>{profileStatus.message}</span>
+                </div>
+              )}
+
+              <div className="form-divider-v2">
+                <Mail size={16} />
+                Credenciales de Acceso
+              </div>
+
+              <div className="form-group-v2">
+                <label>Email *</label>
+                <input
+                  type="email"
+                  value={profileForm.email}
+                  onChange={(e) => handleProfileInputChange('email', e.target.value)}
+                  placeholder="usuario@rmp.com"
+                  required
+                  disabled={creatingProfile}
+                />
+              </div>
+
+              <div className="form-group-v2">
+                <label>Contraseña *</label>
+                <input
+                  type="password"
+                  value={profileForm.password}
+                  onChange={(e) => handleProfileInputChange('password', e.target.value)}
+                  placeholder="Mínimo 8 caracteres"
+                  required
+                  disabled={creatingProfile}
+                  minLength={8}
+                />
+                <small className="form-hint">
+                  Debe contener mayúsculas, minúsculas, números y símbolos
+                </small>
+              </div>
+
+              <div className="form-divider-v2">
+                <Users size={16} />
+                Información Personal
+              </div>
+
+              <div className="form-group-v2">
+                <label>Nombre Completo *</label>
+                <input
+                  type="text"
+                  value={profileForm.nombre_completo}
+                  onChange={(e) => handleProfileInputChange('nombre_completo', e.target.value)}
+                  placeholder="Ej: Juan Carlos Pérez"
+                  required
+                  disabled={creatingProfile}
+                />
+              </div>
+
+              <div className="form-group-v2">
+                <label>Tipo de Usuario *</label>
+                <select
+                  value={profileForm.tipo_usuario}
+                  onChange={(e) => handleProfileInputChange('tipo_usuario', e.target.value)}
+                  className="select-v2"
+                  required
+                  disabled={creatingProfile}
+                >
+                  <option value="conductor">Conductor</option>
+                  <option value="enterprise">Enterprise</option>
+                  <option value="admin">Administrador</option>
+                </select>
+              </div>
+
+              <div className="form-row-v2">
+                <div className="form-group-v2">
+                  <label>Teléfono</label>
+                  <input
+                    type="tel"
+                    value={profileForm.telefono}
+                    onChange={(e) => handleProfileInputChange('telefono', e.target.value)}
+                    placeholder="+507 6123-4567"
+                    disabled={creatingProfile}
+                  />
+                </div>
+
+                <div className="form-group-v2">
+                  <label>Documento / Cédula</label>
+                  <input
+                    type="text"
+                    value={profileForm.documento}
+                    onChange={(e) => handleProfileInputChange('documento', e.target.value)}
+                    placeholder="8-123-4567"
+                    disabled={creatingProfile}
+                  />
+                </div>
+              </div>
+
+              <div className="modal-actions-v2">
+                <button
+                  type="button"
+                  className="btn-secondary-v2"
+                  onClick={() => setShowProfileModal(false)}
+                  disabled={creatingProfile}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary-v2"
+                  disabled={creatingProfile}
+                >
+                  {creatingProfile ? (
+                    <>
+                      <div className="spinner-small"></div>
+                      Creando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={16} />
+                      Crear Perfil
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

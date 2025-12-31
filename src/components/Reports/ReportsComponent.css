@@ -1788,3 +1788,89 @@
     justify-content: center;
   }
 }
+
+/* ============================================
+   ROUTE REPORTS SECTION - CLICKABLE CARDS
+   ============================================ */
+
+.route-reports-section {
+  margin-bottom: 32px;
+}
+
+.route-reports-header {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.route-reports-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.route-report-card {
+  background: white;
+  padding: 20px 24px;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.route-report-card:hover {
+  border-color: #3D5229;
+  box-shadow: 0 4px 16px rgba(61, 82, 41, 0.15);
+  transform: translateY(-2px);
+}
+
+.route-report-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.route-report-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.route-report-badge {
+  padding: 6px 14px;
+  background: #d1fae5;
+  color: #065f46;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.route-report-meta {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.route-report-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.route-report-hint {
+  font-size: 13px;
+  color: #9ca3af;
+  font-style: italic;
+  margin: 0;
+}

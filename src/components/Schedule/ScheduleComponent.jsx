@@ -7,7 +7,7 @@ import { useCleaning } from '../../context/CleaningContext';
 import { useFumigation } from '../../context/FumigationContext';
 import {
   Calendar, Plus, Edit, Trash2, AlertTriangle, CheckCircle,
-  Truck, Users, Map, Clock, X, Sparkles, Camera, Info, Bug
+  Truck, Users, Map, Clock, X, Sparkles, Camera, Info, Bug, CalendarCheck
 } from '../Icons';
 import { CustomSelect } from '../UI';
 import PhotoUploadField from '../Cleaning/PhotoUploadField';
@@ -114,7 +114,7 @@ const ScheduleComponent = () => {
   const [successMessage, setSuccessMessage] = useState('');
 
   const [routeFormData, setRouteFormData] = useState({
-    tipo_servicio: 'recoleccion', // 'recoleccion' o 'fumigacion'
+    tipo_servicio: 'recoleccion', // Solo recolección
     ruta_id: '',
     conductor_nombre: '',
     ayudantes: [],
@@ -142,8 +142,8 @@ const ScheduleComponent = () => {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  const activeRoutes = routes.filter(r => r.estado === 'activa' || r.status === 'active');
-  const activePersonnel = personnel.filter(p => p.active === true);
+  const activeRoutes = routes.filter(r => r.estado !== 'cancelada');
+  const activePersonnel = personnel.filter(p => p.activo === true);
   const activeVehicles = vehicles.filter(v =>
     v.estado === 'activo' ||
     v.estado === 'Disponible' ||
@@ -152,15 +152,9 @@ const ScheduleComponent = () => {
   );
   const loading = scheduleLoading || cleaningLoading || fumigationLoading;
 
-  // Filtrar vehículos por tipo de ruta seleccionada
+  // Filtrar vehículos por tipo de ruta seleccionada (solo recolección)
   const getCompatibleVehicles = () => {
-    if (!routeFormData.ruta_id) return activeVehicles;
-
-    const selectedRoute = routes.find(r => String(r.id) === String(routeFormData.ruta_id));
-    if (!selectedRoute) return activeVehicles;
-
-    const routeType = selectedRoute.tipo_servicio;
-    return activeVehicles.filter(v => v.tipo_servicio === routeType || v.tipoServicio === routeType);
+    return activeVehicles.filter(v => v.tipo_servicio === 'recoleccion' || v.tipoServicio === 'recoleccion');
   };
 
   const compatibleVehicles = getCompatibleVehicles();
@@ -169,10 +163,11 @@ const ScheduleComponent = () => {
     if (assignment) {
       setEditingAssignment(assignment);
       setRouteFormData({
+        tipo_servicio: 'recoleccion',
         ruta_id: assignment.ruta_id,
-        conductor_nombre: assignment.conductor_nombre,
+        conductor_nombre: assignment.conductor_nombre || '',
         ayudantes: assignment.ayudantes || [],
-        fecha: assignment.fecha || getStartOfWeek(),
+        fecha: assignment.fecha_asignacion || assignment.fecha || getStartOfWeek(),
         dias_semana: assignment.dias_semana || [],
         vehiculo_id: assignment.vehiculo_id,
         observaciones: assignment.observaciones || ''
@@ -180,6 +175,7 @@ const ScheduleComponent = () => {
     } else {
       setEditingAssignment(null);
       setRouteFormData({
+        tipo_servicio: 'recoleccion',
         ruta_id: '',
         conductor_nombre: '',
         ayudantes: [],
@@ -211,6 +207,7 @@ const ScheduleComponent = () => {
     setShowModal(false);
     setEditingAssignment(null);
     setRouteFormData({
+      tipo_servicio: 'recoleccion',
       ruta_id: '',
       conductor_nombre: '',
       ayudantes: [],
@@ -235,48 +232,56 @@ const ScheduleComponent = () => {
     const blockedDaysMap = {};
 
     if (!routeFormData.ruta_id) {
+      console.log('🔍 DEBUG - No hay ruta seleccionada');
       return blockedDaysMap;
     }
 
     // Obtener la ruta seleccionada
-    const selectedRoute = routes.find(r => String(r.id) === String(routeFormData.ruta_id));
+    const selectedRoute = routes.find(r => String(r._id || r.id) === String(routeFormData.ruta_id));
 
     console.log('🔍 DEBUG - Ruta seleccionada:', selectedRoute);
-    console.log('🔍 DEBUG - dias_operacion:', selectedRoute?.dias_operacion);
-    console.log('🔍 DEBUG - tipo:', typeof selectedRoute?.dias_operacion, Array.isArray(selectedRoute?.dias_operacion));
+    console.log('🔍 DEBUG - dias_operacion RAW:', selectedRoute?.dias_operacion);
+    console.log('🔍 DEBUG - tipo:', typeof selectedRoute?.dias_operacion, 'isArray:', Array.isArray(selectedRoute?.dias_operacion));
 
     // Bloquear días que NO están en dias_operacion de la ruta
     if (selectedRoute && selectedRoute.dias_operacion) {
-      const allDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+      const allDays = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
 
       // Parsear dias_operacion si viene como string o asegurarse que es array
       let allowedDays = selectedRoute.dias_operacion;
       if (typeof allowedDays === 'string') {
         try {
           allowedDays = JSON.parse(allowedDays);
+          console.log('🔍 DEBUG - Días parseados de string:', allowedDays);
         } catch (e) {
-          console.error('Error parseando dias_operacion:', e);
+          console.error('❌ ERROR parseando dias_operacion:', e);
           allowedDays = [];
         }
       }
 
-      console.log('🔍 DEBUG - Días permitidos (parsed):', allowedDays);
+      console.log('🔍 DEBUG - Días permitidos FINAL:', allowedDays);
+      console.log('🔍 DEBUG - Tipo de allowedDays:', typeof allowedDays, 'isArray:', Array.isArray(allowedDays));
 
       allDays.forEach(day => {
-        if (!allowedDays.includes(day)) {
+        const isIncluded = allowedDays.includes(day);
+        console.log(`🔍 DEBUG - Día "${day}": includes = ${isIncluded}`);
+        if (!isIncluded) {
           blockedDaysMap[day] = 'No disponible';
+          console.log(`  ❌ Bloqueando "${day}"`);
+        } else {
+          console.log(`  ✅ Permitiendo "${day}"`);
         }
       });
 
-      console.log('🔍 DEBUG - Días bloqueados:', blockedDaysMap);
+      console.log('🔍 DEBUG - Días bloqueados por ruta:', blockedDaysMap);
     }
 
     // Bloquear días ya asignados a otros conductores
     if (routeFormData.fecha) {
       const conflictos = scheduleAssignments.filter(assignment =>
         String(assignment.ruta_id) === String(routeFormData.ruta_id) &&
-        assignment.fecha === routeFormData.fecha &&
-        assignment.id !== editingAssignment?.id
+        (assignment.fecha_asignacion || assignment.fecha) === routeFormData.fecha &&
+        (assignment._id || assignment.id) !== (editingAssignment?._id || editingAssignment?.id)
       );
 
       console.log('🔍 DEBUG - Asignaciones en conflicto:', conflictos);
@@ -300,7 +305,7 @@ const ScheduleComponent = () => {
       return { hasConflict: false, conflicts: [] };
     }
 
-    const selectedRoute = routes.find(r => r.id === parseInt(selectedRouteId));
+    const selectedRoute = routes.find(r => (r._id || r.id) === selectedRouteId);
     if (!selectedRoute || !selectedRoute.hora_inicio || !selectedRoute.hora_fin) {
       return { hasConflict: false, conflicts: [] };
     }
@@ -308,8 +313,8 @@ const ScheduleComponent = () => {
     // Buscar otras asignaciones del mismo vehículo en la misma semana
     const vehicleAssignments = scheduleAssignments.filter(assignment =>
       String(assignment.vehiculo_id) === String(vehiculoId) &&
-      assignment.fecha === fecha &&
-      assignment.id !== editingAssignment?.id
+      (assignment.fecha_asignacion || assignment.fecha) === fecha &&
+      (assignment._id || assignment.id) !== (editingAssignment?._id || editingAssignment?.id)
     );
 
     const conflicts = [];
@@ -385,16 +390,8 @@ const ScheduleComponent = () => {
       return;
     }
 
-    // Validar compatibilidad vehículo-ruta
-    const selectedRoute = routes.find(r => String(r.id) === String(routeFormData.ruta_id));
-    const selectedVehicle = vehicles.find(v => String(v.id) === String(routeFormData.vehiculo_id));
-
-    if (selectedRoute && selectedVehicle) {
-      if (selectedRoute.tipo_servicio !== selectedVehicle.tipo_servicio) {
-        alert(`❌ Incompatibilidad de tipo de servicio\n\nLa ruta seleccionada es de tipo: ${selectedRoute.tipo_servicio}\nEl vehículo seleccionado es de tipo: ${selectedVehicle.tipo_servicio}\n\nDebe seleccionar un vehículo del mismo tipo que la ruta.`);
-        return;
-      }
-    }
+    // Obtener la ruta seleccionada para copiar horarios
+    const selectedRoute = routes.find(r => String(r._id || r.id) === String(routeFormData.ruta_id));
 
     // Validar conflictos de ruta (mismo día y ruta ya asignada a otro conductor)
     const blockedDays = getBlockedDays();
@@ -430,17 +427,24 @@ const ScheduleComponent = () => {
 
     // Crear assignmentData con horarios copiados de la ruta
     const assignmentData = {
-      ...routeFormData,
       ruta_id: routeFormData.ruta_id,
+      conductor_nombre: routeFormData.conductor_nombre.trim(), // Eliminar espacios
       vehiculo_id: routeFormData.vehiculo_id,
+      fecha_asignacion: routeFormData.fecha,
+      dias_semana: routeFormData.dias_semana,
+      ayudantes: routeFormData.ayudantes,
+      observaciones: routeFormData.observaciones,
       estado: 'programada',
       hora_inicio: selectedRoute?.hora_inicio || null,
       hora_fin: selectedRoute?.hora_fin || null
     };
 
+    // conductor_id es opcional, solo se envía si existe
+    // (no se envía si el conductor solo está en empleados, no en perfiles_usuarios)
+
     let result;
     if (editingAssignment) {
-      result = await updateScheduleAssignment(editingAssignment.id, assignmentData);
+      result = await updateScheduleAssignment(editingAssignment._id || editingAssignment.id, assignmentData);
     } else {
       result = await addScheduleAssignment(assignmentData);
     }
@@ -558,29 +562,84 @@ const ScheduleComponent = () => {
     return area ? area.nombre : '';
   };
 
+  const getAreasByLugar = (lugarId) => {
+    return areas.filter(a => String(a.lugar_id) === String(lugarId));
+  };
+
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES', { 
-      weekday: 'short', 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    const date = new Date(dateString + 'T12:00:00');
+    return date.toLocaleDateString('es-ES', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
+  // Helper: formatear días de la semana de forma compacta
+  const formatDiasSemana = (diasArray) => {
+    if (!diasArray || diasArray.length === 0) return 'Sin días';
+
+    const diasMap = {
+      'lunes': 'L',
+      'martes': 'M',
+      'miércoles': 'X',
+      'jueves': 'J',
+      'viernes': 'V',
+      'sábado': 'S',
+      'domingo': 'D'
+    };
+
+    // Si son todos los días
+    if (diasArray.length === 7) return 'Todos los días';
+
+    // Si son días de semana (L-V)
+    const diasSemana = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes'];
+    if (diasArray.length === 5 && diasSemana.every(d => diasArray.includes(d))) {
+      return 'Lun-Vie';
+    }
+
+    // Mostrar iniciales
+    return diasArray.map(d => diasMap[d] || d.charAt(0).toUpperCase()).join(', ');
+  };
+
   return (
-    <div className="schedule-unified">
-      <div className="schedule-header">
-        <div className="schedule-title">
-          <h2><Calendar size={24} /> Asignaciones Unificadas</h2>
-          <p>Gestiona todas las asignaciones de rutas y limpieza en un solo lugar</p>
+    <div className="schedule-v2">
+      {/* Header V2 */}
+      <div className="schedule-header-v2">
+        <div className="schedule-header-info">
+          <div className="schedule-header-icon">
+            <CalendarCheck size={28} />
+          </div>
+          <div className="schedule-header-text">
+            <h2>Programación y Asignaciones</h2>
+            <p>Gestiona todas las asignaciones de rutas, limpieza y fumigación</p>
+          </div>
         </div>
-        <div className="schedule-actions">
-          <button className="btn btn--primary" onClick={() => handleOpenRouteModal()}>
-            <Truck size={16} /> Nueva Ruta de Seguimiento
+
+        <div className="schedule-header-stats">
+          <div className="schedule-stat-pill success">
+            <span className="stat-number">{scheduleAssignments.length}</span>
+            <span className="stat-label">Rutas</span>
+          </div>
+          <div className="schedule-stat-pill info">
+            <span className="stat-number">{cleaningAssignments.length}</span>
+            <span className="stat-label">Limpieza</span>
+          </div>
+          <div className="schedule-stat-pill warning">
+            <span className="stat-number">{fumigationAssignments.length}</span>
+            <span className="stat-label">Fumigación</span>
+          </div>
+        </div>
+
+        <div className="schedule-header-actions">
+          <button className="btn-add-v2" onClick={() => handleOpenRouteModal()}>
+            <Plus size={18} />
+            Ruta
           </button>
-          <button className="btn btn--primary" onClick={handleOpenCleaningModal}>
-            <Sparkles size={16} /> Nueva Asignación
+          <button className="btn-add-v2 secondary" onClick={handleOpenCleaningModal}>
+            <Plus size={18} />
+            Limpieza
           </button>
         </div>
       </div>
@@ -632,54 +691,70 @@ const ScheduleComponent = () => {
                 </div>
               ) : (
                 <div className="assignments-grid">
-                  {scheduleAssignments.map(assignment => (
-                    <div key={assignment.id} className="assignment-card-unified">
-                      <div className="assignment-header-unified">
-                        <div className="assignment-type-icon route">
-                          <Truck size={20} />
+                  {scheduleAssignments.map(assignment => {
+                    const fechaSemana = assignment.fecha_asignacion || assignment.fecha;
+                    const fechaInicio = new Date(fechaSemana + 'T12:00:00');
+                    const fechaFin = new Date(fechaSemana + 'T12:00:00');
+                    fechaFin.setDate(fechaFin.getDate() + 6);
+
+                    const formatoCorto = `${fechaInicio.getDate()}-${fechaFin.getDate()} ${fechaInicio.toLocaleDateString('es-ES', { month: 'short' })}`;
+
+                    // Buscar ruta y vehículo en los arrays
+                    const ruta = routes.find(r => (r._id || r.id) === assignment.ruta_id);
+                    const vehiculo = vehicles.find(v => (v._id || v.id) === assignment.vehiculo_id);
+
+                    return (
+                      <div key={assignment._id || assignment.id} className="assignment-card-unified compact">
+                        <div className="assignment-header-unified">
+                          <div className="assignment-type-icon route">
+                            <Truck size={18} />
+                          </div>
+                          <div className="assignment-title-unified">
+                            <h4>{ruta?.nombre || assignment.ruta?.nombre || 'Ruta sin nombre'}</h4>
+                            <div className="assignment-metadata">
+                              <span className="week-badge">{formatoCorto}</span>
+                              <span className="days-badge">{formatDiasSemana(assignment.dias_semana)}</span>
+                            </div>
+                          </div>
+                          <div className="assignment-actions-unified">
+                            <button
+                              className="btn-icon btn-icon--sm"
+                              onClick={() => handleOpenRouteModal(assignment)}
+                              title="Editar"
+                            >
+                              <Edit size={14} />
+                            </button>
+                            <button
+                              className="btn-icon btn-icon--sm btn-icon--danger"
+                              onClick={() => handleDeleteRoute(assignment._id || assignment.id)}
+                              title="Eliminar"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </div>
-                        <div className="assignment-title-unified">
-                          <h4>{assignment.ruta?.nombre || 'Ruta sin nombre'}</h4>
-                          <p className="assignment-date">{formatDate(assignment.fecha)}</p>
+                        <div className="assignment-details-unified">
+                          <div className="detail-item">
+                            <Clock size={14} />
+                            <span>{formatTime12h(assignment.hora_inicio)} - {formatTime12h(assignment.hora_fin)}</span>
+                          </div>
+                          <div className="detail-item">
+                            <Users size={14} />
+                            <span>{assignment.conductor_nombre}</span>
+                          </div>
+                          <div className="detail-item">
+                            <Truck size={14} />
+                            <span>{vehiculo?.placa || assignment.vehiculo?.placa || 'Sin vehículo'}</span>
+                          </div>
                         </div>
-                        <div className="assignment-actions-unified">
-                          <button 
-                            className="btn-icon btn-icon--sm"
-                            onClick={() => handleOpenRouteModal(assignment)}
-                            title="Editar"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button 
-                            className="btn-icon btn-icon--sm btn-icon--danger"
-                            onClick={() => handleDeleteRoute(assignment.id)}
-                            title="Eliminar"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                        {assignment.observaciones && (
+                          <div className="assignment-notes">
+                            <p>{assignment.observaciones}</p>
+                          </div>
+                        )}
                       </div>
-                      <div className="assignment-details-unified">
-                        <div className="detail-item">
-                          <Clock size={14} />
-                          <span>{formatTime12h(assignment.hora_inicio)} - {formatTime12h(assignment.hora_fin)}</span>
-                        </div>
-                        <div className="detail-item">
-                          <Users size={14} />
-                          <span>{assignment.conductor_nombre}</span>
-                        </div>
-                        <div className="detail-item">
-                          <Truck size={14} />
-                          <span>{assignment.vehiculo?.nombre || assignment.vehiculo?.placa}</span>
-                        </div>
-                      </div>
-                      {assignment.observaciones && (
-                        <div className="assignment-notes">
-                          <p>{assignment.observaciones}</p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -699,7 +774,7 @@ const ScheduleComponent = () => {
               ) : (
                 <div className="assignments-grid">
                   {cleaningAssignments.map(assignment => (
-                    <div key={assignment.id} className="assignment-card-unified">
+                    <div key={assignment._id || assignment.id} className="assignment-card-unified">
                       <div className="assignment-header-unified">
                         <div className="assignment-type-icon cleaning">
                           <Sparkles size={20} />
@@ -768,104 +843,6 @@ const ScheduleComponent = () => {
 
             <form onSubmit={handleRouteSubmit}>
               <div className="modal-body">
-                {/* Switch Tipo de Servicio */}
-                <div style={{
-                  marginBottom: '24px',
-                  padding: '20px',
-                  background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                  borderRadius: '12px',
-                  border: '2px solid #6b9656'
-                }}>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '12px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: '#3D5229'
-                  }}>
-                    Tipo de Servicio
-                  </label>
-                  <div style={{
-                    display: 'flex',
-                    gap: '12px',
-                    background: 'white',
-                    padding: '4px',
-                    borderRadius: '10px',
-                    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)'
-                  }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRouteFormData({
-                          ...routeFormData,
-                          tipo_servicio: 'recoleccion',
-                          ruta_id: '',
-                          vehiculo_id: ''
-                        });
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        background: routeFormData.tipo_servicio === 'recoleccion'
-                          ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)'
-                          : 'transparent',
-                        color: routeFormData.tipo_servicio === 'recoleccion' ? 'white' : '#6b7280',
-                        boxShadow: routeFormData.tipo_servicio === 'recoleccion'
-                          ? '0 4px 12px rgba(61, 82, 41, 0.3)'
-                          : 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px'
-                      }}
-                    >
-                      <Truck size={18} />
-                      Recolección
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setRouteFormData({
-                          ...routeFormData,
-                          tipo_servicio: 'fumigacion',
-                          ruta_id: '',
-                          vehiculo_id: ''
-                        });
-                      }}
-                      style={{
-                        flex: 1,
-                        padding: '12px 16px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        background: routeFormData.tipo_servicio === 'fumigacion'
-                          ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)'
-                          : 'transparent',
-                        color: routeFormData.tipo_servicio === 'fumigacion' ? 'white' : '#6b7280',
-                        boxShadow: routeFormData.tipo_servicio === 'fumigacion'
-                          ? '0 4px 12px rgba(61, 82, 41, 0.3)'
-                          : 'none',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px'
-                      }}
-                    >
-                      <Sparkles size={18} />
-                      Fumigación
-                    </button>
-                  </div>
-                </div>
-
                 <div className="form-grid-2col">
                   <div className="form-group-card">
                     <div className="card-label">
@@ -879,17 +856,17 @@ const ScheduleComponent = () => {
                       value={routeFormData.ruta_id}
                       onChange={(value) => handleRouteInputChange('ruta_id', value)}
                       options={activeRoutes
-                        .filter(route => route.tipo_servicio === routeFormData.tipo_servicio)
+                        .filter(route => route.tipo_servicio === 'recoleccion')
                         .map(route => ({
-                          value: route.id,
+                          value: route._id || route.id,
                           label: route.nombre
                         }))}
-                      placeholder={`Seleccionar ruta de ${routeFormData.tipo_servicio}`}
+                      placeholder="Seleccionar ruta de recolección"
                       searchable
                     />
 
                     {routeFormData.ruta_id && (() => {
-                      const selectedRoute = routes.find(r => String(r.id) === String(routeFormData.ruta_id));
+                      const selectedRoute = routes.find(r => String(r._id || r.id) === String(routeFormData.ruta_id));
                       return selectedRoute && selectedRoute.hora_inicio && selectedRoute.hora_fin ? (
                         <div style={{
                           marginTop: '12px',
@@ -915,7 +892,7 @@ const ScheduleComponent = () => {
                       value={routeFormData.vehiculo_id}
                       onChange={(value) => handleRouteInputChange('vehiculo_id', value)}
                       options={compatibleVehicles.map(vehicle => ({
-                        value: vehicle.id,
+                        value: vehicle._id || vehicle.id,
                         label: `${vehicle.tipo_servicio === 'recoleccion' ? '🚛' : '🦟'} ${vehicle.placa} - ${vehicle.nombre || vehicle.marca}`
                       }))}
                       placeholder={routeFormData.ruta_id ? "Seleccionar vehículo compatible" : "Primero selecciona una ruta"}
@@ -934,10 +911,15 @@ const ScheduleComponent = () => {
                       label="Conductor"
                       required
                       value={routeFormData.conductor_nombre}
-                      onChange={(value) => handleRouteInputChange('conductor_nombre', value)}
-                      options={activePersonnel.filter(p => p.puesto === 'Conductor').map(person => ({
+                      onChange={(value) => {
+                        setRouteFormData({
+                          ...routeFormData,
+                          conductor_nombre: value
+                        });
+                      }}
+                      options={activePersonnel.filter(p => (p.cargo || p.puesto) === 'Conductor').map(person => ({
                         value: `${person.nombre} ${person.apellido}`,
-                        label: `${person.nombre} ${person.apellido} - ${person.puesto}`
+                        label: `${person.nombre} ${person.apellido} - ${person.cargo || person.puesto}`
                       }))}
                       placeholder="Seleccionar conductor"
                       searchable

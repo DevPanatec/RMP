@@ -93,6 +93,14 @@ export const activate = mutation({
   },
 });
 
+// Remove employee (hard delete)
+export const remove = mutation({
+  args: { id: v.id("empleados") },
+  handler: async (ctx, args) => {
+    return await ctx.db.delete(args.id);
+  },
+});
+
 // Get stats
 export const getStats = query({
   handler: async (ctx) => {

@@ -307,14 +307,49 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
   return (
     <div className="route-modal-overlay" onClick={onClose}>
       <div className="route-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="route-modal-header">
-          <div className="modal-header-content">
-            <h4>
-              {isEditing ? <><Edit size={20} /> Editar Ruta</> : <><Plus size={20} /> Nueva Ruta</>}
-            </h4>
-            <p>Configura tu ruta con información detallada, paradas y opciones avanzadas</p>
+        <div className="route-modal-header-v2">
+          <div className="header-top-row">
+            <div className="modal-header-content">
+              <h4>
+                {isEditing ? <><Edit size={24} /> Editar Ruta</> : <><Plus size={24} /> Nueva Ruta</>}
+              </h4>
+              <p>Configura tu ruta con información detallada, paradas y opciones avanzadas</p>
+            </div>
+            <button className="modal-close-v2" onClick={onClose}><X size={20} /></button>
           </div>
-          <button className="modal-close" onClick={onClose}><X size={18} /></button>
+          
+          <div className="header-stats-row">
+            <div className="stat-pill-v2 stat-stops">
+              <MapPin size={16} />
+              <div className="stat-content">
+                <span className="stat-value">{formData.paradas.length}</span>
+                <span className="stat-label">Paradas</span>
+              </div>
+            </div>
+            <div className="stat-pill-v2 stat-distance">
+              <Ruler size={16} />
+              <div className="stat-content">
+                <span className="stat-value">{formData.distancia_total} km</span>
+                <span className="stat-label">Distancia</span>
+              </div>
+            </div>
+            <div className="stat-pill-v2 stat-time">
+              <Clock size={16} />
+              <div className="stat-content">
+                <span className="stat-value">{formData.tiempo_estimado} min</span>
+                <span className="stat-label">Tiempo Est.</span>
+              </div>
+            </div>
+            {formData.dias_operacion && formData.dias_operacion.length > 0 && (
+              <div className="stat-pill-v2 stat-days">
+                <Calendar size={16} />
+                <div className="stat-content">
+                  <span className="stat-value">{formData.dias_operacion.length}</span>
+                  <span className="stat-label">Días/Sem</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="route-modal-tabs">
@@ -504,7 +539,12 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
                         );
                       })}
                     </div>
-                    {errors.dias_operacion && <span className="error-text">⚠️ {errors.dias_operacion}</span>}
+                    {errors.dias_operacion && (
+                      <span className="error-text">
+                        <AlertTriangle size={14} />
+                        {errors.dias_operacion}
+                      </span>
+                    )}
                   </div>
 
                 </div>
@@ -512,15 +552,12 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
 
               <div className="info-map-section">
                 <div className="map-preview-header">
-                  <h5><Map size={18} /> Vista Previa</h5>
-                  <div className="map-stats">
-                    <span className="stat-chip">{formData.paradas.length} paradas</span>
-                    <span className="stat-chip">{formData.distancia_total} km</span>
-                  </div>
+                  <h5><Map size={18} /> Vista Previa del Recorrido</h5>
                 </div>
                 <div className="map-preview-container">
                   {formData.paradas.length > 0 ? (
                     <MapContainer
+                      key={`map-${formData.paradas.length}-${formData.paradas.map(p => `${p.latitud},${p.longitud}`).join('-')}`}
                       center={[formData.paradas[0].latitud || 8.9833, formData.paradas[0].longitud || -79.5167]}
                       zoom={13}
                       style={{ height: '100%', width: '100%' }}
@@ -535,19 +572,33 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
                       {formData.paradas.length > 1 && (
                         <Polyline
                           positions={formData.paradas.map(p => [p.latitud, p.longitud])}
-                          color="#22c55e"
+                          color="#3D5229"
                           weight={4}
-                          opacity={0.7}
+                          opacity={0.8}
+                          dashArray="10, 5"
                         />
                       )}
 
                       {/* Marcadores de paradas */}
-                      {formData.paradas.map((parada, index) => (
-                        <Marker
-                          key={index}
-                          position={[parada.latitud, parada.longitud]}
-                        />
-                      ))}
+                      {formData.paradas.map((parada, index) => {
+                        const isFirst = index === 0;
+                        const isLast = index === formData.paradas.length - 1;
+                        
+                        return (
+                          <Marker
+                            key={`marker-${parada.id || index}-${parada.latitud}-${parada.longitud}`}
+                            position={[parada.latitud, parada.longitud]}
+                            icon={L.divIcon({
+                              className: 'custom-marker',
+                              html: `<div class="marker-pin ${isFirst ? 'marker-start' : isLast ? 'marker-end' : 'marker-middle'}">
+                                <span class="marker-number">${index + 1}</span>
+                              </div>`,
+                              iconSize: [32, 32],
+                              iconAnchor: [16, 32]
+                            })}
+                          />
+                        );
+                      })}
                     </MapContainer>
                   ) : (
                     <div className="map-placeholder">

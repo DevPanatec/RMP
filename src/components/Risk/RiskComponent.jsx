@@ -3,7 +3,7 @@ import { useRiskReports } from '../../context/RiskReportsContext';
 import {
   AlertTriangle, ClipboardList, Wrench, AlertOctagon, Zap,
   Eye, CheckCircle, FolderOpen, FileText, Users, Truck,
-  MapPin, Calendar, BarChart3, X
+  MapPin, Calendar, BarChart3, X, Shield, Package
 } from '../Icons';
 import './RiskComponent.css';
 
@@ -13,6 +13,11 @@ const RiskComponent = ({ userType = 'admin' }) => {
 
   // Los reportes y funciones vienen del contexto
   const stats = getReportStats();
+
+  // Stats adicionales
+  const pendingCount = reports.filter(r => r.estado === 'reportado').length;
+  const inReviewCount = reports.filter(r => r.estado === 'en_revision').length;
+  const resolvedCount = reports.filter(r => r.estado === 'resuelto').length;
 
   const getPriorityLevel = (priority) => {
     switch(priority) {
@@ -35,11 +40,36 @@ const RiskComponent = ({ userType = 'admin' }) => {
   };
 
   return (
-    <div className="risk-container">
-      <div className="risk-header-main">
-        <div className="risk-title">
-          <h2><AlertTriangle size={24} /> Reportes de Riesgo de Conductores</h2>
-          <p>Reportes de riesgo creados por los conductores durante sus operaciones</p>
+    <div className="risk-v2">
+      {/* Header V2 */}
+      <div className="risk-header-v2">
+        <div className="risk-header-info">
+          <div className="risk-header-icon">
+            <Shield size={28} />
+          </div>
+          <div className="risk-header-text">
+            <h2>Reportes de Riesgo</h2>
+            <p>Gestión de reportes de conductores</p>
+          </div>
+        </div>
+
+        <div className="risk-header-stats">
+          <div className="risk-stat-pill warning">
+            <span className="stat-number">{pendingCount}</span>
+            <span className="stat-label">Pendientes</span>
+          </div>
+          <div className="risk-stat-pill info">
+            <span className="stat-number">{inReviewCount}</span>
+            <span className="stat-label">En Revisión</span>
+          </div>
+          <div className="risk-stat-pill success">
+            <span className="stat-number">{resolvedCount}</span>
+            <span className="stat-label">Resueltos</span>
+          </div>
+          <div className="risk-stat-pill">
+            <span className="stat-number">{stats.total}</span>
+            <span className="stat-label">Total</span>
+          </div>
         </div>
       </div>
 
@@ -136,6 +166,14 @@ const RiskComponent = ({ userType = 'admin' }) => {
                         <span className="meta-label"><MapPin size={14} /> Ubicación:</span>
                         <span className="meta-value">{risk.ubicacion}</span>
                       </div>
+                      {risk.parada_nombre && (
+                        <div className="meta-row parada-highlight">
+                          <span className="meta-label"><Package size={14} /> Parada:</span>
+                          <span className="meta-value">
+                            {risk.parada_nombre} <strong>(Parada #{risk.parada_orden})</strong>
+                          </span>
+                        </div>
+                      )}
                       <div className="meta-row">
                         <span className="meta-label"><AlertTriangle size={14} /> Prioridad:</span>
                         <span className={`priority-badge priority-${risk.prioridad}`}>
@@ -234,6 +272,14 @@ const RiskComponent = ({ userType = 'admin' }) => {
                     <span className="detail-label"><MapPin size={14} /> Ubicación:</span>
                     <span className="detail-value">{selectedReport.ubicacion}</span>
                   </div>
+                  {selectedReport.parada_nombre && (
+                    <div className="detail-item parada-detail-highlight">
+                      <span className="detail-label"><Package size={14} /> Parada Asociada:</span>
+                      <span className="detail-value">
+                        {selectedReport.parada_nombre} <strong>(Parada #{selectedReport.parada_orden})</strong>
+                      </span>
+                    </div>
+                  )}
                   <div className="detail-item">
                     <span className="detail-label"><BarChart3 size={14} /> Última Actualización:</span>
                     <span className="detail-value">

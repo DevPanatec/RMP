@@ -52,6 +52,8 @@ export const add = mutation({
     tipo_ruta: v.string(),
     ruta_nombre: v.string(),
     ruta_paradas: v.optional(v.array(v.any())),
+    terminacion_anticipada: v.optional(v.boolean()),
+    motivo_terminacion: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("route_reports", args);

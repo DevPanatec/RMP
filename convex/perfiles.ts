@@ -1,5 +1,6 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
+import { api } from "./_generated/api";
 
 // Get perfil by userId (for auth)
 export const getByUserId = query({
@@ -236,5 +237,113 @@ export const getCurrentUser = query({
       proyecto_nombre: proyecto?.nombre || null,
       activo: perfil.activo,
     };
+  },
+});
+
+// CREATE USER VIA CLERK BACKEND API (ADMIN ONLY)
+// This allows admins to create new users WITHOUT logging out
+export const createUserWithClerk = action({
+  args: {
+    email: v.string(),
+    password: v.string(),
+    nombre_completo: v.string(),
+    tipo_usuario: v.union(v.literal("admin"), v.literal("enterprise"), v.literal("conductor")),
+    telefono: v.optional(v.string()),
+    documento: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Get Clerk Secret Key from environment variables
+    const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+
+    if (!clerkSecretKey) {
+      throw new Error("CLERK_SECRET_KEY not configured in environment variables");
+    }
+
+    try {
+      // Step 1: Create user in Clerk via Backend API
+      const clerkResponse = await fetch("https://api.clerk.com/v1/users", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${clerkSecretKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email_address: [args.email],
+          password: args.password,
+          first_name: args.nombre_completo.split(' ')[0],
+          last_name: args.nombre_completo.split(' ').slice(1).join(' ') || '',
+          skip_password_checks: false, // Validate password strength
+        }),
+      });
+
+      if (!clerkResponse.ok) {
+        const errorData = await clerkResponse.json();
+        throw new Error(`Clerk API error: ${JSON.stringify(errorData)}`);
+      }
+
+      const clerkUser = await clerkResponse.json();
+
+      // Step 2: Create profile in Convex using the Clerk user ID
+      // The userId format for Convex is: https://clerk-domain|user_id
+      const clerkDomain = "https://peaceful-mustang-86.clerk.accounts.dev";
+      const userId = `${clerkDomain}|${clerkUser.id}`;
+
+      await ctx.runMutation(api.perfiles.createByUserId, {
+        userId,
+        tipo_usuario: args.tipo_usuario,
+        nombre_completo: args.nombre_completo,
+        email: args.email,
+        telefono: args.telefono,
+        documento: args.documento,
+      });
+
+      // Step 3: Also create employee record (for Personnel section)
+      // Split nombre_completo into nombre and apellido
+      const nameParts = args.nombre_completo.split(' ');
+      const nombre = nameParts[0] || args.nombre_completo;
+      const apellido = nameParts.slice(1).join(' ') || '';
+
+      await ctx.runMutation(api.empleados.add, {
+        nombre,
+        apellido,
+        cedula: args.documento || '',
+        telefono: args.telefono,
+        cargo: args.tipo_usuario === 'conductor' ? 'Conductor' :
+               args.tipo_usuario === 'enterprise' ? 'Supervisor' : 'Administrador',
+      });
+
+      return {
+        success: true,
+        clerkUserId: clerkUser.id,
+        email: args.email,
+        tipo: args.tipo_usuario,
+      };
+
+    } catch (error: any) {
+      console.error("❌ Error creating user:", error);
+
+      // Parse Clerk API errors and provide user-friendly messages
+      const errorMessage = error.message || "";
+
+      // Check for specific Clerk error codes
+      if (errorMessage.includes("form_password_pwned")) {
+        throw new Error("La contraseña es muy débil o ha sido comprometida. Usa una contraseña más segura con mayúsculas, minúsculas, números y símbolos.");
+      }
+
+      if (errorMessage.includes("form_password_length_too_short")) {
+        throw new Error("La contraseña debe tener al menos 8 caracteres.");
+      }
+
+      if (errorMessage.includes("form_identifier_exists") || errorMessage.includes("already exists")) {
+        throw new Error("Este correo electrónico ya está registrado.");
+      }
+
+      if (errorMessage.includes("form_password_validation_failed")) {
+        throw new Error("La contraseña debe contener mayúsculas, minúsculas, números y símbolos.");
+      }
+
+      // Generic error
+      throw new Error(errorMessage || "Error al crear el usuario. Verifica los datos e intenta nuevamente.");
+    }
   },
 });

@@ -1,44 +1,41 @@
 import { useState } from 'react';
 import MapLocationPicker from '../MapLocationPicker/MapLocationPicker';
-import { Map, MapPin, Plus, X, Edit, Trash2, ClipboardList, AlertTriangle, Ruler } from '../Icons';
+import { Map, MapPin, Plus, X, Edit, Trash2, ClipboardList, AlertTriangle, Ruler, ChevronUp, ChevronDown } from '../Icons';
 import './EnhancedStopsManager.css';
 
 const EnhancedStopsManager = ({ stops = [], onStopsChange, showHeader = true }) => {
-  const [showAddForm, setShowAddForm] = useState(false);
-  console.log('EnhancedStopsManager renderizando:', { stops, showAddForm });
+  const [mapMode, setMapMode] = useState('add'); // 'add' or 'edit'
   const [editingStop, setEditingStop] = useState(null);
 
   const handleLocationSelect = (locationData) => {
-    const newStop = {
-      id: Date.now(),
-      direccion: locationData.address,
-      direccion_completa: locationData.full_address,
-      latitud: locationData.latitude,
-      longitud: locationData.longitude,
-      orden: stops.length + 1,
-      completada: false
-    };
-
-    const updatedStops = [...stops, newStop];
-    onStopsChange && onStopsChange(updatedStops);
-    setShowAddForm(false);
-  };
-
-  const handleEditLocationSelect = (locationData) => {
-    if (!editingStop) return;
-
-    const updatedStops = stops.map(stop => 
-      stop.id === editingStop.id ? {
-        ...stop,
+    if (mapMode === 'edit' && editingStop) {
+      // Modo edición
+      const updatedStops = stops.map(stop =>
+        stop.id === editingStop.id ? {
+          ...stop,
+          direccion: locationData.address,
+          direccion_completa: locationData.full_address,
+          latitud: locationData.latitude,
+          longitud: locationData.longitude
+        } : stop
+      );
+      onStopsChange && onStopsChange(updatedStops);
+      setEditingStop(null);
+      setMapMode('add');
+    } else {
+      // Modo agregar
+      const newStop = {
+        id: Date.now(),
         direccion: locationData.address,
         direccion_completa: locationData.full_address,
         latitud: locationData.latitude,
-        longitud: locationData.longitude
-      } : stop
-    );
-
-    onStopsChange && onStopsChange(updatedStops);
-    setEditingStop(null);
+        longitud: locationData.longitude,
+        orden: stops.length + 1,
+        completada: false
+      };
+      const updatedStops = [...stops, newStop];
+      onStopsChange && onStopsChange(updatedStops);
+    }
   };
 
   const handleRemoveStop = (stopId) => {
@@ -77,237 +74,190 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange, showHeader = true }) 
 
   const handleEditStop = (stop) => {
     setEditingStop(stop);
-    setShowAddForm(false);
+    setMapMode('edit');
   };
 
   const cancelEdit = () => {
     setEditingStop(null);
+    setMapMode('add');
   };
 
   return (
     <div className="enhanced-stops-manager">
-      {showHeader && (
-        <div className="stops-header">
-          <div className="header-content">
-            <h4><Map size={20} /> Paradas de la Ruta</h4>
-            <p>Agrega y organiza las paradas usando el mapa interactivo</p>
+      {/* Layout 2 columnas: Mapa + Lista */}
+      <div className="stops-grid-layout">
+        {/* Columna Izquierda: Mapa */}
+        <div className="map-column">
+          <div className="map-header">
+            <div className="map-header-content">
+              <MapPin size={20} />
+              <div>
+                <h5>
+                  {mapMode === 'edit' && editingStop
+                    ? `Editando Parada #${editingStop.orden}`
+                    : 'Agregar Nueva Parada'}
+                </h5>
+                <p>
+                  {mapMode === 'edit'
+                    ? 'Busca una nueva ubicación o haz clic en el mapa'
+                    : 'Busca una dirección o haz clic en el mapa para agregar'}
+                </p>
+              </div>
+            </div>
+            {mapMode === 'edit' && editingStop && (
+              <button
+                type="button"
+                className="btn btn--sm btn--outline"
+                onClick={cancelEdit}
+              >
+                <X size={14} />
+                Cancelar
+              </button>
+            )}
           </div>
-          <div className="header-actions">
-            <button
-              type="button"
-              className={`btn btn--primary ${showAddForm ? 'btn--active' : ''}`}
-              onClick={() => {
-                setShowAddForm(!showAddForm);
-                setEditingStop(null);
-              }}
-            >
-              {showAddForm ? <><X size={16} /> Cancelar</> : <><Plus size={16} /> Agregar Parada</>}
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* Formulario para agregar nueva parada */}
-      {showAddForm && (
-        <div className="add-stop-section">
-          <div className="add-stop-header">
-            <h5><MapPin size={18} /> Nueva Parada</h5>
-            <p>Busca una ubicación o haz clic en el mapa para agregar una parada</p>
-          </div>
           <MapLocationPicker
+            key={editingStop ? `edit-${editingStop.id}` : 'add'}
             onLocationSelect={handleLocationSelect}
-            placeholder="Buscar ubicación para nueva parada..."
+            placeholder={mapMode === 'edit' ? 'Buscar nueva ubicación...' : 'Buscar ubicación...'}
+            initialLocation={editingStop?.latitud && editingStop?.longitud ? [editingStop.latitud, editingStop.longitud] : null}
             showCoordinateInput={true}
-            height="350px"
+            height="500px"
           />
         </div>
-      )}
 
-      {editingStop && (
-        <div className="edit-stop-section">
-          <div className="edit-stop-header">
-            <h5><Edit size={18} /> Editar Parada #{editingStop.orden}</h5>
-            <div className="edit-actions">
-              <button
-                type="button"
-                className="btn btn--sm btn--outline"
-                onClick={cancelEdit}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-          <MapLocationPicker
-            onLocationSelect={handleEditLocationSelect}
-            placeholder="Buscar nueva ubicación..."
-            initialLocation={editingStop.latitud && editingStop.longitud ? [editingStop.latitud, editingStop.longitud] : null}
-            showCoordinateInput={true}
-            height="350px"
-          />
-        </div>
-      )}
-
-      {/* Formulario para editar parada existente */}
-      {editingStop && (
-        <div className="edit-stop-section">
-          <div className="edit-stop-header">
-            <h5>✏️ Editar Parada #{editingStop.orden}</h5>
-            <div className="edit-actions">
-              <button
-                type="button"
-                className="btn btn--sm btn--outline"
-                onClick={cancelEdit}
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-          <MapLocationPicker
-            onLocationSelect={handleEditLocationSelect}
-            placeholder="Buscar nueva ubicación..."
-            initialLocation={editingStop.latitud && editingStop.longitud ? [editingStop.latitud, editingStop.longitud] : null}
-            showCoordinateInput={true}
-            height="350px"
-          />
-        </div>
-      )}
-
-      {/* Botón flotante para agregar paradas cuando no hay header */}
-      {!showHeader && !showAddForm && !editingStop && (
-        <button
-          type="button"
-          className="btn btn--primary floating-add-btn"
-          onClick={() => setShowAddForm(true)}
-        >
-          <Plus size={16} /> Agregar Parada
-        </button>
-      )}
-
-      {/* Lista de paradas */}
-      {stops.length > 0 ? (
-        <div className="stops-list">
-          {showHeader && (
-            <div className="stops-list-header">
-              <h5><ClipboardList size={18} /> Paradas Definidas ({stops.length})</h5>
-            </div>
-          )}
-          {stops.map((stop, index) => (
-            <div key={stop.id || index} className={`stop-item ${editingStop?.id === stop.id ? 'editing' : ''}`}>
-              <div className="stop-order">
-                <span className="stop-number">{stop.orden}</span>
+        {/* Columna Derecha: Lista de paradas */}
+        <div className="stops-column">
+          <div className="stops-list-header">
+            <div className="header-left">
+              <ClipboardList size={20} />
+              <div>
+                <h5>Paradas de la Ruta</h5>
+                <p>{stops.length} parada{stops.length !== 1 ? 's' : ''} definida{stops.length !== 1 ? 's' : ''}</p>
               </div>
-              
-              <div className="stop-content">
-                <div className="stop-address">
-                  <strong>{stop.direccion}</strong>
+            </div>
+          </div>
+
+          {stops.length > 0 ? (
+            <>
+              <div className="stops-list">
+                {stops.map((stop, index) => (
+                  <div
+                    key={stop.id || index}
+                    className={`stop-item ${editingStop?.id === stop.id ? 'editing' : ''}`}
+                  >
+                    <div className="stop-number-badge">
+                      {stop.orden}
+                    </div>
+
+                    <div className="stop-content">
+                      <div className="stop-address">
+                        {stop.direccion}
+                      </div>
+                      {stop.direccion_completa && stop.direccion_completa !== stop.direccion && (
+                        <div className="stop-full-address">
+                          {stop.direccion_completa}
+                        </div>
+                      )}
+                      {stop.latitud && stop.longitud ? (
+                        <div className="stop-coordinates">
+                          <MapPin size={12} />
+                          <span>{stop.latitud.toFixed(6)}, {stop.longitud.toFixed(6)}</span>
+                        </div>
+                      ) : (
+                        <div className="stop-coordinates missing">
+                          <AlertTriangle size={12} />
+                          <span>Sin coordenadas</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="stop-actions">
+                      <button
+                        type="button"
+                        className="btn-icon"
+                        onClick={() => handleMoveStop(stop.id || index, 'up')}
+                        disabled={index === 0}
+                        title="Mover arriba"
+                      >
+                        <ChevronUp size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-icon"
+                        onClick={() => handleMoveStop(stop.id || index, 'down')}
+                        disabled={index === stops.length - 1}
+                        title="Mover abajo"
+                      >
+                        <ChevronDown size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-icon btn-icon--primary"
+                        onClick={() => handleEditStop(stop)}
+                        title="Editar ubicación"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-icon btn-icon--danger"
+                        onClick={() => handleRemoveStop(stop.id || index)}
+                        title="Eliminar"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Resumen */}
+              <div className="stops-summary">
+                <div className="summary-stats">
+                  <div className="stat-item">
+                    <MapPin size={18} />
+                    <div>
+                      <span className="stat-value">{stops.length}</span>
+                      <span className="stat-label">Paradas</span>
+                    </div>
+                  </div>
+                  <div className="stat-item">
+                    <Map size={18} />
+                    <div>
+                      <span className="stat-value">{stops.filter(s => s.latitud && s.longitud).length}</span>
+                      <span className="stat-label">Con GPS</span>
+                    </div>
+                  </div>
+                  <div className="stat-item">
+                    <Ruler size={18} />
+                    <div>
+                      <span className="stat-value">~{Math.round(stops.length * 2.5)} km</span>
+                      <span className="stat-label">Distancia</span>
+                    </div>
+                  </div>
                 </div>
-                {stop.direccion_completa && stop.direccion_completa !== stop.direccion && (
-                  <div className="stop-full-address">
-                    {stop.direccion_completa}
-                  </div>
-                )}
-                {stop.latitud && stop.longitud ? (
-                  <div className="stop-coordinates">
-                    <MapPin size={12} /> {stop.latitud.toFixed(6)}, {stop.longitud.toFixed(6)}
-                  </div>
-                ) : (
-                  <div className="stop-coordinates missing">
-                    <AlertTriangle size={12} /> Sin coordenadas - Haz clic en "Editar" para agregar ubicación exacta
-                  </div>
-                )}
-              </div>
-              
-              <div className="stop-actions">
-                <button
-                  type="button"
-                  className="btn btn--xs btn--outline"
-                  onClick={() => handleMoveStop(stop.id || index, 'up')}
-                  disabled={index === 0}
-                  title="Mover hacia arriba"
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--xs btn--outline"
-                  onClick={() => handleMoveStop(stop.id || index, 'down')}
-                  disabled={index === stops.length - 1}
-                  title="Mover hacia abajo"
-                >
-                  ↓
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--xs btn--primary"
-                  onClick={() => handleEditStop(stop)}
-                  title="Editar ubicación"
-                >
-                  <Edit size={14} />
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--xs btn--danger"
-                  onClick={() => handleRemoveStop(stop.id || index)}
-                  title="Eliminar parada"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="no-stops">
-          <div className="no-stops-content">
-            <div className="no-stops-icon"><Map size={64} strokeWidth={1.5} /></div>
-            <h4>No hay paradas definidas</h4>
-            <p>Agrega paradas usando el buscador de ubicaciones con mapa interactivo</p>
-            <button
-              type="button"
-              className="btn btn--primary"
-              onClick={() => setShowAddForm(true)}
-            >
-              <Plus size={16} /> Agregar Primera Parada
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* Resumen de paradas */}
-      {stops.length > 0 && (
-        <div className="stops-summary">
-          <div className="summary-stats">
-            <div className="stat-item">
-              <div className="stat-icon"><MapPin size={20} /></div>
-              <div className="stat-info">
-                <span className="stat-value">{stops.length}</span>
-                <span className="stat-label">Parada{stops.length !== 1 ? 's' : ''}</span>
+                {stops.filter(s => !s.latitud || !s.longitud).length > 0 && (
+                  <div className="summary-warning">
+                    <AlertTriangle size={16} />
+                    <span>
+                      {stops.filter(s => !s.latitud || !s.longitud).length} parada(s) sin coordenadas.
+                      Edítalas para mejorar la precisión.
+                    </span>
+                  </div>
+                )}
               </div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-icon"><Map size={20} /></div>
-              <div className="stat-info">
-                <span className="stat-value">{stops.filter(s => s.latitud && s.longitud).length}</span>
-                <span className="stat-label">Con coordenadas</span>
-              </div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-icon"><Ruler size={20} /></div>
-              <div className="stat-info">
-                <span className="stat-value">~{Math.round(stops.length * 2.5)} km</span>
-                <span className="stat-label">Distancia est.</span>
-              </div>
-            </div>
-          </div>
-          
-          {stops.filter(s => !s.latitud || !s.longitud).length > 0 && (
-            <div className="summary-warning">
-              <AlertTriangle size={16} /> {stops.filter(s => !s.latitud || !s.longitud).length} parada(s) sin coordenadas exactas. 
-              Edítalas para mejorar la precisión del mapa.
+            </>
+          ) : (
+            <div className="no-stops">
+              <Map size={48} strokeWidth={1.5} />
+              <h4>Sin paradas</h4>
+              <p>Usa el mapa de la izquierda para agregar ubicaciones</p>
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

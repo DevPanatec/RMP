@@ -4,6 +4,7 @@ export {
   Plus,
   X,
   Edit,
+  Edit3,
   Pencil,
   Trash2,
   Save,
@@ -36,7 +37,9 @@ export {
   LayoutDashboard,
   BarChart3,
   Users,
+  UserPlus,
   LogOut,
+  Lock,
   TrendingUp,
   TrendingDown,
   Download,
@@ -76,5 +79,16 @@ export {
   StopCircle,
   Gauge,
   Battery,
-  Signal
+  Signal,
+  Route,
+  CalendarCheck,
+  CalendarDays,
+  UserCheck,
+  PieChart,
+  Copy,
+  Recycle,
+  SprayCan
 } from 'lucide-react';
+
+// Alias para Spray
+export { SprayCan as Spray } from 'lucide-react';

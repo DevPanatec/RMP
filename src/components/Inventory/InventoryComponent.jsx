@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useInventory } from '../../context/InventoryContext';
-import { Package, FileText, AlertTriangle, X, Loader, CheckCircle, Search, Filter, LayoutGrid, List, Eye, Edit, Trash2, TrendingUp, TrendingDown } from '../Icons';
+import { Package, FileText, AlertTriangle, X, Loader, CheckCircle, Search, Filter, LayoutGrid, List, Eye, Edit, Trash2, TrendingUp, TrendingDown, Plus } from '../Icons';
 import ItemDetailModal from './ItemDetailModal';
 import './InventoryComponent.css';
 
@@ -613,13 +613,48 @@ const InventoryComponent = ({ userType = 'admin' }) => {
   );
 
 
+  // Calculate stats
+  const lowStockCount = materials.filter(m => getStockStatus(m) === 'bajo' || getStockStatus(m) === 'crítico').length;
+  const criticalCount = materials.filter(m => getStockStatus(m) === 'crítico').length;
+  const normalCount = materials.filter(m => getStockStatus(m) === 'normal').length;
+
   return (
-    <div className="inventory-container">
-      <div className="inventory-header-main">
-        <div className="inventory-title">
-          <h2><Package size={24} /> Gestión de Inventario</h2>
-          <p>Control integral de materiales e insumos</p>
+    <div className="inventory-v2">
+      {/* Header V2 */}
+      <div className="inventory-header-v2">
+        <div className="inventory-header-info">
+          <div className="inventory-header-icon">
+            <Package size={28} />
+          </div>
+          <div className="inventory-header-text">
+            <h2>Gestión de Inventario</h2>
+            <p>Control integral de materiales e insumos</p>
+          </div>
         </div>
+
+        <div className="inventory-header-stats">
+          <div className="inventory-stat-pill">
+            <span className="stat-number">{materials.length}</span>
+            <span className="stat-label">Total</span>
+          </div>
+          <div className="inventory-stat-pill success">
+            <span className="stat-number">{normalCount}</span>
+            <span className="stat-label">En Orden</span>
+          </div>
+          <div className="inventory-stat-pill warning">
+            <span className="stat-number">{lowStockCount}</span>
+            <span className="stat-label">Stock Bajo</span>
+          </div>
+          <div className="inventory-stat-pill danger">
+            <span className="stat-number">{criticalCount}</span>
+            <span className="stat-label">Crítico</span>
+          </div>
+        </div>
+
+        <button className="btn-add-v2" onClick={() => setShowMaterialModal(true)}>
+          <Plus size={18} />
+          Nuevo Item
+        </button>
       </div>
 
       {loading ? (

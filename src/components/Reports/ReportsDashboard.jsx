@@ -5,7 +5,7 @@ import { useCleaning } from '../../context/CleaningContext';
 import { useFumigation } from '../../context/FumigationContext';
 import { useMaintenance } from '../../context/MaintenanceContext';
 import { useReports } from '../../context/ReportsContext';
-import { Truck, Zap, Sparkles, Wrench, Bug, TrendingUp, CheckCircle, Clock, Download, ChevronRight, Calendar } from '../Icons';
+import { Truck, Zap, Sparkles, Wrench, Bug, TrendingUp, CheckCircle, Clock, Download, ChevronRight, Calendar, BarChart3 } from '../Icons';
 import { Card } from '../UI';
 import pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
@@ -37,7 +37,8 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
     mantenimiento: false
   });
 
-  const rutasRecoleccion = routes.filter(r => r.type === 'recoleccion' || r.tipoServicio === 'recoleccion');
+  // 🆕 CORREGIDO: Usar reportes de rutas completadas en lugar de rutas creadas
+  const rutasRecoleccion = reports.filter(r => r.tipo_ruta === 'recoleccion');
 
   const mantenimientoTotal = maintenanceTasks?.length || 0;
   const fumigacionTotal = fumigationAssignments?.length || 0;
@@ -51,8 +52,9 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
     const today = new Date();
     const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 
+    // 🆕 CORREGIDO: Usar fecha_completacion de reportes, no fecha de rutas creadas
     const recoleccionRecent = rutasRecoleccion.filter(r => {
-      const rDate = new Date(r.fecha || r.created_at);
+      const rDate = new Date(r.fecha_completacion);
       return rDate >= sevenDaysAgo;
     }).length;
 
@@ -74,14 +76,14 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
     return { recoleccionRecent, fumigacionRecent, limpiezaRecent, mantenimientoRecent };
   }, [rutasRecoleccion, fumigationAssignments, cleaningAssignments, maintenanceTasks]);
 
-  // Última actualización
+  // Última actualización (basada en reportes de recolección)
   const lastUpdate = useMemo(() => {
-    if (cleaningAssignments.length === 0) return 'Sin datos';
-    const dates = cleaningAssignments.map(a => new Date(a.fecha || a.created_at)).filter(d => !isNaN(d));
+    if (rutasRecoleccion.length === 0) return 'Sin datos';
+    const dates = rutasRecoleccion.map(r => new Date(r.fecha_completacion)).filter(d => !isNaN(d));
     if (dates.length === 0) return 'Sin datos';
     const maxDate = new Date(Math.max(...dates));
     return maxDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  }, [cleaningAssignments]);
+  }, [rutasRecoleccion]);
 
   // Toggle módulo
   const toggleModule = (module) => {
@@ -409,10 +411,35 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
         </div>
       )}
 
-      <div className="dashboard-header">
-        <div>
-          <h2>Dashboard de Reportes</h2>
-          <p>Vista general de todas las operaciones</p>
+      {/* Header V2 */}
+      <div className="reports-header-v2">
+        <div className="reports-header-info">
+          <div className="reports-header-icon">
+            <BarChart3 size={28} />
+          </div>
+          <div className="reports-header-text">
+            <h2>Reportes Operacionales</h2>
+            <p>Vista consolidada de todas las operaciones</p>
+          </div>
+        </div>
+
+        <div className="reports-header-stats">
+          <div className="reports-stat-pill success">
+            <span className="stat-number">{rutasRecoleccion.length}</span>
+            <span className="stat-label">Recolección</span>
+          </div>
+          <div className="reports-stat-pill info">
+            <span className="stat-number">{fumigacionTotal}</span>
+            <span className="stat-label">Fumigación</span>
+          </div>
+          <div className="reports-stat-pill warning">
+            <span className="stat-number">{limpiezaTotal}</span>
+            <span className="stat-label">Limpieza</span>
+          </div>
+          <div className="reports-stat-pill">
+            <span className="stat-number">{mantenimientoTotal}</span>
+            <span className="stat-label">Mantenimiento</span>
+          </div>
         </div>
       </div>
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { FileText, Trash2, RefreshCw, Truck, Package, MapPin, ClipboardList, AlertTriangle, X, CheckCircle } from '../Icons';
 import './WeightModal.css';
 
-const WeightModal = ({ isOpen, onClose, onConfirm, currentStop }) => {
+const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop }) => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,9 +35,16 @@ const WeightModal = ({ isOpen, onClose, onConfirm, currentStop }) => {
     }, 1000);
   };
 
-  const handleCategorySelect = (category) => {
+  const handleCategorySelect = async (category) => {
     setSelectedCategory(category);
     setError('');
+    setLoading(true);
+
+    // Auto-confirmar después de seleccionar (pequeño delay para feedback visual)
+    setTimeout(() => {
+      onConfirm(category);
+      setLoading(false);
+    }, 500);
   };
 
   const getCategoryDescription = (type) => {
@@ -109,56 +116,42 @@ const WeightModal = ({ isOpen, onClose, onConfirm, currentStop }) => {
             </div>
           </div>
 
+          {/* Botón para saltar parada */}
+          {onSkip && (
+            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
+              <button
+                className="skip-stop-btn"
+                onClick={onSkip}
+                type="button"
+              >
+                <AlertTriangle size={18} />
+                No puedo completar esta parada
+              </button>
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                textAlign: 'center',
+                marginTop: '8px',
+                marginBottom: 0
+              }}>
+                Se creará un reporte de riesgo y avanzarás a la siguiente parada
+              </p>
+            </div>
+          )}
+
           {error && (
             <div className="error-message">
               <AlertTriangle size={16} /> {error}
             </div>
           )}
 
-          {/* Resumen */}
-          {selectedCategory && (
-            <div className="weight-summary">
-              <div className="summary-header">
-                <ClipboardList size={18} /> Resumen
-              </div>
-              <div className="summary-content">
-                <div className="summary-item">
-                  <span className="summary-label">Parada:</span>
-                  <span className="summary-value">{currentStop}</span>
-                </div>
-                <div className="summary-item total">
-                  <span className="summary-label">Categoría seleccionada:</span>
-                  <span className="summary-value" style={{ textTransform: 'capitalize' }}>{selectedCategory}</span>
-                </div>
-              </div>
+          {/* Loading feedback */}
+          {loading && (
+            <div className="weight-loading">
+              <span className="spinner"></span>
+              <span>Registrando recolección...</span>
             </div>
           )}
-        </div>
-
-        <div className="modal-actions">
-          <button
-            className="btn btn--outline btn--full-width"
-            onClick={onClose}
-            disabled={loading}
-          >
-            <X size={16} /> Cancelar
-          </button>
-          <button
-            className="btn btn--primary btn--full-width"
-            onClick={handleSubmit}
-            disabled={loading || !selectedCategory}
-          >
-            {loading ? (
-              <span className="loading-text">
-                <span className="spinner"></span>
-                Procesando...
-              </span>
-            ) : (
-              <>
-                <CheckCircle size={16} /> Confirmar Recolección
-              </>
-            )}
-          </button>
         </div>
       </div>
     </div>

@@ -7,6 +7,8 @@ import { useAuth } from '../../context/AuthContext';
 import { BarChart3, Truck, Bug, Sparkles, Wrench, MapPin, Download, Calendar } from '../Icons';
 import ReportsDashboard from './ReportsDashboard';
 import LocationReportsModal from './LocationReportsModal';
+import RouteReportDetailModal from './RouteReportDetailModal';
+import FumigationReportsPage from './FumigationReportsPage';
 import { DEMO_LUGARES, DEMO_CLEANING_ASSIGNMENTS, mergeDemoData } from '../../utils/demoData';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import pdfMake from 'pdfmake/build/pdfmake';
@@ -18,6 +20,7 @@ pdfMake.vfs = pdfFonts.vfs;
 const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = null }) => {
   const [activeCategory, setActiveCategory] = useState('dashboard');
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedRouteReport, setSelectedRouteReport] = useState(null);
   const { isDemoMode } = useDemoMode();
   const [routeReports, setRouteReports] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -62,7 +65,6 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
   // Cargar reportes de rutas completadas
   useEffect(() => {
     if (activeCategory === 'recoleccion' && reportsData) {
-      console.log('📊 Reportes cargados:', reportsData);
       setRouteReports(reportsData);
     }
   }, [activeCategory, reportsData]);
@@ -429,14 +431,6 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     const endIndex = startIndex + ITEMS_PER_PAGE;
     const paginatedLocations = recoleccionLocations.slice(startIndex, endIndex);
 
-    console.log('📄 Paginación:', {
-      total: recoleccionLocations.length,
-      currentPage,
-      totalPages,
-      startIndex,
-      endIndex,
-      showing: paginatedLocations.length
-    });
 
     return (
       <div className="reports-category reports-recoleccion">
@@ -444,6 +438,51 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
           <h3>Reportes de Recolección por Ubicación</h3>
           <p>Selecciona un lugar para ver sus reportes de recolección ({recoleccionLocations.length} lugares)</p>
         </div>
+
+        {/* 📊 Reportes de Recolección Completados */}
+        {routeReports.length > 0 && (
+          <div className="route-reports-section">
+            <h3 className="route-reports-header">
+              📋 Reportes Completados ({routeReports.length})
+            </h3>
+            <div className="route-reports-grid">
+              {routeReports.map((report, idx) => (
+                <div
+                  key={idx}
+                  className="route-report-card"
+                  onClick={() => {
+                    console.log('📊 Abriendo reporte:', report.ruta_nombre);
+                    setSelectedRouteReport(report);
+                  }}
+                >
+                  <div className="route-report-card-header">
+                    <h4 className="route-report-card-title">{report.ruta_nombre}</h4>
+                    <span className="route-report-badge">
+                      ✓ Completada
+                    </span>
+                  </div>
+                  <div className="route-report-meta">
+                    <span className="route-report-meta-item">
+                      👤 {report.conductor_nombre}
+                    </span>
+                    <span className="route-report-meta-item">
+                      🚛 {report.vehiculo_placa}
+                    </span>
+                    <span className="route-report-meta-item">
+                      📦 {report.paradas_completadas?.length || 0} paradas
+                    </span>
+                    <span className="route-report-meta-item">
+                      📅 {new Date(report.fecha_completacion).toLocaleDateString('es-ES')}
+                    </span>
+                  </div>
+                  <p className="route-report-hint">
+                    Click para ver detalles completos y mapa de ruta
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {cleaningLoading ? (
           <div className="loading-state">
@@ -743,7 +782,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
         )}
 
         {selectedLocation && (
-          <LocationReportsModal
+          <FumigationReportsPage
             location={selectedLocation}
             onClose={() => {
               setSelectedLocation(null);
@@ -751,9 +790,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
                 onClearSelection();
               }
             }}
-            getPhotoUrl={getPhotoUrl}
             getStatusVariant={getStatusVariant}
-            modalType="fumigacion"
           />
         )}
       </div>
@@ -1173,6 +1210,14 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
             {renderCategoryContent()}
           </div>
         </>
+      )}
+
+      {/* Modal de detalle de reporte de ruta */}
+      {selectedRouteReport && (
+        <RouteReportDetailModal
+          report={selectedRouteReport}
+          onClose={() => setSelectedRouteReport(null)}
+        />
       )}
     </div>
   );

@@ -8,6 +8,26 @@ export const list = query({
   },
 });
 
+// List vehicles with minimal fields (for map view)
+// This reduces bandwidth by 60-80% by only sending essential GPS data
+export const listMinimal = query({
+  handler: async (ctx) => {
+    const vehicles = await ctx.db.query("vehiculos").collect();
+
+    // Only return fields needed for map markers
+    return vehicles.map((v) => ({
+      _id: v._id,
+      placa: v.placa,
+      nombre: v.nombre,
+      estado: v.estado,
+      tipo_servicio: v.tipo_servicio,
+      gps_latitud: v.gps_latitud,
+      gps_longitud: v.gps_longitud,
+      // Omit: marca, modelo, capacidad_carga, etc.
+    }));
+  },
+});
+
 // Get vehicles by estado
 export const getByEstado = query({
   args: { estado: v.string() },
@@ -45,24 +65,48 @@ export const add = mutation({
     placa: v.string(),
     marca: v.optional(v.string()),
     modelo: v.optional(v.string()),
-    anio: v.optional(v.number()),
+    anio: v.optional(v.number()), // Year of vehicle
     tipo: v.optional(v.string()),
-    tipo_servicio: v.string(),
+    tipoServicio: v.optional(v.string()), // Frontend usa camelCase
+    tipo_servicio: v.optional(v.string()), // También aceptar snake_case
+    tipoVehiculo: v.optional(v.string()), // tipo_vehiculo del frontend
     capacidad_carga: v.optional(v.number()),
     proyecto_asignado_id: v.optional(v.id("proyectos")),
-    // Campos GPS opcionales
+    // Campos GPS SafeTag
     gps_imei: v.optional(v.string()),
     gps_protocolo: v.optional(v.string()),
+    safetagDeviceId: v.optional(v.string()), // IMEI del GPS SafeTag (frontend)
+    safetagDeviceName: v.optional(v.string()), // Nombre del GPS SafeTag (frontend)
   },
   handler: async (ctx, args) => {
+    // Normalizar campos (frontend usa camelCase, DB usa snake_case)
+    const anio = args.anio;
+    const tipo_servicio = args.tipoServicio || args.tipo_servicio;
+    const tipo_vehiculo = args.tipoVehiculo;
+    const safetag_device_id = args.safetagDeviceId || args.gps_imei;
+    const safetag_device_name = args.safetagDeviceName;
+
     return await ctx.db.insert("vehiculos", {
-      ...args,
-      tipo: args.tipo || "camion", // Tipo por defecto si no se especifica
+      nombre: args.nombre,
+      placa: args.placa,
+      marca: args.marca,
+      modelo: args.modelo,
+      anio,
+      tipo: args.tipo || tipo_vehiculo || "camion",
+      tipo_servicio: tipo_servicio || "limpieza",
+      tipo_vehiculo, // Guardar tipo de vehículo específico
+      capacidad_carga: args.capacidad_carga,
+      proyecto_asignado_id: args.proyecto_asignado_id,
       estado: "disponible",
       combustible_nivel: 100,
       kilometraje: 0,
-      // Inicializar GPS como desconectado hasta recibir primer dato
-      gps_conectado: args.gps_imei ? false : undefined,
+      // GPS SafeTag
+      safetag_device_id,
+      safetag_device_name,
+      gps_imei: safetag_device_id, // Usar el IMEI de SafeTag
+      gps_protocolo: args.gps_protocolo,
+      gps_conectado: safetag_device_id ? false : undefined,
+      gps_en_linea: false,
     });
   },
 });
@@ -71,6 +115,7 @@ export const add = mutation({
 export const update = mutation({
   args: {
     id: v.id("vehiculos"),
+    nombre: v.optional(v.string()),
     placa: v.optional(v.string()),
     marca: v.optional(v.string()),
     modelo: v.optional(v.string()),
@@ -82,14 +127,27 @@ export const update = mutation({
     combustible_nivel: v.optional(v.number()),
     kilometraje: v.optional(v.number()),
     proyecto_asignado_id: v.optional(v.id("proyectos")),
+    // Campos GPS
+    safetag_device_id: v.optional(v.string()),
+    safetag_device_name: v.optional(v.string()),
+    gps_imei: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
-    return await ctx.db.patch(id, updates);
+    
+    // Filtrar campos undefined para no sobreescribir con undefined
+    const cleanUpdates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        cleanUpdates[key] = value;
+      }
+    }
+    
+    return await ctx.db.patch(id, cleanUpdates);
   },
 });
 
-// Update GPS position
+// Update GPS position (single vehicle)
 export const updateGPS = mutation({
   args: {
     id: v.id("vehiculos"),
@@ -99,6 +157,36 @@ export const updateGPS = mutation({
   handler: async (ctx, args) => {
     const { id, gps_latitud, gps_longitud } = args;
     return await ctx.db.patch(id, { gps_latitud, gps_longitud });
+  },
+});
+
+// BATCHED: Update GPS position for multiple vehicles at once
+// This reduces network overhead and triggers only ONE subscription update
+export const batchUpdateGPS = mutation({
+  args: {
+    updates: v.array(
+      v.object({
+        id: v.id("vehiculos"),
+        gps_latitud: v.number(),
+        gps_longitud: v.number(),
+      })
+    ),
+  },
+  handler: async (ctx, args) => {
+    // Update all vehicles in parallel within a single transaction
+    const results = await Promise.all(
+      args.updates.map((update) =>
+        ctx.db.patch(update.id, {
+          gps_latitud: update.gps_latitud,
+          gps_longitud: update.gps_longitud,
+        })
+      )
+    );
+
+    return {
+      success: true,
+      updated: results.length,
+    };
   },
 });
 

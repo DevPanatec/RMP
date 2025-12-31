@@ -1,3 +1,193 @@
+/* ============================================
+   SCHEDULE V2 - APPLE STYLE HEADER
+   ============================================ */
+
+.schedule-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.schedule-header-v2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px 32px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 2px solid rgba(61, 82, 41, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  flex-wrap: wrap;
+}
+
+.schedule-header-info {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.schedule-header-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3D5229 0%, #556B2F 100%);
+  border-radius: 16px;
+  color: white;
+  box-shadow: 0 8px 20px rgba(61, 82, 41, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.schedule-header-v2:hover .schedule-header-icon {
+  transform: scale(1.05) rotate(-3deg);
+  box-shadow: 0 12px 28px rgba(61, 82, 41, 0.4);
+}
+
+.schedule-header-text h2 {
+  margin: 0 0 4px 0;
+  font-family: var(--font-family-display);
+  font-size: 28px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1a1a1a 0%, #3D5229 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+}
+
+.schedule-header-text p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.schedule-header-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.schedule-stat-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 20px;
+  background: rgba(107, 114, 128, 0.08);
+  border: 2px solid rgba(107, 114, 128, 0.12);
+  border-radius: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 80px;
+}
+
+.schedule-stat-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+}
+
+.schedule-stat-pill.success {
+  background: rgba(52, 199, 89, 0.1);
+  border-color: rgba(52, 199, 89, 0.2);
+}
+
+.schedule-stat-pill.info {
+  background: rgba(0, 122, 255, 0.1);
+  border-color: rgba(0, 122, 255, 0.2);
+}
+
+.schedule-stat-pill.warning {
+  background: rgba(255, 149, 0, 0.1);
+  border-color: rgba(255, 149, 0, 0.2);
+}
+
+.schedule-stat-pill .stat-number {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.schedule-stat-pill.success .stat-number {
+  color: #34c759;
+}
+
+.schedule-stat-pill.info .stat-number {
+  color: #007aff;
+}
+
+.schedule-stat-pill.warning .stat-number {
+  color: #ff9500;
+}
+
+.schedule-stat-pill .stat-label {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.schedule-header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-add-v2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #3D5229 0%, #556B2F 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-family-base);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(61, 82, 41, 0.3);
+  white-space: nowrap;
+}
+
+.btn-add-v2:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(61, 82, 41, 0.4);
+  background: linear-gradient(135deg, #2a3a1d 0%, #3D5229 100%);
+}
+
+.btn-add-v2.secondary {
+  background: white;
+  color: #3D5229;
+  border: 2px solid rgba(61, 82, 41, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.btn-add-v2.secondary:hover {
+  background: rgba(61, 82, 41, 0.05);
+  border-color: rgba(61, 82, 41, 0.3);
+  box-shadow: 0 4px 16px rgba(61, 82, 41, 0.15);
+}
+
+/* Legacy styles for backwards compatibility */
 .schedule-container {
   padding: 20px;
   max-width: 1600px;
@@ -37,6 +227,43 @@
 .schedule-actions {
   display: flex;
   gap: 12px;
+}
+
+/* Responsive for V2 header */
+@media (max-width: 1024px) {
+  .schedule-header-v2 {
+    padding: 24px;
+  }
+  
+  .schedule-header-text h2 {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .schedule-header-v2 {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 20px;
+    padding: 20px;
+  }
+  
+  .schedule-header-info {
+    min-width: auto;
+  }
+  
+  .schedule-header-stats {
+    justify-content: center;
+  }
+  
+  .schedule-header-actions {
+    flex-direction: column;
+  }
+  
+  .btn-add-v2 {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .schedule-tabs-unified {
@@ -104,8 +331,30 @@
 
 .assignments-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Scrollbar styling para assignments-grid */
+.assignments-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.assignments-grid::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.assignments-grid::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #6b9656 0%, #3D5229 100%);
+  border-radius: 10px;
+}
+
+.assignments-grid::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #556B2F 0%, #3D5229 100%);
 }
 
 .assignment-card-unified {
@@ -123,6 +372,36 @@
     0 8px 24px rgba(61, 82, 41, 0.12),
     0 4px 12px rgba(0, 0, 0, 0.08);
   transform: translateY(-4px);
+}
+
+/* Versión compacta */
+.assignment-card-unified.compact {
+  padding: 16px;
+}
+
+.assignment-card-unified.compact .assignment-header-unified {
+  margin-bottom: 10px;
+}
+
+.assignment-card-unified.compact .assignment-type-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.assignment-card-unified.compact .assignment-title-unified h4 {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.assignment-card-unified.compact .assignment-details-unified {
+  padding-top: 12px;
+  margin-top: 12px;
+  gap: 8px;
+}
+
+.assignment-card-unified.compact .detail-item {
+  font-size: 13px;
 }
 
 .assignment-header-unified {
@@ -175,6 +454,39 @@
   color: #6b9656;
   font-weight: 500;
   text-transform: capitalize;
+}
+
+/* Metadata con badges */
+.assignment-metadata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.week-badge,
+.days-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.week-badge {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1.5px solid #86efac;
+  color: #166534;
+}
+
+.days-badge {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border: 1.5px solid #93c5fd;
+  color: #1e40af;
+  font-family: ui-monospace, 'SF Mono', monospace;
 }
 
 .assignment-actions-unified {

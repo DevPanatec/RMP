@@ -27,6 +27,7 @@ import type * as maintenance from "../maintenance.js";
 import type * as perfiles from "../perfiles.js";
 import type * as proyectos from "../proyectos.js";
 import type * as reportes_riesgo from "../reportes_riesgo.js";
+import type * as route_events from "../route_events.js";
 import type * as route_progress from "../route_progress.js";
 import type * as route_reports from "../route_reports.js";
 import type * as rutas from "../rutas.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   perfiles: typeof perfiles;
   proyectos: typeof proyectos;
   reportes_riesgo: typeof reportes_riesgo;
+  route_events: typeof route_events;
   route_progress: typeof route_progress;
   route_reports: typeof route_reports;
   rutas: typeof rutas;

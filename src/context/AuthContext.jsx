@@ -156,7 +156,36 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error('❌ Error signing up:', err);
       setLoading(false);
-      return { success: false, error: err.errors?.[0]?.message || err.message || 'Error al registrarse' };
+
+      // Detectar errores específicos de Clerk y mostrar mensajes amigables
+      const clerkError = err.errors?.[0];
+
+      if (clerkError?.code === 'form_password_pwned') {
+        return {
+          success: false,
+          error: 'La contraseña es muy débil o ha sido comprometida. Usa una contraseña más segura con mayúsculas, minúsculas, números y símbolos.'
+        };
+      }
+
+      if (clerkError?.code === 'form_password_length_too_short') {
+        return {
+          success: false,
+          error: 'La contraseña debe tener al menos 8 caracteres.'
+        };
+      }
+
+      if (clerkError?.code === 'form_identifier_exists') {
+        return {
+          success: false,
+          error: 'Este correo electrónico ya está registrado.'
+        };
+      }
+
+      // Error genérico
+      return {
+        success: false,
+        error: clerkError?.message || err.message || 'Error al registrarse. Verifica los datos e intenta nuevamente.'
+      };
     }
   };
 

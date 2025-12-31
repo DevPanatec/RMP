@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, useMap, Tooltip, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { useAction, useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import { Satellite, Map as MapIcon, MapPin, X, Truck, Navigation, CheckCircle, Clock, Play, Battery, Signal, RefreshCw, Target, Trash2 } from '../Icons';
+import { Satellite, Map as MapIcon, MapPin, X, Truck, Navigation, CheckCircle, Clock, Play, Battery, Signal, RefreshCw, Target, Trash2, Gauge, Copy, Radio, Recycle, Spray } from '../Icons';
 import LocationPopup from './LocationPopup';
 import GPSPlaybackModal from '../GPS/GPSPlaybackModal';
 import { DEMO_LUGARES, DEMO_CLEANING_ASSIGNMENTS } from '../../utils/demoData';
@@ -19,6 +19,88 @@ function MapClickHandler({ onClick, active }) {
       }
     },
   });
+  return null;
+}
+
+// Componente para auto-centrar el mapa en las rutas/paradas
+function AutoFitBounds({ rutas }) {
+  const map = useMap();
+
+  useEffect(() => {
+    console.log('🎯 AutoFitBounds - rutas recibidas:', rutas);
+
+    if (!rutas || rutas.length === 0) {
+      console.log('❌ AutoFitBounds - No hay rutas');
+      return;
+    }
+
+    // Recolectar todas las paradas de todas las rutas
+    const todasLasParadas = rutas.flatMap(ruta => ruta.paradas || []);
+    console.log('🎯 AutoFitBounds - Todas las paradas:', todasLasParadas);
+
+    const paradasValidas = todasLasParadas.filter(p =>
+      (p.lat || p.latitud) && (p.lng || p.longitud)
+    );
+    console.log('🎯 AutoFitBounds - Paradas válidas:', paradasValidas.length, paradasValidas);
+    console.log('🎯 AutoFitBounds - Coordenadas de cada parada:');
+    paradasValidas.forEach((p, idx) => {
+      console.log(`  Parada ${idx + 1}: lat=${p.lat || p.latitud}, lng=${p.lng || p.longitud}, nombre=${p.nombre || p.direccion}`);
+    });
+
+    if (paradasValidas.length === 0) {
+      console.log('❌ AutoFitBounds - No hay paradas válidas con GPS');
+      return;
+    }
+
+    const doFitBounds = () => {
+      // Invalidar tamaño del mapa para que calcule correctamente
+      map.invalidateSize();
+      console.log('🔄 AutoFitBounds - invalidateSize ejecutado');
+
+      // Calcular el centro geográfico de todas las paradas
+      const lats = paradasValidas.map(p => p.lat || p.latitud);
+      const lngs = paradasValidas.map(p => p.lng || p.longitud);
+      const centerLat = lats.reduce((sum, lat) => sum + lat, 0) / lats.length;
+      const centerLng = lngs.reduce((sum, lng) => sum + lng, 0) / lngs.length;
+
+      console.log('📍 Centro calculado:', [centerLat, centerLng]);
+      console.log('📍 Todas las lats:', lats);
+      console.log('📍 Todas las lngs:', lngs);
+
+      if (paradasValidas.length === 1) {
+        // Una sola parada: centrar con zoom fijo
+        console.log('✅ AutoFitBounds - setView (1 parada):', [centerLat, centerLng], 'zoom: 14');
+        map.setView([centerLat, centerLng], 14, { animate: true });
+      } else {
+        // Múltiples paradas: centrar manualmente con zoom que muestre ambas
+        // Calcular distancia aproximada para determinar zoom
+        const latDiff = Math.max(...lats) - Math.min(...lats);
+        const lngDiff = Math.max(...lngs) - Math.min(...lngs);
+        const maxDiff = Math.max(latDiff, lngDiff);
+
+        // Zoom basado en distancia (más paradas cerca = más zoom)
+        let zoom = 14;
+        if (maxDiff > 0.05) zoom = 12;
+        else if (maxDiff > 0.02) zoom = 13;
+        else if (maxDiff > 0.01) zoom = 14;
+        else zoom = 15;
+
+        console.log('✅ AutoFitBounds - setView (múltiples paradas):', [centerLat, centerLng], `zoom: ${zoom}`);
+        console.log('📏 MaxDiff:', maxDiff, 'Zoom seleccionado:', zoom);
+
+        map.setView([centerLat, centerLng], zoom, { animate: true });
+      }
+    };
+
+    // Esperar a que el mapa + marcadores + modal estén listos
+    const timeout = setTimeout(() => {
+      console.log('🗺️ Ejecutando fitBounds después de delay...');
+      doFitBounds();
+    }, 800); // 800ms para que el modal, mapa y marcadores estén completamente renderizados
+
+    return () => clearTimeout(timeout);
+  }, [map, rutas]);
+
   return null;
 }
 
@@ -581,6 +663,7 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
   const [playbackVehicle, setPlaybackVehicle] = useState(null); // Vehículo en reproducción
   const mapContainerRef = useRef(null); // Referencia al contenedor del mapa
   const [isSyncing, setIsSyncing] = useState(false); // Estado de sincronización GPS
+  const prevCamionesRef = useRef([]); // Tracking previo para evitar loops infinitos
   // Tema del mapa (dark/light) - Guardar en localStorage
   const [mapTheme, setMapTheme] = useState(() => {
     return localStorage.getItem('mapTheme') || 'dark';
@@ -588,7 +671,7 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
   const [showRouteInfo, setShowRouteInfo] = useState(false); // Mostrar información de la ruta
   // Mapa de rutas viales precalculadas { [routeId]: coords[] }
   const [roadRoutes, setRoadRoutes] = useState({});
-  const [routesLoading, setRoutesLoading] = useState(true);
+  const [routesLoading, setRoutesLoading] = useState(false);
   // Estado local de rutas con paradas actualizadas
   const [localRutas, setLocalRutas] = useState(rutas);
   
@@ -602,7 +685,29 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
   const geofences = useQuery(api.geofences.list) || [];
   const createGeofence = useMutation(api.geofences.create);
   const deleteGeofence = useMutation(api.geofences.remove);
-  
+
+  // Route progress (para mostrar paradas completadas/pendientes)
+  const allRouteProgress = useQuery(api.route_progress.list) || [];
+  const activeRouteProgress = useMemo(() => {
+    return allRouteProgress.filter(rp => rp.estado === 'en_progreso');
+  }, [allRouteProgress]);
+
+  // Memoizar el conteo de rutas para evitar re-renders innecesarios
+  const roadRoutesCount = useMemo(() => Object.keys(roadRoutes).length, [roadRoutes]);
+
+  // Usar refs para valores que se usan en el interval (evita stale closures)
+  const localRutasRef = useRef(localRutas);
+  const roadRoutesRef = useRef(roadRoutes);
+
+  // Mantener refs actualizados (NO causan re-renders, solo sincronizan refs)
+  useEffect(() => {
+    localRutasRef.current = localRutas;
+  }, [localRutas]);
+
+  useEffect(() => {
+    roadRoutesRef.current = roadRoutes;
+  }, [roadRoutes]);
+
   // Función para forzar sincronización GPS
   const handleForceSync = async () => {
     if (isSyncing) return;
@@ -668,116 +773,161 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
   };
 
   // Sincronizar localRutas cuando cambien las rutas desde props
-  useEffect(() => {
-    setLocalRutas(rutas);
-  }, [rutas]);
+  // DISABLED #1: Sincronizar localRutas - TESTING
+  // useEffect(() => {
+  //   setLocalRutas(rutas);
+  // }, [rutas]);
 
   // Mostrar todos los vehículos (demo y reales)
   const activeCamiones = mapCamiones;
 
   // ⚠️ SIMULACIÓN DESACTIVADA - Ahora usa datos GPS reales desde Convex
+  // DISABLED FOR DEBUGGING INFINITE LOOP
   // La simulación solo se activa en modo demo
+  // useEffect(() => {
+  //   // Si no es modo demo, NO simular movimiento (usar datos GPS reales)
+  //   const isDemoMode = camiones.some(c => c.id && c.id.startsWith('demo-'));
+
+  //   if (!realTimeEnabled || !isDemoMode) return;
+
+  //   const interval = setInterval(() => {
+  //     setMapCamiones(prevCamiones =>
+  //       prevCamiones.map(camion => {
+  //         // No actualizar si el camión está siendo hovereado o está seleccionado
+  //         if (hoveredTruckId === camion.id || selectedTruckId === camion.id) {
+  //           return camion;
+  //         }
+
+  //         if (camion.estado === 'En ruta' && (camion.rutaAsignada || camion.ruta_id)) {
+  //           const rutaId = camion.rutaAsignada || camion.ruta_id;
+  //           const ruta = localRutasRef.current.find(r => r.id === rutaId || r.nombre === rutaId);
+
+  //           if (ruta) {
+  //             // Usar la ruta calculada con OSRM desde roadRoutes
+  //             const rutaCalculada = roadRoutesRef.current[ruta.id];
+
+  //             // Hacer una copia de la ruta para modificarla
+  //             const rutaCopia = { ...ruta, paradas: [...(ruta.paradas || [])] };
+
+  //             // Usar la función de simulación mejorada con la ruta real
+  //             const camionActualizado = simularMovimientoReal(camion, rutaCopia, rutaCalculada);
+
+  //             // Actualizar localRutas si las paradas cambiaron
+  //             if (rutaCopia.paradas !== ruta.paradas) {
+  //               setLocalRutas(prevRutas =>
+  //                 prevRutas.map(r =>
+  //                   r.id === ruta.id ? rutaCopia : r
+  //                 )
+  //               );
+  //             }
+
+  //             // Agregar posición al historial siguiendo la ruta real
+  //             const newHistorial = [...(camion.historialPosiciones || [])];
+  //             if (newHistorial.length > 50) { // Mantener más puntos para rutas más suaves
+  //               newHistorial.shift();
+  //             }
+  //             newHistorial.push({
+  //               lat: camionActualizado.lat,
+  //               lng: camionActualizado.lng,
+  //               timestamp: new Date().toISOString()
+  //             });
+
+  //             return {
+  //               ...camionActualizado,
+  //               ultimaActualizacion: new Date().toISOString(),
+  //               historialPosiciones: newHistorial,
+  //               // Simular progreso en la ruta (cada ~30 segundos avanza una parada)
+  //               paradaActual: Math.min(
+  //                 rutaCopia.paradas?.length || camion.totalParadas || 0,
+  //                 camion.paradaActual + (Math.random() < 0.05 ? 1 : 0)
+  //               )
+  //             };
+  //           }
+  //         }
+  //         return camion;
+  //       })
+  //     );
+  //     setLastUpdate(new Date());
+  //   }, 3000); // Actualizar cada 3 segundos para movimiento más fluido (solo en demo)
+
+  //   return () => clearInterval(interval);
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [realTimeEnabled, hoveredTruckId, selectedTruckId]); // NO incluir localRutas ni roadRoutes (se usan en closure)
+
+  // Actualizar camiones SOLO cuando realmente cambien (deep comparison)
   useEffect(() => {
-    // Si no es modo demo, NO simular movimiento (usar datos GPS reales)
-    const isDemoMode = camiones.some(c => c.id && c.id.startsWith('demo-'));
+    // Si no hay camiones, no hacer nada
+    if (!camiones || camiones.length === 0) {
+      if (prevCamionesRef.current.length > 0) {
+        prevCamionesRef.current = [];
+        setMapCamiones([]);
+      }
+      return;
+    }
 
-    if (!realTimeEnabled || !isDemoMode) return;
+    // Comparar si realmente cambió algo relevante
+    const hasChanged =
+      camiones.length !== prevCamionesRef.current.length ||
+      camiones.some((c, i) => {
+        const prev = prevCamionesRef.current[i];
+        if (!prev) return true;
 
-    const interval = setInterval(() => {
-      setMapCamiones(prevCamiones =>
-        prevCamiones.map(camion => {
-          // No actualizar si el camión está siendo hovereado o está seleccionado
-          if (hoveredTruckId === camion.id || selectedTruckId === camion.id) {
-            return camion;
-          }
+        const cId = c._id || c.id;
+        const prevId = prev._id || prev.id;
 
-          if (camion.estado === 'En ruta' && (camion.rutaAsignada || camion.ruta_id)) {
-            const rutaId = camion.rutaAsignada || camion.ruta_id;
-            const ruta = localRutas.find(r => r.id === rutaId || r.nombre === rutaId);
+        // Solo considerar cambio si: ID cambió O GPS cambió O estado cambió
+        return cId !== prevId ||
+               c.gps_latitud !== prev.gps_latitud ||
+               c.gps_longitud !== prev.gps_longitud ||
+               c.lat !== prev.lat ||
+               c.lng !== prev.lng ||
+               c.estado !== prev.estado;
+      });
 
-            if (ruta) {
-              // Usar la ruta calculada con OSRM desde roadRoutes
-              const rutaCalculada = roadRoutes[ruta.id];
+    if (hasChanged) {
+      prevCamionesRef.current = camiones;
 
-              // Hacer una copia de la ruta para modificarla
-              const rutaCopia = { ...ruta, paradas: [...(ruta.paradas || [])] };
+      // Normalizar datos: asegurar que tenga lat/lng además de gps_latitud/gps_longitud
+      const normalizedCamiones = camiones.map(c => ({
+        ...c,
+        lat: c.lat || c.gps_latitud,
+        lng: c.lng || c.gps_longitud,
+        id: c.id || c._id,
+        placa: c.placa || c.vehiculo_placa
+      }));
 
-              // Usar la función de simulación mejorada con la ruta real
-              const camionActualizado = simularMovimientoReal(camion, rutaCopia, rutaCalculada);
-
-              // Actualizar localRutas si las paradas cambiaron
-              if (rutaCopia.paradas !== ruta.paradas) {
-                setLocalRutas(prevRutas =>
-                  prevRutas.map(r =>
-                    r.id === ruta.id ? rutaCopia : r
-                  )
-                );
-              }
-
-              // Agregar posición al historial siguiendo la ruta real
-              const newHistorial = [...(camion.historialPosiciones || [])];
-              if (newHistorial.length > 50) { // Mantener más puntos para rutas más suaves
-                newHistorial.shift();
-              }
-              newHistorial.push({
-                lat: camionActualizado.lat,
-                lng: camionActualizado.lng,
-                timestamp: new Date().toISOString()
-              });
-
-              return {
-                ...camionActualizado,
-                ultimaActualizacion: new Date().toISOString(),
-                historialPosiciones: newHistorial,
-                // Simular progreso en la ruta (cada ~30 segundos avanza una parada)
-                paradaActual: Math.min(
-                  rutaCopia.paradas?.length || camion.totalParadas || 0,
-                  camion.paradaActual + (Math.random() < 0.05 ? 1 : 0)
-                )
-              };
-            }
-          }
-          return camion;
-        })
-      );
-      setLastUpdate(new Date());
-    }, 3000); // Actualizar cada 3 segundos para movimiento más fluido (solo en demo)
-
-    return () => clearInterval(interval);
-  }, [realTimeEnabled, hoveredTruckId, selectedTruckId, localRutas, roadRoutes, camiones]);
-
-  // Actualizar cuando cambien los camiones externos
-  useEffect(() => {
-    setMapCamiones(camiones);
+      setMapCamiones(normalizedCamiones);
+    }
   }, [camiones]);
 
-  // Inicializar índices de camiones basados en paradas completadas cuando roadRoutes esté listo
-  useEffect(() => {
-    if (routesLoading || Object.keys(roadRoutes).length === 0) return;
+  // DISABLED #3: Inicializar índices
+  // useEffect(() => {
+  //   if (routesLoading || roadRoutesCount === 0) return;
 
-    setMapCamiones(prevCamiones =>
-      prevCamiones.map(camion => {
-        // Marcar que necesita recalcular índice si está en ruta
-        if (camion.estado === 'En ruta' && (camion.rutaAsignada || camion.ruta_id)) {
-          return {
-            ...camion,
-            _necesitaRecalcularIndice: true
-          };
-        }
-        return camion;
-      })
-    );
-  }, [routesLoading, roadRoutes]);
+  //   setMapCamiones(prevCamiones =>
+  //     prevCamiones.map(camion => {
+  //       if (camion.estado === 'En ruta' && (camion.rutaAsignada || camion.ruta_id)) {
+  //         return {
+  //           ...camion,
+  //           _necesitaRecalcularIndice: true
+  //         };
+  //       }
+  //       return camion;
+  //     })
+  //   );
+  // }, [routesLoading, roadRoutesCount]);
 
   // Actualizar selectedTruck cuando cambie externamente
-  useEffect(() => {
-    setSelectedTruckId(selectedTruck);
-    setShowTruckModal(!!selectedTruck);
-  }, [selectedTruck]);
+  // DISABLED #5: Selected truck modal - TESTING
+  // useEffect(() => {
+  //   setSelectedTruckId(selectedTruck);
+  //   setShowTruckModal(!!selectedTruck);
+  // }, [selectedTruck]);
 
   /* ------------------------------------------------------------
    * Precalcular rutas reales usando Mapbox Directions para TODAS las rutas al montar.
    * ----------------------------------------------------------*/
+  // ROUTE CALCULATION - Calcula rutas con Mapbox Directions API
   useEffect(() => {
     let mounted = true;
 
@@ -800,17 +950,17 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
             continue;
           }
 
-          console.log(`🗺️ Calculando ruta "${ruta.nombre || ruta.name}" (ID: ${ruta.id}) con ${paradasNormalizadas.length} paradas...`);
+          console.log(`🗺️ Calculando ruta "${ruta.nombre || ruta.name}" (ID: ${ruta._id || ruta.id}) con ${paradasNormalizadas.length} paradas...`);
 
           const coords = await calcularRutaCompleta(paradasNormalizadas);
 
           if (coords && coords.length > 0) {
-            newMap[ruta.id] = coords;
+            newMap[(ruta._id || ruta.id)] = coords;
             console.log(`✅ Ruta "${ruta.nombre || ruta.name}" calculada: ${coords.length} puntos de vía siguiendo calles`);
           } else {
             // Fallback: líneas directas
             console.warn(`⚠️ Usando líneas directas para ruta ${ruta.nombre}`);
-            newMap[ruta.id] = paradasNormalizadas.map(p => [p.lat, p.lng]);
+            newMap[(ruta._id || ruta.id)] = paradasNormalizadas.map(p => [p.lat, p.lng]);
           }
 
           // Pequeño delay para no sobrecargar la API (Mapbox tiene límites de rate)
@@ -825,7 +975,7 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
           })).filter(p => p.lat && p.lng);
 
           if (paradasNormalizadas.length > 0) {
-            newMap[ruta.id] = paradasNormalizadas.map(p => [p.lat, p.lng]);
+            newMap[(ruta._id || ruta.id)] = paradasNormalizadas.map(p => [p.lat, p.lng]);
           }
         }
       }
@@ -849,8 +999,62 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
     };
   }, [rutas]);
 
-  // Centro en Ciudad de Panamá con mejor zoom
-  const centerPosition = [8.9833, -79.5167]; // Centro de distribución en Pedregal
+  // Calcular centro y zoom dinámicamente basado en las rutas
+  const centerPosition = useMemo(() => {
+    // Si hay rutas y no hay camiones (modo reporte), centrar en las paradas de la ruta
+    if (localRutas && localRutas.length > 0 && mapCamiones.length === 0) {
+      const todasLasParadas = localRutas.flatMap(ruta => ruta.paradas || []);
+      const paradasValidas = todasLasParadas.filter(p =>
+        (p.lat || p.latitud) && (p.lng || p.longitud)
+      );
+
+      if (paradasValidas.length > 0) {
+        const lats = paradasValidas.map(p => p.lat || p.latitud);
+        const lngs = paradasValidas.map(p => p.lng || p.longitud);
+        const centerLat = lats.reduce((sum, lat) => sum + lat, 0) / lats.length;
+        const centerLng = lngs.reduce((sum, lng) => sum + lng, 0) / lngs.length;
+
+        console.log('🎯 Centro calculado para MapContainer:', [centerLat, centerLng]);
+        return [centerLat, centerLng];
+      }
+    }
+
+    // Default: Centro de distribución en Pedregal
+    return [8.9833, -79.5167];
+  }, [localRutas, mapCamiones]);
+
+  const initialZoom = useMemo(() => {
+    // Si hay rutas y no hay camiones (modo reporte), calcular zoom basado en distancia entre paradas
+    if (localRutas && localRutas.length > 0 && mapCamiones.length === 0) {
+      const todasLasParadas = localRutas.flatMap(ruta => ruta.paradas || []);
+      const paradasValidas = todasLasParadas.filter(p =>
+        (p.lat || p.latitud) && (p.lng || p.longitud)
+      );
+
+      if (paradasValidas.length > 1) {
+        const lats = paradasValidas.map(p => p.lat || p.latitud);
+        const lngs = paradasValidas.map(p => p.lng || p.longitud);
+        const latDiff = Math.max(...lats) - Math.min(...lats);
+        const lngDiff = Math.max(...lngs) - Math.min(...lngs);
+        const maxDiff = Math.max(latDiff, lngDiff);
+
+        // Zoom basado en distancia (más paradas cerca = más zoom)
+        let zoom = 14;
+        if (maxDiff > 0.05) zoom = 12;
+        else if (maxDiff > 0.02) zoom = 13;
+        else if (maxDiff > 0.01) zoom = 14;
+        else zoom = 15;
+
+        console.log('🎯 Zoom inicial calculado:', zoom, 'MaxDiff:', maxDiff);
+        return zoom;
+      } else if (paradasValidas.length === 1) {
+        return 14; // Una sola parada
+      }
+    }
+
+    // Default: zoom 13
+    return 13;
+  }, [localRutas, mapCamiones]);
 
   const getStatusColor = (estado) => {
     switch (estado) {
@@ -907,7 +1111,7 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
     const rutaId = camion.rutaAsignada || camion.ruta_id;
     if (!rutaId) return null;
 
-    const ruta = localRutas.find(r => r.id === rutaId || r.nombre === rutaId);
+    const ruta = localRutas.find(r => r._id === rutaId || r.id === rutaId || r.nombre === rutaId);
 
     // Si encontramos la ruta, normalizarla para que tenga la estructura esperada
     if (ruta) {
@@ -946,7 +1150,7 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
     if (!paradaActual) {
       const rutaId = camion.rutaAsignada || camion.ruta_id;
       if (rutaId) {
-        const ruta = localRutas.find(r => r.id === rutaId || r.nombre === rutaId);
+        const ruta = localRutas.find(r => r._id === rutaId || r.id === rutaId || r.nombre === rutaId);
         if (ruta && ruta.paradas) {
           paradaActual = ruta.paradas.filter(p => p.completada || p.completed).length;
         }
@@ -1000,7 +1204,7 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
       <div className="map-component">
         <MapContainer
           center={centerPosition}
-          zoom={13}
+          zoom={initialZoom}
           style={{ height: '1000px', width: '100%' }}
           className="leaflet-container gps-map"
           zoomAnimation={true}
@@ -1095,7 +1299,20 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
 
             // Buscar ruta con la misma lógica que getSelectedTruckRoute
             const rutaId = camion.rutaAsignada || camion.ruta_id;
-            const currentRoute = rutaId ? localRutas.find(r => r.id === rutaId || r.nombre === rutaId) : null;
+            const currentRoute = rutaId ? localRutas.find(r => r._id === rutaId || r.id === rutaId || r.nombre === rutaId) : null;
+
+            if (isSelected) {
+              console.log('🚛 CAMIÓN SELECCIONADO:', {
+                placa: camion.placa || camion.id,
+                conductor: camion.conductor,
+                conductor_nombre: camion.conductor_nombre,
+                rutaId,
+                currentRoute: currentRoute?.nombre,
+                paradasEnRuta: currentRoute?.paradas?.length,
+                selectedTruckId,
+                camionId: camion.id
+              });
+            }
 
             return (
               <div key={camion.id}>
@@ -1220,25 +1437,44 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
                 {(() => {
                   // Debug: Verificar condiciones antes de renderizar
                   if (isSelected) {
+                    const routeKey = currentRoute?._id || currentRoute?.id;
                     console.log(`🔍 Debug camión seleccionado ${camion.placa || camion.id}:`, {
                       showTrails,
                       isSelected,
                       estado: camion.estado,
                       rutaId,
-                      currentRoute: currentRoute?.id || currentRoute?.nombre,
-                      tieneRutaCalculada: currentRoute ? !!roadRoutes[currentRoute.id] : false,
-                      puntosRuta: currentRoute && roadRoutes[currentRoute.id] ? roadRoutes[currentRoute.id].length : 0
+                      currentRoute: currentRoute?.nombre,
+                      currentRouteId: routeKey,
+                      tieneRutaCalculada: currentRoute ? !!roadRoutes[routeKey] : false,
+                      puntosRuta: currentRoute && roadRoutes[routeKey] ? roadRoutes[routeKey].length : 0
                     });
                   }
 
-                  if (!showTrails || !isSelected || camion.estado !== 'En ruta' || !currentRoute) {
+                  // Mostrar ruta SIEMPRE cuando el vehículo esté seleccionado y tenga ruta asignada
+                  // (removido check de camion.estado !== 'En ruta' para mostrar ruta en cualquier estado)
+                  if (!isSelected || !currentRoute) {
                     return null;
                   }
 
-                  const rutaCalculada = roadRoutes[currentRoute.id];
+                  // Intentar usar ruta calculada por OSRM/Mapbox, o fallback a ruta directa entre paradas
+                  const routeKey = currentRoute._id || currentRoute.id;
+                  let rutaCalculada = roadRoutes[routeKey];
+
+                  // FALLBACK: Si no hay ruta calculada, crear ruta simple conectando las paradas directamente
                   if (!rutaCalculada || rutaCalculada.length === 0) {
-                    console.warn(`⚠️ No hay ruta calculada para ${currentRoute.id || currentRoute.nombre}`);
-                    return null;
+                    const paradas = currentRoute.paradas || [];
+                    if (paradas.length === 0) {
+                      console.warn(`⚠️ No hay paradas en la ruta ${currentRoute.id || currentRoute.nombre}`);
+                      return null;
+                    }
+
+                    // Crear ruta simple: líneas rectas entre paradas (estilo Google Maps)
+                    rutaCalculada = paradas.map(p => [
+                      p.lat || p.latitud,
+                      p.lng || p.longitud
+                    ]).filter(coord => coord[0] && coord[1]); // Filtrar coordenadas inválidas
+
+                    console.log(`🗺️ Usando ruta directa entre paradas para ${currentRoute.nombre}: ${rutaCalculada.length} puntos`);
                   }
 
                   // Usar la posición GPS actual del camión (indiceRuta) para dividir verde/gris
@@ -1341,6 +1577,95 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
                   );
                 })()}
 
+                {/* Marcadores de paradas de la ruta (cuando camión está seleccionado) */}
+                {isSelected && currentRoute && (() => {
+                  console.log('🚏 DEBUG PARADAS:', {
+                    isSelected,
+                    currentRoute: currentRoute?.nombre,
+                    currentRouteId: currentRoute?._id || currentRoute?.id,
+                    paradasCount: currentRoute?.paradas?.length,
+                    conductorName: camion.conductor || camion.conductor_nombre,
+                    activeRouteProgressCount: activeRouteProgress.length
+                  });
+
+                  const paradas = currentRoute.paradas || [];
+                  if (paradas.length === 0) {
+                    console.log('⚠️ No hay paradas en la ruta');
+                    return null;
+                  }
+
+                  // Obtener route_progress del conductor para saber qué paradas están completadas
+                  const conductorName = camion.conductor || camion.conductor_nombre;
+                  const progress = conductorName
+                    ? activeRouteProgress.find(rp => {
+                        const matchName = rp.conductor_nombre === conductorName;
+                        const matchRoute = (rp.ruta_id === currentRoute._id) || (rp.ruta_id === currentRoute.id);
+                        console.log('🔍 Buscando progress:', {
+                          rpConductor: rp.conductor_nombre,
+                          conductorName,
+                          matchName,
+                          rpRutaId: rp.ruta_id,
+                          currentRouteId: currentRoute._id || currentRoute.id,
+                          matchRoute
+                        });
+                        return matchName && matchRoute;
+                      })
+                    : null;
+
+                  console.log('📊 Progress encontrado:', progress);
+
+                  const completedStopsData = progress?.paradas_completadas || [];
+                  const completedIndices = new Set(completedStopsData.map(cs => cs.index));
+
+                  console.log('✅ Paradas completadas:', completedStopsData);
+
+                  return paradas.map((parada, idx) => {
+                    const lat = parada.lat || parada.latitud;
+                    const lng = parada.lng || parada.longitud || parada.lon;
+                    if (!lat || !lng) return null;
+
+                    const isCompleted = completedIndices.has(idx);
+                    const completedStop = completedStopsData.find(cs => cs.index === idx);
+
+                    // Crear icono personalizado para la parada
+                    const stopIcon = L.divIcon({
+                      className: 'custom-stop-marker',
+                      html: `
+                        <div class="stop-marker ${isCompleted ? 'completed' : 'pending'}">
+                          <div class="stop-number">${idx + 1}</div>
+                          <div class="stop-status-icon">${isCompleted ? '✓' : '⏳'}</div>
+                        </div>
+                      `,
+                      iconSize: [40, 40],
+                      iconAnchor: [20, 40]
+                    });
+
+                    return (
+                      <Marker
+                        key={`stop-${idx}-${currentRoute.id}`}
+                        position={[lat, lng]}
+                        icon={stopIcon}
+                      >
+                        <Popup>
+                          <div className="stop-popup">
+                            <h4>Parada #{idx + 1}</h4>
+                            <p><strong>{parada.nombre || parada.direccion}</strong></p>
+                            <p className={`stop-status ${isCompleted ? 'completed' : 'pending'}`}>
+                              Estado: {isCompleted ? '✅ Completada' : '⏳ Pendiente'}
+                            </p>
+                            {isCompleted && completedStop && (
+                              <>
+                                <p><strong>Categoría:</strong> {completedStop.category}</p>
+                                <p><strong>Hora:</strong> {completedStop.timestamp}</p>
+                              </>
+                            )}
+                          </div>
+                        </Popup>
+                      </Marker>
+                    );
+                  });
+                })()}
+
                 {/* Círculo de cobertura GPS para camiones en ruta */}
                 {camion.estado === 'En ruta' && isSelected && (
                   <Circle
@@ -1359,12 +1684,28 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
           })}
 
           {/* Dibujar la ruta seleccionada con segmentos de progreso */}
-          {!showTrails && getSelectedTruckRoute() && roadRoutes[getSelectedTruckRoute().id] &&
-           Array.isArray(roadRoutes[getSelectedTruckRoute().id]) &&
-           roadRoutes[getSelectedTruckRoute().id].length > 0 && (() => {
+          {!showTrails && getSelectedTruckRoute() && (() => {
             const route = getSelectedTruckRoute();
             const truck = getSelectedTruck();
-            const fullRoute = roadRoutes[route.id];
+
+            // Intentar usar ruta calculada, o fallback a ruta directa
+            const routeKey = route._id || route.id;
+            let fullRoute = roadRoutes[routeKey];
+
+            // FALLBACK: Si no hay ruta calculada, crear ruta simple conectando paradas
+            if (!fullRoute || fullRoute.length === 0) {
+              const paradas = route.paradas || [];
+              if (paradas.length === 0) return null;
+
+              fullRoute = paradas.map(p => [
+                p.lat || p.latitud,
+                p.lng || p.longitud
+              ]).filter(coord => coord[0] && coord[1]);
+
+              console.log(`🗺️ [!showTrails] Usando ruta directa para ${route.nombre}: ${fullRoute.length} puntos`);
+            }
+
+            if (!fullRoute || fullRoute.length === 0) return null;
 
             // Usar la posición GPS actual del camión (indiceRuta) para dividir verde/gris (misma lógica que arriba)
             let indiceActual = truck.indiceRuta || 0;
@@ -1503,6 +1844,90 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
               );
             })
           )}
+
+          {/* 🆕 Renderizado de rutas HISTÓRICAS (modo reporte - sin camiones) */}
+          {mapCamiones.length === 0 && localRutas && localRutas.length > 0 && localRutas.map((ruta) => {
+            const routeKey = ruta._id || ruta.id;
+            const paradas = ruta.paradas || [];
+            const rutaCalculada = roadRoutes[routeKey];
+
+            console.log(`🗺️ [HISTÓRICO] Renderizando ruta: ${ruta.nombre}, Paradas: ${paradas.length}, Ruta calculada: ${rutaCalculada ? rutaCalculada.length + ' puntos' : 'NO'}`);
+
+            return (
+              <div key={routeKey}>
+                {/* Polyline de la ruta calculada */}
+                {rutaCalculada && rutaCalculada.length > 1 && (
+                  <>
+                    {/* Glow para ruta completada */}
+                    <Polyline
+                      positions={rutaCalculada}
+                      color="#10b981"
+                      weight={16}
+                      opacity={0.3}
+                      className="route-glow-completed"
+                    />
+                    {/* Línea principal completada */}
+                    <Polyline
+                      positions={rutaCalculada}
+                      color="#10b981"
+                      weight={7}
+                      opacity={0.95}
+                      className="route-completed"
+                    />
+                    {/* Highlight brillante */}
+                    <Polyline
+                      positions={rutaCalculada}
+                      color="#34d399"
+                      weight={3}
+                      opacity={0.9}
+                      className="route-highlight"
+                    />
+                  </>
+                )}
+
+                {/* Marcadores de paradas */}
+                {paradas.map((parada, idx) => {
+                  const lat = parada.lat || parada.latitud;
+                  const lng = parada.lng || parada.longitud || parada.lon;
+                  console.log(`📍 MARCADOR Parada ${idx + 1}: lat=${lat}, lng=${lng}, nombre=${parada.nombre || parada.direccion}`);
+                  if (!lat || !lng) {
+                    console.warn(`⚠️ Parada ${idx + 1} sin coordenadas:`, parada);
+                    return null;
+                  }
+
+                  // Crear icono personalizado para la parada
+                  const stopIcon = L.divIcon({
+                    className: 'custom-stop-marker',
+                    html: `
+                      <div class="stop-marker completed">
+                        <div class="stop-number">${idx + 1}</div>
+                      </div>
+                    `,
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 40]
+                  });
+
+                  return (
+                    <Marker
+                      key={`historic-stop-${routeKey}-${idx}`}
+                      position={[lat, lng]}
+                      icon={stopIcon}
+                    >
+                      <Popup>
+                        <div className="stop-popup">
+                          <h4>Parada #{idx + 1}</h4>
+                          <p><strong>{parada.nombre || parada.direccion}</strong></p>
+                          <p className="stop-status completed">
+                            Estado: Completada
+                          </p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+              </div>
+            );
+          })}
 
           {/* Marcadores de puntos de limpieza */}
           {lugares
@@ -1776,7 +2201,17 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
                     )}
                     <div className="header-badges">
                       <span className="badge-service">
-                        {truck.tipo_servicio === 'fumigacion' || truck.tipoServicio === 'fumigacion' ? '🧪 Fumigación' : '🚛 Recolección'}
+                        {truck.tipo_servicio === 'fumigacion' || truck.tipoServicio === 'fumigacion' ? (
+                          <>
+                            <Spray size={14} />
+                            <span>Fumigación</span>
+                          </>
+                        ) : (
+                          <>
+                            <Recycle size={14} />
+                            <span>Recolección</span>
+                          </>
+                        )}
                       </span>
                       <span className={`badge-movement badge-movement--${movementStatus}`}>
                         <span className="badge-dot"></span>
@@ -1805,36 +2240,33 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
                         )}
                       </div>
                       
-                      <div className="stats-grid-4">
+                      <div className="stats-grid-3">
                         <div className="stat-box">
-                          <div className="stat-icon-small">🚀</div>
+                          <div className="stat-icon-small">
+                            <Gauge size={18} />
+                          </div>
                           <div className="stat-data">
                             <span className="stat-number">{truck.gps_velocidad ?? 0}</span>
                             <span className="stat-unit">km/h</span>
                           </div>
                           <span className="stat-label-small">Velocidad</span>
                         </div>
-                        
+
                         <div className="stat-box">
-                          <div className="stat-icon-small">🔋</div>
-                          <div className="stat-data">
-                            <span className="stat-number">{truck.gps_bateria ?? '—'}</span>
-                            <span className="stat-unit">%</span>
+                          <div className="stat-icon-small">
+                            <Signal size={18} />
                           </div>
-                          <span className="stat-label-small">Batería GPS</span>
-                        </div>
-                        
-                        <div className="stat-box">
-                          <div className="stat-icon-small">📶</div>
                           <div className="stat-data">
                             <span className="stat-number">{truck.gps_senal ?? '—'}</span>
                             <span className="stat-unit">%</span>
                           </div>
                           <span className="stat-label-small">Señal</span>
                         </div>
-                        
+
                         <div className="stat-box">
-                          <div className="stat-icon-small">🕐</div>
+                          <div className="stat-icon-small">
+                            <Clock size={18} />
+                          </div>
                           <div className="stat-data">
                             <span className="stat-number-text">
                               {formatTimeAgo(truck.gps_ultima_actualizacion || truck.ultimaActualizacion)}
@@ -1847,19 +2279,21 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
                       {/* Coordenadas con botón de copiar */}
                       {truck.lat && truck.lng && (
                         <div className="coordinates-row">
-                          <div className="coord-icon">📍</div>
+                          <div className="coord-icon">
+                            <MapPin size={16} />
+                          </div>
                           <div className="coord-values">
                             <span className="coord-label">Ubicación</span>
                             <span className="coord-text">{truck.lat.toFixed(6)}, {truck.lng.toFixed(6)}</span>
                           </div>
-                          <button 
+                          <button
                             className="btn-copy-coords"
                             onClick={() => {
                               navigator.clipboard.writeText(`${truck.lat}, ${truck.lng}`);
                             }}
                             title="Copiar coordenadas"
                           >
-                            📋
+                            <Copy size={14} />
                           </button>
                         </div>
                       )}
@@ -1896,7 +2330,7 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
                         <span>GPS</span>
                       </div>
                       <div className="no-gps-message">
-                        <span>📡</span>
+                        <Radio size={24} />
                         <p>Este vehículo no tiene GPS configurado</p>
                       </div>
                     </div>
@@ -1923,41 +2357,87 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
                           <span className="info-value">{truck.conductor}</span>
                         </div>
                       )}
-                      
-                      {truck.combustible_nivel !== undefined && (
-                        <div className="info-row-v2">
-                          <span className="info-label">Combustible</span>
-                          <div className="info-value-with-bar">
-                            <span>{truck.combustible_nivel}%</span>
-                            <div className="mini-progress-bar">
-                              <div 
-                                className="mini-progress-fill"
-                                style={{ 
-                                  width: `${truck.combustible_nivel}%`,
-                                  backgroundColor: truck.combustible_nivel > 50 ? '#10b981' : 
-                                                   truck.combustible_nivel > 20 ? '#f59e0b' : '#ef4444'
-                                }}
-                              ></div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {truck.kilometraje !== undefined && truck.kilometraje > 0 && (
-                        <div className="info-row-v2">
-                          <span className="info-label">Kilometraje</span>
-                          <span className="info-value">{truck.kilometraje.toLocaleString()} km</span>
-                        </div>
-                      )}
-                      
-                      {truck.capacidad_carga && (
-                        <div className="info-row-v2">
-                          <span className="info-label">Capacidad</span>
-                          <span className="info-value">{truck.capacidad_carga.toLocaleString()} kg</span>
-                        </div>
-                      )}
                     </div>
                   </div>
+
+                  {/* Sección Estado de Ruta (si tiene ruta activa) */}
+                  {(() => {
+                    const rutaId = truck.rutaAsignada || truck.ruta_id;
+                    const currentRoute = rutaId ? localRutas.find(r => r._id === rutaId || r.id === rutaId || r.nombre === rutaId) : null;
+
+                    if (!currentRoute) return null;
+
+                    const paradas = currentRoute.paradas || [];
+                    if (paradas.length === 0) return null;
+
+                    // Obtener route_progress del conductor
+                    const conductorName = truck.conductor || truck.conductor_nombre;
+                    const progress = conductorName
+                      ? activeRouteProgress.find(rp =>
+                          rp.conductor_nombre === conductorName &&
+                          (rp.ruta_id === currentRoute._id || rp.ruta_id === currentRoute.id)
+                        )
+                      : null;
+
+                    const completedStopsData = progress?.paradas_completadas || [];
+                    const completedCount = completedStopsData.length;
+                    const totalStops = paradas.length;
+                    const progressPercent = totalStops > 0 ? Math.round((completedCount / totalStops) * 100) : 0;
+
+                    return (
+                      <div className="info-section">
+                        <div className="section-title">
+                          <Navigation size={16} />
+                          <span>Estado de Ruta</span>
+                        </div>
+
+                        <div className="info-rows">
+                          <div className="info-row-v2">
+                            <span className="info-label">Ruta</span>
+                            <span className="info-value">{currentRoute.nombre}</span>
+                          </div>
+
+                          <div className="info-row-v2">
+                            <span className="info-label">Progreso</span>
+                            <span className="info-value" style={{ fontWeight: 600 }}>
+                              {completedCount} de {totalStops} paradas ({progressPercent}%)
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Lista de paradas */}
+                        <div className="route-stops-list">
+                          <div className="stops-list-header">
+                            <span>Paradas</span>
+                          </div>
+                          <div className="stops-list-items">
+                            {paradas.map((parada, idx) => {
+                              const completedStop = completedStopsData.find(cs => cs.index === idx);
+                              const isCompleted = !!completedStop;
+
+                              return (
+                                <div key={idx} className={`stop-list-item ${isCompleted ? 'completed' : 'pending'}`}>
+                                  <div className="stop-number-badge">{idx + 1}</div>
+                                  <div className="stop-info">
+                                    <div className="stop-name">{parada.nombre || parada.direccion}</div>
+                                    {isCompleted && completedStop.category && (
+                                      <div className="stop-category">{completedStop.category}</div>
+                                    )}
+                                    {isCompleted && completedStop.timestamp && (
+                                      <div className="stop-time">{completedStop.timestamp}</div>
+                                    )}
+                                  </div>
+                                  <div className="stop-status-icon">
+                                    {isCompleted ? '✓' : '⏳'}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* Sección Información del Vehículo */}
                   {(truck.marca || truck.modelo || truck.tipo || truck.anio) && (

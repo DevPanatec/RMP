@@ -3,17 +3,32 @@ import { v } from "convex/values";
 
 export const list = query({
   handler: async (ctx) => {
-    return await ctx.db.query("asignaciones_rutas").collect();
+    const assignments = await ctx.db.query("asignaciones_rutas").collect();
+
+    // JOIN con rutas y vehículos
+    const assignmentsWithDetails = await Promise.all(
+      assignments.map(async (assignment) => {
+        const ruta = assignment.ruta_id ? await ctx.db.get(assignment.ruta_id) : null;
+        const vehiculo = assignment.vehiculo_id ? await ctx.db.get(assignment.vehiculo_id) : null;
+
+        return {
+          ...assignment,
+          ruta: ruta,
+          vehiculo: vehiculo,
+          vehiculo_placa: vehiculo?.placa,
+        };
+      })
+    );
+
+    return assignmentsWithDetails;
   },
 });
 
 export const getByConductor = query({
-  args: { conductor_id: v.id("perfiles_usuarios") },
+  args: { conductor_nombre: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("asignaciones_rutas")
-      .withIndex("by_conductor", (q) => q.eq("conductor_id", args.conductor_id))
-      .collect();
+    const allAssignments = await ctx.db.query("asignaciones_rutas").collect();
+    return allAssignments.filter(a => a.conductor_nombre === args.conductor_nombre);
   },
 });
 
@@ -50,17 +65,22 @@ export const getByEstado = query({
 export const add = mutation({
   args: {
     ruta_id: v.id("rutas"),
-    conductor_id: v.id("perfiles_usuarios"),
+    conductor_id: v.optional(v.id("perfiles_usuarios")),
+    conductor_nombre: v.string(),
     vehiculo_id: v.id("vehiculos"),
     proyecto_id: v.optional(v.id("proyectos")),
     fecha_asignacion: v.string(),
+    hora_inicio: v.optional(v.string()),
+    hora_fin: v.optional(v.string()),
+    estado: v.optional(v.string()),
     dias_semana: v.optional(v.array(v.string())),
     ayudantes: v.optional(v.array(v.any())),
+    observaciones: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("asignaciones_rutas", {
       ...args,
-      estado: "asignada",
+      estado: args.estado || "asignada",
     });
   },
 });
@@ -68,9 +88,19 @@ export const add = mutation({
 export const update = mutation({
   args: {
     id: v.id("asignaciones_rutas"),
+    ruta_id: v.optional(v.id("rutas")),
+    conductor_id: v.optional(v.id("perfiles_usuarios")),
+    conductor_nombre: v.optional(v.string()),
+    vehiculo_id: v.optional(v.id("vehiculos")),
+    fecha_asignacion: v.optional(v.string()),
     fecha_inicio: v.optional(v.string()),
     fecha_completacion: v.optional(v.string()),
+    hora_inicio: v.optional(v.string()),
+    hora_fin: v.optional(v.string()),
     estado: v.optional(v.string()),
+    dias_semana: v.optional(v.array(v.string())),
+    ayudantes: v.optional(v.array(v.any())),
+    observaciones: v.optional(v.string()),
     paradas_completadas: v.optional(v.array(v.any())),
   },
   handler: async (ctx, args) => {

@@ -354,3 +354,87 @@ export const deletePhoto = mutation({
     return await ctx.db.delete(args.id);
   },
 });
+
+// ========== FUMIGATION REPORTS ==========
+export const listReports = query({
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("fumigation_reports")
+      .withIndex("by_fecha", (q) => q)
+      .order("desc")
+      .collect();
+  },
+});
+
+export const getReportById = query({
+  args: { id: v.id("fumigation_reports") },
+  handler: async (ctx, args) => {
+    const report = await ctx.db.get(args.id);
+    if (!report) return null;
+
+    // Obtener fotos con URLs
+    const photosWithUrls = await Promise.all(
+      (report.fotos_ids || []).map(async (photoId) => {
+        const photo = await ctx.db.get(photoId);
+        if (!photo) return null;
+        const url = await ctx.storage.getUrl(photo.storage_id);
+        return {
+          ...photo,
+          url,
+        };
+      })
+    );
+
+    return {
+      ...report,
+      fotos: photosWithUrls.filter(Boolean),
+    };
+  },
+});
+
+export const getReportsByLugar = query({
+  args: { lugar_id: v.id("lugares") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("fumigation_reports")
+      .withIndex("by_lugar", (q) => q.eq("lugar_id", args.lugar_id))
+      .order("desc")
+      .collect();
+  },
+});
+
+export const getReportsByDateRange = query({
+  args: {
+    fecha_inicio: v.string(),
+    fecha_fin: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const all = await ctx.db.query("fumigation_reports").collect();
+    return all.filter(
+      (r) => r.fecha_completacion >= args.fecha_inicio && r.fecha_completacion <= args.fecha_fin
+    );
+  },
+});
+
+export const createReport = mutation({
+  args: {
+    assignment_id: v.id("fumigation_assignments"),
+    tipo_fumigacion: v.union(v.literal("interna"), v.literal("externa")),
+    lugar_id: v.id("lugares"),
+    lugar_nombre: v.string(),
+    latitud: v.optional(v.number()),
+    longitud: v.optional(v.number()),
+    fecha: v.string(),
+    horario_inicio: v.string(),
+    horario_fin: v.string(),
+    duracion_minutos: v.number(),
+    productos_utilizados: v.array(v.string()),
+    observaciones: v.optional(v.string()),
+    fotos_ids: v.array(v.id("fumigation_photos")),
+    usuario_completo: v.string(),
+    fecha_completacion: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("fumigation_reports", args);
+  },
+});

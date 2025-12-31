@@ -37,7 +37,8 @@ export default defineSchema({
     modelo: v.optional(v.string()),
     anio: v.optional(v.number()),
     tipo: v.optional(v.string()), // "camion", "camioneta", etc.
-    tipo_servicio: v.string(), // "recoleccion", "fumigacion"
+    tipo_servicio: v.string(), // "recoleccion", "fumigacion", "limpieza"
+    tipo_vehiculo: v.optional(v.string()), // "bus", "barredora", "pickup", "cisterna", "camion_carga", "compactador", "fumigadora"
     estado: v.string(), // "disponible", "en_ruta", "en_mantenimiento"
     capacidad_carga: v.optional(v.number()),
     combustible_nivel: v.optional(v.number()),
@@ -71,14 +72,17 @@ export default defineSchema({
   // 4. Rutas
   rutas: defineTable({
     nombre: v.string(),
+    descripcion: v.optional(v.string()),
     proyecto_id: v.optional(v.id("proyectos")),
     tipo_servicio: v.string(),
     paradas: v.array(v.any()), // Array de paradas (JSONB)
     fecha_programada: v.optional(v.string()),
     hora_inicio: v.optional(v.string()),
     hora_fin: v.optional(v.string()),
+    dias_operacion: v.optional(v.array(v.string())), // ["lunes", "martes", ...]
     estado: v.string(), // "pendiente", "en_progreso", "completada", "cancelada"
     distancia_total: v.optional(v.number()),
+    tiempo_estimado: v.optional(v.number()), // Tiempo estimado en minutos
     combustible_estimado: v.optional(v.number()),
     observaciones: v.optional(v.string()),
   })
@@ -88,18 +92,21 @@ export default defineSchema({
   // 5. Asignaciones de Rutas
   asignaciones_rutas: defineTable({
     ruta_id: v.id("rutas"),
-    conductor_id: v.id("perfiles_usuarios"),
+    conductor_id: v.optional(v.id("perfiles_usuarios")), // Opcional: solo si el conductor tiene usuario
+    conductor_nombre: v.string(), // Nombre completo del conductor (campo principal)
     vehiculo_id: v.id("vehiculos"),
     proyecto_id: v.optional(v.id("proyectos")),
     fecha_asignacion: v.string(),
     fecha_inicio: v.optional(v.string()),
     fecha_completacion: v.optional(v.string()),
-    estado: v.string(), // "asignada", "en_progreso", "completada", "cancelada"
+    hora_inicio: v.optional(v.string()), // Horario de inicio de la ruta
+    hora_fin: v.optional(v.string()), // Horario de fin de la ruta
+    estado: v.string(), // "asignada", "en_progreso", "completada", "cancelada", "programada"
     paradas_completadas: v.optional(v.array(v.any())),
     dias_semana: v.optional(v.array(v.string())),
     ayudantes: v.optional(v.array(v.any())),
+    observaciones: v.optional(v.string()),
   })
-    .index("by_conductor", ["conductor_id"])
     .index("by_vehiculo", ["vehiculo_id"])
     .index("by_ruta", ["ruta_id"])
     .index("by_estado", ["estado"]),
@@ -139,9 +146,35 @@ export default defineSchema({
     tipo_ruta: v.string(),
     ruta_nombre: v.string(),
     ruta_paradas: v.optional(v.array(v.any())),
+    terminacion_anticipada: v.optional(v.boolean()),
+    motivo_terminacion: v.optional(v.string()),
   })
     .index("by_conductor", ["conductor_nombre"])
     .index("by_fecha", ["fecha_completacion"]),
+
+  // 7b. Eventos de Rutas (Activity Log)
+  route_events: defineTable({
+    ruta_id: v.optional(v.id("rutas")),
+    asignacion_id: v.optional(v.id("asignaciones_rutas")),
+    conductor_id: v.optional(v.id("perfiles_usuarios")),
+    conductor_nombre: v.string(),
+    vehiculo_id: v.optional(v.id("vehiculos")),
+    vehiculo_placa: v.string(),
+    ruta_nombre: v.string(),
+    tipo_evento: v.string(), // "ruta_iniciada", "parada_llegada", "parada_salida", "parada_completada", "ruta_completada"
+    parada_nombre: v.optional(v.string()),
+    parada_orden: v.optional(v.number()),
+    parada_index: v.optional(v.number()),
+    categoria_carga: v.optional(v.string()),
+    gps_latitud: v.optional(v.number()),
+    gps_longitud: v.optional(v.number()),
+    detalles: v.optional(v.string()),
+    timestamp: v.string(),
+  })
+    .index("by_asignacion", ["asignacion_id"])
+    .index("by_ruta", ["ruta_id"])
+    .index("by_conductor", ["conductor_id"])
+    .index("by_timestamp", ["timestamp"]),
 
   // 8. Empleados
   empleados: defineTable({
@@ -176,6 +209,14 @@ export default defineSchema({
     prioridad: v.optional(v.number()),
     fecha_reporte: v.string(),
     estado: v.optional(v.string()),
+    // Campos desnormalizados para facilitar consultas
+    conductor_nombre: v.optional(v.string()),
+    vehiculo_placa: v.optional(v.string()),
+    perfil_usuario_id: v.optional(v.id("perfiles_usuarios")),
+    // Vinculación con paradas específicas
+    parada_nombre: v.optional(v.string()), // Dirección/nombre de la parada
+    parada_orden: v.optional(v.number()), // Orden de la parada en la ruta
+    parada_index: v.optional(v.number()), // Índice de la parada (0-based)
   })
     .index("by_fecha", ["fecha_reporte"])
     .index("by_severidad", ["nivel_severidad"]),
@@ -228,6 +269,8 @@ export default defineSchema({
   salas: defineTable({
     nombre: v.string(),
     descripcion: v.optional(v.string()),
+    latitud: v.optional(v.number()), // Coordenadas GPS de la sala
+    longitud: v.optional(v.number()),
     activo: v.boolean(),
   }).index("by_activo", ["activo"]),
 
@@ -235,6 +278,8 @@ export default defineSchema({
   lugares: defineTable({
     nombre: v.string(),
     descripcion: v.optional(v.string()),
+    latitud: v.optional(v.number()), // Coordenadas GPS del lugar
+    longitud: v.optional(v.number()),
     activo: v.boolean(),
   })
     .index("by_activo", ["activo"]),
@@ -338,6 +383,52 @@ export default defineSchema({
   })
     .index("by_assignment", ["assignment_id"]),
 
+  // 18b. Reportes de Fumigación Completados
+  fumigation_reports: defineTable({
+    assignment_id: v.id("fumigation_assignments"),
+    tipo_fumigacion: v.union(v.literal("interna"), v.literal("externa")),
+    lugar_id: v.id("lugares"),
+    lugar_nombre: v.string(),
+    latitud: v.optional(v.number()),
+    longitud: v.optional(v.number()),
+    fecha: v.string(),
+    horario_inicio: v.string(),
+    horario_fin: v.string(),
+    duracion_minutos: v.number(),
+    productos_utilizados: v.array(v.string()),
+    observaciones: v.optional(v.string()),
+    fotos_ids: v.array(v.id("fumigation_photos")),
+    usuario_completo: v.string(),
+    fecha_completacion: v.string(),
+  })
+    .index("by_fecha", ["fecha_completacion"])
+    .index("by_lugar", ["lugar_id"])
+    .index("by_tipo", ["tipo_fumigacion"]),
+
+  // 18c. Reportes de Limpieza Completados
+  cleaning_reports: defineTable({
+    assignment_id: v.id("cleaning_assignments"),
+    sala_id: v.id("salas"),
+    area_id: v.id("areas"),
+    sala_nombre: v.string(),
+    area_nombre: v.string(),
+    latitud: v.optional(v.number()),
+    longitud: v.optional(v.number()),
+    fecha: v.string(),
+    hora_inicio: v.string(),
+    hora_fin: v.string(),
+    duracion_minutos: v.number(),
+    fotos_antes_ids: v.array(v.id("cleaning_photos")),
+    fotos_durante_ids: v.array(v.id("cleaning_photos")),
+    fotos_despues_ids: v.array(v.id("cleaning_photos")),
+    observaciones: v.optional(v.string()),
+    usuario_completo: v.string(),
+    fecha_completacion: v.string(),
+  })
+    .index("by_fecha", ["fecha_completacion"])
+    .index("by_sala", ["sala_id"])
+    .index("by_area", ["area_id"]),
+
   // 19. Geofences (Zonas de monitoreo)
   geofences: defineTable({
     nombre: v.string(),
@@ -383,7 +474,7 @@ export default defineSchema({
     .index("by_vehiculo_geofence", ["vehiculo_id", "geofence_id"]),
 
   // 22. Historial de Ubicaciones GPS
-  vehicleHistory: defineTable({
+  vehicle_location_history: defineTable({
     vehiculo_id: v.id("vehiculos"),
     timestamp: v.number(), // Unix timestamp (milisegundos) - cuando NOSOTROS recibimos el dato
     gps_latitud: v.number(),

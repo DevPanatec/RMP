@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useInventory } from '../../context/InventoryContext';
-import { DollarSign, TrendingUp, TrendingDown, Package, ShoppingCart, Wrench, Shield, Users as UsersIcon, Calendar } from '../Icons';
+import { DollarSign, TrendingUp, TrendingDown, Package, ShoppingCart, Wrench, Shield, Users as UsersIcon, Calendar, PieChart } from '../Icons';
 import './CostosComponent.css';
 
 const CostosComponent = () => {
@@ -71,13 +71,35 @@ const CostosComponent = () => {
   };
 
   return (
-    <div className="costos-container">
-      <div className="costos-header">
-        <div>
-          <h2>Análisis de Costos de Inventario</h2>
-          <p className="costos-subtitle">Control y seguimiento de gastos en materiales e insumos</p>
+    <div className="costos-v2">
+      {/* Header V2 */}
+      <div className="costos-header-v2">
+        <div className="costos-header-info">
+          <div className="costos-header-icon">
+            <PieChart size={28} />
+          </div>
+          <div className="costos-header-text">
+            <h2>Análisis de Costos</h2>
+            <p>Control y seguimiento de gastos en inventario</p>
+          </div>
         </div>
-        <div className="period-selector">
+
+        <div className="costos-header-stats">
+          <div className="costos-stat-pill success">
+            <span className="stat-number">${valorTotalInventario.toLocaleString()}</span>
+            <span className="stat-label">Valor Total</span>
+          </div>
+          <div className="costos-stat-pill info">
+            <span className="stat-number">${gastoMesActual.toLocaleString()}</span>
+            <span className="stat-label">Este Mes</span>
+          </div>
+          <div className="costos-stat-pill">
+            <span className="stat-number">{totalItems}</span>
+            <span className="stat-label">Items</span>
+          </div>
+        </div>
+
+        <div className="period-selector-v2">
           <button className={selectedPeriod === '6' ? 'active' : ''} onClick={() => setSelectedPeriod('6')}>
             6 Meses
           </button>

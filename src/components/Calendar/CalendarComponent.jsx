@@ -66,7 +66,7 @@ const CalendarComponent = () => {
 
     const routeAssignments = scheduleAssignments.filter(assignment => {
       // Debe ser la misma semana (misma fecha de inicio de semana)
-      if (assignment.fecha !== dateWeekStart) return false;
+      if (assignment.fecha_asignacion !== dateWeekStart) return false;
 
       // Y debe incluir este día de la semana
       if (assignment.dias_semana && Array.isArray(assignment.dias_semana)) {
@@ -287,12 +287,43 @@ const CalendarComponent = () => {
     return formatDate(date) === formatDate(today);
   };
 
+  // Calculate activity counts for header
+  const totalRecoleccion = scheduleAssignments.filter(a => a.ruta?.tipo_servicio === 'recoleccion').length;
+  const totalFumigacion = fumigationAssignments?.length || 0;
+  const totalLimpieza = cleaningAssignments?.length || 0;
+  const totalMantenimiento = maintenanceTasks?.length || 0;
+
   return (
-    <div className="calendar-container">
-      <div className="calendar-header">
-        <div className="calendar-title">
-          <h2><CalendarIcon size={24} /> Calendario</h2>
-          <p>Vista consolidada de todas las actividades programadas</p>
+    <div className="calendar-v2">
+      {/* Header V2 */}
+      <div className="calendar-header-v2">
+        <div className="calendar-header-info">
+          <div className="calendar-header-icon">
+            <CalendarIcon size={28} />
+          </div>
+          <div className="calendar-header-text">
+            <h2>Calendario de Operaciones</h2>
+            <p>Vista consolidada de todas las actividades</p>
+          </div>
+        </div>
+
+        <div className="calendar-header-stats">
+          <div className="calendar-stat-pill success">
+            <span className="stat-number">{totalRecoleccion}</span>
+            <span className="stat-label">Recolección</span>
+          </div>
+          <div className="calendar-stat-pill info">
+            <span className="stat-number">{totalFumigacion}</span>
+            <span className="stat-label">Fumigación</span>
+          </div>
+          <div className="calendar-stat-pill warning">
+            <span className="stat-number">{totalLimpieza}</span>
+            <span className="stat-label">Limpieza</span>
+          </div>
+          <div className="calendar-stat-pill">
+            <span className="stat-number">{totalMantenimiento}</span>
+            <span className="stat-label">Mantenimiento</span>
+          </div>
         </div>
       </div>
 

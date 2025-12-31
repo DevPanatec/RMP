@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRoutes } from '../../context/RoutesContext';
 import RouteModal from '../RouteModal/RouteModal';
-import { Map, Edit, Trash2, MapPin, Clock, Truck } from '../Icons';
+import { Map, Edit, Trash2, MapPin, Clock, Truck, Plus, Route } from '../Icons';
 import './RoutesComponent.css';
 
 // Helper para convertir formato 24h a 12h (AM/PM)
@@ -45,8 +45,8 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
 
   const handleSave = async (routeData) => {
     try {
-      if (isEditing && editingRoute?.id) {
-        await updateRoute(editingRoute.id, routeData);
+      if (isEditing && (editingRoute?._id || editingRoute?.id)) {
+        await updateRoute(editingRoute._id || editingRoute.id, routeData);
       } else {
         await addRoute(routeData);
       }
@@ -59,110 +59,132 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="routes-component">
-        <div className="routes-header">
-          <h3><Map size={24} /> Gestión de Rutas</h3>
-        </div>
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <div>Cargando rutas...</div>
-        </div>
-      </div>
-    );
-  }
+  // Stats
+  const recoleccionRoutes = routes.filter(r => (r.tipo_servicio || r.tipoServicio) === 'recoleccion');
+  const fumigacionRoutes = routes.filter(r => (r.tipo_servicio || r.tipoServicio) === 'fumigacion');
 
   return (
-    <div className="routes-component">
-      <div className="routes-header">
-        <div className="routes-header-left">
-          <h3><Map size={24} /> Gestión de Rutas</h3>
-          <div className="routes-count">
-            {routes.length} {routes.length === 1 ? 'ruta' : 'rutas'}
+    <div className="routes-v2">
+      {/* Header */}
+      <div className="routes-header-v2">
+        <div className="routes-header-info">
+          <div className="routes-header-icon">
+            <Route size={28} />
+          </div>
+          <div className="routes-header-text">
+            <h2>Gestión de Rutas</h2>
+            <p>Administra las rutas de servicio</p>
           </div>
         </div>
-        <button className="btn-new-route" onClick={handleOpenNew}>
-          <span className="btn-icon">+</span>
+
+        <div className="routes-header-stats">
+          <div className="routes-stat-pill success">
+            <span className="stat-number">{recoleccionRoutes.length}</span>
+            <span className="stat-label">Recolección</span>
+          </div>
+          <div className="routes-stat-pill info">
+            <span className="stat-number">{fumigacionRoutes.length}</span>
+            <span className="stat-label">Fumigación</span>
+          </div>
+          <div className="routes-stat-pill">
+            <span className="stat-number">{routes.length}</span>
+            <span className="stat-label">Total</span>
+          </div>
+        </div>
+
+        <button className="btn-add-v2" onClick={handleOpenNew}>
+          <Plus size={18} />
           Nueva Ruta
         </button>
       </div>
 
-      {routes.length > 0 ? (
-        <div className="routes-grid">
+      {/* Content */}
+      {loading ? (
+        <div className="routes-loading-v2">
+          <div className="loading-spinner"></div>
+          <p>Cargando rutas...</p>
+        </div>
+      ) : routes.length > 0 ? (
+        <div className="routes-grid-v2">
           {routes.map((route, index) => {
             const paradas = route.paradas || route.stops || [];
             const paradasArray = typeof paradas === 'string' ? JSON.parse(paradas) : paradas;
             const tipoServicio = route.tipo_servicio || route.tipoServicio || 'recoleccion';
 
             return (
-              <div key={route.id} className="route-card" style={{ animationDelay: `${index * 50}ms` }}>
+              <div key={route._id || route.id} className="route-card-v2" style={{ animationDelay: `${index * 50}ms` }}>
                 <div className="route-card-header">
-                  <div className="route-icon">
-                    <Map size={24} />
+                  <div className={`route-card-icon ${tipoServicio}`}>
+                    {tipoServicio === 'recoleccion' ? <Truck size={22} /> : <Map size={22} />}
                   </div>
-                  <div className="route-info">
-                    <h4>{route.name || route.nombre}</h4>
-                    <span className={`route-type-badge type-${tipoServicio}`}>
-                      {tipoServicio === 'recoleccion' ? <><Truck size={12} /> Recolección</> : <><Map size={12} /> Fumigación</>}
-                    </span>
+                  <div className="route-card-actions">
+                    <button 
+                      className="btn-icon-action"
+                      onClick={() => handleEdit(route)}
+                      title="Editar"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      className="btn-icon-action danger"
+                      onClick={() => handleDelete(route._id || route.id)}
+                      title="Eliminar"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
 
-                {route.descripcion && (
-                  <p className="route-description">{route.descripcion}</p>
-                )}
+                <div className="route-card-body">
+                  <h4 className="route-name">{route.name || route.nombre}</h4>
+                  <div className={`route-type-badge-v2 ${tipoServicio}`}>
+                    {tipoServicio === 'recoleccion' ? 'Recolección' : 'Fumigación'}
+                  </div>
 
-                <div className="route-stats">
-                  <div className="route-stat">
-                    <MapPin size={16} className="stat-icon" />
-                    <div>
-                      <span className="stat-value">{paradasArray.length}</span>
-                      <span className="stat-label">Paradas</span>
+                  {route.descripcion && (
+                    <p className="route-description-v2">{route.descripcion}</p>
+                  )}
+
+                  <div className="route-metrics">
+                    <div className="route-metric">
+                      <MapPin size={16} />
+                      <span className="metric-value">{paradasArray.length}</span>
+                      <span className="metric-label">Paradas</span>
                     </div>
-                  </div>
-                  <div className="route-stat">
-                    <Clock size={16} className="stat-icon" />
-                    <div>
-                      <span className="stat-value">{route.tiempo_estimado || route.tiempoEstimado || 0}</span>
-                      <span className="stat-label">Min</span>
+                    <div className="route-metric">
+                      <Clock size={16} />
+                      <span className="metric-value">{route.tiempo_estimado || route.tiempoEstimado || 0}</span>
+                      <span className="metric-label">Min</span>
                     </div>
-                  </div>
-                  <div className="route-stat">
-                    <Map size={16} className="stat-icon" />
-                    <div>
-                      <span className="stat-value">{route.distancia_total || route.distanciaTotal || 0}</span>
-                      <span className="stat-label">Km</span>
+                    <div className="route-metric">
+                      <Map size={16} />
+                      <span className="metric-value">{route.distancia_total || route.distanciaTotal || 0}</span>
+                      <span className="metric-label">Km</span>
                     </div>
                   </div>
                 </div>
 
                 {route.hora_inicio && (
-                  <div className="route-schedule">
-                    <Clock size={16} className="schedule-icon" />
-                    <span>{formatTime12h(route.hora_inicio)}</span>
-                    {route.hora_fin && <span> - {formatTime12h(route.hora_fin)}</span>}
+                  <div className="route-card-footer">
+                    <div className="route-schedule-v2">
+                      <Clock size={14} />
+                      <span>{formatTime12h(route.hora_inicio)}</span>
+                      {route.hora_fin && <span className="schedule-separator">-</span>}
+                      {route.hora_fin && <span>{formatTime12h(route.hora_fin)}</span>}
+                    </div>
                   </div>
                 )}
-
-                <div className="route-actions">
-                  <button className="btn-route-edit" onClick={() => handleEdit(route)}>
-                    <Edit size={16} />
-                    <span>Editar</span>
-                  </button>
-                  <button className="btn-route-delete" onClick={() => handleDelete(route.id)}>
-                    <Trash2 size={16} />
-                    <span>Eliminar</span>
-                  </button>
-                </div>
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="empty-routes">
-          <Map size={64} />
+        <div className="routes-empty-state">
+          <div className="empty-icon">
+            <Route size={48} />
+          </div>
           <h3>No hay rutas registradas</h3>
-          <p>Crea tu primera ruta para comenzar</p>
+          <p>Usa el botón "Nueva Ruta" arriba para crear tu primera ruta de servicio</p>
         </div>
       )}
 
@@ -177,4 +199,4 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
   );
 };
 
-export default RoutesComponent; 
+export default RoutesComponent;

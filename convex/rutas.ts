@@ -42,20 +42,24 @@ export const getById = query({
 export const add = mutation({
   args: {
     nombre: v.string(),
+    descripcion: v.optional(v.string()),
     proyecto_id: v.optional(v.id("proyectos")),
     tipo_servicio: v.string(),
     paradas: v.array(v.any()),
     fecha_programada: v.optional(v.string()),
     hora_inicio: v.optional(v.string()),
     hora_fin: v.optional(v.string()),
+    dias_operacion: v.optional(v.array(v.string())),
     distancia_total: v.optional(v.number()),
+    tiempo_estimado: v.optional(v.number()),
     combustible_estimado: v.optional(v.number()),
     observaciones: v.optional(v.string()),
+    estado: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("rutas", {
       ...args,
-      estado: "pendiente",
+      estado: args.estado || "pendiente",
     });
   },
 });
@@ -65,12 +69,16 @@ export const update = mutation({
   args: {
     id: v.id("rutas"),
     nombre: v.optional(v.string()),
+    descripcion: v.optional(v.string()),
+    tipo_servicio: v.optional(v.string()),
     paradas: v.optional(v.array(v.any())),
     fecha_programada: v.optional(v.string()),
     hora_inicio: v.optional(v.string()),
     hora_fin: v.optional(v.string()),
+    dias_operacion: v.optional(v.array(v.string())),
     estado: v.optional(v.string()),
     distancia_total: v.optional(v.number()),
+    tiempo_estimado: v.optional(v.number()),
     combustible_estimado: v.optional(v.number()),
     observaciones: v.optional(v.string()),
   },
