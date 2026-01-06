@@ -12,6 +12,7 @@ export const MaintenanceProvider = ({ children }) => {
   const updateTaskMutation = useMutation(api.maintenance.updateTask);
   const deleteTaskMutation = useMutation(api.maintenance.deleteTask);
   const addAlertMutation = useMutation(api.maintenance.addAlert);
+  const markAsReadMutation = useMutation(api.maintenance.markAsRead);
 
   const tasks = tasksData || [];
   const alerts = alertsData || [];
@@ -59,8 +60,7 @@ export const MaintenanceProvider = ({ children }) => {
 
   const dismissAlert = async (id) => {
     try {
-      // Por ahora, simplemente actualizar el estado de la alerta
-      // En el futuro, podría tener una mutación específica
+      await markAsReadMutation({ id });
       return { success: true };
     } catch (error) {
       console.error('Error dismissing alert:', error);
@@ -77,86 +77,64 @@ export const MaintenanceProvider = ({ children }) => {
     futureDate.setDate(futureDate.getDate() + days);
 
     return tasks.filter(task => {
-      if (task.status === 'completada') return false;
+      if (task.estado === 'completada') return false;
+      if (!task.fecha_programada) return false;
 
-      const taskDate = new Date(`${task.scheduled_date}T${task.scheduled_time || '00:00'}`);
+      const taskDate = new Date(task.fecha_programada);
       return taskDate >= now && taskDate <= futureDate;
     });
   };
 
-  const getTasksByStatus = (status) => {
+  const getTasksByStatus = (estado) => {
     if (!tasks) return [];
-    return tasks.filter(task => task.status === status);
+    return tasks.filter(task => task.estado === estado);
   };
 
   const getOperationalStats = () => {
     if (!tasks || tasks.length === 0) {
       return {
         total: 0,
-        programmed: 0,
+        pendiente: 0,
         inProgress: 0,
         completed: 0,
         overdue: 0,
         completionRate: 0,
-        totalDischarges: 0,
         totalCost: 0,
-        highImpactCleanups: 0,
-        averageWorkDuration: 0
+        highPriorityTasks: 0
       };
     }
 
     const now = new Date();
     const overdue = tasks.filter(task => {
-      if (task.status === 'completada') return false;
-      const taskDate = new Date(`${task.scheduled_date}T${task.scheduled_time || '00:00'}`);
+      if (task.estado === 'completada') return false;
+      if (!task.fecha_programada) return false;
+      const taskDate = new Date(task.fecha_programada);
       return taskDate < now;
     });
 
-    const completed = tasks.filter(t => t.status === 'completada');
-    const programmed = tasks.filter(t => t.status === 'programada');
-    const inProgress = tasks.filter(t => t.status === 'en_proceso');
+    const completed = tasks.filter(t => t.estado === 'completada');
+    const pendiente = tasks.filter(t => t.estado === 'pendiente');
+    const inProgress = tasks.filter(t => t.estado === 'en_progreso');
 
-    // Calcular campos específicos de mantenimiento
-    const totalDischarges = completed.reduce((sum, task) =>
-      sum + (task.volume_discharged || 0), 0
-    );
-
+    // Calcular costo total de tareas completadas
     const totalCost = completed.reduce((sum, task) =>
-      sum + (task.cost || 0), 0
+      sum + (task.costo || 0), 0
     );
 
-    const highImpactCleanups = completed.filter(task =>
-      task.impact === 'high' || task.priority === 'high'
+    // Contar tareas de alta prioridad
+    const highPriorityTasks = tasks.filter(task =>
+      task.prioridad === 'alta' || task.prioridad === 'urgente'
     ).length;
-
-    // Calcular duración promedio de trabajo (en horas)
-    const totalDuration = completed.reduce((sum, task) => {
-      if (task.work_duration) {
-        return sum + parseFloat(task.work_duration);
-      }
-      // Si no hay work_duration, calcular desde scheduled_time y completion_time
-      if (task.scheduled_time && task.completion_time) {
-        const start = new Date(`${task.scheduled_date}T${task.scheduled_time}`);
-        const end = new Date(`${task.completion_date || task.scheduled_date}T${task.completion_time}`);
-        const hours = (end - start) / (1000 * 60 * 60);
-        return sum + hours;
-      }
-      return sum;
-    }, 0);
-
-    const averageWorkDuration = completed.length > 0 ? totalDuration / completed.length : 0;
 
     return {
       total: tasks.length,
-      programmed: programmed.length,
+      pendiente: pendiente.length,
       inProgress: inProgress.length,
       completed: completed.length,
       overdue: overdue.length,
       completionRate: tasks.length > 0 ? Math.round((completed.length / tasks.length) * 100) : 0,
-      totalDischarges,
       totalCost,
-      highImpactCleanups,
-      averageWorkDuration
+      highPriorityTasks
     };
   };
 

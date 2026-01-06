@@ -14,7 +14,7 @@ const MaintenanceTasks = ({ userRole }) => {
 
   const filteredTasks = filter === 'all'
     ? tasks
-    : tasks.filter(t => t.status === filter);
+    : tasks.filter(t => t.estado === filter);
 
   const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro de eliminar esta tarea?')) {
@@ -84,27 +84,27 @@ const MaintenanceTasks = ({ userRole }) => {
             <div style={{ fontSize: '13px', opacity: 0.9 }}>Todas las Tareas</div>
           </button>
           <button
-            className={`maintenance-subtab ${filter === 'programada' ? 'maintenance-subtab--active' : ''}`}
-            onClick={() => setFilter('programada')}
+            className={`maintenance-subtab ${filter === 'pendiente' ? 'maintenance-subtab--active' : ''}`}
+            onClick={() => setFilter('pendiente')}
             style={{
-              background: filter === 'programada'
+              background: filter === 'pendiente'
                 ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)'
                 : 'var(--color-secondary)',
-              color: filter === 'programada' ? 'white' : 'var(--color-text-secondary)',
+              color: filter === 'pendiente' ? 'white' : 'var(--color-text-secondary)',
               padding: '16px',
               borderRadius: '12px',
               border: 'none',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
-              boxShadow: filter === 'programada' ? '0 4px 12px rgba(61, 82, 41, 0.3)' : 'none'
+              boxShadow: filter === 'pendiente' ? '0 4px 12px rgba(61, 82, 41, 0.3)' : 'none'
             }}
           >
             <div style={{ fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>
-              {tasks.filter(t => t.status === 'programada').length}
+              {tasks.filter(t => t.estado === 'pendiente').length}
             </div>
             <div style={{ fontSize: '13px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
               <Calendar size={14} />
-              <span>Programadas</span>
+              <span>Pendientes</span>
             </div>
           </button>
           <button
@@ -124,7 +124,7 @@ const MaintenanceTasks = ({ userRole }) => {
             }}
           >
             <div style={{ fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>
-              {tasks.filter(t => t.status === 'completada').length}
+              {tasks.filter(t => t.estado === 'completada').length}
             </div>
             <div style={{ fontSize: '13px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
               <CheckCircle size={14} />
@@ -170,32 +170,41 @@ const MaintenanceTasks = ({ userRole }) => {
               </thead>
               <tbody>
                 {filteredTasks.map((task) => (
-                  <tr key={task.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                  <tr key={task._id} style={{ borderBottom: '1px solid var(--color-border)' }}>
                     <td style={{ padding: '12px' }}>
-                      <span className={`maintenance-task-item__badge maintenance-task-item__badge--${task.type}`}>
-                        {task.type}
+                      <span className={`maintenance-task-item__badge maintenance-task-item__badge--${task.tipo}`}>
+                        {task.tipo}
                       </span>
                     </td>
                     <td style={{ padding: '12px', fontSize: '14px' }}>
-                      <div style={{ fontWeight: '500' }}>{new Date(task.scheduled_date).toLocaleDateString('es-PA')}</div>
-                      <div style={{ color: '#999', fontSize: '12px' }}>{task.scheduled_time}</div>
+                      <div style={{ fontWeight: '500' }}>
+                        {task.fecha_programada ? new Date(task.fecha_programada).toLocaleDateString('es-PA') : '-'}
+                      </div>
                     </td>
                     <td style={{ padding: '12px', fontSize: '14px', maxWidth: '300px' }}>
                       <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {task.observations}
+                        {task.titulo}
                       </div>
+                      {task.descripcion && (
+                        <div style={{ color: '#999', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {task.descripcion}
+                        </div>
+                      )}
                     </td>
                     <td style={{ padding: '12px' }}>
-                      <span className={`maintenance-task-item__status maintenance-task-item__status--${task.status}`}>
-                        {task.status === 'programada' ? 'Programada' :
-                         task.status === 'en_proceso' ? 'En Proceso' : 'Completada'}
+                      <span className={`maintenance-task-item__status maintenance-task-item__status--${task.estado}`}>
+                        {task.estado === 'pendiente' ? 'Pendiente' :
+                         task.estado === 'en_progreso' ? 'En Proceso' :
+                         task.estado === 'completada' ? 'Completada' : 'Cancelada'}
                       </span>
                     </td>
                     <td style={{ padding: '12px', fontSize: '13px' }}>
-                      {task.operational_data ? (
+                      {task.costo ? (
                         <div>
-                          <div>Vol: {task.operational_data.volume_discharged?.toLocaleString()} gal</div>
-                          <div style={{ color: '#999' }}>Costo: B/. {task.operational_data.total_estimated_cost?.toFixed(2)}</div>
+                          <div style={{ fontWeight: '500' }}>B/. {task.costo.toFixed(2)}</div>
+                          {task.mecanico && (
+                            <div style={{ color: '#999', fontSize: '12px' }}>{task.mecanico}</div>
+                          )}
                         </div>
                       ) : (
                         <span style={{ color: '#999' }}>-</span>
@@ -212,7 +221,7 @@ const MaintenanceTasks = ({ userRole }) => {
                         </button>
                         {isAdmin && (
                           <>
-                            {task.status !== 'completada' && (
+                            {task.estado !== 'completada' && (
                               <button
                                 onClick={() => handleEdit(task)}
                                 style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#3D5229' }}
@@ -222,7 +231,7 @@ const MaintenanceTasks = ({ userRole }) => {
                               </button>
                             )}
                             <button
-                              onClick={() => handleDelete(task.id)}
+                              onClick={() => handleDelete(task._id)}
                               style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#556B2F' }}
                               title="Eliminar"
                             >
