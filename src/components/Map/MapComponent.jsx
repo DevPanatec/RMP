@@ -648,7 +648,7 @@ const calcularRutaCompleta = async (paradas) => {
   }
 };
 
-const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], userType, showRealTime = true, selectedTruck = null, serviceTypeFilter = 'todos', onViewLocationReports, isMaximized = false }) => {
+const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], geofences = [], allRouteProgress = [], userType, showRealTime = true, selectedTruck = null, serviceTypeFilter = 'todos', onViewLocationReports, isMaximized = false }) => {
   const [mapCamiones, setMapCamiones] = useState(camiones);
   const [showTrails, setShowTrails] = useState(true); // Activado por defecto para ver rutas
   const [realTimeEnabled, setRealTimeEnabled] = useState(showRealTime);
@@ -678,16 +678,14 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
   // Action de Convex para sincronizar GPS manualmente
   const syncSafeTag = useAction(api.safetag.syncAllVehicles);
   
-  // Geofences
+  // Geofences (data comes from props, only mutations here)
   const [geofenceMode, setGeofenceMode] = useState(false); // Modo crear geofence
   const [newGeofence, setNewGeofence] = useState(null); // {lat, lng, radio, nombre}
   const [showGeofenceModal, setShowGeofenceModal] = useState(false);
-  const geofences = useQuery(api.geofences.list) || [];
   const createGeofence = useMutation(api.geofences.create);
   const deleteGeofence = useMutation(api.geofences.remove);
 
-  // Route progress (para mostrar paradas completadas/pendientes)
-  const allRouteProgress = useQuery(api.route_progress.list) || [];
+  // Route progress (data comes from props)
   const activeRouteProgress = useMemo(() => {
     return allRouteProgress.filter(rp => rp.estado === 'en_progreso');
   }, [allRouteProgress]);
@@ -887,11 +885,12 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], user
     if (hasChanged) {
       prevCamionesRef.current = camiones;
 
-      // Normalizar datos: asegurar que tenga lat/lng además de gps_latitud/gps_longitud
+      // Normalizar datos: usar gps_latitud/gps_longitud como fuente primaria
+      // (elimina duplicación - lat/lng ahora son aliases de gps_latitud/gps_longitud)
       const normalizedCamiones = camiones.map(c => ({
         ...c,
-        lat: c.lat || c.gps_latitud,
-        lng: c.lng || c.gps_longitud,
+        lat: c.gps_latitud || c.lat,
+        lng: c.gps_longitud || c.lng,
         id: c.id || c._id,
         placa: c.placa || c.vehiculo_placa
       }));

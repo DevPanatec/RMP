@@ -10,7 +10,8 @@ export const FleetProvider = ({ children }) => {
   const { isDemoMode } = useDemoMode();
 
   // Convex Queries
-  const vehiclesData = useQuery(api.vehiculos.list);
+  // Using listWithAssignments for optimized JOIN with assignments (conductor, ruta)
+  const vehiclesData = useQuery(api.vehiculos.listWithAssignments);
   const fleetStatsData = useQuery(api.vehiculos.getStats);
 
   // Convex Mutations
@@ -19,6 +20,8 @@ export const FleetProvider = ({ children }) => {
   const deleteVehicleMutation = useMutation(api.vehiculos.remove);
   const updateGPSMutation = useMutation(api.vehiculos.updateGPS);
   const updateEstadoMutation = useMutation(api.vehiculos.updateEstado);
+  const updateCombustibleMutation = useMutation(api.vehiculos.updateCombustible);
+  const updateKilometrajeMutation = useMutation(api.vehiculos.updateKilometraje);
 
   const vehicles = isDemoMode ? DEMO_VEHICLES : (vehiclesData || []);
   const loading = vehiclesData === undefined;
@@ -73,6 +76,31 @@ export const FleetProvider = ({ children }) => {
     }
   };
 
+  // Update combustible level (fuel)
+  // NOTE: Available but not currently used in UI - could be added to maintenance forms
+  const updateVehicleCombustible = async (id, combustible_nivel) => {
+    try {
+      await updateCombustibleMutation({ id, combustible_nivel });
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating combustible:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Update kilometraje (odometer)
+  // NOTE: Available but not currently used in UI - could be added to maintenance forms
+  // or calculated automatically from GPS history
+  const updateVehicleKilometraje = async (id, kilometraje) => {
+    try {
+      await updateKilometrajeMutation({ id, kilometraje });
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating kilometraje:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   const getFleetStats = () => {
     if (isDemoMode || !fleetStatsData) {
       const disponibles = vehicles.filter(v => v.estado === "disponible" || v.estado === "Disponible").length;
@@ -99,6 +127,8 @@ export const FleetProvider = ({ children }) => {
     deleteVehicle,
     updateVehicleLocation,
     updateVehicleStatus,
+    updateVehicleCombustible,
+    updateVehicleKilometraje,
     getFleetStats,
     // Backwards compatibility aliases
     updateGPS: updateVehicleLocation,

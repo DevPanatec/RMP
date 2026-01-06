@@ -28,6 +28,46 @@ export const listMinimal = query({
   },
 });
 
+// List vehicles with assignment data (conductor, ruta)
+// Optimized for map view with JOIN done in backend
+export const listWithAssignments = query({
+  handler: async (ctx) => {
+    const vehicles = await ctx.db.query("vehiculos").collect();
+
+    // Get active assignments (programada or en_progreso)
+    const allAssignments = await ctx.db.query("asignaciones_rutas").collect();
+    const activeAssignments = allAssignments.filter(
+      a => a.estado === 'en_progreso' || a.estado === 'programada'
+    );
+
+    // JOIN vehicles with assignments
+    return vehicles.map((v) => {
+      const assignment = activeAssignments.find(a => a.vehiculo_id === v._id);
+
+      return {
+        _id: v._id,
+        placa: v.placa,
+        nombre: v.nombre,
+        estado: v.estado,
+        tipo_servicio: v.tipo_servicio,
+        tipo_vehiculo: v.tipo_vehiculo,
+        // GPS data
+        gps_latitud: v.gps_latitud,
+        gps_longitud: v.gps_longitud,
+        gps_velocidad: v.gps_velocidad,
+        gps_rumbo: v.gps_rumbo,
+        gps_ultima_actualizacion: v.gps_ultima_actualizacion,
+        gps_conectado: v.gps_conectado,
+        gps_en_linea: v.gps_en_linea,
+        // Assignment data (null if no active assignment)
+        conductor_nombre: assignment?.conductor_nombre,
+        ruta_id: assignment?.ruta_id,
+        asignacion_id: assignment?._id,
+      };
+    });
+  },
+});
+
 // Get vehicles by estado
 export const getByEstado = query({
   args: { estado: v.string() },
@@ -209,6 +249,17 @@ export const updateCombustible = mutation({
   },
   handler: async (ctx, args) => {
     return await ctx.db.patch(args.id, { combustible_nivel: args.combustible_nivel });
+  },
+});
+
+// Update kilometraje
+export const updateKilometraje = mutation({
+  args: {
+    id: v.id("vehiculos"),
+    kilometraje: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.patch(args.id, { kilometraje: args.kilometraje });
   },
 });
 

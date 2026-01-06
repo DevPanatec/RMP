@@ -97,37 +97,57 @@ export const useGeofenceAlerts = () => {
   // Reproducir sonido de notificación + voz
   const playNotificationSound = useCallback((alerts) => {
     try {
-      // Crear sonido con Web Audio API (beep de refuerzo)
+      // Determinar tipo de evento
+      const firstAlert = alerts[0];
+      const isEntering = firstAlert.tipo_evento === 'entrada' || firstAlert.category === 'geofence_enter';
+
+      // Crear contexto de audio
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      // Frecuencias: E5 = 659.25 Hz, A5 = 880 Hz
+      const E5 = 659.25;
+      const A5 = 880;
 
-      oscillator.frequency.value = 800;
-      oscillator.type = 'sine';
-      gainNode.gain.value = 0.3;
+      // Configurar sonido según tipo de evento
+      const [freq1, freq2] = isEntering ? [E5, A5] : [A5, E5]; // Ascendente o descendente
 
-      oscillator.start();
+      // Primer tono
+      const osc1 = audioContext.createOscillator();
+      const gain1 = audioContext.createGain();
 
-      // Fade out
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-      oscillator.stop(audioContext.currentTime + 0.3);
+      osc1.connect(gain1);
+      gain1.connect(audioContext.destination);
+
+      osc1.frequency.value = freq1;
+      osc1.type = 'sine';
+      gain1.gain.value = 0.25;
+
+      osc1.start(audioContext.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+      osc1.stop(audioContext.currentTime + 0.15);
+
+      // Segundo tono (con delay de 100ms)
+      const osc2 = audioContext.createOscillator();
+      const gain2 = audioContext.createGain();
+
+      osc2.connect(gain2);
+      gain2.connect(audioContext.destination);
+
+      osc2.frequency.value = freq2;
+      osc2.type = 'sine';
+      gain2.gain.value = 0;
+
+      osc2.start(audioContext.currentTime + 0.1);
+      gain2.gain.setValueAtTime(0.25, audioContext.currentTime + 0.1);
+      gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      osc2.stop(audioContext.currentTime + 0.3);
+
     } catch (error) {
       console.log('Audio no disponible');
     }
 
-    // Hablar según el tipo de evento de la primera alerta
-    if (alerts && alerts.length > 0) {
-      const firstAlert = alerts[0];
-      const isEntering = firstAlert.tipo_evento === 'entrada' || firstAlert.category === 'geofence_enter';
-
-      // Decir "como van?" o "se fue"
-      const message = isEntering ? 'como van?' : 'se fue';
-      speakAlert(message, isEntering);
-    }
-  }, [speakAlert]);
+    // Sin voz - solo tonos profesionales
+  }, []);
 
   // Cerrar alerta
   const dismissAlert = useCallback(async (alertId) => {

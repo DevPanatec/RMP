@@ -1,20 +1,24 @@
+/* ============================================
+   FLUENT CARD - MICROSOFT DESIGN SYSTEM
+   ============================================ */
+
 .card-new {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md); /* 6px - Fluent cards */
   overflow: hidden;
-  transition: all var(--duration-normal) var(--ease-out);
+  transition: all 200ms cubic-bezier(0.1, 0.9, 0.2, 1); /* Fluent easing */
 }
 
 .card-new__header {
-  padding: var(--space-24);
+  padding: 20px;
   border-bottom: 1px solid var(--color-divider);
 }
 
 .card-new__title {
   font-family: var(--font-family-display);
   font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   margin: 0 0 var(--space-8) 0;
   letter-spacing: var(--letter-spacing-tight);
@@ -31,59 +35,82 @@
 }
 
 .card-new__body {
-  padding: var(--space-24);
+  padding: 20px;
 }
 
+/* ============================================
+   CARD VARIANTS - Elevation
+   ============================================ */
+
 .card-new--default {
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-sm); /* Elevation 4 */
 }
 
 .card-new--elevated {
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-md); /* Elevation 8 */
+}
+
+/* Acrylic effect for elevated cards */
+.card-new--acrylic {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(30px) saturate(125%);
+  -webkit-backdrop-filter: blur(30px) saturate(125%);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(237, 235, 233, 0.8);
 }
 
 .card-new--flat {
   box-shadow: none;
 }
 
+/* Hoverable cards */
 .card-new--hoverable:hover {
   border-color: var(--color-border-strong);
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-md); /* Elevation increases on hover */
+  transform: translateY(-2px); /* Subtle lift */
 }
+
+.card-new--hoverable.card-new--acrylic:hover {
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ============================================
+   PADDING VARIANTS
+   ============================================ */
 
 .card-new--padding-none .card-new__body {
   padding: 0;
 }
 
 .card-new--padding-sm .card-new__body {
-  padding: var(--space-16);
+  padding: var(--space-12);
 }
 
 .card-new--padding-default .card-new__body {
-  padding: var(--space-24);
+  padding: var(--space-20);
 }
 
 .card-new--padding-lg .card-new__body {
-  padding: var(--space-32);
+  padding: var(--space-24);
 }
 
+/* ============================================
+   SEMANTIC VARIANTS - Accent Borders
+   ============================================ */
+
 .card-new--primary {
-  border-color: var(--color-primary);
-  background: rgba(48, 209, 88, 0.02);
+  border-left: 4px solid var(--color-primary);
 }
 
 .card-new--success {
-  border-color: var(--color-success);
-  background: rgba(52, 199, 89, 0.02);
+  border-left: 4px solid var(--color-success);
 }
 
 .card-new--warning {
-  border-color: var(--color-warning);
-  background: rgba(255, 149, 0, 0.02);
+  border-left: 4px solid var(--color-warning);
 }
 
 .card-new--error {
-  border-color: var(--color-error);
-  background: rgba(255, 59, 48, 0.02);
+  border-left: 4px solid var(--color-error);
 }

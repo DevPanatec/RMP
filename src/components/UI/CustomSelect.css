@@ -36,7 +36,7 @@
   padding: 14px 18px;
   background: rgba(255, 255, 255, 0.8);
   border: 2px solid rgba(142, 142, 147, 0.15);
-  border-radius: 12px;
+  border-radius: var(--radius-base); /* 4px - enterprise style */
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   backdrop-filter: blur(10px);
@@ -94,11 +94,8 @@
   backdrop-filter: blur(60px);
   -webkit-backdrop-filter: blur(60px);
   border: 1px solid rgba(142, 142, 147, 0.12);
-  border-radius: 16px;
-  box-shadow:
-    0 24px 48px -12px rgba(0, 0, 0, 0.12),
-    0 12px 24px -8px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-base); /* 4px - enterprise style */
+  box-shadow: var(--shadow-md); /* Maximum allowed for dropdowns */
   z-index: 9999;
   overflow: hidden;
   animation: dropdownSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
@@ -147,9 +144,7 @@
   gap: 10px;
   padding: 14px 16px;
   border-bottom: 1px solid rgba(142, 142, 147, 0.08);
-  background: linear-gradient(180deg, 
-    rgba(255, 255, 255, 0.8) 0%, 
-    rgba(255, 255, 255, 0.4) 100%);
+  background: var(--color-surface); /* Enterprise: solid color */
   flex-shrink: 0;
 }
 
@@ -221,17 +216,13 @@
 }
 
 .select-option.selected {
-  background: linear-gradient(135deg, 
-    var(--color-primary) 0%, 
-    var(--color-primary-hover) 100%);
+  background: var(--color-primary); /* Enterprise: solid color */
   color: white;
   font-weight: 600;
 }
 
 .select-option.selected:hover {
-  background: linear-gradient(135deg, 
-    var(--color-primary-hover) 0%, 
-    var(--color-primary) 100%);
+  background: var(--color-primary-hover); /* Enterprise: solid color */
 }
 
 .option-label {
@@ -320,7 +311,7 @@
     left: 0;
     right: 0;
     max-height: 70vh;
-    border-radius: 20px 20px 0 0;
+    border-radius: var(--radius-base) var(--radius-base) 0 0; /* 4px - enterprise style */
     animation: slideUpFromBottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 1000;
     box-shadow:

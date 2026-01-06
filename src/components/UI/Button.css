@@ -1,91 +1,103 @@
+/* ============================================
+   FLUENT BUTTON - MICROSOFT DESIGN SYSTEM
+   ============================================ */
+
 .btn-new {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-8);
-  padding: var(--space-12) var(--space-24);
-  border-radius: var(--radius-md);
+  padding: 10px 20px;
+  border-radius: var(--radius-base); /* 4px - Fluent default */
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   font-family: var(--font-family-base);
-  line-height: 1;
+  line-height: 20px;
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
-  border: none;
+  transition: all 120ms cubic-bezier(0.1, 0.9, 0.2, 1); /* Fluent easing */
+  border: 1px solid transparent;
   text-decoration: none;
   user-select: none;
   position: relative;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.btn-new::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), transparent);
-  opacity: 0;
-  transition: opacity var(--duration-fast) var(--ease-out);
-}
-
-.btn-new:hover::before {
-  opacity: 1;
+  outline: none;
 }
 
 .btn-new:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 4px var(--color-focus-ring);
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .btn-new:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
   pointer-events: none;
 }
 
+/* ============================================
+   PRIMARY - Filled Accent Button
+   ============================================ */
+
 .btn-new--primary {
   background: var(--color-primary);
-  color: white;
-  box-shadow: var(--shadow-sm);
+  color: #FFFFFF;
+  border-color: var(--color-primary);
 }
 
 .btn-new--primary:hover:not(:disabled) {
   background: var(--color-primary-hover);
-  box-shadow: 0 4px 12px rgba(48, 209, 88, 0.3);
-  transform: translateY(-1px);
+  border-color: var(--color-primary-hover);
 }
 
 .btn-new--primary:active:not(:disabled) {
   background: var(--color-primary-active);
-  transform: translateY(0);
+  border-color: var(--color-primary-active);
 }
+
+/* ============================================
+   SECONDARY - Subtle Button
+   ============================================ */
 
 .btn-new--secondary {
   background: var(--color-secondary);
   color: var(--color-text);
-  border: 1.5px solid var(--color-border);
+  border-color: var(--color-border);
 }
 
 .btn-new--secondary:hover:not(:disabled) {
   background: var(--color-secondary-hover);
   border-color: var(--color-border-strong);
-  transform: translateY(-1px);
 }
+
+.btn-new--secondary:active:not(:disabled) {
+  background: var(--color-secondary-active);
+  color: var(--color-text);
+}
+
+/* ============================================
+   OUTLINE - Transparent Accent Button
+   ============================================ */
 
 .btn-new--outline {
   background: transparent;
   color: var(--color-primary);
-  border: 2px solid var(--color-primary);
+  border: 1px solid var(--color-primary);
 }
 
 .btn-new--outline:hover:not(:disabled) {
-  background: var(--color-primary);
-  color: white;
-  transform: translateY(-1px);
+  background: var(--color-primary-light);
+  border-color: var(--color-primary-hover);
+  color: var(--color-primary-hover);
 }
+
+.btn-new--outline:active:not(:disabled) {
+  background: var(--color-primary-subtle);
+  border-color: var(--color-primary-active);
+  color: var(--color-primary-active);
+}
+
+/* ============================================
+   GHOST - Transparent Subtle Button
+   ============================================ */
 
 .btn-new--ghost {
   background: transparent;
@@ -98,51 +110,83 @@
   color: var(--color-text);
 }
 
+.btn-new--ghost:active:not(:disabled) {
+  background: var(--color-active-overlay);
+  color: var(--color-text);
+}
+
+/* ============================================
+   DANGER - Red Accent Button
+   ============================================ */
+
 .btn-new--danger {
   background: var(--color-error);
-  color: white;
-  box-shadow: var(--shadow-sm);
+  color: #FFFFFF;
+  border-color: var(--color-error);
 }
 
 .btn-new--danger:hover:not(:disabled) {
-  background: #ff2d20;
-  box-shadow: 0 4px 12px rgba(255, 59, 48, 0.3);
-  transform: translateY(-1px);
+  background: #A4262C; /* Fluent red hover */
+  border-color: #A4262C;
 }
+
+.btn-new--danger:active:not(:disabled) {
+  background: #8B0000; /* Fluent red pressed */
+  border-color: #8B0000;
+}
+
+/* ============================================
+   SUCCESS - Green Accent Button
+   ============================================ */
 
 .btn-new--success {
   background: var(--color-success);
-  color: white;
-  box-shadow: var(--shadow-sm);
+  color: #FFFFFF;
+  border-color: var(--color-success);
 }
 
 .btn-new--success:hover:not(:disabled) {
-  background: #2ea043;
-  box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
-  transform: translateY(-1px);
+  background: #0B6A0B; /* Fluent green hover */
+  border-color: #0B6A0B;
 }
 
+.btn-new--success:active:not(:disabled) {
+  background: #094509; /* Fluent green pressed */
+  border-color: #094509;
+}
+
+/* ============================================
+   SIZES
+   ============================================ */
+
 .btn-new--sm {
-  padding: var(--space-8) var(--space-16);
+  padding: 5px 12px;
   font-size: var(--font-size-sm);
+  line-height: 16px;
   gap: var(--space-4);
 }
 
 .btn-new--md {
-  padding: var(--space-12) var(--space-24);
+  padding: 10px 20px;
   font-size: var(--font-size-base);
+  line-height: 20px;
   gap: var(--space-8);
 }
 
 .btn-new--lg {
-  padding: var(--space-16) var(--space-32);
-  font-size: var(--font-size-lg);
+  padding: 14px 28px;
+  font-size: var(--font-size-md);
+  line-height: 22px;
   gap: var(--space-8);
 }
 
 .btn-new--full {
   width: 100%;
 }
+
+/* ============================================
+   ICON SUPPORT
+   ============================================ */
 
 .btn-new__icon {
   display: flex;

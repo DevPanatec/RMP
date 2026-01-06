@@ -1,15 +1,19 @@
+/* ============================================
+   FLUENT BADGE - MICROSOFT DESIGN SYSTEM
+   ============================================ */
+
 .badge {
   display: inline-flex;
   align-items: center;
   gap: var(--space-4);
-  padding: var(--space-4) var(--space-12);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-xs);
+  padding: 4px 12px;
+  border-radius: var(--radius-full); /* Pills - allowed for badges */
+  font-size: 12px;
   font-weight: var(--font-weight-semibold);
-  line-height: 1;
+  line-height: 16px;
   white-space: nowrap;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
   border: 1px solid transparent;
 }
 
@@ -20,6 +24,10 @@
   font-size: 12px;
 }
 
+/* ============================================
+   SEMANTIC VARIANTS
+   ============================================ */
+
 .badge--default {
   background: var(--color-secondary);
   color: var(--color-text);
@@ -27,91 +35,106 @@
 }
 
 .badge--success {
-  background: rgba(52, 199, 89, 0.1);
-  color: var(--color-success);
-  border-color: rgba(52, 199, 89, 0.2);
+  background: var(--color-success-light);
+  color: #0B6A0B; /* Dark green for contrast */
+  border-color: rgba(16, 124, 16, 0.3);
 }
 
 .badge--error {
-  background: rgba(255, 59, 48, 0.1);
-  color: var(--color-error);
-  border-color: rgba(255, 59, 48, 0.2);
+  background: var(--color-error-light);
+  color: #A4262C; /* Dark red for contrast */
+  border-color: rgba(209, 52, 56, 0.3);
 }
 
 .badge--warning {
-  background: rgba(255, 149, 0, 0.1);
-  color: var(--color-warning);
-  border-color: rgba(255, 149, 0, 0.2);
+  background: var(--color-warning-light);
+  color: #8A5700; /* Dark amber for contrast */
+  border-color: rgba(255, 185, 0, 0.3);
 }
 
 .badge--info {
-  background: rgba(0, 122, 255, 0.1);
-  color: var(--color-info);
-  border-color: rgba(0, 122, 255, 0.2);
+  background: var(--color-info-light);
+  color: #004578; /* Dark blue for contrast */
+  border-color: rgba(0, 120, 212, 0.3);
 }
 
 .badge--primary {
-  background: rgba(48, 209, 88, 0.1);
-  color: var(--color-primary);
-  border-color: rgba(48, 209, 88, 0.2);
+  background: var(--color-primary-subtle);
+  color: var(--color-primary-dark);
+  border-color: rgba(0, 120, 212, 0.3);
 }
 
+/* ============================================
+   STATUS VARIANTS
+   ============================================ */
+
 .badge--active {
-  background: rgba(52, 199, 89, 0.1);
-  color: var(--color-success);
-  border-color: rgba(52, 199, 89, 0.2);
+  background: var(--color-success-light);
+  color: #0B6A0B;
+  border-color: rgba(16, 124, 16, 0.3);
 }
 
 .badge--inactive {
-  background: rgba(142, 142, 147, 0.1);
+  background: #E1DFDD;
   color: var(--color-text-secondary);
-  border-color: rgba(142, 142, 147, 0.2);
+  border-color: rgba(138, 136, 134, 0.3);
 }
 
+/* ============================================
+   SPECIFIC BUSINESS STATUSES
+   ============================================ */
+
 .badge--en-ruta {
-  background: rgba(0, 122, 255, 0.1);
-  color: var(--color-info);
-  border-color: rgba(0, 122, 255, 0.2);
+  background: var(--color-info-light);
+  color: #004578;
+  border-color: rgba(0, 120, 212, 0.3);
 }
 
 .badge--disponible {
-  background: rgba(52, 199, 89, 0.1);
-  color: var(--color-success);
-  border-color: rgba(52, 199, 89, 0.2);
+  background: var(--color-success-light);
+  color: #0B6A0B;
+  border-color: rgba(16, 124, 16, 0.3);
 }
 
 .badge--mantenimiento {
-  background: rgba(255, 59, 48, 0.1);
-  color: var(--color-error);
-  border-color: rgba(255, 59, 48, 0.2);
+  background: var(--color-error-light);
+  color: #A4262C;
+  border-color: rgba(209, 52, 56, 0.3);
 }
 
 .badge--recoleccion {
-  background: rgba(52, 199, 89, 0.1);
-  color: #059669;
-  border-color: rgba(52, 199, 89, 0.2);
+  background: #DFF6DD;
+  color: #0B6A0B;
+  border-color: rgba(16, 124, 16, 0.3);
 }
 
 .badge--fumigacion {
-  background: rgba(245, 158, 11, 0.1);
-  color: #d97706;
-  border-color: rgba(245, 158, 11, 0.2);
+  background: #FFF4CE;
+  color: #8A5700;
+  border-color: rgba(255, 185, 0, 0.3);
 }
 
+/* ============================================
+   SIZES
+   ============================================ */
+
 .badge--sm {
-  padding: var(--space-4) var(--space-8);
+  padding: 2px 8px;
   font-size: 10px;
-  gap: var(--space-4);
+  line-height: 14px;
+  gap: var(--space-2);
 }
 
 .badge--md {
-  padding: var(--space-4) var(--space-12);
-  font-size: var(--font-size-xs);
+  padding: 4px 12px;
+  font-size: 12px;
+  line-height: 16px;
   gap: var(--space-4);
 }
 
 .badge--lg {
-  padding: var(--space-8) var(--space-16);
+  padding: 6px 14px;
   font-size: var(--font-size-sm);
-  gap: var(--space-8);
+  line-height: 18px;
+  gap: var(--space-4);
 }

@@ -24,34 +24,26 @@
   position: relative;
 }
 
-.progress-bar__fill::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
-}
+/* Enterprise style: No gradient shine effects */
 
 .progress-bar__fill--primary {
-  background: linear-gradient(90deg, var(--color-primary), #556B2F);
+  background: var(--color-primary);
 }
 
 .progress-bar__fill--success {
-  background: linear-gradient(90deg, var(--color-success), #556B2F);
+  background: var(--color-success);
 }
 
 .progress-bar__fill--warning {
-  background: linear-gradient(90deg, var(--color-warning), #ffb800);
+  background: var(--color-warning);
 }
 
 .progress-bar__fill--error {
-  background: linear-gradient(90deg, var(--color-error), #ff6259);
+  background: var(--color-error);
 }
 
 .progress-bar__fill--info {
-  background: linear-gradient(90deg, var(--color-info), #4da3ff);
+  background: var(--color-info);
 }
 
 .progress-bar__label {

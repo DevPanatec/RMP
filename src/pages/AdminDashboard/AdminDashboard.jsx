@@ -76,6 +76,10 @@ const AdminDashboard = ({ user, onLogout }) => {
   // Route events from Convex
   const routeEvents = useQuery(api.route_events.getRecent, { limit: 50 }) || [];
 
+  // Geofences and route progress (pass as props to MapComponent)
+  const geofences = useQuery(api.geofences.list) || [];
+  const allRouteProgress = useQuery(api.route_progress.list) || [];
+
   // Hooks de contextos reales
   const {
     personnel,
@@ -180,40 +184,22 @@ const AdminDashboard = ({ user, onLogout }) => {
     }));
   }, [isDemoMode, routeEvents]);
 
-  // Obtener asignaciones activas para enriquecer vehículos
-  const allAssignments = useQuery(api.asignaciones.list) || [];
-  const activeAssignments = useMemo(() => {
-    return allAssignments.filter(a => a.estado === 'en_progreso' || a.estado === 'programada');
-  }, [allAssignments]);
-
-  // Usar datos reales o demo según el modo activo
+  // Normalizar vehículos (ya vienen con conductor_nombre y ruta_id desde Convex)
   const normalizedCamiones = useMemo(() => {
     return displayVehicles.map(camion => {
-      // Normalizar tipoServicio
-      const normalized = camion.tipoServicio ? camion : { ...camion, tipoServicio: 'recoleccion' };
+      // Normalizar tipoServicio para compatibilidad
+      const tipoServicio = camion.tipoServicio || camion.tipo_servicio || 'recoleccion';
 
-      // Buscar asignación activa del vehículo
-      const assignment = activeAssignments.find(a => a.vehiculo_id === (normalized._id || normalized.id));
-
-      // Transformar coordenadas GPS de Convex (gps_latitud/gps_longitud) a formato mapa (lat/lng)
-      if (normalized.gps_latitud !== undefined && normalized.gps_longitud !== undefined) {
-        return {
-          ...normalized,
-          lat: normalized.gps_latitud,
-          lng: normalized.gps_longitud,
-          id: normalized._id || normalized.id,
-          placa: normalized.placa || normalized.id,
-          // Enriquecer con datos de asignación si existe
-          conductor: assignment?.conductor_nombre,
-          conductor_nombre: assignment?.conductor_nombre,
-          ruta_id: assignment?.ruta_id,
-          rutaAsignada: assignment?.ruta_id, // para compatibilidad
-        };
-      }
-
-      return normalized;
+      return {
+        ...camion,
+        tipoServicio,
+        id: camion._id || camion.id,
+        // Aliases para compatibilidad con código existente
+        conductor: camion.conductor_nombre,
+        rutaAsignada: camion.ruta_id,
+      };
     });
-  }, [displayVehicles, activeAssignments]);
+  }, [displayVehicles]);
   
   // Obtener estadísticas reales
   const personnelStats = getPersonnelStats();
@@ -533,6 +519,8 @@ const AdminDashboard = ({ user, onLogout }) => {
                   rutas={displayRoutes || []}
                   personnel={displayPersonnel || []}
                   lugares={lugares || []}
+                  geofences={geofences}
+                  allRouteProgress={allRouteProgress}
                   userType={user.tipo}
                   showRealTime={true}
                   selectedTruck={selectedTruck}
@@ -614,97 +602,90 @@ const AdminDashboard = ({ user, onLogout }) => {
   
   return (
     <div className="dashboard-container">
-      <div className="sidebar">
-        <div className="sidebar-header">
-          <div className="sidebar-logo">
-            <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="logo-image" />
+      {/* Top App Bar - Header con logo y acciones */}
+      <div className="app-bar">
+        <div className="app-bar__header">
+          <div className="app-bar__brand">
+            <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="app-bar__logo" />
+            <h1 className="app-bar__title">RMP Admin</h1>
           </div>
-          <p>Bienvenido, Administrador del Sistema</p>
-        </div>
-        <nav className="sidebar-nav">
-          <ul>
-            <li>
-              <button
-                className={activeTab === 'dashboard' ? 'active' : ''}
-                onClick={() => handleTabChange('dashboard')}
-              >
-                <LayoutDashboard strokeWidth={1.5} size={18} /> Monitoreo
-              </button>
-            </li>
-            <li>
-              <button
-                className={activeTab === 'operaciones' ? 'active' : ''}
-                onClick={() => handleTabChange('operaciones', 'personal')}
-              >
-                <Truck strokeWidth={1.5} size={18} /> Operaciones
-              </button>
-            </li>
-            <li>
-              <button
-                className={activeTab === 'calendario' ? 'active' : ''}
-                onClick={() => handleTabChange('calendario')}
-              >
-                <Calendar strokeWidth={1.5} size={18} /> Calendario
-              </button>
-            </li>
-            <li>
-              <button
-                className={activeTab === 'mantenimiento' ? 'active' : ''}
-                onClick={() => handleTabChange('mantenimiento')}
-              >
-                <Wrench strokeWidth={1.5} size={18} /> Mantenimiento
-              </button>
-            </li>
-            <li>
-              <button
-                className={activeTab === 'riesgos' ? 'active' : ''}
-                onClick={() => handleTabChange('riesgos')}
-              >
-                <AlertTriangle strokeWidth={1.5} size={18} /> Riesgos
-              </button>
-            </li>
-            <li>
-              <button
-                className={activeTab === 'inventario' ? 'active' : ''}
-                onClick={() => handleTabChange('inventario')}
-              >
-                <Package strokeWidth={1.5} size={18} /> Inventario
-              </button>
-            </li>
-            <li>
-              <button
-                className={activeTab === 'costos' ? 'active' : ''}
-                onClick={() => handleTabChange('costos')}
-              >
-                <DollarSign strokeWidth={1.5} size={18} /> Costos
-              </button>
-            </li>
-
-            <li>
-              <button
-                className={activeTab === 'reportes' ? 'active' : ''}
-                onClick={() => handleTabChange('reportes')}
-              >
-                <BarChart3 strokeWidth={1.5} size={18} /> Reportes
-              </button>
-            </li>
-          </ul>
-        </nav>
-      </div>
-      <div className="main-content">
-        <div className="dashboard-header">
-          <h1><Leaf strokeWidth={1.5} size={24} /> Panel de Administración</h1>
-          <div className="header-actions">
-            <div className="realtime-status">
-              <Activity size={16} /> Sistema en Tiempo Real
+          <div className="app-bar__actions">
+            <div className="app-bar__status">
+              <Activity size={16} />
+              <span>Sistema en Tiempo Real</span>
             </div>
-            <button className="logout-btn" onClick={onLogout}>
-              <LogOut size={18} /> Cerrar Sesión
+            <button className="app-bar__logout" onClick={onLogout}>
+              <LogOut size={18} />
+              <span>Cerrar Sesión</span>
             </button>
           </div>
         </div>
-        {renderContent()}
+
+        {/* Top Navigation Tabs - Navegación horizontal */}
+        <nav className="top-nav">
+          <button
+            className={`top-nav__tab ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => handleTabChange('dashboard')}
+          >
+            <LayoutDashboard strokeWidth={1.5} size={18} />
+            <span>Monitoreo</span>
+          </button>
+          <button
+            className={`top-nav__tab ${activeTab === 'operaciones' ? 'active' : ''}`}
+            onClick={() => handleTabChange('operaciones', 'personal')}
+          >
+            <Truck strokeWidth={1.5} size={18} />
+            <span>Operaciones</span>
+          </button>
+          <button
+            className={`top-nav__tab ${activeTab === 'calendario' ? 'active' : ''}`}
+            onClick={() => handleTabChange('calendario')}
+          >
+            <Calendar strokeWidth={1.5} size={18} />
+            <span>Calendario</span>
+          </button>
+          <button
+            className={`top-nav__tab ${activeTab === 'mantenimiento' ? 'active' : ''}`}
+            onClick={() => handleTabChange('mantenimiento')}
+          >
+            <Wrench strokeWidth={1.5} size={18} />
+            <span>Mantenimiento</span>
+          </button>
+          <button
+            className={`top-nav__tab ${activeTab === 'riesgos' ? 'active' : ''}`}
+            onClick={() => handleTabChange('riesgos')}
+          >
+            <AlertTriangle strokeWidth={1.5} size={18} />
+            <span>Riesgos</span>
+          </button>
+          <button
+            className={`top-nav__tab ${activeTab === 'inventario' ? 'active' : ''}`}
+            onClick={() => handleTabChange('inventario')}
+          >
+            <Package strokeWidth={1.5} size={18} />
+            <span>Inventario</span>
+          </button>
+          <button
+            className={`top-nav__tab ${activeTab === 'costos' ? 'active' : ''}`}
+            onClick={() => handleTabChange('costos')}
+          >
+            <DollarSign strokeWidth={1.5} size={18} />
+            <span>Costos</span>
+          </button>
+          <button
+            className={`top-nav__tab ${activeTab === 'reportes' ? 'active' : ''}`}
+            onClick={() => handleTabChange('reportes')}
+          >
+            <BarChart3 strokeWidth={1.5} size={18} />
+            <span>Reportes</span>
+          </button>
+        </nav>
       </div>
+
+      {/* Main Content Area */}
+      <main className="main-content">
+        {renderContent()}
+      </main>
 
       {/* Modal de Mapa Maximizado */}
       {isMapMaximized && (
@@ -731,6 +712,8 @@ const AdminDashboard = ({ user, onLogout }) => {
                   rutas={displayRoutes || []}
                   personnel={displayPersonnel || []}
                   lugares={lugares || []}
+                  geofences={geofences}
+                  allRouteProgress={allRouteProgress}
                   userType={user.tipo}
                   showRealTime={true}
                   selectedTruck={selectedTruck}
