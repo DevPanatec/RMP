@@ -351,6 +351,18 @@ export default defineSchema({
     .index("by_vehiculo", ["vehiculo_id"])
     .index("by_leida", ["leida"]),
 
+  // 16b. Fotos de Mantenimiento
+  maintenance_photos: defineTable({
+    task_id: v.id("maintenance_tasks"),
+    etapa: v.string(), // "before", "during", "after"
+    storage_id: v.id("_storage"), // Convex file storage
+    file_name: v.string(),
+    file_size: v.optional(v.number()),
+    mime_type: v.optional(v.string()),
+  })
+    .index("by_task", ["task_id"])
+    .index("by_etapa", ["etapa"]),
+
   // 17. Asignaciones de Fumigación
   fumigation_assignments: defineTable({
     tipo_fumigacion: v.union(v.literal("interna"), v.literal("externa")),

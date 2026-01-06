@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMaintenance } from '../../context/MaintenanceContext';
-// import supabaseClient from '../../utils/supabaseClient'; // Removed: Migrated to Convex
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { X, Upload, Image as ImageIcon, Check, Trash2 } from '../Icons';
 import { MAINTENANCE_PRESETS } from '../../constants/maintenancePresets';
 
@@ -9,6 +10,15 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
   const [loading, setLoading] = useState(false);
   const isAdmin = userRole === 'admin';
   const isEnterprise = userRole === 'enterprise';
+
+  // Convex mutations y queries para fotos
+  const generateUploadUrl = useMutation(api.maintenance.generateUploadUrl);
+  const savePhoto = useMutation(api.maintenance.savePhoto);
+  const deletePhotoMutation = useMutation(api.maintenance.deletePhoto);
+  const photosData = useQuery(
+    api.maintenance.listPhotos,
+    task?._id ? { task_id: task._id } : "skip"
+  );
 
   const [formData, setFormData] = useState({
     type: task?.type || 'preventivo',
@@ -32,12 +42,32 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
 
   // Estados para fotos (solo para completar tareas)
   const [photos, setPhotos] = useState({
-    before: task?.images_before || [],
-    during: task?.images_during || [],
-    after: task?.images_after || []
+    before: [],
+    during: [],
+    after: []
   });
 
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
+
+  // Cargar fotos existentes cuando los datos están disponibles
+  useEffect(() => {
+    if (photosData) {
+      const before = photosData.filter(p => p.etapa === 'before').map(p => ({
+        id: p._id,
+        url: p.url
+      }));
+      const during = photosData.filter(p => p.etapa === 'during').map(p => ({
+        id: p._id,
+        url: p.url
+      }));
+      const after = photosData.filter(p => p.etapa === 'after').map(p => ({
+        id: p._id,
+        url: p.url
+      }));
+
+      setPhotos({ before, during, after });
+    }
+  }, [photosData]);
 
   useEffect(() => {
     const total = (operationalData.volume_discharged || 0) * (operationalData.cost_per_gallon || 0.11);
@@ -136,41 +166,43 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
   };
 
   const handlePhotoUpload = async (file, stage) => {
+    // Si no hay task creado aún, mostrar error
+    if (!task || !task._id) {
+      alert('Debes crear la tarea primero antes de subir fotos.');
+      return;
+    }
+
     setUploadingPhotos(true);
     try {
-      // TODO: Implement Convex file storage upload
-      console.warn('Photo upload disabled - needs Convex file storage implementation');
-      alert('Carga de fotos temporalmente deshabilitada. Necesita implementación con Convex.');
+      // 1. Generar URL de upload firmada
+      const uploadUrl = await generateUploadUrl();
 
-      // // Generar nombre único para el archivo
-      // const fileExt = file.name.split('.').pop();
-      // const fileName = `${task?.id || 'new'}_${stage}_${Date.now()}.${fileExt}`;
-      // const filePath = `maintenance-photos/${fileName}`;
+      // 2. Subir archivo a Convex storage
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
 
-      // // Subir archivo a Supabase Storage
-      // const { data: uploadData, error: uploadError } = await supabaseClient.supabase.storage
-      //   .from('maintenance-evidences')
-      //   .upload(filePath, file, {
-      //     cacheControl: '3600',
-      //     upsert: false
-      //   });
+      if (!result.ok) {
+        throw new Error('Error al subir archivo');
+      }
 
-      // if (uploadError) throw uploadError;
+      const { storageId } = await result.json();
 
-      // // Obtener URL pública
-      // const { data: { publicUrl } } = supabaseClient.supabase.storage
-      //   .from('maintenance-evidences')
-      //   .getPublicUrl(filePath);
+      // 3. Guardar metadata en la base de datos
+      const photoId = await savePhoto({
+        task_id: task._id,
+        etapa: stage,
+        storage_id: storageId,
+        file_name: file.name,
+        file_size: file.size,
+        mime_type: file.type,
+      });
 
-      // // Agregar URL al estado de fotos
-      // setPhotos(prev => ({
-      //   ...prev,
-      //   [stage]: [...prev[stage], publicUrl]
-      // }));
-
-      // console.log('Foto subida exitosamente:', publicUrl);
+      console.log('✅ Foto subida exitosamente:', photoId);
     } catch (error) {
-      console.error('Error uploading photo:', error);
+      console.error('❌ Error uploading photo:', error);
       alert('Error al subir la foto: ' + error.message);
     } finally {
       setUploadingPhotos(false);
@@ -248,11 +280,17 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
     }
   };
 
-  const removePhoto = (stage, index) => {
-    setPhotos(prev => ({
-      ...prev,
-      [stage]: prev[stage].filter((_, i) => i !== index)
-    }));
+  const removePhoto = async (stage, index) => {
+    const photo = photos[stage][index];
+    if (!photo || !photo.id) return;
+
+    try {
+      await deletePhotoMutation({ id: photo.id });
+      console.log('✅ Foto eliminada exitosamente');
+    } catch (error) {
+      console.error('❌ Error deleting photo:', error);
+      alert('Error al eliminar la foto: ' + error.message);
+    }
   };
 
   return (
@@ -854,9 +892,9 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                         </span>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
-                        {photos.before.map((url, idx) => (
-                          <div key={idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #dcfce7' }}>
-                            <img src={url} alt={`Antes ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
+                        {photos.before.map((photo, idx) => (
+                          <div key={photo.id || idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #dcfce7' }}>
+                            <img src={photo.url} alt={`Antes ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); removePhoto('before', idx); }}
@@ -896,9 +934,9 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                         </span>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
-                        {photos.during.map((url, idx) => (
-                          <div key={idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #dcfce7' }}>
-                            <img src={url} alt={`Durante ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
+                        {photos.during.map((photo, idx) => (
+                          <div key={photo.id || idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #dcfce7' }}>
+                            <img src={photo.url} alt={`Durante ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); removePhoto('during', idx); }}
@@ -938,9 +976,9 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                         </span>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
-                        {photos.after.map((url, idx) => (
-                          <div key={idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #dcfce7' }}>
-                            <img src={url} alt={`Después ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
+                        {photos.after.map((photo, idx) => (
+                          <div key={photo.id || idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #dcfce7' }}>
+                            <img src={photo.url} alt={`Después ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); removePhoto('after', idx); }}

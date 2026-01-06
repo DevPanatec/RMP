@@ -127,3 +127,77 @@ export const deleteAlert = mutation({
     return await ctx.db.delete(args.id);
   },
 });
+
+// ========== MAINTENANCE PHOTOS ==========
+export const generateUploadUrl = mutation({
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+export const savePhoto = mutation({
+  args: {
+    task_id: v.id("maintenance_tasks"),
+    etapa: v.string(),
+    storage_id: v.id("_storage"),
+    file_name: v.string(),
+    file_size: v.optional(v.number()),
+    mime_type: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("maintenance_photos", args);
+  },
+});
+
+export const listPhotos = query({
+  args: { task_id: v.id("maintenance_tasks") },
+  handler: async (ctx, args) => {
+    const photos = await ctx.db
+      .query("maintenance_photos")
+      .withIndex("by_task", (q) => q.eq("task_id", args.task_id))
+      .collect();
+
+    // Generar URLs para cada foto
+    return await Promise.all(
+      photos.map(async (photo) => ({
+        ...photo,
+        url: await ctx.storage.getUrl(photo.storage_id),
+      }))
+    );
+  },
+});
+
+export const getPhotosByEtapa = query({
+  args: {
+    task_id: v.id("maintenance_tasks"),
+    etapa: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const photos = await ctx.db
+      .query("maintenance_photos")
+      .withIndex("by_task", (q) => q.eq("task_id", args.task_id))
+      .filter((q) => q.eq(q.field("etapa"), args.etapa))
+      .collect();
+
+    return await Promise.all(
+      photos.map(async (photo) => ({
+        ...photo,
+        url: await ctx.storage.getUrl(photo.storage_id),
+      }))
+    );
+  },
+});
+
+export const deletePhoto = mutation({
+  args: { id: v.id("maintenance_photos") },
+  handler: async (ctx, args) => {
+    const photo = await ctx.db.get(args.id);
+    if (!photo) return null;
+
+    // Eliminar del storage
+    await ctx.storage.delete(photo.storage_id);
+
+    // Eliminar del DB
+    return await ctx.db.delete(args.id);
+  },
+});
