@@ -1,19 +1,35 @@
 /* ============================================
-   REALTIME ACTIVITY - MODERN TIMELINE STYLE
+   REALTIME ACTIVITY - PREMIUM CORPORATE STYLE
    ============================================ */
 
 .realtime-activity {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(30, 41, 59, 0.08);
+  border-radius: 16px;
   padding: var(--space-24);
   margin-bottom: 0;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04),
+              0 8px 24px rgba(30, 41, 59, 0.06),
+              inset 0 1px 0 rgba(255, 255, 255, 0.9);
   display: flex;
   flex-direction: column;
   min-height: 500px;
   height: 100%;
   max-height: 800px;
+  position: relative;
+  overflow: hidden;
+}
+
+.realtime-activity::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #1e293b 0%, #334155 50%, transparent 100%);
+  opacity: 0.7;
 }
 
 .activity-header {
@@ -22,16 +38,19 @@
   align-items: center;
   margin-bottom: var(--space-20);
   padding-bottom: var(--space-16);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid rgba(30, 41, 59, 0.12);
+  background: linear-gradient(90deg, rgba(30, 41, 59, 0.03), transparent);
+  margin: 0 calc(-1 * var(--space-24)) var(--space-20);
+  padding: 0 var(--space-24) var(--space-16);
 }
 
 .activity-header h3 {
   font-family: var(--font-family-display);
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
+  font-size: 20px;
+  font-weight: 700;
+  color: #1d1d1f;
   margin: 0;
-  letter-spacing: var(--letter-spacing-tight);
+  letter-spacing: -0.02em;
   display: flex;
   align-items: center;
   gap: var(--space-10);
@@ -41,22 +60,27 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-6);
-  padding: var(--space-4) var(--space-12);
-  background: var(--color-surface-secondary);
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-base);
-  border: 1px solid var(--color-border);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  letter-spacing: 0.05em;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%);
+  color: #047857;
+  border-radius: 7px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .live-dot {
-  width: 6px;
-  height: 6px;
-  background: var(--color-success);
+  width: 8px;
+  height: 8px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2),
+              0 0 12px rgba(16, 185, 129, 0.6),
+              inset 0 1px 1px rgba(255, 255, 255, 0.4);
 }
 
 /* ============================================
@@ -117,31 +141,37 @@
 }
 
 .activity-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-md);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: var(--color-surface-secondary);
-  color: var(--color-text-secondary);
-  box-shadow: var(--shadow-xs);
-  transition: all var(--duration-fast) var(--ease-out);
-  border: 1px solid var(--color-border);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.1) 0%, rgba(51, 65, 85, 0.06) 100%);
+  color: #1e293b;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06),
+              0 4px 12px rgba(30, 41, 59, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(30, 41, 59, 0.15);
 }
 
 .activity-item:hover .activity-icon {
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(30, 41, 59, 0.3),
+              0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: scale(1.15) rotate(-3deg);
 }
 
 .activity-line {
-  width: 1px;
+  width: 2px;
   flex: 1;
-  background: var(--color-border);
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.3) 0%, rgba(30, 41, 59, 0.05) 100%);
   margin-top: var(--space-8);
   min-height: var(--space-16);
+  border-radius: 1px;
 }
 
 .activity-item:last-child .activity-line {
@@ -176,16 +206,18 @@
 .activity-badge {
   display: inline-flex;
   align-items: center;
-  padding: var(--space-2) var(--space-10);
-  border-radius: var(--radius-base);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: 0.02em;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  background: var(--color-surface-secondary);
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border);
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.12) 0%, rgba(30, 41, 59, 0.08) 100%);
+  color: #1e293b;
+  border: 1px solid rgba(30, 41, 59, 0.25);
   white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(30, 41, 59, 0.12),
+              inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .activity-description {
@@ -215,12 +247,14 @@
 }
 
 .activity-vehicle {
-  color: var(--color-text);
-  font-weight: var(--font-weight-semibold);
-  background: var(--color-surface-secondary);
-  padding: 2px var(--space-8);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
+  color: #1e293b;
+  font-weight: 800;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.1) 0%, rgba(51, 65, 85, 0.06) 100%);
+  padding: 3px 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(30, 41, 59, 0.2);
+  box-shadow: 0 1px 3px rgba(30, 41, 59, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .activity-route {

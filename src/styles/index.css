@@ -1,46 +1,51 @@
 :root {
-  /* Apple-inspired Colors - Modern Green Palette */
-  --color-background: #fafafa;
-  --color-surface: #ffffff;
-  --color-surface-secondary: #f9fafb;
-  --color-surface-elevated: #ffffff;
-  --color-text: #1d1d1f;
-  --color-text-secondary: #86868b;
-  --color-text-tertiary: #afafb0;
-  --color-text-muted: #afafb0;
-  
-  /* Primary Olive Green - Professional & Corporate */
-  --color-primary: #3D5229;
-  --color-primary-hover: #556B2F;
-  --color-primary-active: #2C3E1F;
-  --color-primary-dark: #2C3E1F;
-  --color-primary-subtle: rgba(61, 82, 41, 0.1);
-  --color-primary-light: rgba(61, 82, 41, 0.05);
-  
-  /* Secondary Colors */
-  --color-secondary: #f5f5f7;
-  --color-secondary-hover: #e8e8ed;
-  --color-secondary-active: #d2d2d7;
-  
-  /* Borders */
-  --color-border: rgba(0, 0, 0, 0.08);
-  --color-border-strong: rgba(0, 0, 0, 0.12);
-  --color-divider: rgba(0, 0, 0, 0.05);
-  
-  /* System Colors - Enhanced */
-  --color-error: #ff3b30;
-  --color-error-light: #ffebe9;
-  --color-success: #22c55e;
-  --color-success-light: #ecfdf5;
-  --color-warning: #ff9500;
-  --color-warning-light: #fff8e1;
-  --color-info: #0066cc;
-  --color-info-light: #e6f2ff;
-  
-  /* Focus & Interaction */
-  --color-focus-ring: rgba(61, 82, 41, 0.3);
-  --color-hover-overlay: rgba(0, 0, 0, 0.04);
-  --color-active-overlay: rgba(0, 0, 0, 0.08);
+  /* GOVERNMENT SLATE - Premium Professional Palette */
+  --color-background: #f8fafc;        /* Slate 50 - fondo general */
+  --color-surface: #ffffff;           /* Blanco puro - cards */
+  --color-surface-secondary: #f1f5f9; /* Slate 100 - backgrounds secundarios */
+  --color-surface-elevated: #ffffff;  /* Elevated surfaces */
+  --color-text: #0f172a;              /* Slate 900 - text oscuro */
+  --color-text-secondary: #475569;    /* Slate 600 - secondary text */
+  --color-text-tertiary: #64748b;     /* Slate 500 - tertiary text */
+  --color-text-muted: #94a3b8;        /* Slate 400 - muted text */
+
+  /* PRIMARY - Slate/Charcoal (serio, neutral, moderno) */
+  --color-primary: #1e293b;           /* Slate 800 - base principal */
+  --color-primary-hover: #334155;     /* Slate 700 - hover states */
+  --color-primary-active: #0f172a;    /* Slate 900 - active/pressed */
+  --color-primary-dark: #0f172a;      /* Slate 900 - dark variant */
+  --color-primary-light: #334155;     /* Slate 700 - light variant */
+  --color-primary-subtle: rgba(30, 41, 59, 0.1);  /* Subtle bg */
+
+  /* SECONDARY - Navy Blue (acciones importantes) */
+  --color-secondary: #1e40af;         /* Blue 700 - links, buttons secundarios */
+  --color-secondary-hover: #3b82f6;   /* Blue 500 - hover */
+  --color-secondary-active: #1e3a8a;  /* Blue 800 - active */
+  --color-secondary-light: #3b82f6;   /* Blue 500 - highlights */
+
+  /* Borders - Premium Grays */
+  --color-border: rgba(30, 41, 59, 0.08);     /* Subtle borders */
+  --color-border-strong: rgba(30, 41, 59, 0.15); /* Strong borders */
+  --color-divider: rgba(30, 41, 59, 0.06);    /* Subtle dividers */
+
+  /* System Colors - Refined Professional Palette */
+  --color-error: #ef4444;             /* Red 500 - elegante */
+  --color-error-light: #fee2e2;       /* Red 100 - light bg */
+  --color-error-dark: #dc2626;        /* Red 600 - dark variant */
+  --color-success: #10b981;           /* Emerald 500 - refinado */
+  --color-success-light: #d1fae5;     /* Emerald 100 - light bg */
+  --color-success-dark: #047857;      /* Emerald 700 - dark variant */
+  --color-warning: #f59e0b;           /* Amber 500 - profesional */
+  --color-warning-light: #fef3c7;     /* Amber 100 - light bg */
+  --color-warning-dark: #d97706;      /* Amber 600 - dark variant */
+  --color-info: #3b82f6;              /* Blue 500 - suave */
+  --color-info-light: #dbeafe;        /* Blue 100 - light bg */
+  --color-info-dark: #2563eb;         /* Blue 600 - dark variant */
+
+  /* Focus & Interaction - Premium States */
+  --color-focus-ring: rgba(30, 41, 59, 0.4);  /* Slate focus ring */
+  --color-hover-overlay: rgba(0, 0, 0, 0.03);  /* Subtle hover */
+  --color-active-overlay: rgba(0, 0, 0, 0.06); /* Subtle press */
 
   /* Colores específicos para Eco-Waste */
   --color-eco-primary: rgba(34, 139, 34, 1);      /* Verde principal */
@@ -57,12 +62,21 @@
   --select-caret-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231B4523' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   --select-caret-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 
-  /* RGB versions for opacity control */
-  --color-success-rgb: 85, 107, 47;
-  --color-error-rgb: 220, 53, 69;
-  --color-warning-rgb: 255, 193, 7;
-  --color-info-rgb: 23, 162, 184;
-  --color-primary-rgb: 61, 82, 41;
+  /* RGB versions for opacity control - Government Slate */
+  --color-primary-rgb: 30, 41, 59;       /* Slate 800 RGB */
+  --color-success-rgb: 16, 185, 129;     /* Emerald 500 RGB */
+  --color-error-rgb: 239, 68, 68;        /* Red 500 RGB */
+  --color-warning-rgb: 245, 158, 11;     /* Amber 500 RGB */
+  --color-info-rgb: 59, 130, 246;        /* Blue 500 RGB */
+
+  /* Premium Gradients - Strategic use ONLY */
+  --gradient-primary: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  --gradient-error: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  --gradient-info: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  --gradient-text-dark: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --gradient-text-accent: linear-gradient(135deg, #1e293b 0%, #1e40af 100%);
 
   /* Additional colors for Personnel component */
   --color-text-primary: rgba(27, 69, 35, 1);
@@ -113,40 +127,47 @@
   --icon-color-success: var(--color-success);
   --icon-color-warning: var(--color-warning);
 
-  /* Spacing - Strict Scale System */
+  /* Spacing - Enterprise Scale (8px base unit, prefer smaller values) */
   --space-0: 0;
   --space-2: 2px;
   --space-4: 4px;
   --space-6: 6px;
-  --space-8: 8px;
+  --space-8: 8px;        /* ✅ Dense UI - use for tight spacing */
   --space-10: 10px;
-  --space-12: 12px;
+  --space-12: 12px;      /* ✅ Dense UI - common padding for cards/tables */
   --space-14: 14px;
-  --space-16: 16px;
-  --space-20: 20px;
-  --space-24: 24px;
-  --space-28: 28px;
-  --space-32: 32px;
-  --space-40: 40px;
-  --space-48: 48px;
-  --space-56: 56px;
-  --space-64: 64px;
+  --space-16: 16px;      /* ✅ Standard UI - general padding */
+  --space-20: 20px;      /* ✅ Standard UI - section spacing */
+  --space-24: 24px;      /* ⚠️ Use sparingly - major sections only */
+  --space-28: 28px;      /* ❌ AVOID in new components (too spacious) */
+  --space-32: 32px;      /* ❌ AVOID in new components (too spacious) */
+  --space-40: 40px;      /* ❌ AVOID in new components (too spacious) */
+  --space-48: 48px;      /* ❌ AVOID in new components (too spacious) */
+  --space-56: 56px;      /* ❌ AVOID in new components (too spacious) */
+  --space-64: 64px;      /* ❌ AVOID in new components (too spacious) */
 
-  /* Border Radius - Clean & Consistent */
-  --radius-sm: 4px;
-  --radius-base: 6px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 10px;
-  --radius-full: 9999px;
+  /* Border Radius - Fluent Design (moderate, professional) */
+  --radius-sm: 2px;        /* Tight elements - badges, small chips */
+  --radius-base: 4px;      /* Default - buttons, inputs, most UI */
+  --radius-md: 6px;        /* Cards, panels */
+  --radius-lg: 8px;        /* Large cards, modals */
+  --radius-xl: 12px;       /* Hero components, featured cards */
+  --radius-full: 9999px;   /* Pills (use sparingly - badges only) */
 
-  /* Shadows - Modern & Subtle (Stripe-inspired) */
-  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  /* Shadows - Premium Multi-layer System (visible depth) */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04), 0 4px 8px rgba(30, 41, 59, 0.04);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.06), 0 8px 16px rgba(30, 41, 59, 0.08);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.08), 0 16px 32px rgba(30, 41, 59, 0.12);
+  --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.10), 0 24px 48px rgba(30, 41, 59, 0.15);
+  --shadow-2xl: 0 20px 40px rgba(0, 0, 0, 0.12), 0 32px 64px rgba(30, 41, 59, 0.18);
+
+  /* Colored Glow Shadows for hover states */
+  --shadow-primary-glow: 0 4px 16px rgba(30, 41, 59, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-success-glow: 0 4px 16px rgba(16, 185, 129, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-warning-glow: 0 4px 16px rgba(245, 158, 11, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-error-glow: 0 4px 16px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-info-glow: 0 4px 16px rgba(59, 130, 246, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1);
 
   /* Elevation Shadows */
   --shadow-elevated: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
@@ -173,6 +194,20 @@
   --container-md: 768px;
   --container-lg: 1024px;
   --container-xl: 1280px;
+
+  /* Enterprise-specific tokens (information density) */
+  --enterprise-table-row-height: 40px;        /* Compact table rows */
+  --enterprise-table-row-height-dense: 36px;  /* Extra dense (for large datasets) */
+  --enterprise-table-row-height-comfortable: 48px;  /* More breathing room */
+  --enterprise-card-padding: var(--space-12);  /* Standard card padding */
+  --enterprise-section-gap: var(--space-16);   /* Gap between sections */
+  --enterprise-grid-gap: var(--space-12);      /* Dense grid layouts */
+  --enterprise-badge-padding: 4px 8px;         /* Small, compact badges */
+  --enterprise-button-padding: var(--space-8) var(--space-16);  /* Button padding */
+  --enterprise-input-height: 36px;             /* Standard input height */
+  --enterprise-icon-size-sm: 16px;             /* Small icons */
+  --enterprise-icon-size-md: 20px;             /* Medium icons */
+  --enterprise-icon-size-lg: 24px;             /* Large icons (maximum) */
 }
 
 
@@ -190,7 +225,7 @@ html {
 
 body {
   font-family: var(--font-family-base);
-  background-color: var(--color-background);
+  background: var(--color-background);
   color: var(--color-text);
   margin: 0;
   padding: 0;
