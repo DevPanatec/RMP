@@ -1149,6 +1149,24 @@ const ConductorDashboard = ({ user, onLogout }) => {
               </li>
             </ul>
           </nav>
+          <button
+            className="logout-btn"
+            onClick={handleLogout}
+            style={{
+              margin: '20px',
+              padding: '12px',
+              background: '#dc2626',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <LogOut size={18} /> Cerrar Sesión
+          </button>
         </div>
 
         <div className="main-content">
