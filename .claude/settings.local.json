@@ -30,7 +30,10 @@
       "Bash(git push:*)",
       "Bash(npm run build:*)",
       "Bash(git fetch:*)",
-      "Bash(GIT_COMMITTER_NAME=\"DevPanatec\" GIT_COMMITTER_EMAIL=\"devpanatec@github.com\" git commit:*)"
+      "Bash(GIT_COMMITTER_NAME=\"DevPanatec\" GIT_COMMITTER_EMAIL=\"devpanatec@github.com\" git commit:*)",
+      "Bash(git reset:*)",
+      "Bash(GIT_COMMITTER_NAME=\"DevPanatec\" GIT_COMMITTER_EMAIL=\"DevPanatec@users.noreply.github.com\" git commit:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": [],
