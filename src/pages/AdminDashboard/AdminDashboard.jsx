@@ -34,7 +34,7 @@ import { Badge, ProgressBar } from '../../components/UI';
 import { DashboardKPI, AlertCard, PersonnelTable, VehicleCard, HeroStats, RealtimeActivity, RiskAlerts } from '../../components/Dashboard';
 import './AdminDashboard.css';
 
-const AdminDashboard = ({ user, onLogout }) => {
+const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSubTab, setActiveSubTab] = useState('');
   const [selectedTruck, setSelectedTruck] = useState(null);
@@ -593,7 +593,7 @@ const AdminDashboard = ({ user, onLogout }) => {
       case 'reportes':
         return <ReportsComponent userType={user.tipo} preSelectedLocationId={selectedLocationId} onClearSelection={handleClearLocationSelection} />;
       case 'costos':
-        return <CostosComponent />;
+        return userRole === 'admin' ? <CostosComponent /> : null;
       default:
         return null;
     }
@@ -607,7 +607,7 @@ const AdminDashboard = ({ user, onLogout }) => {
         <div className="app-bar__header">
           <div className="app-bar__brand">
             <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="app-bar__logo" />
-            <h1 className="app-bar__title">RMP Admin</h1>
+            <h1 className="app-bar__title">RMP {userRole === 'enterprise' ? 'Enterprise' : 'Admin'}</h1>
           </div>
           <div className="app-bar__actions">
             <div className="app-bar__status">
@@ -665,13 +665,15 @@ const AdminDashboard = ({ user, onLogout }) => {
             <Package strokeWidth={1.5} size={18} />
             <span>Inventario</span>
           </button>
-          <button
-            className={`top-nav__tab ${activeTab === 'costos' ? 'active' : ''}`}
-            onClick={() => handleTabChange('costos')}
-          >
-            <DollarSign strokeWidth={1.5} size={18} />
-            <span>Costos</span>
-          </button>
+          {userRole === 'admin' && (
+            <button
+              className={`top-nav__tab ${activeTab === 'costos' ? 'active' : ''}`}
+              onClick={() => handleTabChange('costos')}
+            >
+              <DollarSign strokeWidth={1.5} size={18} />
+              <span>Costos</span>
+            </button>
+          )}
           <button
             className={`top-nav__tab ${activeTab === 'reportes' ? 'active' : ''}`}
             onClick={() => handleTabChange('reportes')}
