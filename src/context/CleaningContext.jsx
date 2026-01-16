@@ -14,6 +14,9 @@ export const CleaningProvider = ({ children }) => {
   const addAssignmentMutation = useMutation(api.cleaning.addAssignment);
   const updateAssignmentMutation = useMutation(api.cleaning.updateAssignment);
   const deleteAssignmentMutation = useMutation(api.cleaning.deleteAssignment);
+  const addPhotoMutation = useMutation(api.cleaning.addPhoto);
+  const createReportMutation = useMutation(api.cleaning.createReport);
+  const generateUploadUrlMutation = useMutation(api.files.generateUploadUrl);
 
   const lugares = salasData || [];
   const areas = areasData || [];
@@ -70,6 +73,81 @@ export const CleaningProvider = ({ children }) => {
     }
   };
 
+  // Subir foto a Convex storage y registrar en cleaning_photos
+  const uploadPhoto = async (assignmentId, etapa, file) => {
+    try {
+      // 1. Obtener URL de subida
+      const uploadUrl = await generateUploadUrlMutation();
+
+      // 2. Subir archivo al storage
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!result.ok) {
+        throw new Error(`Upload failed: ${result.statusText}`);
+      }
+
+      const { storageId } = await result.json();
+
+      // 3. Registrar foto en la base de datos
+      const photoId = await addPhotoMutation({
+        assignment_id: assignmentId,
+        etapa: etapa,
+        storage_id: storageId,
+        file_name: file.name,
+        file_size: file.size,
+        mime_type: file.type,
+      });
+
+      console.log(`📸 Foto subida: ${etapa} - ${file.name}`, photoId);
+      return { success: true, photoId, storageId };
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Completar asignación y crear reporte
+  const completeAssignment = async (assignmentId, reportData) => {
+    try {
+      // 1. Crear el reporte de limpieza
+      const reportId = await createReportMutation({
+        assignment_id: assignmentId,
+        sala_id: reportData.sala_id,
+        area_id: reportData.area_id,
+        sala_nombre: reportData.sala_nombre,
+        area_nombre: reportData.area_nombre,
+        latitud: reportData.latitud,
+        longitud: reportData.longitud,
+        fecha: reportData.fecha,
+        hora_inicio: reportData.hora_inicio,
+        hora_fin: reportData.hora_fin,
+        duracion_minutos: reportData.duracion_minutos,
+        fotos_antes_ids: reportData.fotos_antes_ids || [],
+        fotos_durante_ids: reportData.fotos_durante_ids || [],
+        fotos_despues_ids: reportData.fotos_despues_ids || [],
+        observaciones: reportData.observaciones,
+        usuario_completo: reportData.usuario_completo,
+        fecha_completacion: new Date().toISOString().split('T')[0],
+      });
+
+      // 2. Actualizar estado de la asignación a "completada"
+      await updateAssignmentMutation({
+        id: assignmentId,
+        estado: 'completada'
+      });
+
+      console.log('✅ Limpieza completada, reporte creado:', reportId);
+      return { success: true, reportId };
+    } catch (error) {
+      console.error('Error completing assignment:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   const value = {
     lugares,
     areas,
@@ -80,6 +158,8 @@ export const CleaningProvider = ({ children }) => {
     addAssignment,
     updateAssignment,
     deleteAssignment,
+    uploadPhoto,
+    completeAssignment,
   };
 
   return <CleaningContext.Provider value={value}>{children}</CleaningContext.Provider>;

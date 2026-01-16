@@ -204,6 +204,6 @@
   }
 
   .current-point-info {
-    background: linear-gradient(135deg, rgba(61, 82, 41, 0.2), rgba(61, 82, 41, 0.1));
+    background: var(--color-surface-secondary);
   }
 }

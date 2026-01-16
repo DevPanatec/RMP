@@ -354,7 +354,7 @@ export default defineSchema({
   // 16b. Fotos de Mantenimiento
   maintenance_photos: defineTable({
     task_id: v.id("maintenance_tasks"),
-    etapa: v.string(), // "before", "during", "after"
+    etapa: v.string(), // "antes", "durante", "despues"
     storage_id: v.id("_storage"), // Convex file storage
     file_name: v.string(),
     file_size: v.optional(v.number()),
@@ -362,6 +362,30 @@ export default defineSchema({
   })
     .index("by_task", ["task_id"])
     .index("by_etapa", ["etapa"]),
+
+  // 16c. Reportes de Mantenimiento Completados
+  maintenance_reports: defineTable({
+    task_id: v.id("maintenance_tasks"),
+    vehiculo_id: v.optional(v.id("vehiculos")),
+    vehiculo_placa: v.optional(v.string()),
+    titulo: v.string(),
+    descripcion: v.optional(v.string()),
+    tipo: v.string(), // "preventivo", "correctivo", "inspección"
+    prioridad: v.string(), // "baja", "media", "alta", "urgente"
+    fecha_programada: v.optional(v.string()),
+    fecha_completada: v.string(),
+    costo: v.optional(v.number()),
+    mecanico: v.optional(v.string()),
+    fotos_antes_ids: v.array(v.id("maintenance_photos")),
+    fotos_durante_ids: v.array(v.id("maintenance_photos")),
+    fotos_despues_ids: v.array(v.id("maintenance_photos")),
+    observaciones: v.optional(v.string()),
+    usuario_completo: v.string(),
+    fecha_reporte: v.string(),
+  })
+    .index("by_fecha", ["fecha_reporte"])
+    .index("by_vehiculo", ["vehiculo_id"])
+    .index("by_tipo", ["tipo"]),
 
   // 17. Asignaciones de Fumigación
   fumigation_assignments: defineTable({
@@ -388,6 +412,7 @@ export default defineSchema({
   // 18. Fotos de Fumigación
   fumigation_photos: defineTable({
     assignment_id: v.id("fumigation_assignments"),
+    etapa: v.optional(v.string()), // "antes", "durante", "despues" (opcional para compatibilidad)
     storage_id: v.id("_storage"), // Convex file storage
     file_name: v.string(),
     file_size: v.optional(v.number()),
@@ -409,7 +434,13 @@ export default defineSchema({
     duracion_minutos: v.number(),
     productos_utilizados: v.array(v.string()),
     observaciones: v.optional(v.string()),
-    fotos_ids: v.array(v.id("fumigation_photos")),
+    // Fotos organizadas por etapa (igual que cleaning y maintenance)
+    // Opcional para compatibilidad con reportes antiguos que usaban fotos_ids
+    fotos_antes_ids: v.optional(v.array(v.id("fumigation_photos"))),
+    fotos_durante_ids: v.optional(v.array(v.id("fumigation_photos"))),
+    fotos_despues_ids: v.optional(v.array(v.id("fumigation_photos"))),
+    // Campo legacy - mantener para reportes existentes
+    fotos_ids: v.optional(v.array(v.id("fumigation_photos"))),
     usuario_completo: v.string(),
     fecha_completacion: v.string(),
   })

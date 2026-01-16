@@ -13,10 +13,10 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange, showHeader = true }) 
       const updatedStops = stops.map(stop =>
         stop.id === editingStop.id ? {
           ...stop,
-          direccion: locationData.address,
-          direccion_completa: locationData.full_address,
-          latitud: locationData.latitude,
-          longitud: locationData.longitude
+          direccion: locationData.direccion,
+          direccion_completa: locationData.direccion_completa,
+          latitud: locationData.latitud,
+          longitud: locationData.longitud
         } : stop
       );
       onStopsChange && onStopsChange(updatedStops);
@@ -26,10 +26,10 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange, showHeader = true }) 
       // Modo agregar
       const newStop = {
         id: Date.now(),
-        direccion: locationData.address,
-        direccion_completa: locationData.full_address,
-        latitud: locationData.latitude,
-        longitud: locationData.longitude,
+        direccion: locationData.direccion,
+        direccion_completa: locationData.direccion_completa,
+        latitud: locationData.latitud,
+        longitud: locationData.longitud,
         orden: stops.length + 1,
         completada: false
       };
@@ -251,7 +251,7 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange, showHeader = true }) 
             </>
           ) : (
             <div className="no-stops">
-              <Map size={48} strokeWidth={1.5} />
+              <Map size={32} strokeWidth={2} />
               <h4>Sin paradas</h4>
               <p>Usa el mapa de la izquierda para agregar ubicaciones</p>
             </div>

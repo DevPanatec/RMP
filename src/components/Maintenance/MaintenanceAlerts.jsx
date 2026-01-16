@@ -50,11 +50,11 @@ const MaintenanceAlerts = ({ userRole }) => {
     <div>
       {/* Summary - Diseño delgado con divisiones */}
       <div style={{
-        background: 'linear-gradient(135deg, #556B2F 0%, #3D5229 100%)',
+        background: 'var(--color-primary)',
         borderRadius: '16px',
         padding: '20px 0',
         marginBottom: '32px',
-        boxShadow: '0 4px 16px rgba(61, 82, 41, 0.2)',
+        boxShadow: '0 4px 16px var(--shadow-sm)',
         display: 'grid',
         gridTemplateColumns: 'repeat(3, 1fr)'
       }}>
@@ -172,7 +172,7 @@ const MaintenanceAlerts = ({ userRole }) => {
               height: '80px',
               margin: '0 auto 16px',
               borderRadius: '20px',
-              background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+              background: 'var(--color-background-secondary)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
@@ -192,26 +192,26 @@ const MaintenanceAlerts = ({ userRole }) => {
 
             const severityConfig = {
               critical: {
-                bg: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+                bg: 'var(--color-surface)',
                 border: '#dcfce7',
-                borderLeft: '#3D5229',
-                iconBg: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
+                borderLeft: 'var(--color-primary)',
+                iconBg: 'var(--color-primary)',
                 iconColor: 'white',
                 titleColor: '#1f2937'
               },
               warning: {
-                bg: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+                bg: 'var(--color-surface)',
                 border: '#dcfce7',
-                borderLeft: '#3D5229',
-                iconBg: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
+                borderLeft: 'var(--color-primary)',
+                iconBg: 'var(--color-primary)',
                 iconColor: 'white',
                 titleColor: '#1f2937'
               },
               info: {
-                bg: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+                bg: 'var(--color-surface)',
                 border: '#dcfce7',
-                borderLeft: '#3D5229',
-                iconBg: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
+                borderLeft: 'var(--color-primary)',
+                iconBg: 'var(--color-primary)',
                 iconColor: 'white',
                 titleColor: '#1f2937'
               }
@@ -230,7 +230,7 @@ const MaintenanceAlerts = ({ userRole }) => {
                   padding: '20px 24px',
                   transition: 'all 0.2s ease',
                   cursor: 'default',
-                  boxShadow: '0 4px 16px rgba(61, 82, 41, 0.08)'
+                  boxShadow: '0 4px 16px var(--shadow-xs)'
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
@@ -251,7 +251,7 @@ const MaintenanceAlerts = ({ userRole }) => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    boxShadow: '0 4px 12px rgba(61, 82, 41, 0.2)'
+                    boxShadow: '0 4px 12px var(--shadow-sm)'
                   }}>
                     {alert.severity === 'critical' ? (
                       <AlertTriangle size={20} style={{ color: config.iconColor }} />

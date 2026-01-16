@@ -3,7 +3,16 @@ import { X, MapPin, Truck, Clock, UserCheck, Package, Calendar, FileText, AlertT
 import MapComponent from '../Map/MapComponent';
 import { useRiskReports } from '../../context/RiskReportsContext';
 import { useMap } from 'react-leaflet';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import './RouteReportDetailModal.css';
+
+// Helper para parsear fechas sin problemas de timezone
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  if (dateStr.includes('T')) return new Date(dateStr);
+  return new Date(dateStr + 'T00:00:00');
+};
 
 // Componente para auto-centrar el mapa en las paradas
 const AutoFitBounds = ({ paradas }) => {
@@ -30,6 +39,22 @@ const AutoFitBounds = ({ paradas }) => {
 
 const RouteReportDetailModal = ({ report, onClose }) => {
   const { reports: allRiskReports } = useRiskReports();
+
+  // Obtener historial GPS real del vehículo durante la ruta
+  const vehicleHistory = useQuery(
+    api.vehicleHistory.getVehicleHistory,
+    report?.vehiculo_id ? {
+      vehiculoId: report.vehiculo_id,
+      startDate: new Date(report.fecha_inicio).getTime(),
+      endDate: new Date(report.fecha_completacion).getTime()
+    } : 'skip'
+  );
+
+  // Preparar datos del trail GPS real
+  const gpsTrailData = vehicleHistory?.locations?.map(loc => ({
+    lat: loc.gps_latitud,
+    lng: loc.gps_longitud
+  })) || [];
 
   if (!report) return null;
 
@@ -112,6 +137,7 @@ const RouteReportDetailModal = ({ report, onClose }) => {
   console.log('🗺️ RouteReportDetailModal - Ruta para mapa:', rutaParaMapa);
   console.log('🗺️ Total paradas con GPS:', rutaParaMapa[0]?.paradas?.filter(p => p.lat && p.lng).length);
   console.log('🗺️ Paradas detalle:', rutaParaMapa[0]?.paradas);
+  console.log('🗺️ GPS Trail Real:', gpsTrailData.length, 'puntos', gpsTrailData.slice(0, 3));
 
   // Log coordenadas de cada parada
   console.log('🗺️ Coordenadas de paradas en RouteReportDetailModal:');
@@ -150,6 +176,8 @@ const RouteReportDetailModal = ({ report, onClose }) => {
                   personnel={[]}
                   lugares={[]}
                   showRealTime={false}
+                  gpsTrail={gpsTrailData}
+                  showMapboxRoute={false}
                 />
               </div>
             ) : (
@@ -196,7 +224,7 @@ const RouteReportDetailModal = ({ report, onClose }) => {
               <div>
                 <span className="stat-label">Fecha</span>
                 <span className="stat-value">
-                  {new Date(report.fecha_completacion).toLocaleDateString('es-ES', {
+                  {parseLocalDate(report.fecha_completacion).toLocaleDateString('es-ES', {
                     day: '2-digit',
                     month: 'short',
                     year: 'numeric'
@@ -318,7 +346,7 @@ const RouteReportDetailModal = ({ report, onClose }) => {
                       <div className="risk-meta">
                         <span className="risk-meta-item">
                           <Clock size={14} />
-                          {new Date(riskReport.fecha_reporte || riskReport.fechaCreacion).toLocaleString('es-ES')}
+                          {parseLocalDate(riskReport.fecha_reporte || riskReport.fechaCreacion).toLocaleString('es-ES')}
                         </span>
                         {riskReport.ubicacion && (
                           <span className="risk-meta-item">

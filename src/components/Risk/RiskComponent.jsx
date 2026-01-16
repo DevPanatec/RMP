@@ -41,11 +41,11 @@ const RiskComponent = ({ userType = 'admin' }) => {
 
   return (
     <div className="risk-v2">
-      {/* Header V2 */}
+      {/* Header V2 - Compacto */}
       <div className="risk-header-v2">
-        <div className="risk-header-info">
+        <div className="risk-header-left">
           <div className="risk-header-icon">
-            <Shield size={28} />
+            <Shield size={20} />
           </div>
           <div className="risk-header-text">
             <h2>Reportes de Riesgo</h2>
@@ -54,20 +54,20 @@ const RiskComponent = ({ userType = 'admin' }) => {
         </div>
 
         <div className="risk-header-stats">
-          <div className="risk-stat-pill warning">
-            <span className="stat-number">{pendingCount}</span>
+          <div className="risk-stat-compact">
+            <span className="stat-value">{pendingCount}</span>
             <span className="stat-label">Pendientes</span>
           </div>
-          <div className="risk-stat-pill info">
-            <span className="stat-number">{inReviewCount}</span>
+          <div className="risk-stat-compact">
+            <span className="stat-value">{inReviewCount}</span>
             <span className="stat-label">En Revisión</span>
           </div>
-          <div className="risk-stat-pill success">
-            <span className="stat-number">{resolvedCount}</span>
+          <div className="risk-stat-compact">
+            <span className="stat-value">{resolvedCount}</span>
             <span className="stat-label">Resueltos</span>
           </div>
-          <div className="risk-stat-pill">
-            <span className="stat-number">{stats.total}</span>
+          <div className="risk-stat-compact total">
+            <span className="stat-value">{stats.total}</span>
             <span className="stat-label">Total</span>
           </div>
         </div>
@@ -82,30 +82,6 @@ const RiskComponent = ({ userType = 'admin' }) => {
         </div>
       ) : (
         <div className="risk-body">
-          {/* Estadísticas generales */}
-          <div className="risk-stats">
-            <div className="stat-card">
-              <div className="stat-icon"><ClipboardList size={24} /></div>
-              <div className="stat-data">
-                <div className="stat-value">{stats.total}</div>
-                <div className="stat-label">Total Reportes</div>
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon"><Wrench size={24} /></div>
-              <div className="stat-data">
-                <div className="stat-value">{stats.internos}</div>
-                <div className="stat-label">Riesgos Internos</div>
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon"><AlertOctagon size={24} /></div>
-              <div className="stat-data">
-                <div className="stat-value">{stats.externos}</div>
-                <div className="stat-label">Riesgos Externos</div>
-              </div>
-            </div>
-          </div>
 
           {/* Grid de reportes */}
           <div className="reports-section">
@@ -136,74 +112,100 @@ const RiskComponent = ({ userType = 'admin' }) => {
               <div className="reports-responsive-grid">
                 {reports.map(risk => (
                 <div key={risk.id} className={`report-card report-${getPriorityLevel(risk.prioridad)}`}>
-                  <div className="report-header">
-                    <div className="report-type">
-                      {risk.tipo === 'interno' ? <Wrench size={16} /> : <AlertOctagon size={16} />} {risk.tipo.toUpperCase()}
+                  {/* Header simplificado */}
+                  <div className="report-card-header">
+                    <div className="report-badges">
+                      <span className="report-type-badge">
+                        {risk.tipo === 'interno' ? <Wrench size={12} /> : <AlertOctagon size={12} />}
+                        {risk.tipo.toUpperCase()}
+                      </span>
+                      <span className={`report-status-badge status-${risk.estado}`}>
+                        {risk.estado.replace('_', ' ').toUpperCase()}
+                      </span>
                     </div>
-                    <div className="report-date">
-                      {new Date(risk.fechaCreacion).toLocaleDateString('es-ES')}
-                    </div>
-                    <div className={`report-status status-${risk.estado}`}>
-                      {risk.estado.replace('_', ' ').toUpperCase()}
-                    </div>
+                    <span className="report-date-compact">
+                      {new Date(risk.fechaCreacion).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    </span>
                   </div>
-                  
-                  <div className="report-body">
-                    <h4>{risk.titulo}</h4>
-                    <p className="report-category"><FolderOpen size={14} /> {risk.categoria}</p>
-                    <p className="report-description">{risk.descripcion}</p>
-                    
-                    <div className="report-meta">
-                      <div className="meta-row">
-                        <span className="meta-label"><Users size={14} /> Conductor:</span>
-                        <span className="meta-value">{risk.conductor}</span>
+
+                  {/* Contenido principal */}
+                  <div className="report-card-body">
+                    <h4 className="report-title">{risk.titulo}</h4>
+                    <p className="report-category-compact">
+                      <FolderOpen size={12} />
+                      <span>{risk.categoria}</span>
+                    </p>
+                    <p className="report-description-compact">{risk.descripcion}</p>
+
+                    {/* Info grid compacta */}
+                    <div className="report-info-grid">
+                      <div className="info-item">
+                        <Users size={14} />
+                        <div className="info-content">
+                          <span className="info-label">Conductor</span>
+                          <span className="info-value">{risk.conductor}</span>
+                        </div>
                       </div>
-                      <div className="meta-row">
-                        <span className="meta-label"><Truck size={14} /> Camión:</span>
-                        <span className="meta-value">{risk.camion}</span>
+                      <div className="info-item">
+                        <Truck size={14} />
+                        <div className="info-content">
+                          <span className="info-label">Camión</span>
+                          <span className="info-value">{risk.camion}</span>
+                        </div>
                       </div>
-                      <div className="meta-row">
-                        <span className="meta-label"><MapPin size={14} /> Ubicación:</span>
-                        <span className="meta-value">{risk.ubicacion}</span>
+                      <div className="info-item full-width">
+                        <MapPin size={14} />
+                        <div className="info-content">
+                          <span className="info-label">Ubicación</span>
+                          <span className="info-value">{risk.ubicacion}</span>
+                        </div>
                       </div>
                       {risk.parada_nombre && (
-                        <div className="meta-row parada-highlight">
-                          <span className="meta-label"><Package size={14} /> Parada:</span>
-                          <span className="meta-value">
-                            {risk.parada_nombre} <strong>(Parada #{risk.parada_orden})</strong>
-                          </span>
+                        <div className="info-item parada-highlight full-width">
+                          <Package size={14} />
+                          <div className="info-content">
+                            <span className="info-label">Parada</span>
+                            <span className="info-value">
+                              {risk.parada_nombre} <strong>(#{risk.parada_orden})</strong>
+                            </span>
+                          </div>
                         </div>
                       )}
-                      <div className="meta-row">
-                        <span className="meta-label"><AlertTriangle size={14} /> Prioridad:</span>
-                        <span className={`priority-badge priority-${risk.prioridad}`}>
-                          {getPriorityIcon(risk.prioridad)} {risk.prioridad.toUpperCase()}
-                        </span>
-                      </div>
+                    </div>
+
+                    {/* Prioridad separada */}
+                    <div className="report-priority-row">
+                      <span className={`priority-badge-compact priority-${risk.prioridad}`}>
+                        {getPriorityIcon(risk.prioridad)}
+                        {risk.prioridad.toUpperCase()}
+                      </span>
                     </div>
                   </div>
-                  
-                  <div className="report-actions">
-                    <button 
-                      className="btn btn--small btn--outline"
+
+                  {/* Acciones al pie */}
+                  <div className="report-card-footer">
+                    <button
+                      className="btn btn--sm btn--ghost"
                       onClick={() => setSelectedReport(risk)}
                     >
-                      <Eye size={14} /> Ver Detalles
+                      <Eye size={14} />
+                      Ver Detalles
                     </button>
                     {risk.estado === 'reportado' && (
-                      <button 
-                        className="btn btn--small btn--primary"
+                      <button
+                        className="btn btn--sm btn--primary"
                         onClick={() => updateReportStatus(risk.id, 'en_revision')}
                       >
-                        <ClipboardList size={14} /> Revisar
+                        Revisar
                       </button>
                     )}
                     {risk.estado === 'en_revision' && (
-                      <button 
-                        className="btn btn--small btn--success"
+                      <button
+                        className="btn btn--sm btn--success"
                         onClick={() => updateReportStatus(risk.id, 'resuelto')}
                       >
-                        <CheckCircle size={14} /> Marcar Resuelto
+                        <CheckCircle size={14} />
+                        Resuelto
                       </button>
                     )}
                   </div>

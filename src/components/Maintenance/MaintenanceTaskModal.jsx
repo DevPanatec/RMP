@@ -6,7 +6,7 @@ import { X, Upload, Image as ImageIcon, Check, Trash2 } from '../Icons';
 import { MAINTENANCE_PRESETS } from '../../constants/maintenancePresets';
 
 const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
-  const { addTask, updateTask, deleteTask } = useMaintenance();
+  const { addTask, updateTask, deleteTask, completeTask } = useMaintenance();
   const [loading, setLoading] = useState(false);
   const isAdmin = userRole === 'admin';
   const isEnterprise = userRole === 'enterprise';
@@ -15,17 +15,19 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
   const generateUploadUrl = useMutation(api.maintenance.generateUploadUrl);
   const savePhoto = useMutation(api.maintenance.savePhoto);
   const deletePhotoMutation = useMutation(api.maintenance.deletePhoto);
+  const createReportMutation = useMutation(api.maintenance.createReport);
   const photosData = useQuery(
     api.maintenance.listPhotos,
     task?._id ? { task_id: task._id } : "skip"
   );
 
   const [formData, setFormData] = useState({
-    type: task?.type || 'preventivo',
-    scheduled_date: task?.scheduled_date || '',
+    titulo: task?.titulo || '',
+    tipo: task?.tipo || 'preventivo',
+    fecha_programada: task?.fecha_programada || '',
     scheduled_time: task?.scheduled_time || '',
-    observations: task?.observations || '',
-    status: task?.status || 'programada'
+    descripcion: task?.descripcion || '',
+    estado: task?.estado || 'pendiente'
   });
 
   const [operationalData, setOperationalData] = useState({
@@ -49,18 +51,33 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
 
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
 
+  // Determinar la siguiente categoría disponible para foto (máx 1 por categoría)
+  const getNextAvailableCategory = () => {
+    if (photos.before.length === 0) return 'before';
+    if (photos.during.length === 0) return 'during';
+    if (photos.after.length === 0) return 'after';
+    return null; // Todas las categorías tienen foto
+  };
+
+  // Mapeo de etapas: local state keys -> database values (español)
+  const etapaMap = {
+    before: 'antes',
+    during: 'durante',
+    after: 'despues'
+  };
+
   // Cargar fotos existentes cuando los datos están disponibles
   useEffect(() => {
     if (photosData) {
-      const before = photosData.filter(p => p.etapa === 'before').map(p => ({
+      const before = photosData.filter(p => p.etapa === 'antes').map(p => ({
         id: p._id,
         url: p.url
       }));
-      const during = photosData.filter(p => p.etapa === 'during').map(p => ({
+      const during = photosData.filter(p => p.etapa === 'durante').map(p => ({
         id: p._id,
         url: p.url
       }));
-      const after = photosData.filter(p => p.etapa === 'after').map(p => ({
+      const after = photosData.filter(p => p.etapa === 'despues').map(p => ({
         id: p._id,
         url: p.url
       }));
@@ -117,7 +134,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
       // Aplicar tipo de mantenimiento
       setFormData(prev => ({
         ...prev,
-        type: pkg.type
+        tipo: pkg.type
       }));
     }
   };
@@ -142,18 +159,104 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
     setLoading(true);
 
     try {
+      // Mapear campos del modal a los que espera Convex
       const taskData = {
-        ...formData,
-        operational_data: operationalData
+        titulo: formData.titulo || 'Tarea de Mantenimiento',
+        tipo: formData.tipo,
+        fecha_programada: formData.fecha_programada,
+        descripcion: formData.descripcion,
+        costo: operationalData.total_estimated_cost || 0,
+        notas: operationalData.technical_observations || '',
+        estado: formData.estado
       };
 
       // Si está actualizando una tarea existente
       if (task) {
-        await updateTask(task._id || task.id, taskData);
+        // Si se está COMPLETANDO (cambio de estado a completada)
+        if (formData.estado === 'completada' && task.estado !== 'completada') {
+          const reportData = {
+            vehiculo_placa: task.vehiculo_placa || '',
+            costo: operationalData.total_estimated_cost || task.costo || 0,
+            mecanico: task.mecanico || 'N/A',
+            observaciones: operationalData.technical_observations || task.notas || '',
+            usuario_completo: 'Admin'
+          };
+          console.log('📋 Completando tarea y creando reporte:', reportData);
+          await completeTask(task._id || task.id, reportData);
+        } else {
+          // Actualización normal (sin completar)
+          await updateTask(task._id || task.id, {
+            descripcion: taskData.descripcion,
+            estado: formData.estado,
+            costo: taskData.costo,
+            notas: taskData.notas,
+            fecha_completada: formData.estado === 'completada' ? new Date().toISOString().split('T')[0] : undefined
+          });
+        }
       }
       // Si está creando una nueva tarea
       else {
-        await addTask(taskData);
+        const result = await addTask(taskData);
+
+        // Si se creó exitosamente y hay fotos locales, subirlas
+        if (result.success && result._id) {
+          const newTaskId = result._id;
+          const localPhotos = {
+            before: photos.before.filter(p => p.isLocal),
+            during: photos.during.filter(p => p.isLocal),
+            after: photos.after.filter(p => p.isLocal)
+          };
+
+          // Subir todas las fotos locales
+          for (const stage of ['before', 'during', 'after']) {
+            for (const photo of localPhotos[stage]) {
+              try {
+                const uploadUrl = await generateUploadUrl();
+                const uploadResult = await fetch(uploadUrl, {
+                  method: "POST",
+                  headers: { "Content-Type": photo.file.type },
+                  body: photo.file,
+                });
+
+                if (!uploadResult.ok) {
+                  throw new Error('Error al subir archivo');
+                }
+
+                const { storageId } = await uploadResult.json();
+
+                await savePhoto({
+                  task_id: newTaskId,
+                  etapa: etapaMap[stage], // Usar etapa en español
+                  storage_id: storageId,
+                  file_name: photo.file.name,
+                  file_size: photo.file.size,
+                  mime_type: photo.file.type,
+                });
+
+                console.log(`✅ Foto ${etapaMap[stage]} subida exitosamente`);
+              } catch (photoError) {
+                console.error(`❌ Error uploading ${etapaMap[stage]} photo:`, photoError);
+              }
+            }
+          }
+
+          // Si se creó con estado "completada", generar el reporte directamente
+          if (formData.estado === 'completada') {
+            console.log('📋 Creando reporte para tarea nueva completada');
+            await createReportMutation({
+              task_id: newTaskId,
+              titulo: taskData.titulo,
+              descripcion: taskData.descripcion,
+              tipo: taskData.tipo,
+              fecha_programada: taskData.fecha_programada,
+              fecha_completada: new Date().toISOString().split('T')[0],
+              costo: operationalData.total_estimated_cost || 0,
+              observaciones: operationalData.technical_observations || '',
+              usuario_completo: 'Admin'
+            });
+            console.log('✅ Reporte creado exitosamente');
+          }
+        }
       }
 
       onClose();
@@ -166,46 +269,51 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
   };
 
   const handlePhotoUpload = async (file, stage) => {
-    // Si no hay task creado aún, mostrar error
-    if (!task || !task._id) {
-      alert('Debes crear la tarea primero antes de subir fotos.');
-      return;
-    }
+    // Si ya existe una tarea, subir directamente a Convex
+    if (task && task._id) {
+      setUploadingPhotos(true);
+      try {
+        // 1. Generar URL de upload firmada
+        const uploadUrl = await generateUploadUrl();
 
-    setUploadingPhotos(true);
-    try {
-      // 1. Generar URL de upload firmada
-      const uploadUrl = await generateUploadUrl();
+        // 2. Subir archivo a Convex storage
+        const result = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
 
-      // 2. Subir archivo a Convex storage
-      const result = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
+        if (!result.ok) {
+          throw new Error('Error al subir archivo');
+        }
 
-      if (!result.ok) {
-        throw new Error('Error al subir archivo');
+        const { storageId } = await result.json();
+
+        // 3. Guardar metadata en la base de datos
+        const photoId = await savePhoto({
+          task_id: task._id,
+          etapa: etapaMap[stage], // Usar etapa en español
+          storage_id: storageId,
+          file_name: file.name,
+          file_size: file.size,
+          mime_type: file.type,
+        });
+
+        console.log(`✅ Foto ${etapaMap[stage]} subida exitosamente:`, photoId);
+      } catch (error) {
+        console.error('❌ Error uploading photo:', error);
+        alert('Error al subir la foto: ' + error.message);
+      } finally {
+        setUploadingPhotos(false);
       }
-
-      const { storageId } = await result.json();
-
-      // 3. Guardar metadata en la base de datos
-      const photoId = await savePhoto({
-        task_id: task._id,
-        etapa: stage,
-        storage_id: storageId,
-        file_name: file.name,
-        file_size: file.size,
-        mime_type: file.type,
-      });
-
-      console.log('✅ Foto subida exitosamente:', photoId);
-    } catch (error) {
-      console.error('❌ Error uploading photo:', error);
-      alert('Error al subir la foto: ' + error.message);
-    } finally {
-      setUploadingPhotos(false);
+    } else {
+      // Si no existe tarea aún, guardar foto localmente con preview
+      const preview = URL.createObjectURL(file);
+      setPhotos(prev => ({
+        ...prev,
+        [stage]: [...prev[stage], { file, preview, isLocal: true }]
+      }));
+      console.log('📸 Foto agregada localmente, se subirá al crear la tarea');
     }
   };
 
@@ -214,9 +322,8 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
     e.stopPropagation();
   };
 
-  const [selectedCategory, setSelectedCategory] = useState('before');
-
-  const handleDrop = async (e, stage) => {
+  // Distribuir fotos automáticamente en orden: Antes → Durante → Después
+  const handleDrop = async (e) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -252,44 +359,78 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
       }
     }
 
-    // Distribución automática: Si son 3 archivos, distribuir automáticamente
-    if (files.length === 3) {
-      await handlePhotoUpload(files[0], 'before');
-      await handlePhotoUpload(files[1], 'during');
-      await handlePhotoUpload(files[2], 'after');
-    }
-    // Si no son 3, subir a la categoría seleccionada
-    else {
-      for (const file of files) {
-        if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
-          await handlePhotoUpload(file, selectedCategory);
-        }
+    // Filtrar solo imágenes/videos válidos
+    const validFiles = files.filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'));
+
+    // Distribuir automáticamente en los slots vacíos
+    const categories = ['before', 'during', 'after'];
+    let fileIndex = 0;
+
+    for (const category of categories) {
+      if (fileIndex >= validFiles.length) break;
+      if (photos[category].length === 0) {
+        await handlePhotoUpload(validFiles[fileIndex], category);
+        fileIndex++;
       }
+    }
+
+    // Si aún quedan archivos pero no hay slots, avisar
+    if (fileIndex < validFiles.length) {
+      console.log('⚠️ Ya hay fotos en todas las categorías (máx 1 por categoría)');
     }
   };
 
-  const handlePaste = async (e, stage) => {
+  // Pegar imagen automáticamente en el siguiente slot disponible
+  const handlePaste = async (e) => {
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
       if (items[i].type.startsWith('image/')) {
         const file = items[i].getAsFile();
         if (file) {
-          await handlePhotoUpload(file, selectedCategory);
+          const nextCategory = getNextAvailableCategory();
+          if (nextCategory) {
+            await handlePhotoUpload(file, nextCategory);
+          } else {
+            console.log('⚠️ Ya hay fotos en todas las categorías');
+          }
         }
       }
     }
   };
 
+  // Subir foto a una categoría específica (cuando se hace clic en un slot individual)
+  const handlePhotoUploadToCategory = async (file, category) => {
+    if (photos[category].length > 0) {
+      console.log(`⚠️ Ya hay una foto en ${category}`);
+      return;
+    }
+    await handlePhotoUpload(file, category);
+  };
+
   const removePhoto = async (stage, index) => {
     const photo = photos[stage][index];
-    if (!photo || !photo.id) return;
+    if (!photo) return;
 
-    try {
-      await deletePhotoMutation({ id: photo.id });
-      console.log('✅ Foto eliminada exitosamente');
-    } catch (error) {
-      console.error('❌ Error deleting photo:', error);
-      alert('Error al eliminar la foto: ' + error.message);
+    // Si es foto local, remover del estado y liberar preview URL
+    if (photo.isLocal) {
+      if (photo.preview) {
+        URL.revokeObjectURL(photo.preview);
+      }
+      setPhotos(prev => ({
+        ...prev,
+        [stage]: prev[stage].filter((_, i) => i !== index)
+      }));
+      console.log('✅ Foto local eliminada');
+    }
+    // Si es foto de Convex, eliminar de BD
+    else if (photo.id) {
+      try {
+        await deletePhotoMutation({ id: photo.id });
+        console.log('✅ Foto eliminada exitosamente');
+      } catch (error) {
+        console.error('❌ Error deleting photo:', error);
+        alert('Error al eliminar la foto: ' + error.message);
+      }
     }
   };
 
@@ -395,7 +536,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   fontWeight: '500',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
-                  color: selectedPackage ? '#3D5229' : '#64748b'
+                  color: selectedPackage ? 'var(--color-primary)' : '#64748b'
                 }}
               >
                 <option value="">Personalizado</option>
@@ -413,6 +554,29 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
             </div>
           )}
 
+          {/* Título */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
+              Título de la Tarea *
+            </label>
+            <input
+              type="text"
+              value={formData.titulo}
+              onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+              disabled={viewMode}
+              placeholder="Ej: Mantenimiento preventivo mensual"
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                border: '2px solid #e5e7eb',
+                borderRadius: '10px',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}
+              required
+            />
+          </div>
+
           {/* Información Básica - Grid compacto */}
           <div style={{
             display: 'grid',
@@ -426,8 +590,8 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                 Tipo
               </label>
               <select
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                value={formData.tipo}
+                onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
                 disabled={viewMode}
                 style={{
                   width: '100%',
@@ -456,8 +620,8 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
               </label>
               <input
                 type="date"
-                value={formData.scheduled_date}
-                onChange={(e) => setFormData({ ...formData, scheduled_date: e.target.value })}
+                value={formData.fecha_programada}
+                onChange={(e) => setFormData({ ...formData, fecha_programada: e.target.value })}
                 disabled={viewMode}
                 style={{
                   width: '100%',
@@ -499,8 +663,8 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                 Estado
               </label>
               <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                value={formData.estado}
+                onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
                 disabled={viewMode}
                 style={{
                   width: '100%',
@@ -513,20 +677,22 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                 }}
                 required
               >
-                <option value="programada">Programada</option>
+                <option value="pendiente">Pendiente</option>
+                <option value="en_progreso">En Progreso</option>
                 <option value="completada">Completada</option>
+                <option value="cancelada">Cancelada</option>
               </select>
             </div>
           </div>
 
-          {/* Observaciones */}
+          {/* Observaciones/Descripción */}
           <div style={{ marginBottom: '24px' }}>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
-              Observaciones
+              Descripción
             </label>
             <textarea
-              value={formData.observations}
-              onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
+              value={formData.descripcion}
+              onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
               disabled={viewMode}
               rows={2}
               style={{
@@ -644,12 +810,12 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    border: '2px solid #3D5229',
+                    border: '2px solid var(--color-primary)',
                     borderRadius: '10px',
                     fontSize: '14px',
                     fontWeight: '700',
                     background: '#f0f4e8',
-                    color: '#3D5229',
+                    color: 'var(--color-primary)',
                     textAlign: 'center'
                   }}
                 />
@@ -730,330 +896,354 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
             </div>
           </div>
 
-          {/* Sección de Evidencia Fotográfica - Para crear o completar tareas */}
+          {/* Sección de Evidencia Fotográfica - Simplificada */}
           {!viewMode && isAdmin && (
             <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: '24px', marginBottom: '20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                <ImageIcon size={22} style={{ color: '#3D5229' }} />
+                <ImageIcon size={22} style={{ color: 'var(--color-primary)' }} />
                 <h3 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: '#1f2937' }}>
                   Evidencia Fotográfica
                 </h3>
+                <span style={{
+                  fontSize: '12px',
+                  background: photos.before.length && photos.during.length && photos.after.length ? '#dcfce7' : '#fef3c7',
+                  color: photos.before.length && photos.during.length && photos.after.length ? '#166534' : '#92400e',
+                  padding: '4px 10px',
+                  borderRadius: '12px',
+                  fontWeight: '600'
+                }}>
+                  {(photos.before.length > 0 ? 1 : 0) + (photos.during.length > 0 ? 1 : 0) + (photos.after.length > 0 ? 1 : 0)}/3
+                </span>
               </div>
-              <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>
-                Selecciona la categoría y arrastra las imágenes. Si arrastras 3 imágenes, se distribuirán automáticamente (1 antes, 1 durante, 1 después)
+              <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
+                Arrastra o haz clic en cada casilla. Se asignan automáticamente: Antes → Durante → Después
               </p>
 
-              {/* Selector de categoría integrado con zona de carga */}
+              {/* 3 Slots visuales en fila */}
               <div style={{
-                background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
-                border: '2px solid #dcfce7',
-                borderRadius: '16px',
-                padding: '20px'
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '12px'
               }}>
-                {/* Tabs de categoría */}
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', background: '#f8fafc', padding: '6px', borderRadius: '12px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCategory('before')}
-                    style={{
-                      flex: 1,
-                      padding: '10px 16px',
-                      background: selectedCategory === 'before' ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)' : 'transparent',
-                      color: selectedCategory === 'before' ? 'white' : '#64748b',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      boxShadow: selectedCategory === 'before' ? '0 2px 8px rgba(61, 82, 41, 0.3)' : 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <ImageIcon size={16} />
-                    Antes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCategory('during')}
-                    style={{
-                      flex: 1,
-                      padding: '10px 16px',
-                      background: selectedCategory === 'during' ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)' : 'transparent',
-                      color: selectedCategory === 'during' ? 'white' : '#64748b',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      boxShadow: selectedCategory === 'during' ? '0 2px 8px rgba(61, 82, 41, 0.3)' : 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <ImageIcon size={16} />
-                    Durante
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedCategory('after')}
-                    style={{
-                      flex: 1,
-                      padding: '10px 16px',
-                      background: selectedCategory === 'after' ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)' : 'transparent',
-                      color: selectedCategory === 'after' ? 'white' : '#64748b',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      boxShadow: selectedCategory === 'after' ? '0 2px 8px rgba(61, 82, 41, 0.3)' : 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <ImageIcon size={16} />
-                    Después
-                  </button>
-                </div>
-
-                {/* Zona de carga */}
+                {/* Slot ANTES */}
                 <div
                   onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, 'all')}
-                  onPaste={(e) => handlePaste(e, 'all')}
-                  onClick={() => document.getElementById('file-all').click()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file && photos.before.length === 0) {
+                      handlePhotoUpload(file, 'before');
+                    }
+                  }}
+                  onClick={() => photos.before.length === 0 && document.getElementById('file-before').click()}
                   style={{
-                    width: '100%',
-                    minHeight: '140px',
-                    padding: '30px',
-                    border: '2px dashed #94a3b8',
+                    position: 'relative',
+                    aspectRatio: '1',
+                    border: photos.before.length > 0 ? '2px solid #22c55e' : '2px dashed #94a3b8',
                     borderRadius: '12px',
-                    cursor: 'pointer',
-                    background: 'white',
+                    cursor: photos.before.length > 0 ? 'default' : 'pointer',
+                    background: photos.before.length > 0 ? '#f0fdf4' : 'white',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '10px',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.borderColor = '#3D5229';
-                    e.currentTarget.style.background = '#f0fdf4';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.borderColor = '#94a3b8';
-                    e.currentTarget.style.background = 'white';
+                    gap: '8px',
+                    overflow: 'hidden',
+                    transition: 'all 0.2s'
                   }}
                 >
-                  <Upload size={48} style={{ color: '#3D5229', opacity: 0.6 }} />
-                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#475569', textAlign: 'center' }}>
-                    Arrastra fotos aquí o haz clic para seleccionar
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>
-                    Se subirán a la categoría: <strong style={{ color: '#3D5229' }}>
-                      {selectedCategory === 'before' ? 'Antes' : selectedCategory === 'during' ? 'Durante' : 'Después'}
-                    </strong>
-                  </div>
+                  {photos.before.length > 0 ? (
+                    <>
+                      <img
+                        src={photos.before[0].url || photos.before[0].preview}
+                        alt="Antes"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); removePhoto('before', 0); }}
+                        style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          background: 'rgba(239, 68, 68, 0.9)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '28px',
+                          height: '28px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '0',
+                        left: '0',
+                        right: '0',
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                        padding: '20px 10px 10px',
+                        textAlign: 'center'
+                      }}>
+                        <span style={{ color: 'white', fontWeight: '600', fontSize: '13px' }}>ANTES</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        background: '#fee2e2',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <span style={{ fontSize: '20px', fontWeight: '700', color: '#dc2626' }}>1</span>
+                      </div>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#dc2626' }}>ANTES</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>Clic o arrastra</span>
+                    </>
+                  )}
                 </div>
                 <input
-                  id="file-all"
+                  id="file-before"
                   type="file"
                   accept="image/*,video/*"
-                  multiple
-                  onChange={(e) => {
-                    Array.from(e.target.files).forEach(file => handlePhotoUpload(file, selectedCategory));
+                  onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0], 'before')}
+                  style={{ display: 'none' }}
+                />
+
+                {/* Slot DURANTE */}
+                <div
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file && photos.during.length === 0) {
+                      handlePhotoUpload(file, 'during');
+                    }
                   }}
+                  onClick={() => photos.during.length === 0 && document.getElementById('file-during').click()}
+                  style={{
+                    position: 'relative',
+                    aspectRatio: '1',
+                    border: photos.during.length > 0 ? '2px solid #22c55e' : '2px dashed #94a3b8',
+                    borderRadius: '12px',
+                    cursor: photos.during.length > 0 ? 'default' : 'pointer',
+                    background: photos.during.length > 0 ? '#f0fdf4' : 'white',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    overflow: 'hidden',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {photos.during.length > 0 ? (
+                    <>
+                      <img
+                        src={photos.during[0].url || photos.during[0].preview}
+                        alt="Durante"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); removePhoto('during', 0); }}
+                        style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          background: 'rgba(239, 68, 68, 0.9)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '28px',
+                          height: '28px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '0',
+                        left: '0',
+                        right: '0',
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                        padding: '20px 10px 10px',
+                        textAlign: 'center'
+                      }}>
+                        <span style={{ color: 'white', fontWeight: '600', fontSize: '13px' }}>DURANTE</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        background: '#fef3c7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <span style={{ fontSize: '20px', fontWeight: '700', color: '#d97706' }}>2</span>
+                      </div>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#d97706' }}>DURANTE</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>Clic o arrastra</span>
+                    </>
+                  )}
+                </div>
+                <input
+                  id="file-during"
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0], 'during')}
+                  style={{ display: 'none' }}
+                />
+
+                {/* Slot DESPUÉS */}
+                <div
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const file = e.dataTransfer.files?.[0];
+                    if (file && photos.after.length === 0) {
+                      handlePhotoUpload(file, 'after');
+                    }
+                  }}
+                  onClick={() => photos.after.length === 0 && document.getElementById('file-after').click()}
+                  style={{
+                    position: 'relative',
+                    aspectRatio: '1',
+                    border: photos.after.length > 0 ? '2px solid #22c55e' : '2px dashed #94a3b8',
+                    borderRadius: '12px',
+                    cursor: photos.after.length > 0 ? 'default' : 'pointer',
+                    background: photos.after.length > 0 ? '#f0fdf4' : 'white',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    overflow: 'hidden',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {photos.after.length > 0 ? (
+                    <>
+                      <img
+                        src={photos.after[0].url || photos.after[0].preview}
+                        alt="Después"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); removePhoto('after', 0); }}
+                        style={{
+                          position: 'absolute',
+                          top: '8px',
+                          right: '8px',
+                          background: 'rgba(239, 68, 68, 0.9)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: '28px',
+                          height: '28px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+                        }}
+                      >
+                        <X size={16} />
+                      </button>
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '0',
+                        left: '0',
+                        right: '0',
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+                        padding: '20px 10px 10px',
+                        textAlign: 'center'
+                      }}>
+                        <span style={{ color: 'white', fontWeight: '600', fontSize: '13px' }}>DESPUÉS</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        background: '#dcfce7',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <span style={{ fontSize: '20px', fontWeight: '700', color: '#16a34a' }}>3</span>
+                      </div>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a' }}>DESPUÉS</span>
+                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>Clic o arrastra</span>
+                    </>
+                  )}
+                </div>
+                <input
+                  id="file-after"
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0], 'after')}
                   style={{ display: 'none' }}
                 />
               </div>
 
-              {/* Galería de imágenes subidas organizadas por categoría */}
-              {(photos.before.length > 0 || photos.during.length > 0 || photos.after.length > 0) && (
-                <div style={{ marginTop: '20px' }}>
-                  {/* Sección Antes */}
-                  {photos.before.length > 0 && (
-                    <div style={{ marginBottom: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '8px 12px', background: 'rgba(61, 82, 41, 0.08)', borderRadius: '8px', width: 'fit-content' }}>
-                        <ImageIcon size={16} style={{ color: '#3D5229' }} />
-                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#3D5229' }}>Antes</span>
-                        <span style={{ fontSize: '12px', background: '#3D5229', color: 'white', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
-                          {photos.before.length}
-                        </span>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
-                        {photos.before.map((photo, idx) => (
-                          <div key={photo.id || idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #dcfce7' }}>
-                            <img src={photo.url} alt={`Antes ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); removePhoto('before', idx); }}
-                              style={{
-                                position: 'absolute',
-                                top: '4px',
-                                right: '4px',
-                                background: 'rgba(61, 82, 41, 0.9)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '50%',
-                                width: '24px',
-                                height: '24px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                              }}
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Sección Durante */}
-                  {photos.during.length > 0 && (
-                    <div style={{ marginBottom: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '8px 12px', background: 'rgba(61, 82, 41, 0.08)', borderRadius: '8px', width: 'fit-content' }}>
-                        <ImageIcon size={16} style={{ color: '#3D5229' }} />
-                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#3D5229' }}>Durante</span>
-                        <span style={{ fontSize: '12px', background: '#3D5229', color: 'white', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
-                          {photos.during.length}
-                        </span>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
-                        {photos.during.map((photo, idx) => (
-                          <div key={photo.id || idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #dcfce7' }}>
-                            <img src={photo.url} alt={`Durante ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); removePhoto('during', idx); }}
-                              style={{
-                                position: 'absolute',
-                                top: '4px',
-                                right: '4px',
-                                background: 'rgba(61, 82, 41, 0.9)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '50%',
-                                width: '24px',
-                                height: '24px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                              }}
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Sección Después */}
-                  {photos.after.length > 0 && (
-                    <div style={{ marginBottom: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '8px 12px', background: 'rgba(61, 82, 41, 0.08)', borderRadius: '8px', width: 'fit-content' }}>
-                        <ImageIcon size={16} style={{ color: '#3D5229' }} />
-                        <span style={{ fontSize: '14px', fontWeight: '600', color: '#3D5229' }}>Después</span>
-                        <span style={{ fontSize: '12px', background: '#3D5229', color: 'white', padding: '2px 8px', borderRadius: '12px', fontWeight: '600' }}>
-                          {photos.after.length}
-                        </span>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
-                        {photos.after.map((photo, idx) => (
-                          <div key={photo.id || idx} style={{ position: 'relative', borderRadius: '10px', overflow: 'hidden', border: '2px solid #dcfce7' }}>
-                            <img src={photo.url} alt={`Después ${idx + 1}`} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
-                            <button
-                              type="button"
-                              onClick={(e) => { e.stopPropagation(); removePhoto('after', idx); }}
-                              style={{
-                                position: 'absolute',
-                                top: '4px',
-                                right: '4px',
-                                background: 'rgba(61, 82, 41, 0.9)',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '50%',
-                                width: '24px',
-                                height: '24px',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                              }}
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
               {uploadingPhotos && (
                 <div style={{
                   padding: '12px',
-                  background: 'rgba(61, 82, 41, 0.08)',
+                  background: '#f0f9ff',
                   borderRadius: '8px',
                   fontSize: '13px',
-                  color: '#3D5229',
+                  color: '#0369a1',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
                   marginTop: '12px'
                 }}>
-                  <Upload size={16} style={{ color: '#3D5229' }} />
-                  Subiendo fotos...
+                  <Upload size={16} />
+                  Subiendo foto...
                 </div>
               )}
 
-              {/* Botón para marcar como completada */}
+              {/* Mensaje de éxito cuando están las 3 fotos */}
               {photos.before.length > 0 && photos.during.length > 0 && photos.after.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, status: 'completada' })}
-                  disabled={formData.status === 'completada'}
-                  style={{
-                    marginTop: '12px',
-                    padding: '14px',
-                    background: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '12px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: formData.status === 'completada' ? 'not-allowed' : 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    boxShadow: '0 4px 12px rgba(61, 82, 41, 0.3)',
-                    transition: 'all 0.2s',
-                    opacity: formData.status === 'completada' ? 0.7 : 1
-                  }}
-                >
-                  <Check size={18} />
-                  {formData.status === 'completada' ? 'Marcada como Completada' : 'Marcar como Completada'}
-                </button>
+                <div style={{
+                  marginTop: '16px',
+                  padding: '12px 16px',
+                  background: '#dcfce7',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  <Check size={20} style={{ color: '#16a34a' }} />
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#166534' }}>
+                    Evidencia fotográfica completa
+                  </span>
+                </div>
               )}
             </div>
           )}
@@ -1064,7 +1254,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
               borderTop: '2px solid #e2e8f0',
               paddingTop: '24px',
               marginBottom: '20px',
-              background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+              background: 'var(--color-surface)',
               padding: '24px',
               borderRadius: '16px',
               border: '2px solid #dcfce7'
@@ -1078,7 +1268,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                 alignItems: 'center',
                 gap: '10px'
               }}>
-                <ImageIcon size={22} style={{ color: '#3D5229' }} />
+                <ImageIcon size={22} style={{ color: 'var(--color-primary)' }} />
                 Evidencia Fotográfica del Mantenimiento
               </div>
 
@@ -1091,15 +1281,15 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                     gap: '8px',
                     marginBottom: '12px',
                     padding: '8px 12px',
-                    background: 'rgba(61, 82, 41, 0.08)',
+                    background: 'var(--shadow-xs)',
                     borderRadius: '8px',
                     width: 'fit-content'
                   }}>
-                    <ImageIcon size={16} style={{ color: '#3D5229' }} />
-                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#3D5229' }}>Antes</span>
+                    <ImageIcon size={16} style={{ color: 'var(--color-primary)' }} />
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--color-primary)' }}>Antes</span>
                     <span style={{
                       fontSize: '12px',
-                      background: '#3D5229',
+                      background: 'var(--color-primary)',
                       color: 'white',
                       padding: '2px 8px',
                       borderRadius: '12px',
@@ -1132,15 +1322,15 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                     gap: '8px',
                     marginBottom: '12px',
                     padding: '8px 12px',
-                    background: 'rgba(61, 82, 41, 0.08)',
+                    background: 'var(--shadow-xs)',
                     borderRadius: '8px',
                     width: 'fit-content'
                   }}>
-                    <ImageIcon size={16} style={{ color: '#3D5229' }} />
-                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#3D5229' }}>Durante</span>
+                    <ImageIcon size={16} style={{ color: 'var(--color-primary)' }} />
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--color-primary)' }}>Durante</span>
                     <span style={{
                       fontSize: '12px',
-                      background: '#3D5229',
+                      background: 'var(--color-primary)',
                       color: 'white',
                       padding: '2px 8px',
                       borderRadius: '12px',
@@ -1173,15 +1363,15 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                     gap: '8px',
                     marginBottom: '12px',
                     padding: '8px 12px',
-                    background: 'rgba(61, 82, 41, 0.08)',
+                    background: 'var(--shadow-xs)',
                     borderRadius: '8px',
                     width: 'fit-content'
                   }}>
-                    <ImageIcon size={16} style={{ color: '#3D5229' }} />
-                    <span style={{ fontSize: '15px', fontWeight: '700', color: '#3D5229' }}>Después</span>
+                    <ImageIcon size={16} style={{ color: 'var(--color-primary)' }} />
+                    <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--color-primary)' }}>Después</span>
                     <span style={{
                       fontSize: '12px',
-                      background: '#3D5229',
+                      background: 'var(--color-primary)',
                       color: 'white',
                       padding: '2px 8px',
                       borderRadius: '12px',
@@ -1245,7 +1435,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                 disabled={loading}
                 style={{
                   padding: '12px 32px',
-                  background: loading ? '#94a3b8' : 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
+                  background: loading ? '#94a3b8' : 'var(--color-primary)',
                   color: 'white',
                   border: 'none',
                   borderRadius: '12px',
@@ -1261,7 +1451,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
               >
                 {loading
                   ? 'Guardando...'
-                  : formData.status === 'completada' && task
+                  : formData.estado === 'completada' && task
                     ? 'Completar Tarea'
                     : task
                       ? 'Actualizar Tarea'

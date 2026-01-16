@@ -113,32 +113,39 @@ const PhotosModal = ({ isOpen, onClose, onComplete, assignmentId, assignmentData
     setErrors({});
 
     try {
-      const uploadPromises = [];
+      // Estructura para guardar IDs de fotos por etapa
+      const photoIds = {
+        antes: [],
+        durante: [],
+        despues: [],
+      };
 
-      // Subir todas las fotos a Supabase Storage
-      PHOTO_STAGES.forEach((stage) => {
-        photos[stage.id].forEach((photo) => {
-          uploadPromises.push(
-            uploadPhoto(assignmentId, stage.id, photo.file)
-          );
-        });
-      });
-
-      const results = await Promise.all(uploadPromises);
-
-      // Verificar si todas las subidas fueron exitosas
-      const failedUploads = results.filter((r) => !r.success);
-
-      if (failedUploads.length > 0) {
-        setErrors({
-          general: `Error al subir ${failedUploads.length} foto(s). Intente nuevamente.`
-        });
-        setUploading(false);
-        return;
+      // Subir fotos por etapa y recolectar IDs
+      for (const stage of PHOTO_STAGES) {
+        for (const photo of photos[stage.id]) {
+          const result = await uploadPhoto(assignmentId, stage.id, photo.file);
+          if (result.success && result.photoId) {
+            photoIds[stage.id].push(result.photoId);
+          } else {
+            setErrors({
+              general: `Error al subir foto ${photo.name}. Intente nuevamente.`
+            });
+            setUploading(false);
+            return;
+          }
+        }
       }
 
-      // Todas las fotos se subieron exitosamente
-      onComplete(results);
+      console.log('📸 Fotos subidas por etapa:', photoIds);
+
+      // Retornar estructura con IDs de fotos agrupados por etapa
+      onComplete({
+        success: true,
+        photoIds,
+        fotos_antes_ids: photoIds.antes,
+        fotos_durante_ids: photoIds.durante,
+        fotos_despues_ids: photoIds.despues,
+      });
     } catch (error) {
       console.error('Error al subir fotos:', error);
       setErrors({ general: 'Error al guardar las evidencias. Intente nuevamente.' });

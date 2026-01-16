@@ -166,7 +166,7 @@ const MaintenanceCalendar = () => {
     <div className="maintenance-section">
       {/* Header con gradiente */}
       <div style={{
-        background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)',
+        background: 'var(--color-primary)',
         borderRadius: '20px',
         padding: '32px',
         color: 'white',
@@ -244,7 +244,7 @@ const MaintenanceCalendar = () => {
       {/* Legend con cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '24px' }}>
         <div style={{
-          background: 'linear-gradient(135deg, rgba(52, 199, 89, 0.1) 0%, rgba(52, 199, 89, 0.05) 100%)',
+          background: 'var(--color-success-light)',
           border: '1px solid rgba(52, 199, 89, 0.2)',
           borderRadius: '12px',
           padding: '12px',
@@ -256,7 +256,7 @@ const MaintenanceCalendar = () => {
           <span style={{ fontSize: '13px', fontWeight: '500', color: '#34c759' }}>Preventivo</span>
         </div>
         <div style={{
-          background: 'linear-gradient(135deg, rgba(255, 149, 0, 0.1) 0%, rgba(255, 149, 0, 0.05) 100%)',
+          background: 'var(--color-warning-light)',
           border: '1px solid rgba(255, 149, 0, 0.2)',
           borderRadius: '12px',
           padding: '12px',
@@ -268,7 +268,7 @@ const MaintenanceCalendar = () => {
           <span style={{ fontSize: '13px', fontWeight: '500', color: '#ff9500' }}>Correctivo</span>
         </div>
         <div style={{
-          background: 'linear-gradient(135deg, rgba(255, 59, 48, 0.1) 0%, rgba(255, 59, 48, 0.05) 100%)',
+          background: 'var(--color-error-light)',
           border: '1px solid rgba(255, 59, 48, 0.2)',
           borderRadius: '12px',
           padding: '12px',
@@ -280,7 +280,7 @@ const MaintenanceCalendar = () => {
           <span style={{ fontSize: '13px', fontWeight: '500', color: '#ff3b30' }}>Contingencia</span>
         </div>
         <div style={{
-          background: 'linear-gradient(135deg, rgba(255, 204, 0, 0.1) 0%, rgba(255, 204, 0, 0.05) 100%)',
+          background: 'var(--color-warning-light)',
           border: '1px solid rgba(255, 204, 0, 0.2)',
           borderRadius: '12px',
           padding: '12px',
@@ -292,7 +292,7 @@ const MaintenanceCalendar = () => {
           <span style={{ fontSize: '13px', fontWeight: '500', color: '#ffcc00' }}>Próximo (3 días)</span>
         </div>
         <div style={{
-          background: 'linear-gradient(135deg, rgba(255, 59, 48, 0.1) 0%, rgba(255, 59, 48, 0.05) 100%)',
+          background: 'var(--color-error-light)',
           border: '1px solid rgba(255, 59, 48, 0.3)',
           borderRadius: '12px',
           padding: '12px',

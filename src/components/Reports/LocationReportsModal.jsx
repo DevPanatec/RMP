@@ -10,6 +10,13 @@ import './LocationReportsModal.css';
 
 pdfMake.vfs = pdfFonts.vfs;
 
+// Helper para parsear fechas sin problemas de timezone
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  if (dateStr.includes('T')) return new Date(dateStr);
+  return new Date(dateStr + 'T00:00:00');
+};
+
 const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant, modalType = 'limpieza' }) => {
   // Determinar el logo según el tipo de modal
   const getModalLogo = () => {
@@ -40,9 +47,9 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
     }
 
     const filtered = location.assignments.filter(assignment => {
-      const assignmentDate = new Date(assignment.fecha);
-      const startDate = new Date(dateRange.inicio);
-      const endDate = new Date(dateRange.fin);
+      const assignmentDate = parseLocalDate(assignment.fecha);
+      const startDate = parseLocalDate(dateRange.inicio);
+      const endDate = parseLocalDate(dateRange.fin);
       console.log('📅 Comparando:', {
         fecha: assignment.fecha,
         assignmentDate,
@@ -376,7 +383,7 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
                       <div className="report-meta-inline">
                         <span className="report-date-inline">
                           <Calendar size={14} />
-                          {new Date(report.fecha).toLocaleDateString('es-ES', {
+                          {parseLocalDate(report.fecha).toLocaleDateString('es-ES', {
                             day: '2-digit',
                             month: 'short',
                             year: 'numeric'
@@ -449,6 +456,12 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
                     ? 'Reporte de Mantenimiento'
                     : 'Reporte de Limpieza'),
             rawAssignment: selectedReport
+          }}
+          location={{
+            _id: location._id,
+            nombre: location.nombre,
+            latitud: location.latitud,
+            longitud: location.longitud
           }}
           onDownload={() => handleDownloadReport(selectedReport)}
         />

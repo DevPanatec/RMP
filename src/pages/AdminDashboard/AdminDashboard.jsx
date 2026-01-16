@@ -607,7 +607,6 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
         <div className="app-bar__header">
           <div className="app-bar__brand">
             <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="app-bar__logo" />
-            <h1 className="app-bar__title">RMP {userRole === 'enterprise' ? 'Enterprise' : 'Admin'}</h1>
           </div>
           <div className="app-bar__actions">
             <div className="app-bar__status">

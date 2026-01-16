@@ -1,148 +1,288 @@
-import { useState, useEffect } from 'react';
-import { X, Download, Calendar, MapPin, Image as ImageIcon } from '../Icons';
-import { Button } from '../UI';
-// import supabaseClient from '../../utils/supabaseClient'; // Removed: Migrated to Convex
-import './ReportDetailModal.css';
+import { useState } from 'react';
+import { X, Download, Calendar, MapPin, Clock, Building, FileText, Image as ImageIcon, Camera, CheckCircle, Wrench } from '../Icons';
+import MapComponent from '../Map/MapComponent';
+import '../Reports/StandardReportModal.css';
 
-const ReportDetailModal = ({ isOpen, onClose, report, onDownload }) => {
-  const [photoUrls, setPhotoUrls] = useState({ antes: [], durante: [], despues: [] });
-  const [loading, setLoading] = useState(true);
+const ReportDetailModal = ({ isOpen, onClose, report, onDownload, location }) => {
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
 
-  useEffect(() => {
-    if (isOpen && report) {
-      loadPhotoUrls();
-    }
-  }, [isOpen, report]);
+  if (!isOpen || !report) return null;
 
-  const loadPhotoUrls = async () => {
-    if (!report.rawAssignment?.fotos) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const photos = report.rawAssignment.fotos;
-      const urlsByStage = { antes: [], durante: [], despues: [] };
-
-      for (const photo of photos) {
-        try {
-          // TODO: Implement Convex file storage URL retrieval
-          // const { data } = supabaseClient.supabase.storage
-          //   .from('cleaning-evidences')
-          //   .getPublicUrl(photo.file_path);
-
-          // if (data?.publicUrl) {
-          //   urlsByStage[photo.etapa].push({
-          //     url: data.publicUrl,
-          //     name: photo.file_name,
-          //     id: photo.id
-          //   });
-          // }
-          console.warn('Photo loading disabled - needs Convex file storage implementation');
-        } catch (error) {
-          console.error('Error loading photo URL:', error);
-        }
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      if (selectedPhoto) {
+        setSelectedPhoto(null);
+      } else {
+        onClose();
       }
-
-      setPhotoUrls(urlsByStage);
-    } catch (error) {
-      console.error('Error loading photos:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
+  // Preparar punto para el mapa
+  const lugarParaMapa = location?.latitud && location?.longitud
+    ? [{
+        _id: location._id || 'lugar-limpieza',
+        nombre: report.sala || location.nombre,
+        latitud: location.latitud,
+        longitud: location.longitud,
+        tipo: 'limpieza',
+      }]
+    : [];
 
-  const photoStages = [
-    { id: 'antes', label: 'Antes', color: '#ff3b30', images: photoUrls.antes },
-    { id: 'durante', label: 'Durante', color: '#ff9500', images: photoUrls.durante },
-    { id: 'despues', label: 'Después', color: '#30d158', images: photoUrls.despues },
-  ];
+  // Organizar fotos por etapa
+  const fotosPorEtapa = {
+    antes: report.rawAssignment?.fotos?.filter(f => f.etapa === 'antes') || [],
+    durante: report.rawAssignment?.fotos?.filter(f => f.etapa === 'durante') || [],
+    despues: report.rawAssignment?.fotos?.filter(f => f.etapa === 'despues') || [],
+  };
+
+  const totalFotos = fotosPorEtapa.antes.length + fotosPorEtapa.durante.length + fotosPorEtapa.despues.length;
 
   return (
-    <div className="report-detail-overlay" onClick={onClose}>
-      <div className="report-detail" onClick={(e) => e.stopPropagation()}>
+    <div className="report-modal-overlay" onClick={handleOverlayClick}>
+      <div className="report-modal" onClick={(e) => e.stopPropagation()}>
+
         {/* Header */}
-        <div className="report-detail__header">
-          <div className="report-detail__header-content">
-            <h2 className="report-detail__title">Reporte de Limpieza</h2>
-            <div className="report-detail__meta">
-              <div className="report-detail__meta-item">
-                <Calendar size={16} />
-                <span>
-                  {new Date(report.fecha).toLocaleDateString('es-ES', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })} - {report.hora}
-                </span>
-              </div>
-              <div className="report-detail__meta-item">
-                <MapPin size={16} />
-                <span>{report.sala} • {report.area}</span>
-              </div>
+        <div className="report-modal__header">
+          <div className="report-modal__header-left">
+            <div className="report-modal__icon">
+              <img
+                src="/icons/modules/limpieza.png"
+                alt="Limpieza"
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+            </div>
+            <div className="report-modal__header-text">
+              <h2 className="report-modal__title">Reporte de Limpieza</h2>
+              <p className="report-modal__subtitle">{report.sala} - {report.area}</p>
             </div>
           </div>
-          <button className="report-detail__close" onClick={onClose}>
+          <button className="report-modal__close" onClick={onClose}>
             <X size={24} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="report-detail__content">
-          {loading ? (
-            <div className="report-detail__loading">
-              <p>Cargando evidencias fotográficas...</p>
+        <div className="report-modal__content">
+
+          {/* Mapa de Ubicacion */}
+          <div className="report-section">
+            <div className="report-section__header">
+              <MapPin size={18} />
+              <h3>Ubicacion</h3>
             </div>
-          ) : (
-            photoStages.map((stage) => (
-              <div key={stage.id} className="report-stage">
-                <div className="report-stage__header" style={{ borderColor: stage.color }}>
-                  <ImageIcon size={18} color={stage.color} />
-                  <h3 className="report-stage__title">{stage.label}</h3>
-                  <span className="report-stage__count">
-                    {stage.images.length} foto{stage.images.length !== 1 ? 's' : ''}
-                  </span>
+            <div className="report-section__body" style={{ padding: 0 }}>
+              {lugarParaMapa.length > 0 ? (
+                <div className="report-map-container">
+                  <MapComponent
+                    key={`map-cleaning-${report.fecha}`}
+                    camiones={[]}
+                    rutas={[]}
+                    personnel={[]}
+                    lugares={lugarParaMapa}
+                    showRealTime={false}
+                  />
+                </div>
+              ) : (
+                <div className="report-map-empty">
+                  <MapPin size={32} />
+                  <p>No hay coordenadas GPS disponibles para este lugar</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Resumen del Reporte */}
+          <div className="report-section">
+            <div className="report-section__header">
+              <FileText size={18} />
+              <h3>Resumen del Reporte</h3>
+            </div>
+            <div className="report-section__body">
+              <div className="report-summary-grid">
+                {/* Sala */}
+                <div className="report-summary-card">
+                  <div className="report-summary-card__icon">
+                    <Building size={20} />
+                  </div>
+                  <div className="report-summary-card__content">
+                    <span className="report-summary-card__label">Sala</span>
+                    <span className="report-summary-card__value">{report.sala || 'No especificada'}</span>
+                  </div>
                 </div>
 
-                {stage.images.length > 0 ? (
-                  <div className="report-stage__gallery">
-                    {stage.images.map((image, index) => (
-                      <div key={image.id || index} className="report-image-wrapper">
-                        <img
-                          src={image.url}
-                          alt={`${stage.label} - ${index + 1}`}
-                          className="report-image"
-                          onClick={() => window.open(image.url, '_blank')}
-                        />
-                      </div>
-                    ))}
+                {/* Area */}
+                <div className="report-summary-card">
+                  <div className="report-summary-card__icon">
+                    <MapPin size={20} />
                   </div>
-                ) : (
-                  <div className="report-stage__empty">
-                    <p>No hay fotos en esta etapa</p>
+                  <div className="report-summary-card__content">
+                    <span className="report-summary-card__label">Area</span>
+                    <span className="report-summary-card__value">{report.area || 'No especificada'}</span>
                   </div>
-                )}
+                </div>
+
+                {/* Fecha */}
+                <div className="report-summary-card">
+                  <div className="report-summary-card__icon">
+                    <Calendar size={20} />
+                  </div>
+                  <div className="report-summary-card__content">
+                    <span className="report-summary-card__label">Fecha</span>
+                    <span className="report-summary-card__value">
+                      {new Date(report.fecha).toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Hora */}
+                <div className="report-summary-card">
+                  <div className="report-summary-card__icon">
+                    <Clock size={20} />
+                  </div>
+                  <div className="report-summary-card__content">
+                    <span className="report-summary-card__label">Hora</span>
+                    <span className="report-summary-card__value">{report.hora || 'No especificada'}</span>
+                  </div>
+                </div>
               </div>
-            ))
+            </div>
+          </div>
+
+          {/* Evidencias Fotograficas */}
+          <div className="report-section">
+            <div className="report-section__header">
+              <ImageIcon size={18} />
+              <h3>Evidencias Fotograficas</h3>
+              {totalFotos > 0 && (
+                <span className="section-badge">{totalFotos} foto{totalFotos !== 1 ? 's' : ''}</span>
+              )}
+            </div>
+            <div className="report-section__body">
+              <div className="report-photos-grid">
+                {/* Columna Antes */}
+                <div className="report-photos-column">
+                  <div className="report-photos-column__header report-photos-column__header--antes">
+                    <span className="report-photos-column__title">
+                      <Camera size={16} />
+                      Antes
+                    </span>
+                    <span className="report-photos-column__count">{fotosPorEtapa.antes.length} fotos</span>
+                  </div>
+                  <div className="report-photos-column__content">
+                    {fotosPorEtapa.antes.length > 0 ? (
+                      fotosPorEtapa.antes.map((foto, idx) => (
+                        <div
+                          key={foto._id || idx}
+                          className="report-photo-item"
+                          onClick={() => setSelectedPhoto(foto)}
+                        >
+                          <img src={foto.url} alt={`Antes ${idx + 1}`} />
+                        </div>
+                      ))
+                    ) : (
+                      <div className="report-photos-empty">No hay fotos en esta etapa</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Columna Durante */}
+                <div className="report-photos-column">
+                  <div className="report-photos-column__header report-photos-column__header--durante">
+                    <span className="report-photos-column__title">
+                      <Wrench size={16} />
+                      Durante
+                    </span>
+                    <span className="report-photos-column__count">{fotosPorEtapa.durante.length} fotos</span>
+                  </div>
+                  <div className="report-photos-column__content">
+                    {fotosPorEtapa.durante.length > 0 ? (
+                      fotosPorEtapa.durante.map((foto, idx) => (
+                        <div
+                          key={foto._id || idx}
+                          className="report-photo-item"
+                          onClick={() => setSelectedPhoto(foto)}
+                        >
+                          <img src={foto.url} alt={`Durante ${idx + 1}`} />
+                        </div>
+                      ))
+                    ) : (
+                      <div className="report-photos-empty">No hay fotos en esta etapa</div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Columna Despues */}
+                <div className="report-photos-column">
+                  <div className="report-photos-column__header report-photos-column__header--despues">
+                    <span className="report-photos-column__title">
+                      <CheckCircle size={16} />
+                      Despues
+                    </span>
+                    <span className="report-photos-column__count">{fotosPorEtapa.despues.length} fotos</span>
+                  </div>
+                  <div className="report-photos-column__content">
+                    {fotosPorEtapa.despues.length > 0 ? (
+                      fotosPorEtapa.despues.map((foto, idx) => (
+                        <div
+                          key={foto._id || idx}
+                          className="report-photo-item"
+                          onClick={() => setSelectedPhoto(foto)}
+                        >
+                          <img src={foto.url} alt={`Despues ${idx + 1}`} />
+                        </div>
+                      ))
+                    ) : (
+                      <div className="report-photos-empty">No hay fotos en esta etapa</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Observaciones */}
+          {report.observaciones && (
+            <div className="report-observations">
+              <div className="report-observations__header">
+                <FileText size={18} />
+                <h4>Observaciones</h4>
+              </div>
+              <p className="report-observations__text">{report.observaciones}</p>
+            </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="report-detail__footer">
-          <Button variant="secondary" onClick={onClose}>
+        <div className="report-modal__footer">
+          <button className="report-modal__btn report-modal__btn--secondary" onClick={onClose}>
+            <X size={18} />
             Cerrar
-          </Button>
-          <Button
-            variant="primary"
-            icon={<Download size={18} />}
-            onClick={onDownload}
-          >
+          </button>
+          <button className="report-modal__btn report-modal__btn--primary" onClick={onDownload}>
+            <Download size={18} />
             Descargar PDF
-          </Button>
+          </button>
         </div>
+
+        {/* Photo Viewer */}
+        {selectedPhoto && (
+          <div className="report-photo-viewer" onClick={() => setSelectedPhoto(null)}>
+            <button
+              className="report-photo-viewer__close"
+              onClick={() => setSelectedPhoto(null)}
+            >
+              <X size={28} />
+            </button>
+            <div className="report-photo-viewer__content" onClick={(e) => e.stopPropagation()}>
+              <img src={selectedPhoto.url} alt="Evidencia ampliada" />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

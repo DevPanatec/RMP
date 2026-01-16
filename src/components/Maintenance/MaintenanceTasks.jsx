@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMaintenance } from '../../context/MaintenanceContext';
-import { Plus, Eye, Trash2, CheckCircle, Calendar, Wrench, FileText } from '../Icons';
+import { Plus, Eye, Trash2, CheckCircle, Calendar, Clock, Edit, FileText } from '../Icons';
 import MaintenanceTaskModal from './MaintenanceTaskModal';
 
 const MaintenanceTasks = ({ userRole }) => {
@@ -30,7 +30,6 @@ const MaintenanceTasks = ({ userRole }) => {
 
   const handleEdit = (task) => {
     setSelectedTask(task);
-    // Enterprise siempre en viewMode
     setViewMode(isAdmin ? false : true);
     setShowModal(true);
   };
@@ -41,12 +40,111 @@ const MaintenanceTasks = ({ userRole }) => {
     setViewMode(false);
   };
 
+  // Helper para formatear fecha
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    try {
+      return new Date(dateStr).toLocaleDateString('es-PA', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  // Helper para obtener color de estado
+  const getEstadoStyle = (estado) => {
+    switch (estado) {
+      case 'completada':
+        return {
+          background: 'var(--color-success-light)',
+          color: 'var(--color-success)',
+          border: '1px solid var(--color-success)'
+        };
+      case 'pendiente':
+        return {
+          background: 'var(--color-warning-light)',
+          color: '#92400e',
+          border: '1px solid var(--color-warning)'
+        };
+      case 'en_progreso':
+        return {
+          background: 'var(--color-info-light)',
+          color: 'var(--color-info)',
+          border: '1px solid var(--color-info)'
+        };
+      case 'cancelada':
+        return {
+          background: 'var(--color-error-light)',
+          color: 'var(--color-error)',
+          border: '1px solid var(--color-error)'
+        };
+      default:
+        return {
+          background: 'var(--color-background)',
+          color: 'var(--color-text-secondary)',
+          border: '1px solid var(--color-border)'
+        };
+    }
+  };
+
+  // Helper para label de estado
+  const getEstadoLabel = (estado) => {
+    switch (estado) {
+      case 'pendiente': return 'Pendiente';
+      case 'en_progreso': return 'En Progreso';
+      case 'completada': return 'Completada';
+      case 'cancelada': return 'Cancelada';
+      default: return estado;
+    }
+  };
+
+  // Helper para label de tipo
+  const getTipoLabel = (tipo) => {
+    switch (tipo) {
+      case 'preventivo': return 'Preventivo';
+      case 'correctivo': return 'Correctivo';
+      case 'inspección': return 'Inspección';
+      default: return tipo || 'General';
+    }
+  };
+
+  // Contadores
+  const counts = {
+    all: tasks.length,
+    pendiente: tasks.filter(t => t.estado === 'pendiente').length,
+    en_progreso: tasks.filter(t => t.estado === 'en_progreso').length,
+    completada: tasks.filter(t => t.estado === 'completada').length
+  };
+
   return (
     <div>
-      {/* Header with filters */}
-      <div className="maintenance-section">
-        <div className="maintenance-section__header">
-          <h3 className="maintenance-section__title">Gestión de Tareas</h3>
+      {/* Header con filtros */}
+      <div style={{
+        background: 'var(--color-surface)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius-md)',
+        boxShadow: 'var(--shadow-sm)',
+        overflow: 'hidden'
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: 'var(--space-16) var(--space-20)',
+          borderBottom: '1px solid var(--color-border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <h3 style={{
+            margin: 0,
+            fontSize: 'var(--font-size-lg)',
+            fontWeight: 'var(--font-weight-semibold)',
+            color: 'var(--color-text)'
+          }}>
+            Gestión de Tareas
+          </h3>
           {isAdmin && (
             <button
               onClick={() => {
@@ -54,7 +152,22 @@ const MaintenanceTasks = ({ userRole }) => {
                 setViewMode(false);
                 setShowModal(true);
               }}
-              className="maintenance-section__action"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-8)',
+                padding: 'var(--space-8) var(--space-16)',
+                background: 'var(--color-primary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 'var(--radius-base)',
+                fontSize: 'var(--font-size-base)',
+                fontWeight: 'var(--font-weight-medium)',
+                cursor: 'pointer',
+                transition: 'background var(--duration-fast) var(--ease-out)'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-primary-hover)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'var(--color-primary)'}
             >
               <Plus size={18} />
               Nueva Tarea
@@ -62,191 +175,311 @@ const MaintenanceTasks = ({ userRole }) => {
           )}
         </div>
 
-        {/* Filters con degradados */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-          <button
-            className={`maintenance-subtab ${filter === 'all' ? 'maintenance-subtab--active' : ''}`}
-            onClick={() => setFilter('all')}
-            style={{
-              background: filter === 'all'
-                ? 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)'
-                : 'var(--color-secondary)',
-              color: filter === 'all' ? 'white' : 'var(--color-text-secondary)',
-              padding: '16px',
-              borderRadius: '12px',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: filter === 'all' ? '0 4px 12px rgba(61, 82, 41, 0.2)' : 'none'
-            }}
-          >
-            <div style={{ fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>{tasks.length}</div>
-            <div style={{ fontSize: '13px', opacity: 0.9 }}>Todas las Tareas</div>
-          </button>
-          <button
-            className={`maintenance-subtab ${filter === 'pendiente' ? 'maintenance-subtab--active' : ''}`}
-            onClick={() => setFilter('pendiente')}
-            style={{
-              background: filter === 'pendiente'
-                ? 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)'
-                : 'var(--color-secondary)',
-              color: filter === 'pendiente' ? 'white' : 'var(--color-text-secondary)',
-              padding: '16px',
-              borderRadius: '12px',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: filter === 'pendiente' ? '0 4px 12px rgba(61, 82, 41, 0.3)' : 'none'
-            }}
-          >
-            <div style={{ fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>
-              {tasks.filter(t => t.estado === 'pendiente').length}
-            </div>
-            <div style={{ fontSize: '13px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
-              <Calendar size={14} />
-              <span>Pendientes</span>
-            </div>
-          </button>
-          <button
-            className={`maintenance-subtab ${filter === 'completada' ? 'maintenance-subtab--active' : ''}`}
-            onClick={() => setFilter('completada')}
-            style={{
-              background: filter === 'completada'
-                ? 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-success) 100%)'
-                : 'var(--color-secondary)',
-              color: filter === 'completada' ? 'white' : 'var(--color-text-secondary)',
-              padding: '16px',
-              borderRadius: '12px',
-              border: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              boxShadow: filter === 'completada' ? '0 4px 12px rgba(61, 82, 41, 0.2)' : 'none'
-            }}
-          >
-            <div style={{ fontSize: '24px', fontWeight: '700', marginBottom: '4px' }}>
-              {tasks.filter(t => t.estado === 'completada').length}
-            </div>
-            <div style={{ fontSize: '13px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
-              <CheckCircle size={14} />
-              <span>Completadas</span>
-            </div>
-          </button>
+        {/* Filtros */}
+        <div style={{
+          padding: 'var(--space-16) var(--space-20)',
+          borderBottom: '1px solid var(--color-border)',
+          display: 'flex',
+          gap: 'var(--space-8)',
+          flexWrap: 'wrap'
+        }}>
+          {[
+            { id: 'all', label: 'Todas', icon: FileText, count: counts.all },
+            { id: 'pendiente', label: 'Pendientes', icon: Clock, count: counts.pendiente },
+            { id: 'en_progreso', label: 'En Progreso', icon: Calendar, count: counts.en_progreso },
+            { id: 'completada', label: 'Completadas', icon: CheckCircle, count: counts.completada }
+          ].map((filterOption) => {
+            const Icon = filterOption.icon;
+            const isActive = filter === filterOption.id;
+            return (
+              <button
+                key={filterOption.id}
+                onClick={() => setFilter(filterOption.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-8)',
+                  padding: 'var(--space-8) var(--space-16)',
+                  background: isActive ? 'var(--color-primary)' : 'var(--color-background)',
+                  color: isActive ? 'white' : 'var(--color-text)',
+                  border: isActive ? 'none' : '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-base)',
+                  fontSize: 'var(--font-size-sm)',
+                  fontWeight: 'var(--font-weight-medium)',
+                  cursor: 'pointer',
+                  transition: 'all var(--duration-fast) var(--ease-out)'
+                }}
+              >
+                <Icon size={16} />
+                <span>{filterOption.label}</span>
+                <span style={{
+                  background: isActive ? 'rgba(255,255,255,0.2)' : 'var(--color-surface)',
+                  padding: '2px 8px',
+                  borderRadius: 'var(--radius-full)',
+                  fontSize: 'var(--font-size-xs)',
+                  fontWeight: 'var(--font-weight-semibold)'
+                }}>
+                  {filterOption.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Tasks List */}
-        {filteredTasks.length === 0 ? (
-          <div className="maintenance-empty">
-            <div style={{
-              width: '80px',
-              height: '80px',
-              margin: '0 auto 16px',
-              borderRadius: '20px',
-              background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <FileText size={40} style={{ color: '#9ca3af' }} />
+        {/* Lista de tareas */}
+        <div style={{ padding: 'var(--space-12)' }}>
+          {filteredTasks.length === 0 ? (
+            <div style={{ padding: 'var(--space-40)', textAlign: 'center' }}>
+              <FileText size={48} style={{ color: 'var(--color-text-tertiary)', marginBottom: 'var(--space-12)' }} />
+              <h4 style={{ margin: '0 0 var(--space-4) 0', fontSize: 'var(--font-size-md)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text)' }}>
+                No hay tareas
+              </h4>
+              <p style={{ margin: 0, fontSize: 'var(--font-size-base)', color: 'var(--color-text-secondary)' }}>
+                {filter === 'all'
+                  ? 'No hay tareas de mantenimiento registradas'
+                  : `No hay tareas en estado "${getEstadoLabel(filter)}"`}
+              </p>
             </div>
-            <h4 className="maintenance-empty__title">No hay tareas</h4>
-            <p className="maintenance-empty__description">
-              {filter === 'all'
-                ? 'No hay tareas de mantenimiento registradas'
-                : `No hay tareas en estado "${filter}"`}
-            </p>
-          </div>
-        ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#999', textTransform: 'uppercase' }}>Tipo</th>
-                  <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#999', textTransform: 'uppercase' }}>Fecha/Hora</th>
-                  <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#999', textTransform: 'uppercase' }}>Observaciones</th>
-                  <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#999', textTransform: 'uppercase' }}>Estado</th>
-                  <th style={{ padding: '12px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#999', textTransform: 'uppercase' }}>Datos Operativos</th>
-                  <th style={{ padding: '12px', textAlign: 'right', fontSize: '12px', fontWeight: '600', color: '#999', textTransform: 'uppercase' }}>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTasks.map((task) => (
-                  <tr key={task._id} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                    <td style={{ padding: '12px' }}>
-                      <span className={`maintenance-task-item__badge maintenance-task-item__badge--${task.tipo}`}>
-                        {task.tipo}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px', fontSize: '14px' }}>
-                      <div style={{ fontWeight: '500' }}>
-                        {task.fecha_programada ? new Date(task.fecha_programada).toLocaleDateString('es-PA') : '-'}
-                      </div>
-                    </td>
-                    <td style={{ padding: '12px', fontSize: '14px', maxWidth: '300px' }}>
-                      <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {task.titulo}
-                      </div>
-                      {task.descripcion && (
-                        <div style={{ color: '#999', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {task.descripcion}
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={{
+                      padding: 'var(--space-12) var(--space-16)',
+                      textAlign: 'left',
+                      fontSize: 'var(--font-size-xs)',
+                      fontWeight: 'var(--font-weight-semibold)',
+                      color: 'var(--color-text-secondary)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      borderBottom: '1px solid var(--color-border)',
+                      background: 'var(--color-background)'
+                    }}>Tipo</th>
+                    <th style={{
+                      padding: 'var(--space-12) var(--space-16)',
+                      textAlign: 'left',
+                      fontSize: 'var(--font-size-xs)',
+                      fontWeight: 'var(--font-weight-semibold)',
+                      color: 'var(--color-text-secondary)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      borderBottom: '1px solid var(--color-border)',
+                      background: 'var(--color-background)'
+                    }}>Título</th>
+                    <th style={{
+                      padding: 'var(--space-12) var(--space-16)',
+                      textAlign: 'left',
+                      fontSize: 'var(--font-size-xs)',
+                      fontWeight: 'var(--font-weight-semibold)',
+                      color: 'var(--color-text-secondary)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      borderBottom: '1px solid var(--color-border)',
+                      background: 'var(--color-background)'
+                    }}>Fecha</th>
+                    <th style={{
+                      padding: 'var(--space-12) var(--space-16)',
+                      textAlign: 'left',
+                      fontSize: 'var(--font-size-xs)',
+                      fontWeight: 'var(--font-weight-semibold)',
+                      color: 'var(--color-text-secondary)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      borderBottom: '1px solid var(--color-border)',
+                      background: 'var(--color-background)'
+                    }}>Estado</th>
+                    <th style={{
+                      padding: 'var(--space-12) var(--space-16)',
+                      textAlign: 'left',
+                      fontSize: 'var(--font-size-xs)',
+                      fontWeight: 'var(--font-weight-semibold)',
+                      color: 'var(--color-text-secondary)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      borderBottom: '1px solid var(--color-border)',
+                      background: 'var(--color-background)'
+                    }}>Costo</th>
+                    <th style={{
+                      padding: 'var(--space-12) var(--space-16)',
+                      textAlign: 'right',
+                      fontSize: 'var(--font-size-xs)',
+                      fontWeight: 'var(--font-weight-semibold)',
+                      color: 'var(--color-text-secondary)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      borderBottom: '1px solid var(--color-border)',
+                      background: 'var(--color-background)'
+                    }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTasks.map((task) => (
+                    <tr
+                      key={task._id}
+                      style={{
+                        transition: 'background var(--duration-fast) var(--ease-out)'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-hover-overlay)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <td style={{
+                        padding: 'var(--space-12) var(--space-16)',
+                        borderBottom: '1px solid var(--color-border)'
+                      }}>
+                        <span style={{
+                          fontSize: 'var(--font-size-xs)',
+                          fontWeight: 'var(--font-weight-semibold)',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          background: 'var(--color-primary-light)',
+                          color: 'var(--color-primary)',
+                          textTransform: 'uppercase'
+                        }}>
+                          {getTipoLabel(task.tipo)}
+                        </span>
+                      </td>
+                      <td style={{
+                        padding: 'var(--space-12) var(--space-16)',
+                        borderBottom: '1px solid var(--color-border)',
+                        maxWidth: '300px'
+                      }}>
+                        <div style={{
+                          fontSize: 'var(--font-size-base)',
+                          fontWeight: 'var(--font-weight-medium)',
+                          color: 'var(--color-text)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {task.titulo || 'Sin título'}
                         </div>
-                      )}
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      <span className={`maintenance-task-item__status maintenance-task-item__status--${task.estado}`}>
-                        {task.estado === 'pendiente' ? 'Pendiente' :
-                         task.estado === 'en_progreso' ? 'En Proceso' :
-                         task.estado === 'completada' ? 'Completada' : 'Cancelada'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '12px', fontSize: '13px' }}>
-                      {task.costo ? (
-                        <div>
-                          <div style={{ fontWeight: '500' }}>B/. {task.costo.toFixed(2)}</div>
-                          {task.mecanico && (
-                            <div style={{ color: '#999', fontSize: '12px' }}>{task.mecanico}</div>
+                        {task.descripcion && (
+                          <div style={{
+                            fontSize: 'var(--font-size-sm)',
+                            color: 'var(--color-text-secondary)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            marginTop: '2px'
+                          }}>
+                            {task.descripcion}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{
+                        padding: 'var(--space-12) var(--space-16)',
+                        borderBottom: '1px solid var(--color-border)',
+                        fontSize: 'var(--font-size-sm)',
+                        color: 'var(--color-text)'
+                      }}>
+                        {formatDate(task.fecha_programada)}
+                      </td>
+                      <td style={{
+                        padding: 'var(--space-12) var(--space-16)',
+                        borderBottom: '1px solid var(--color-border)'
+                      }}>
+                        <span style={{
+                          fontSize: 'var(--font-size-xs)',
+                          fontWeight: 'var(--font-weight-medium)',
+                          padding: '4px 10px',
+                          borderRadius: 'var(--radius-sm)',
+                          ...getEstadoStyle(task.estado)
+                        }}>
+                          {getEstadoLabel(task.estado)}
+                        </span>
+                      </td>
+                      <td style={{
+                        padding: 'var(--space-12) var(--space-16)',
+                        borderBottom: '1px solid var(--color-border)',
+                        fontSize: 'var(--font-size-sm)'
+                      }}>
+                        {task.costo ? (
+                          <div>
+                            <div style={{ fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text)' }}>
+                              B/. {task.costo.toFixed(2)}
+                            </div>
+                            {task.mecanico && (
+                              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-secondary)' }}>
+                                {task.mecanico}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{ color: 'var(--color-text-tertiary)' }}>-</span>
+                        )}
+                      </td>
+                      <td style={{
+                        padding: 'var(--space-12) var(--space-16)',
+                        borderBottom: '1px solid var(--color-border)'
+                      }}>
+                        <div style={{ display: 'flex', gap: 'var(--space-4)', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => handleView(task)}
+                            style={{
+                              padding: 'var(--space-8)',
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: 'var(--color-info)',
+                              borderRadius: 'var(--radius-base)',
+                              transition: 'background var(--duration-fast) var(--ease-out)'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-info-light)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            title="Ver detalles"
+                          >
+                            <Eye size={18} />
+                          </button>
+                          {isAdmin && (
+                            <>
+                              {task.estado !== 'completada' && (
+                                <button
+                                  onClick={() => handleEdit(task)}
+                                  style={{
+                                    padding: 'var(--space-8)',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    color: 'var(--color-primary)',
+                                    borderRadius: 'var(--radius-base)',
+                                    transition: 'background var(--duration-fast) var(--ease-out)'
+                                  }}
+                                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-primary-light)'}
+                                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                  title="Editar"
+                                >
+                                  <Edit size={18} />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDelete(task._id)}
+                                style={{
+                                  padding: 'var(--space-8)',
+                                  background: 'transparent',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  color: 'var(--color-error)',
+                                  borderRadius: 'var(--radius-base)',
+                                  transition: 'background var(--duration-fast) var(--ease-out)'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-error-light)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                title="Eliminar"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </>
                           )}
                         </div>
-                      ) : (
-                        <span style={{ color: '#999' }}>-</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '12px' }}>
-                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                        <button
-                          onClick={() => handleView(task)}
-                          style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#556B2F' }}
-                          title="Ver detalles"
-                        >
-                          <Eye size={18} />
-                        </button>
-                        {isAdmin && (
-                          <>
-                            {task.estado !== 'completada' && (
-                              <button
-                                onClick={() => handleEdit(task)}
-                                style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#3D5229' }}
-                                title="Editar"
-                              >
-                                <CheckCircle size={18} />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDelete(task._id)}
-                              style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', color: '#556B2F' }}
-                              title="Eliminar"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Modal */}

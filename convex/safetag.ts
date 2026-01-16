@@ -155,7 +155,12 @@ export const updateVehicleFromSafeTag = mutation({
 
     // Timestamp original de SafeTag
     const safetagTimestamp = new Date(deviceData.last_updated).getTime();
-    
+
+    // Verificar si el dato de SafeTag es reciente (< 5 minutos)
+    const now = Date.now();
+    const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutos
+    const isConnected = (now - safetagTimestamp) < TIMEOUT_MS;
+
     await ctx.db.patch(vehiculoId, {
       safetag_device_id: deviceData._id,
       safetag_device_name: deviceData.name,
@@ -167,8 +172,8 @@ export const updateVehicleFromSafeTag = mutation({
       safetag_timestamp: safetagTimestamp, // Timestamp original de SafeTag
       gps_bateria: deviceData.battery,
       gps_senal: deviceData.signal,
-      gps_en_linea: true,
-      gps_conectado: true,
+      gps_en_linea: isConnected,
+      gps_conectado: isConnected, // ← Ahora depende de si el dato es fresco
     });
 
     // Solo guardar en historial si el vehículo SE MOVIÓ (evitar duplicados)

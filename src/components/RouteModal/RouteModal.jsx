@@ -21,8 +21,7 @@ L.Icon.Default.mergeOptions({
 
 const TABS = {
   INFO: 'info',
-  STOPS: 'stops',
-  CONFIG: 'config'
+  STOPS: 'stops'
 };
 
 const SERVICE_TYPES = [
@@ -236,22 +235,18 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
   const getTabErrors = () => {
     const tabErrors = {
       [TABS.INFO]: [],
-      [TABS.STOPS]: [],
-      [TABS.CONFIG]: []
+      [TABS.STOPS]: []
     };
 
     if (errors.nombre) tabErrors[TABS.INFO].push(errors.nombre);
     if (errors.descripcion) tabErrors[TABS.INFO].push(errors.descripcion);
     if (errors.tipo_servicio) tabErrors[TABS.INFO].push(errors.tipo_servicio);
+    if (errors.hora_inicio) tabErrors[TABS.INFO].push(errors.hora_inicio);
+    if (errors.hora_fin) tabErrors[TABS.INFO].push(errors.hora_fin);
+    if (errors.dias_operacion) tabErrors[TABS.INFO].push(errors.dias_operacion);
 
     if (errors.paradas) tabErrors[TABS.STOPS].push(errors.paradas);
     if (errors.paradas_coords) tabErrors[TABS.STOPS].push(errors.paradas_coords);
-
-    if (errors.hora_inicio) tabErrors[TABS.CONFIG].push(errors.hora_inicio);
-    if (errors.hora_fin) tabErrors[TABS.CONFIG].push(errors.hora_fin);
-    if (errors.dias_operacion) tabErrors[TABS.CONFIG].push(errors.dias_operacion);
-    if (errors.distancia) tabErrors[TABS.CONFIG].push(errors.distancia);
-    if (errors.tiempo) tabErrors[TABS.CONFIG].push(errors.tiempo);
 
     return tabErrors;
   };
@@ -380,16 +375,6 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
                     <span className="tab-error-badge" title={tabErrors[TABS.STOPS].join(', ')}>!</span>
                   )}
                 </button>
-                <button
-                  className={`tab-button ${activeTab === TABS.CONFIG ? 'active' : ''} ${tabErrors[TABS.CONFIG].length > 0 ? 'has-errors' : ''}`}
-                  onClick={() => setActiveTab(TABS.CONFIG)}
-                >
-                  <span className="tab-icon"><Settings size={18} /></span>
-                  <span className="tab-label">Configuración</span>
-                  {tabErrors[TABS.CONFIG].length > 0 && (
-                    <span className="tab-error-badge" title={tabErrors[TABS.CONFIG].join(', ')}>!</span>
-                  )}
-                </button>
               </>
             );
           })()}
@@ -405,8 +390,7 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
                   const tabErrors = getTabErrors();
                   return Object.entries({
                     'Información': tabErrors[TABS.INFO],
-                    'Paradas': tabErrors[TABS.STOPS],
-                    'Configuración': tabErrors[TABS.CONFIG]
+                    'Paradas': tabErrors[TABS.STOPS]
                   }).map(([tabName, errors]) =>
                     errors.length > 0 ? (
                       <li key={tabName}>
@@ -512,29 +496,36 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
                   <div className={`form-group ${errors.dias_operacion ? 'has-error' : ''}`}>
                     <label>Días de Operación *</label>
                     <div className={`days-checkboxes ${errors.dias_operacion ? 'error-highlight' : ''}`}>
-                      {['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'].map(day => {
-                        const dayLower = day.toLowerCase();
-                        const isChecked = formData.dias_operacion?.includes(dayLower) || false;
+                      {[
+                        { label: 'Lunes', value: 'lunes' },
+                        { label: 'Martes', value: 'martes' },
+                        { label: 'Miércoles', value: 'miercoles' },
+                        { label: 'Jueves', value: 'jueves' },
+                        { label: 'Viernes', value: 'viernes' },
+                        { label: 'Sábado', value: 'sabado' },
+                        { label: 'Domingo', value: 'domingo' }
+                      ].map(day => {
+                        const isChecked = formData.dias_operacion?.includes(day.value) || false;
 
                         return (
-                          <label key={day} className="day-checkbox">
+                          <label key={day.value} className="day-checkbox">
                             <input
                               type="checkbox"
                               checked={isChecked}
                               onChange={e => {
-                                console.log(`🔍 DEBUG RouteModal - Checkbox ${day} cambiado a:`, e.target.checked);
+                                console.log(`🔍 DEBUG RouteModal - Checkbox ${day.label} cambiado a:`, e.target.checked);
                                 console.log(`🔍 DEBUG RouteModal - dias_operacion ANTES:`, formData.dias_operacion);
 
                                 const newDias = e.target.checked
-                                  ? [...(formData.dias_operacion || []), dayLower]
-                                  : (formData.dias_operacion || []).filter(d => d !== dayLower);
+                                  ? [...(formData.dias_operacion || []), day.value]
+                                  : (formData.dias_operacion || []).filter(d => d !== day.value);
 
                                 console.log(`🔍 DEBUG RouteModal - dias_operacion DESPUÉS:`, newDias);
 
                                 handleChange('dias_operacion', newDias);
                               }}
                             />
-                            <span>{day.slice(0, 3)}</span>
+                            <span>{day.label.slice(0, 3)}</span>
                           </label>
                         );
                       })}
@@ -636,96 +627,6 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
             </div>
           )}
 
-          {activeTab === TABS.CONFIG && (
-            <div className="tab-content tab-config">
-              <div className="config-section">
-                <h5><Ruler size={18} /> Métricas de Ruta</h5>
-                
-                <div className="auto-calculate-toggle">
-                  <label className="toggle-label">
-                    <input
-                      type="checkbox"
-                      checked={formData.auto_calculate}
-                      onChange={e => handleChange('auto_calculate', e.target.checked)}
-                      className="toggle-input"
-                    />
-                    <span className="toggle-switch"></span>
-                    <span className="toggle-text">
-                      Calcular automáticamente distancia y tiempo
-                    </span>
-                  </label>
-                  <p className="toggle-hint">
-                    {formData.auto_calculate 
-                      ? <><Bot size={14} /> Las métricas se calculan según las coordenadas de las paradas</>
-                      : <><Pencil size={14} /> Puedes ingresar valores manualmente</>
-                    }
-                  </p>
-                </div>
-
-                <div className="metrics-grid">
-                  <div className="metric-card">
-                    <label><Ruler size={16} /> Distancia Total (km)</label>
-                    <input
-                      type="number"
-                      value={formData.distancia_total}
-                      onChange={e => handleChange('distancia_total', e.target.value)}
-                      className={`metric-input ${errors.distancia ? 'error' : ''}`}
-                      placeholder="0.0"
-                      step="0.1"
-                      min="0"
-                      disabled={formData.auto_calculate}
-                    />
-                    {errors.distancia && <span className="error-text">{errors.distancia}</span>}
-                  </div>
-
-                  <div className="metric-card">
-                    <label><Clock size={16} /> Tiempo Estimado (min)</label>
-                    <input
-                      type="number"
-                      value={formData.tiempo_estimado}
-                      onChange={e => handleChange('tiempo_estimado', e.target.value)}
-                      className={`metric-input ${errors.tiempo ? 'error' : ''}`}
-                      placeholder="0"
-                      step="1"
-                      min="0"
-                      disabled={formData.auto_calculate}
-                    />
-                    {errors.tiempo && <span className="error-text">{errors.tiempo}</span>}
-                  </div>
-                </div>
-              </div>
-
-              <div className="config-section">
-                <h5><Target size={18} /> Estado y Asignación</h5>
-                
-                <div className="form-group">
-                  <label>Estado de la Ruta</label>
-                  <select
-                    value={formData.estado}
-                    onChange={e => handleChange('estado', e.target.value)}
-                    className="route-select"
-                  >
-                    {ROUTE_STATES.map(state => {
-                      const Icon = state.icon;
-                      return (
-                        <option key={state.value} value={state.value}>
-                          {state.label}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-
-                <div className="info-card">
-                  <div className="info-icon"><Lightbulb size={24} /></div>
-                  <div className="info-content">
-                    <strong>Próximamente</strong>
-                    <p>Podrás asignar vehículos y conductores directamente desde aquí</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="route-modal-footer">

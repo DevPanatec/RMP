@@ -1,4 +1,6 @@
 import { useState, useMemo, useEffect, memo } from 'react';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { useCleaning } from '../../context/CleaningContext';
 import { useFumigation } from '../../context/FumigationContext';
 import { useMaintenance } from '../../context/MaintenanceContext';
@@ -8,6 +10,7 @@ import { BarChart3, Truck, Bug, Sparkles, Wrench, MapPin, Download, Calendar } f
 import ReportsDashboard from './ReportsDashboard';
 import LocationReportsModal from './LocationReportsModal';
 import RouteReportDetailModal from './RouteReportDetailModal';
+import MaintenanceReportDetailModal from './MaintenanceReportDetailModal';
 import FumigationReportsPage from './FumigationReportsPage';
 import { DEMO_LUGARES, DEMO_CLEANING_ASSIGNMENTS, mergeDemoData } from '../../utils/demoData';
 import { useDemoMode } from '../../hooks/useDemoMode';
@@ -17,10 +20,21 @@ import './ReportsComponent.css';
 
 pdfMake.vfs = pdfFonts.vfs;
 
+// Helper para parsear fechas sin problemas de timezone
+// "2026-01-13" -> Date local (no UTC)
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  // Si ya tiene hora (ISO string completo), usar directamente
+  if (dateStr.includes('T')) return new Date(dateStr);
+  // Si es solo fecha "YYYY-MM-DD", agregar T00:00:00 para que sea hora local
+  return new Date(dateStr + 'T00:00:00');
+};
+
 const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = null }) => {
   const [activeCategory, setActiveCategory] = useState('dashboard');
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedRouteReport, setSelectedRouteReport] = useState(null);
+  const [selectedMaintenanceReport, setSelectedMaintenanceReport] = useState(null);
   const { isDemoMode } = useDemoMode();
   const [routeReports, setRouteReports] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -56,6 +70,10 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
   } = useFumigation();
   const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenance();
   const { reports: reportsData } = useReports();
+
+  // Query para reportes de mantenimiento
+  const maintenanceReportsData = useQuery(api.maintenance.listReports);
+  const maintenanceReports = maintenanceReportsData || [];
 
   // Resetear página cuando cambie de categoría
   useEffect(() => {
@@ -142,8 +160,8 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
 
     try {
       const content = [];
-      const desde = new Date(dateRange.desde);
-      const hasta = new Date(dateRange.hasta);
+      const desde = parseLocalDate(dateRange.desde);
+      const hasta = parseLocalDate(dateRange.hasta);
 
       // Header
       const moduleNames = {
@@ -176,7 +194,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
       // Generar contenido según el módulo
       if (module === 'recoleccion') {
         const filtered = reportsData.filter(r => {
-          const rDate = new Date(r.fecha_completacion);
+          const rDate = parseLocalDate(r.fecha_completacion);
           return rDate >= desde && rDate <= hasta;
         });
 
@@ -189,7 +207,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
               style: 'reportTitle',
               margin: [0, 10, 0, 5]
             });
-            content.push({ text: `Fecha: ${new Date(report.fecha_completacion).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
+            content.push({ text: `Fecha: ${parseLocalDate(report.fecha_completacion).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
             content.push({ text: `Conductor: ${report.conductor_nombre}`, margin: [10, 0, 0, 2], fontSize: 10 });
             content.push({ text: `Vehículo: ${report.vehiculo_placa}`, margin: [10, 0, 0, 2], fontSize: 10 });
             content.push({ text: `Paradas completadas: ${report.paradas_completadas?.length || 0}`, margin: [10, 0, 0, 5], fontSize: 10 });
@@ -199,7 +217,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
         }
       } else if (module === 'fumigacion' && fumigationAssignments) {
         const filtered = fumigationAssignments.filter(f => {
-          const fDate = new Date(f.fecha);
+          const fDate = parseLocalDate(f.fecha);
           return fDate >= desde && fDate <= hasta;
         });
 
@@ -213,7 +231,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
               style: 'reportTitle',
               margin: [0, 10, 0, 5]
             });
-            content.push({ text: `Fecha: ${new Date(fumigation.fecha).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
+            content.push({ text: `Fecha: ${parseLocalDate(fumigation.fecha).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
             content.push({ text: `Horario: ${fumigation.horario_inicio} - ${fumigation.horario_fin}`, margin: [10, 0, 0, 2], fontSize: 10 });
             if (fumigation.observaciones) {
               content.push({ text: `Observaciones: ${fumigation.observaciones}`, margin: [10, 0, 0, 5], fontSize: 10 });
@@ -224,7 +242,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
         }
       } else if (module === 'limpieza' && assignments) {
         const filtered = assignments.filter(a => {
-          const aDate = new Date(a.fecha);
+          const aDate = parseLocalDate(a.fecha);
           return aDate >= desde && aDate <= hasta;
         });
 
@@ -237,7 +255,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
               style: 'reportTitle',
               margin: [0, 10, 0, 5]
             });
-            content.push({ text: `Fecha: ${new Date(cleaning.fecha).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
+            content.push({ text: `Fecha: ${parseLocalDate(cleaning.fecha).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
             content.push({ text: `Hora: ${cleaning.hora}`, margin: [10, 0, 0, 2], fontSize: 10 });
             content.push({ text: `Estado: ${cleaning.estado}`, margin: [10, 0, 0, 5], fontSize: 10 });
           });
@@ -246,7 +264,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
         }
       } else if (module === 'mantenimiento' && maintenanceTasks) {
         const filtered = maintenanceTasks.filter(t => {
-          const tDate = new Date(t.scheduled_date);
+          const tDate = parseLocalDate(t.scheduled_date);
           return tDate >= desde && tDate <= hasta;
         });
 
@@ -259,7 +277,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
               style: 'reportTitle',
               margin: [0, 10, 0, 5]
             });
-            content.push({ text: `Fecha programada: ${new Date(task.scheduled_date).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
+            content.push({ text: `Fecha programada: ${parseLocalDate(task.scheduled_date).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
             content.push({ text: `Hora: ${task.scheduled_time || 'No especificada'}`, margin: [10, 0, 0, 2], fontSize: 10 });
             content.push({ text: `Estado: ${task.status}`, margin: [10, 0, 0, 2], fontSize: 10 });
             if (task.observations) {
@@ -472,7 +490,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
                       📦 {report.paradas_completadas?.length || 0} paradas
                     </span>
                     <span className="route-report-meta-item">
-                      📅 {new Date(report.fecha_completacion).toLocaleDateString('es-ES')}
+                      📅 {parseLocalDate(report.fecha_completacion).toLocaleDateString('es-ES')}
                     </span>
                   </div>
                   <p className="route-report-hint">
@@ -630,24 +648,8 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     return (
       <div className="reports-category reports-fumigacion">
         <div className="category-header">
-          <div className="category-header-content">
-            <h3>🦟 Reportes de Fumigación</h3>
-            <p>Visualiza fumigaciones internas (mensuales) y externas (semanales) por ubicación</p>
-          </div>
-          <div className="category-stats">
-            <div className="stat-badge">
-              <span className="stat-value">{fumigationAssignments.length}</span>
-              <span className="stat-label">Total Fumigaciones</span>
-            </div>
-            <div className="stat-badge stat-badge--success">
-              <span className="stat-value">{fumigationAssignments.filter(f => f.estado === 'reportada').length}</span>
-              <span className="stat-label">Reportadas</span>
-            </div>
-            <div className="stat-badge stat-badge--warning">
-              <span className="stat-value">{fumigationLugares.length}</span>
-              <span className="stat-label">Lugares</span>
-            </div>
-          </div>
+          <h3>🦟 Reportes de Fumigación</h3>
+          <p>Visualiza fumigaciones internas (mensuales) y externas (semanales) por ubicación</p>
         </div>
 
         {/* Controles de descarga */}
@@ -1082,84 +1084,161 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     console.log('🔧 DEBUG Mantenimiento:', {
       maintenanceLoading,
       maintenanceTasks: maintenanceTasks.length,
-      maintenanceByLocation: maintenanceByLocation.length,
-      locations: maintenanceByLocation
+      maintenanceReports: maintenanceReports.length,
+      maintenanceByLocation: maintenanceByLocation.length
     });
+
+    // Paginación para reportes
+    const totalPages = Math.ceil(maintenanceReports.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedReports = maintenanceReports.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+    // Formatear tipo de mantenimiento
+    const getTipoLabel = (tipo) => {
+      switch (tipo) {
+        case 'preventivo': return 'Preventivo';
+        case 'correctivo': return 'Correctivo';
+        case 'inspección': return 'Inspección';
+        default: return tipo;
+      }
+    };
+
+    // Formatear prioridad con colores
+    const getPrioridadClass = (prioridad) => {
+      switch (prioridad) {
+        case 'urgente': return 'priority-urgente';
+        case 'alta': return 'priority-alta';
+        case 'media': return 'priority-media';
+        default: return 'priority-baja';
+      }
+    };
 
     return (
       <div className="reports-category reports-mantenimiento">
         <div className="category-header">
-          <h3>Reportes de Mantenimiento - Planta de Tratamiento</h3>
-          <p>Mercado San Felipe Neri ({maintenanceByLocation.length} ubicaciones)</p>
+          <h3>Reportes de Mantenimiento</h3>
+          <p>Historial de tareas de mantenimiento completadas ({maintenanceReports.length} reportes)</p>
         </div>
 
-        {maintenanceLoading ? (
+        {/* Controles de descarga */}
+        <div className="module-download-controls">
+          <div className="download-date-inputs">
+            <div className="date-input-small">
+              <label><Calendar size={14} /> Desde</label>
+              <input
+                type="date"
+                value={moduleDateRanges.mantenimiento.desde}
+                onChange={(e) => updateModuleDateRange('mantenimiento', 'desde', e.target.value)}
+                max={moduleDateRanges.mantenimiento.hasta}
+              />
+            </div>
+            <div className="date-input-small">
+              <label><Calendar size={14} /> Hasta</label>
+              <input
+                type="date"
+                value={moduleDateRanges.mantenimiento.hasta}
+                onChange={(e) => updateModuleDateRange('mantenimiento', 'hasta', e.target.value)}
+                min={moduleDateRanges.mantenimiento.desde}
+              />
+            </div>
+          </div>
+          <button
+            className="btn-download-module"
+            onClick={() => handleModuleDownload('mantenimiento')}
+            disabled={moduleDownloading === 'mantenimiento'}
+          >
+            <Download size={18} />
+            {moduleDownloading === 'mantenimiento' ? 'Generando PDF...' : 'Descargar Mantenimiento'}
+          </button>
+        </div>
+
+        {maintenanceLoading || maintenanceReportsData === undefined ? (
           <div className="loading-state">
             <div className="loading-spinner"></div>
             <p>Cargando reportes de mantenimiento...</p>
           </div>
-        ) : maintenanceByLocation.length === 0 ? (
+        ) : maintenanceReports.length === 0 ? (
           <div className="empty-state">
             <Wrench size={48} />
-            <p>No hay reportes de mantenimiento registrados</p>
+            <h4>No hay reportes de mantenimiento</h4>
             <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
-              Debug: {maintenanceTasks.length} tareas encontradas
+              Completa tareas de mantenimiento para generar reportes
+            </p>
+            <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
+              ({maintenanceTasks.length} tareas en sistema)
             </p>
           </div>
         ) : (
-          <div className="locations-grid">
-            {maintenanceByLocation.map(location => {
-              const imageUrl = '/lugares/san felipe neri.jpeg';
-
-              return (
+          <>
+            {/* Grid de reportes */}
+            <div className="route-reports-grid">
+              {paginatedReports.map((report) => (
                 <div
-                  key={location.id}
-                  className="location-map-card"
-                  onClick={() => setSelectedLocation(location)}
-                  style={{ cursor: 'pointer' }}
+                  key={report._id}
+                  className="route-report-card"
+                  onClick={() => setSelectedMaintenanceReport(report)}
                 >
-                  <div className="location-image-wrapper">
-                    <img
-                      src={imageUrl}
-                      alt={location.nombre}
-                      className="location-image"
-                      loading="eager"
-                      decoding="async"
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextElementSibling.style.display = 'flex';
-                      }}
-                    />
-                    <div className="location-image-fallback" style={{ display: 'none' }}>
-                      <Wrench size={48} />
-                      <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
-                        {location.nombre}
-                      </p>
+                  <div className="route-report-card-header">
+                    <h4 className="route-report-card-title">{report.titulo}</h4>
+                    <div className="maintenance-badges-mini">
+                      <span className={`maintenance-badge-mini tipo-${report.tipo}`}>
+                        {getTipoLabel(report.tipo)}
+                      </span>
+                      <span className={`maintenance-badge-mini ${getPrioridadClass(report.prioridad)}`}>
+                        {report.prioridad}
+                      </span>
                     </div>
                   </div>
-                  <div className="map-card-overlay">
-                    <h4>{location.nombre}</h4>
-                    <span className="report-badge">{location.assignmentsCount} reportes</span>
+                  <div className="route-report-meta">
+                    {report.vehiculo_placa && (
+                      <span className="route-report-meta-item">
+                        🚛 {report.vehiculo_placa}
+                      </span>
+                    )}
+                    {report.mecanico && (
+                      <span className="route-report-meta-item">
+                        👤 {report.mecanico}
+                      </span>
+                    )}
+                    {report.costo !== undefined && report.costo !== null && (
+                      <span className="route-report-meta-item">
+                        💰 ${report.costo.toFixed(2)}
+                      </span>
+                    )}
+                    <span className="route-report-meta-item">
+                      📅 {parseLocalDate(report.fecha_completada).toLocaleDateString('es-ES')}
+                    </span>
                   </div>
+                  <p className="route-report-hint">
+                    Click para ver detalles completos y fotos
+                  </p>
                 </div>
-              );
-            })}
-          </div>
-        )}
+              ))}
+            </div>
 
-        {selectedLocation && (
-          <LocationReportsModal
-            location={selectedLocation}
-            onClose={() => {
-              setSelectedLocation(null);
-              if (onClearSelection) {
-                onClearSelection();
-              }
-            }}
-            getPhotoUrl={getPhotoUrl}
-            getStatusVariant={getStatusVariant}
-            modalType="mantenimiento"
-          />
+            {/* Paginación */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Anterior
+                </button>
+                <span className="pagination-info">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <button
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     );
@@ -1217,6 +1296,14 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
         <RouteReportDetailModal
           report={selectedRouteReport}
           onClose={() => setSelectedRouteReport(null)}
+        />
+      )}
+
+      {/* Modal de detalle de reporte de mantenimiento */}
+      {selectedMaintenanceReport && (
+        <MaintenanceReportDetailModal
+          report={selectedMaintenanceReport}
+          onClose={() => setSelectedMaintenanceReport(null)}
         />
       )}
     </div>

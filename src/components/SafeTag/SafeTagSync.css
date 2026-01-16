@@ -21,7 +21,7 @@
 }
 
 .header-title svg {
-  color: var(--color-primary, #3D5229);
+  color: var(--color-primary);
 }
 
 .sync-header h3 {
@@ -35,7 +35,7 @@
   align-items: center;
   gap: var(--space-xs, 8px);
   padding: var(--space-sm, 10px) var(--space-md, 16px);
-  background: var(--color-primary, #3D5229);
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: var(--border-radius-md, 8px);
@@ -208,7 +208,7 @@
   width: 100%;
   margin-top: var(--space-md, 16px);
   padding: var(--space-sm, 10px);
-  background: linear-gradient(135deg, var(--color-primary, #3D5229), var(--color-primary-dark, #2a3a1c));
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: var(--border-radius-md, 8px);
@@ -220,12 +220,12 @@
 
 .view-history-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(61, 82, 41, 0.3);
+  box-shadow: var(--shadow-md);
 }
 
 .view-history-button:active {
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(61, 82, 41, 0.2);
+  box-shadow: var(--shadow-xs);
 }
 
 .no-vehicles {

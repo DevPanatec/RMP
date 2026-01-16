@@ -31,7 +31,7 @@
   width: 48px;
   height: 48px;
   padding: 12px;
-  background: linear-gradient(135deg, #3D5229 0%, #5a7a33 100%);
+  background: var(--color-primary);
   border-radius: 16px;
   color: white;
   flex-shrink: 0;
@@ -86,11 +86,11 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: linear-gradient(135deg, rgba(61, 82, 41, 0.08) 0%, rgba(90, 122, 51, 0.08) 100%);
+  background: var(--color-surface-secondary);
   border-radius: 10px;
   font-size: 13px;
   color: var(--color-text-secondary);
-  border: 1px solid rgba(61, 82, 41, 0.1);
+  border: 1px solid var(--color-border);
 }
 
 .fumigation-notice strong {

@@ -245,7 +245,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     return await ctx.db.insert("fumigation_assignments", {
       ...args,
-      estado: "reportada",
+      estado: "programada",
     });
   },
 });
@@ -331,6 +331,7 @@ export const generateUploadUrl = mutation({
 export const savePhoto = mutation({
   args: {
     assignment_id: v.id("fumigation_assignments"),
+    etapa: v.string(), // "antes", "durante", "despues"
     storage_id: v.id("_storage"),
     file_name: v.string(),
     file_size: v.optional(v.number()),
@@ -372,22 +373,41 @@ export const getReportById = query({
     const report = await ctx.db.get(args.id);
     if (!report) return null;
 
-    // Obtener fotos con URLs
-    const photosWithUrls = await Promise.all(
-      (report.fotos_ids || []).map(async (photoId) => {
-        const photo = await ctx.db.get(photoId);
-        if (!photo) return null;
-        const url = await ctx.storage.getUrl(photo.storage_id);
-        return {
-          ...photo,
-          url,
-        };
-      })
-    );
+    // Función helper para obtener fotos con URLs
+    const getPhotosWithUrls = async (photoIds: any[]) => {
+      return await Promise.all(
+        (photoIds || []).map(async (photoId) => {
+          const photo = await ctx.db.get(photoId);
+          if (!photo) return null;
+          const url = await ctx.storage.getUrl(photo.storage_id);
+          return {
+            ...photo,
+            url,
+          };
+        })
+      );
+    };
+
+    // Manejar estructura nueva (fotos_*_ids) y legacy (fotos_ids)
+    let fotosAntes: any[] = [];
+    let fotosDurante: any[] = [];
+    let fotosDespues: any[] = [];
+
+    if (report.fotos_antes_ids || report.fotos_durante_ids || report.fotos_despues_ids) {
+      // Nueva estructura - usar campos por etapa
+      fotosAntes = await getPhotosWithUrls(report.fotos_antes_ids || []);
+      fotosDurante = await getPhotosWithUrls(report.fotos_durante_ids || []);
+      fotosDespues = await getPhotosWithUrls(report.fotos_despues_ids || []);
+    } else if ((report as any).fotos_ids) {
+      // Legacy - todas las fotos van a "durante"
+      fotosDurante = await getPhotosWithUrls((report as any).fotos_ids);
+    }
 
     return {
       ...report,
-      fotos: photosWithUrls.filter(Boolean),
+      fotos_antes: fotosAntes.filter(Boolean),
+      fotos_durante: fotosDurante.filter(Boolean),
+      fotos_despues: fotosDespues.filter(Boolean),
     };
   },
 });
@@ -430,11 +450,45 @@ export const createReport = mutation({
     duracion_minutos: v.number(),
     productos_utilizados: v.array(v.string()),
     observaciones: v.optional(v.string()),
-    fotos_ids: v.array(v.id("fumigation_photos")),
+    fotos_antes_ids: v.optional(v.array(v.id("fumigation_photos"))),
+    fotos_durante_ids: v.optional(v.array(v.id("fumigation_photos"))),
+    fotos_despues_ids: v.optional(v.array(v.id("fumigation_photos"))),
     usuario_completo: v.string(),
     fecha_completacion: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("fumigation_reports", args);
+    // Si no se pasan fotos_ids, buscar las fotos del assignment automáticamente por etapa
+    let fotosAntesIds = args.fotos_antes_ids || [];
+    let fotosDuranteIds = args.fotos_durante_ids || [];
+    let fotosDespuesIds = args.fotos_despues_ids || [];
+
+    // Si todos los arrays están vacíos, buscar fotos del assignment por etapa
+    if (fotosAntesIds.length === 0 && fotosDuranteIds.length === 0 && fotosDespuesIds.length === 0) {
+      const allPhotos = await ctx.db
+        .query("fumigation_photos")
+        .withIndex("by_assignment", (q) => q.eq("assignment_id", args.assignment_id))
+        .collect();
+
+      fotosAntesIds = allPhotos.filter((p) => p.etapa === "antes").map((p) => p._id);
+      fotosDuranteIds = allPhotos.filter((p) => p.etapa === "durante").map((p) => p._id);
+      fotosDespuesIds = allPhotos.filter((p) => p.etapa === "despues").map((p) => p._id);
+
+      // Fotos sin etapa (legacy) van a "durante" por defecto
+      const fotosLegacy = allPhotos.filter((p) => !p.etapa).map((p) => p._id);
+      if (fotosLegacy.length > 0) {
+        fotosDuranteIds = [...fotosDuranteIds, ...fotosLegacy];
+      }
+
+      console.log(`📸 Fumigación: encontradas ${allPhotos.length} fotos del assignment (antes: ${fotosAntesIds.length}, durante: ${fotosDuranteIds.length}, después: ${fotosDespuesIds.length})`);
+    }
+
+    const { fotos_antes_ids, fotos_durante_ids, fotos_despues_ids, ...restArgs } = args;
+
+    return await ctx.db.insert("fumigation_reports", {
+      ...restArgs,
+      fotos_antes_ids: fotosAntesIds,
+      fotos_durante_ids: fotosDuranteIds,
+      fotos_despues_ids: fotosDespuesIds,
+    });
   },
 });

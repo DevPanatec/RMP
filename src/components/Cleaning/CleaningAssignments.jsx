@@ -1,23 +1,26 @@
 import { useState } from 'react';
-import { Plus, Calendar, Image as ImageIcon } from '../Icons';
+import { Plus, Calendar, Image as ImageIcon, CheckCircle, Camera } from '../Icons';
 import { Button, Card } from '../UI';
 import { useCleaning } from '../../context/CleaningContext';
+import { useAuth } from '../../context/AuthContext';
 import PhotosModal from './PhotosModal';
 import CleaningModal from './CleaningModal';
 import './CleaningAssignments.css';
 
 const CleaningAssignments = ({ userRole }) => {
-  const { lugares, areas, assignments, loading, addAssignment } = useCleaning();
+  const { lugares, areas, assignments, loading, addAssignment, completeAssignment } = useCleaning();
+  const { user } = useAuth();
 
   const [showModal, setShowModal] = useState(false);
   const [showPhotosModal, setShowPhotosModal] = useState(false);
   const [currentAssignmentId, setCurrentAssignmentId] = useState(null);
   const [currentAssignment, setCurrentAssignment] = useState(null);
+  const [completionStartTime, setCompletionStartTime] = useState(null);
 
   const handleSave = async (assignmentData) => {
     try {
       const result = await addAssignment(assignmentData);
-      
+
       if (result.success) {
         alert(`Asignación creada exitosamente`);
         setShowModal(false);
@@ -33,10 +36,66 @@ const CleaningAssignments = ({ userRole }) => {
     }
   };
 
-  const handlePhotosComplete = (photos) => {
-    console.log('Fotos guardadas:', photos);
+  // Iniciar proceso de completar asignación
+  const handleStartComplete = (assignment) => {
+    setCurrentAssignment(assignment);
+    setCurrentAssignmentId(assignment._id);
+    setCompletionStartTime(new Date().toTimeString().slice(0, 5)); // HH:MM
+    setShowPhotosModal(true);
+  };
+
+  // Completar asignación después de subir fotos
+  const handlePhotosComplete = async (result) => {
+    if (!result.success) {
+      console.error('Error al subir fotos');
+      return;
+    }
+
+    // Buscar datos de la sala y área
+    const assignment = currentAssignment;
+    const sala = lugares.find(l => l._id === assignment.sala_id);
+    const area = areas.find(a => a._id === assignment.area_id);
+
+    const horaFin = new Date().toTimeString().slice(0, 5);
+
+    // Calcular duración en minutos
+    const [hInicio, mInicio] = completionStartTime.split(':').map(Number);
+    const [hFin, mFin] = horaFin.split(':').map(Number);
+    const duracionMinutos = (hFin * 60 + mFin) - (hInicio * 60 + mInicio);
+
+    try {
+      const reportResult = await completeAssignment(assignment._id, {
+        sala_id: assignment.sala_id,
+        area_id: assignment.area_id,
+        sala_nombre: sala?.nombre || 'Sala desconocida',
+        area_nombre: area?.nombre || 'Área desconocida',
+        latitud: sala?.latitud,
+        longitud: sala?.longitud,
+        fecha: assignment.fecha,
+        hora_inicio: completionStartTime,
+        hora_fin: horaFin,
+        duracion_minutos: Math.max(1, duracionMinutos),
+        fotos_antes_ids: result.fotos_antes_ids || [],
+        fotos_durante_ids: result.fotos_durante_ids || [],
+        fotos_despues_ids: result.fotos_despues_ids || [],
+        observaciones: assignment.notas,
+        usuario_completo: user?.nombre_completo || user?.email || 'Usuario',
+      });
+
+      if (reportResult.success) {
+        alert('✅ Limpieza completada y reporte generado exitosamente');
+      } else {
+        alert(`Error al completar: ${reportResult.error}`);
+      }
+    } catch (error) {
+      console.error('Error al completar asignación:', error);
+      alert('Error al completar la asignación');
+    }
+
     setShowPhotosModal(false);
     setCurrentAssignmentId(null);
+    setCurrentAssignment(null);
+    setCompletionStartTime(null);
   };
 
   if (loading) {
@@ -77,12 +136,21 @@ const CleaningAssignments = ({ userRole }) => {
       />
 
       {/* Modal de Fotos */}
-      {showPhotosModal && currentAssignmentId && (
+      {showPhotosModal && currentAssignmentId && currentAssignment && (
         <PhotosModal
           isOpen={showPhotosModal}
-          onClose={() => setShowPhotosModal(false)}
+          onClose={() => {
+            setShowPhotosModal(false);
+            setCurrentAssignmentId(null);
+            setCurrentAssignment(null);
+            setCompletionStartTime(null);
+          }}
           onComplete={handlePhotosComplete}
           assignmentId={currentAssignmentId}
+          assignmentData={{
+            sala: lugares.find(l => l._id === currentAssignment.sala_id)?.nombre || 'Sala',
+            area: areas.find(a => a._id === currentAssignment.area_id)?.nombre || 'Área',
+          }}
         />
       )}
 
@@ -99,25 +167,50 @@ const CleaningAssignments = ({ userRole }) => {
             </div>
           ) : (
             <div className="cleaning-assignments__grid">
-              {assignments.slice(0, 5).map((assignment) => (
-                <div key={assignment.id} className="assignment-card">
-                  <div className="assignment-card__header">
-                    <span className="assignment-card__lugar">
-                      {assignment.lugar?.nombre}
-                    </span>
-                    <span className={`assignment-card__status assignment-card__status--${assignment.estado}`}>
-                      {assignment.estado}
-                    </span>
+              {assignments.slice(0, 10).map((assignment) => {
+                // Buscar nombres de sala y área
+                const sala = lugares.find(l => l._id === assignment.sala_id);
+                const area = areas.find(a => a._id === assignment.area_id);
+
+                return (
+                  <div key={assignment._id} className="assignment-card">
+                    <div className="assignment-card__header">
+                      <span className="assignment-card__lugar">
+                        {sala?.nombre || 'Sin sala'}
+                      </span>
+                      <span className={`assignment-card__status assignment-card__status--${assignment.estado}`}>
+                        {assignment.estado}
+                      </span>
+                    </div>
+                    <div className="assignment-card__area">
+                      {area?.nombre || 'Sin área'}
+                    </div>
+                    <div className="assignment-card__date">
+                      <Calendar size={14} />
+                      <span>{new Date(assignment.fecha).toLocaleDateString('es-ES')} - {assignment.hora}</span>
+                    </div>
+
+                    {/* Botón para completar si está pendiente */}
+                    {assignment.estado === 'pendiente' && (
+                      <button
+                        className="assignment-card__complete-btn"
+                        onClick={() => handleStartComplete(assignment)}
+                      >
+                        <Camera size={16} />
+                        Completar con Fotos
+                      </button>
+                    )}
+
+                    {/* Indicador si ya está completada */}
+                    {assignment.estado === 'completada' && (
+                      <div className="assignment-card__completed">
+                        <CheckCircle size={16} />
+                        Completada
+                      </div>
+                    )}
                   </div>
-                  <div className="assignment-card__area">
-                    {assignment.area?.nombre}
-                  </div>
-                  <div className="assignment-card__date">
-                    <Calendar size={14} />
-                    <span>{new Date(assignment.fecha).toLocaleDateString('es-ES')} - {assignment.hora}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Card>

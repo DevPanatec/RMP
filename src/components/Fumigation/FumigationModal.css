@@ -247,13 +247,13 @@
 }
 
 .fumigation-input:hover:not(:disabled) {
-  border-color: rgba(61, 82, 41, 0.4);
+  border-color: var(--color-primary);
 }
 
 .fumigation-input:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(61, 82, 41, 0.08);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
 }
 
 .fumigation-input.error {
@@ -312,8 +312,8 @@ textarea.fumigation-input {
 }
 
 .info-card--frecuencia {
-  background: linear-gradient(135deg, rgba(61, 82, 41, 0.05) 0%, rgba(90, 122, 51, 0.05) 100%);
-  border: 1px solid rgba(61, 82, 41, 0.1);
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .info-card svg {
@@ -595,7 +595,7 @@ textarea.fumigation-input {
 .btn--primary:hover:not(:disabled) {
   background: #2a3b1d;
   transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(61, 82, 41, 0.25);
+  box-shadow: var(--shadow-md);
 }
 
 .btn:disabled {

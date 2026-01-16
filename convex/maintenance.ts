@@ -39,11 +39,13 @@ export const addTask = mutation({
     costo: v.optional(v.number()),
     mecanico: v.optional(v.string()),
     notas: v.optional(v.string()),
+    estado: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { estado, ...rest } = args;
     return await ctx.db.insert("maintenance_tasks", {
-      ...args,
-      estado: "pendiente",
+      ...rest,
+      estado: estado || "pendiente",
     });
   },
 });
@@ -199,5 +201,122 @@ export const deletePhoto = mutation({
 
     // Eliminar del DB
     return await ctx.db.delete(args.id);
+  },
+});
+
+// ========== MAINTENANCE REPORTS ==========
+export const listReports = query({
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("maintenance_reports")
+      .withIndex("by_fecha", (q) => q)
+      .order("desc")
+      .collect();
+  },
+});
+
+export const getReportById = query({
+  args: { id: v.id("maintenance_reports") },
+  handler: async (ctx, args) => {
+    const report = await ctx.db.get(args.id);
+    if (!report) return null;
+
+    // Función helper para obtener fotos con URLs
+    const getPhotosWithUrls = async (photoIds: any[]) => {
+      return await Promise.all(
+        (photoIds || []).map(async (photoId) => {
+          const photo = await ctx.db.get(photoId);
+          if (!photo) return null;
+          const url = await ctx.storage.getUrl(photo.storage_id);
+          return {
+            ...photo,
+            url,
+          };
+        })
+      );
+    };
+
+    const fotosAntes = await getPhotosWithUrls(report.fotos_antes_ids);
+    const fotosDurante = await getPhotosWithUrls(report.fotos_durante_ids);
+    const fotosDespues = await getPhotosWithUrls(report.fotos_despues_ids);
+
+    return {
+      ...report,
+      fotos_antes: fotosAntes.filter(Boolean),
+      fotos_durante: fotosDurante.filter(Boolean),
+      fotos_despues: fotosDespues.filter(Boolean),
+    };
+  },
+});
+
+export const getReportsByVehiculo = query({
+  args: { vehiculo_id: v.id("vehiculos") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("maintenance_reports")
+      .withIndex("by_vehiculo", (q) => q.eq("vehiculo_id", args.vehiculo_id))
+      .order("desc")
+      .collect();
+  },
+});
+
+export const createReport = mutation({
+  args: {
+    task_id: v.id("maintenance_tasks"),
+    vehiculo_id: v.optional(v.id("vehiculos")),
+    vehiculo_placa: v.optional(v.string()),
+    titulo: v.string(),
+    descripcion: v.optional(v.string()),
+    tipo: v.string(),
+    prioridad: v.string(),
+    fecha_programada: v.optional(v.string()),
+    fecha_completada: v.string(),
+    costo: v.optional(v.number()),
+    mecanico: v.optional(v.string()),
+    fotos_antes_ids: v.optional(v.array(v.id("maintenance_photos"))),
+    fotos_durante_ids: v.optional(v.array(v.id("maintenance_photos"))),
+    fotos_despues_ids: v.optional(v.array(v.id("maintenance_photos"))),
+    observaciones: v.optional(v.string()),
+    usuario_completo: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Si no se pasan fotos_ids, buscar las fotos de la tarea automáticamente
+    let fotosAntesIds = args.fotos_antes_ids || [];
+    let fotosDuranteIds = args.fotos_durante_ids || [];
+    let fotosDespuesIds = args.fotos_despues_ids || [];
+
+    // Si todos los arrays están vacíos, buscar fotos de la tarea por etapa
+    if (fotosAntesIds.length === 0 && fotosDuranteIds.length === 0 && fotosDespuesIds.length === 0) {
+      const allPhotos = await ctx.db
+        .query("maintenance_photos")
+        .withIndex("by_task", (q) => q.eq("task_id", args.task_id))
+        .collect();
+
+      fotosAntesIds = allPhotos.filter((p) => p.etapa === "antes").map((p) => p._id);
+      fotosDuranteIds = allPhotos.filter((p) => p.etapa === "durante").map((p) => p._id);
+      fotosDespuesIds = allPhotos.filter((p) => p.etapa === "despues").map((p) => p._id);
+
+      console.log(`📸 Mantenimiento: encontradas ${allPhotos.length} fotos de la tarea`);
+    }
+
+    return await ctx.db.insert("maintenance_reports", {
+      task_id: args.task_id,
+      vehiculo_id: args.vehiculo_id,
+      vehiculo_placa: args.vehiculo_placa,
+      titulo: args.titulo,
+      descripcion: args.descripcion,
+      tipo: args.tipo,
+      prioridad: args.prioridad,
+      fecha_programada: args.fecha_programada,
+      fecha_completada: args.fecha_completada,
+      costo: args.costo,
+      mecanico: args.mecanico,
+      fotos_antes_ids: fotosAntesIds,
+      fotos_durante_ids: fotosDuranteIds,
+      fotos_despues_ids: fotosDespuesIds,
+      observaciones: args.observaciones,
+      usuario_completo: args.usuario_completo,
+      fecha_reporte: new Date().toISOString().split("T")[0],
+    });
   },
 });

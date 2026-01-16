@@ -17,6 +17,8 @@ import { ScheduleProvider } from './context/ScheduleContext';
 import { CleaningProvider } from './context/CleaningContext';
 import { FumigationProvider } from './context/FumigationContext';
 import { MaintenanceProvider } from './context/MaintenanceContext';
+import { GooglePlacesProvider } from './context/GooglePlacesContext';
+import { GooglePlacesErrorBoundary } from './components/ErrorBoundary';
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
 
@@ -115,9 +117,13 @@ function App() {
   return (
     <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
       <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
+        <GooglePlacesErrorBoundary>
+          <GooglePlacesProvider>
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </GooglePlacesProvider>
+        </GooglePlacesErrorBoundary>
       </ConvexProviderWithClerk>
     </ClerkProvider>
   );

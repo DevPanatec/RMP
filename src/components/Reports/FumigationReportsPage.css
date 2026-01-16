@@ -31,7 +31,7 @@
 }
 
 .fumigation-page-title svg {
-  color: #3D5229;
+  color: var(--color-primary);
 }
 
 .fumigation-page-title h1 {
@@ -94,7 +94,7 @@
 .fumigation-open-maps {
   padding: 10px 20px;
   background: white;
-  color: #3D5229;
+  color: var(--color-primary);
   border: none;
   border-radius: 8px;
   font-weight: 600;
@@ -151,13 +151,13 @@
 }
 
 .fumigation-filter-btn:hover {
-  border-color: #3D5229;
-  color: #3D5229;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .fumigation-filter-btn.active {
-  background: #3D5229;
-  border-color: #3D5229;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   color: white;
 }
 
@@ -166,7 +166,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: #3D5229;
+  background: var(--color-primary);
   border: none;
   border-radius: 8px;
   font-weight: 600;
@@ -214,8 +214,8 @@
 }
 
 .fumigation-date-presets button:hover {
-  border-color: #3D5229;
-  color: #3D5229;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .fumigation-date-range {
@@ -274,12 +274,12 @@
 }
 
 .fumigation-report-card:hover {
-  border-color: #3D5229;
-  box-shadow: 0 4px 12px rgba(61, 82, 41, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .fumigation-report-card.selected {
-  border-color: #3D5229;
+  border-color: var(--color-primary);
   background: #f9fafb;
 }
 
@@ -293,7 +293,7 @@
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: #3D5229;
+  accent-color: var(--color-primary);
 }
 
 .fumigation-report-info {
@@ -346,12 +346,12 @@
 
 .fumigation-view-btn {
   background: white;
-  border: 2px solid #3D5229;
-  color: #3D5229;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
 }
 
 .fumigation-view-btn:hover {
-  background: #3D5229;
+  background: var(--color-primary);
   color: white;
 }
 

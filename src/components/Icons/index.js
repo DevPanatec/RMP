@@ -55,6 +55,7 @@ export {
   Phone,
   Mail,
   History,
+  Home,
   Sparkles,
   Image,
   Search,
@@ -87,7 +88,9 @@ export {
   PieChart,
   Copy,
   Recycle,
-  SprayCan
+  SprayCan,
+  User,
+  Tag
 } from 'lucide-react';
 
 // Alias para Spray

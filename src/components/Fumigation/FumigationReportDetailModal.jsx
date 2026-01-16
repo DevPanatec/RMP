@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import { X, Download, Calendar, MapPin, Clock, Spray, FileText, UserCheck, Image as ImageIcon, CheckCircle } from '../Icons';
-import { Button, Badge } from '../UI';
-import './FumigationReportDetailModal.css';
+import { X, Download, Calendar, MapPin, Clock, Spray, FileText, UserCheck, Image as ImageIcon, CheckCircle, Camera, Wrench } from '../Icons';
+import MapComponent from '../Map/MapComponent';
+import '../Reports/StandardReportModal.css';
 
 const FumigationReportDetailModal = ({ isOpen, onClose, assignment, location, onDownload }) => {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
@@ -16,18 +16,6 @@ const FumigationReportDetailModal = ({ isOpen, onClose, assignment, location, on
 
   if (!isOpen || !assignment) return null;
 
-  const getTipoLabel = (tipo) => {
-    return tipo === 'interna' ? 'Fumigación Interna' : 'Fumigación Externa';
-  };
-
-  const getTipoBadgeVariant = (tipo) => {
-    return tipo === 'interna' ? 'primary' : 'success';
-  };
-
-  const handlePhotoClick = (photo) => {
-    setSelectedPhoto(photo);
-  };
-
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) {
       if (selectedPhoto) {
@@ -38,12 +26,18 @@ const FumigationReportDetailModal = ({ isOpen, onClose, assignment, location, on
     }
   };
 
-  // Generar URL del mapa
-  const mapEmbedUrl = location?.nombre
-    ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(location.nombre + ', Panama City, Panama')}&zoom=17`
-    : null;
+  // Preparar punto para el mapa
+  const lugarParaMapa = location?.latitud && location?.longitud
+    ? [{
+        _id: location._id || 'lugar-fumigacion',
+        nombre: location.nombre,
+        latitud: location.latitud,
+        longitud: location.longitud,
+        tipo: 'fumigacion',
+      }]
+    : [];
 
-  // Calcular duración
+  // Calcular duracion
   const calculateDuration = () => {
     if (!assignment.horario_inicio || !assignment.horario_fin) return null;
     const [startH, startM] = assignment.horario_inicio.split(':').map(Number);
@@ -58,222 +52,297 @@ const FumigationReportDetailModal = ({ isOpen, onClose, assignment, location, on
 
   const duration = calculateDuration();
 
-  return (
-    <div className="fumigation-detail-overlay" onClick={handleOverlayClick}>
-      <div className="fumigation-detail-modal" onClick={(e) => e.stopPropagation()}>
+  // Organizar fotos por etapa
+  const fotosPorEtapa = {
+    antes: photos?.filter(p => p.etapa === 'antes') || [],
+    durante: photos?.filter(p => p.etapa === 'durante' || !p.etapa) || [],
+    despues: photos?.filter(p => p.etapa === 'despues') || [],
+  };
 
-        {/* Header con gradiente */}
-        <div className="fumigation-detail__header">
-          <div className="fumigation-detail__header-left">
-            <div className="fumigation-detail__icon-badge">
+  const totalFotos = (fotosPorEtapa.antes.length + fotosPorEtapa.durante.length + fotosPorEtapa.despues.length);
+
+  const getTipoLabel = (tipo) => {
+    return tipo === 'interna' ? 'Interna' : 'Externa';
+  };
+
+  return (
+    <div className="report-modal-overlay" onClick={handleOverlayClick}>
+      <div className="report-modal" onClick={(e) => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="report-modal__header">
+          <div className="report-modal__header-left">
+            <div className="report-modal__icon">
               <Spray size={32} />
             </div>
-            <div className="fumigation-detail__header-text">
-              <h2 className="fumigation-detail__title">Reporte de Fumigación</h2>
-              <Badge
-                variant={getTipoBadgeVariant(assignment.tipo_fumigacion)}
-                text={getTipoLabel(assignment.tipo_fumigacion)}
-              />
+            <div className="report-modal__header-text">
+              <h2 className="report-modal__title">Reporte de Fumigacion</h2>
+              <p className="report-modal__subtitle">{location?.nombre || 'Sin ubicacion'}</p>
             </div>
           </div>
-          <button className="fumigation-detail__close" onClick={onClose}>
+          <button className="report-modal__close" onClick={onClose}>
             <X size={24} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="fumigation-detail__content">
+        <div className="report-modal__content">
 
-          {/* 🗺️ MAPA CON OVERLAY MEJORADO */}
-          {mapEmbedUrl && (
-            <div className="fumigation-detail__map-section">
-              <div className="fumigation-map-header">
-                <MapPin size={20} />
-                <h3>Ubicación de Fumigación</h3>
-              </div>
-              <div className="fumigation-detail__map-wrapper">
-                <iframe
-                  src={mapEmbedUrl}
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen=""
-                  loading="eager"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title={`Mapa de ${location.nombre}`}
-                />
-                <div className="fumigation-map-label">
-                  <MapPin size={16} />
-                  <span>{location.nombre}</span>
-                </div>
-              </div>
+          {/* Badge de tipo */}
+          <div className="report-badges">
+            <span className={`report-badge report-badge--${assignment.tipo_fumigacion}`}>
+              <Spray size={14} />
+              Fumigacion {getTipoLabel(assignment.tipo_fumigacion)}
+            </span>
+          </div>
+
+          {/* Mapa de Ubicacion */}
+          <div className="report-section">
+            <div className="report-section__header">
+              <MapPin size={18} />
+              <h3>Ubicacion</h3>
             </div>
-          )}
-
-          {/* RESUMEN DEL REPORTE - Cards profesionales */}
-          <div className="fumigation-detail__summary">
-            <div className="fumigation-summary-header">
-              <FileText size={20} />
-              <h3>Resumen del Reporte</h3>
-            </div>
-
-            <div className="fumigation-summary-grid">
-              {/* Card: Ubicación */}
-              <div className="fumigation-summary-card">
-                <div className="summary-card-icon">
-                  <MapPin size={24} />
+            <div className="report-section__body" style={{ padding: 0 }}>
+              {lugarParaMapa.length > 0 ? (
+                <div className="report-map-container">
+                  <MapComponent
+                    key={`map-fumigation-${assignment.fecha}`}
+                    camiones={[]}
+                    rutas={[]}
+                    personnel={[]}
+                    lugares={lugarParaMapa}
+                    showRealTime={false}
+                  />
                 </div>
-                <div className="summary-card-content">
-                  <span className="summary-card-label">Ubicación</span>
-                  <span className="summary-card-value">{location?.nombre || 'No especificada'}</span>
-                </div>
-              </div>
-
-              {/* Card: Fecha */}
-              <div className="fumigation-summary-card">
-                <div className="summary-card-icon">
-                  <Calendar size={24} />
-                </div>
-                <div className="summary-card-content">
-                  <span className="summary-card-label">Fecha</span>
-                  <span className="summary-card-value">
-                    {new Date(assignment.fecha).toLocaleDateString('es-ES', {
-                      day: '2-digit',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
-                  </span>
-                </div>
-              </div>
-
-              {/* Card: Horario */}
-              <div className="fumigation-summary-card">
-                <div className="summary-card-icon">
-                  <Clock size={24} />
-                </div>
-                <div className="summary-card-content">
-                  <span className="summary-card-label">Horario</span>
-                  <span className="summary-card-value">
-                    {assignment.horario_inicio} - {assignment.horario_fin}
-                    {duration && <span className="summary-card-duration">({duration})</span>}
-                  </span>
-                </div>
-              </div>
-
-              {/* Card: Realizado por */}
-              {assignment.created_by && (
-                <div className="fumigation-summary-card">
-                  <div className="summary-card-icon">
-                    <UserCheck size={24} />
-                  </div>
-                  <div className="summary-card-content">
-                    <span className="summary-card-label">Realizado por</span>
-                    <span className="summary-card-value">{assignment.created_by}</span>
-                  </div>
+              ) : (
+                <div className="report-map-empty">
+                  <MapPin size={32} />
+                  <p>No hay coordenadas GPS disponibles para este lugar</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Productos Utilizados - Lista mejorada */}
-          {assignment.productos_utilizados && assignment.productos_utilizados.length > 0 && (
-            <div className="fumigation-detail__productos">
-              <div className="fumigation-productos-header">
-                <Spray size={20} />
-                <h3>Productos Utilizados</h3>
-                <span className="productos-count">{assignment.productos_utilizados.length} producto{assignment.productos_utilizados.length !== 1 ? 's' : ''}</span>
-              </div>
-              <ul className="productos-list-professional">
-                {assignment.productos_utilizados.map((producto, index) => (
-                  <li key={index}>
-                    <CheckCircle size={18} />
-                    <span>{producto}</span>
-                  </li>
-                ))}
-              </ul>
+          {/* Resumen del Reporte */}
+          <div className="report-section">
+            <div className="report-section__header">
+              <FileText size={18} />
+              <h3>Resumen del Reporte</h3>
             </div>
-          )}
+            <div className="report-section__body">
+              <div className="report-summary-grid">
+                {/* Ubicacion */}
+                <div className="report-summary-card">
+                  <div className="report-summary-card__icon">
+                    <MapPin size={20} />
+                  </div>
+                  <div className="report-summary-card__content">
+                    <span className="report-summary-card__label">Ubicacion</span>
+                    <span className="report-summary-card__value">{location?.nombre || 'No especificada'}</span>
+                  </div>
+                </div>
 
-          {/* Observaciones - Card destacado */}
-          {assignment.observaciones && (
-            <div className="fumigation-detail__observaciones-pro">
-              <div className="fumigation-observaciones-header">
-                <FileText size={20} />
-                <h3>Observaciones</h3>
-              </div>
-              <p className="observaciones-text-pro">{assignment.observaciones}</p>
-            </div>
-          )}
+                {/* Fecha */}
+                <div className="report-summary-card">
+                  <div className="report-summary-card__icon">
+                    <Calendar size={20} />
+                  </div>
+                  <div className="report-summary-card__content">
+                    <span className="report-summary-card__label">Fecha</span>
+                    <span className="report-summary-card__value">
+                      {new Date(assignment.fecha).toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                </div>
 
-          {/* Fotos - Galería profesional */}
-          <div className="fumigation-detail__photos-pro">
-            <div className="fumigation-photos-header">
-              <ImageIcon size={20} />
-              <h3>Evidencias Fotográficas</h3>
-              <span className="photos-count-badge">
-                {photos ? photos.length : 0} foto{photos?.length !== 1 ? 's' : ''}
-              </span>
-            </div>
+                {/* Horario */}
+                <div className="report-summary-card">
+                  <div className="report-summary-card__icon">
+                    <Clock size={20} />
+                  </div>
+                  <div className="report-summary-card__content">
+                    <span className="report-summary-card__label">Horario</span>
+                    <span className="report-summary-card__value">
+                      {assignment.horario_inicio} - {assignment.horario_fin}
+                      {duration && <span className="report-summary-card__extra">({duration})</span>}
+                    </span>
+                  </div>
+                </div>
 
-            {!photos || photos.length === 0 ? (
-              <div className="photos-empty-pro">
-                <ImageIcon size={64} />
-                <p>No hay evidencias fotográficas adjuntas</p>
-              </div>
-            ) : (
-              <div className="photos-gallery-professional">
-                {photos.map((photo, index) => (
-                  <div
-                    key={photo._id}
-                    className="photo-item-professional"
-                    onClick={() => handlePhotoClick(photo)}
-                  >
-                    <img
-                      src={photo.url}
-                      alt={`Evidencia ${index + 1}`}
-                      loading="lazy"
-                    />
-                    <div className="photo-overlay-professional">
-                      <ImageIcon size={32} />
-                      <span>Ver en tamaño completo</span>
+                {/* Realizado por */}
+                {assignment.created_by && (
+                  <div className="report-summary-card">
+                    <div className="report-summary-card__icon">
+                      <UserCheck size={20} />
+                    </div>
+                    <div className="report-summary-card__content">
+                      <span className="report-summary-card__label">Realizado por</span>
+                      <span className="report-summary-card__value">{assignment.created_by}</span>
                     </div>
                   </div>
-                ))}
+                )}
               </div>
-            )}
+            </div>
+          </div>
+
+          {/* Productos Utilizados */}
+          {assignment.productos_utilizados && assignment.productos_utilizados.length > 0 && (
+            <div className="report-section">
+              <div className="report-section__header">
+                <Spray size={18} />
+                <h3>Productos Utilizados</h3>
+                <span className="section-badge">{assignment.productos_utilizados.length} producto{assignment.productos_utilizados.length !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="report-section__body">
+                <ul className="report-list">
+                  {assignment.productos_utilizados.map((producto, index) => (
+                    <li key={index} className="report-list-item">
+                      <CheckCircle size={18} />
+                      <span>{producto}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Observaciones */}
+          {assignment.observaciones && (
+            <div className="report-observations">
+              <div className="report-observations__header">
+                <FileText size={18} />
+                <h4>Observaciones</h4>
+              </div>
+              <p className="report-observations__text">{assignment.observaciones}</p>
+            </div>
+          )}
+
+          {/* Evidencias Fotograficas */}
+          <div className="report-section">
+            <div className="report-section__header">
+              <ImageIcon size={18} />
+              <h3>Evidencias Fotograficas</h3>
+              {totalFotos > 0 && (
+                <span className="section-badge">{totalFotos} foto{totalFotos !== 1 ? 's' : ''}</span>
+              )}
+            </div>
+            <div className="report-section__body">
+              {!photos ? (
+                <div className="report-photos-empty">Cargando fotos...</div>
+              ) : totalFotos === 0 ? (
+                <div className="report-photos-empty">No hay evidencias fotograficas adjuntas</div>
+              ) : (
+                <div className="report-photos-grid">
+                  {/* Columna Antes */}
+                  <div className="report-photos-column">
+                    <div className="report-photos-column__header report-photos-column__header--antes">
+                      <span className="report-photos-column__title">
+                        <Camera size={16} />
+                        Antes
+                      </span>
+                      <span className="report-photos-column__count">{fotosPorEtapa.antes.length} fotos</span>
+                    </div>
+                    <div className="report-photos-column__content">
+                      {fotosPorEtapa.antes.length > 0 ? (
+                        fotosPorEtapa.antes.map((foto, idx) => (
+                          <div
+                            key={foto._id || idx}
+                            className="report-photo-item"
+                            onClick={() => setSelectedPhoto(foto)}
+                          >
+                            <img src={foto.url} alt={`Antes ${idx + 1}`} />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="report-photos-empty">No hay fotos</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Columna Durante */}
+                  <div className="report-photos-column">
+                    <div className="report-photos-column__header report-photos-column__header--durante">
+                      <span className="report-photos-column__title">
+                        <Wrench size={16} />
+                        Durante
+                      </span>
+                      <span className="report-photos-column__count">{fotosPorEtapa.durante.length} fotos</span>
+                    </div>
+                    <div className="report-photos-column__content">
+                      {fotosPorEtapa.durante.length > 0 ? (
+                        fotosPorEtapa.durante.map((foto, idx) => (
+                          <div
+                            key={foto._id || idx}
+                            className="report-photo-item"
+                            onClick={() => setSelectedPhoto(foto)}
+                          >
+                            <img src={foto.url} alt={`Durante ${idx + 1}`} />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="report-photos-empty">No hay fotos</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Columna Despues */}
+                  <div className="report-photos-column">
+                    <div className="report-photos-column__header report-photos-column__header--despues">
+                      <span className="report-photos-column__title">
+                        <CheckCircle size={16} />
+                        Despues
+                      </span>
+                      <span className="report-photos-column__count">{fotosPorEtapa.despues.length} fotos</span>
+                    </div>
+                    <div className="report-photos-column__content">
+                      {fotosPorEtapa.despues.length > 0 ? (
+                        fotosPorEtapa.despues.map((foto, idx) => (
+                          <div
+                            key={foto._id || idx}
+                            className="report-photo-item"
+                            onClick={() => setSelectedPhoto(foto)}
+                          >
+                            <img src={foto.url} alt={`Despues ${idx + 1}`} />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="report-photos-empty">No hay fotos</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Footer profesional */}
-        <div className="fumigation-detail__footer-pro">
-          <Button variant="secondary" onClick={onClose} className="btn-large">
-            <X size={20} />
+        {/* Footer */}
+        <div className="report-modal__footer">
+          <button className="report-modal__btn report-modal__btn--secondary" onClick={onClose}>
+            <X size={18} />
             Cerrar
-          </Button>
-          <Button
-            variant="primary"
-            icon={<Download size={20} />}
-            onClick={onDownload}
-            className="btn-large btn-primary-gradient"
-          >
+          </button>
+          <button className="report-modal__btn report-modal__btn--primary" onClick={onDownload}>
+            <Download size={18} />
             Descargar PDF
-          </Button>
+          </button>
         </div>
 
-        {/* Visor de Foto Ampliada - Mejorado */}
+        {/* Photo Viewer */}
         {selectedPhoto && (
-          <div className="photo-viewer-pro" onClick={() => setSelectedPhoto(null)}>
+          <div className="report-photo-viewer" onClick={() => setSelectedPhoto(null)}>
             <button
-              className="photo-viewer-close-pro"
+              className="report-photo-viewer__close"
               onClick={() => setSelectedPhoto(null)}
             >
-              <X size={32} />
+              <X size={28} />
             </button>
-            <div className="photo-viewer-content-pro" onClick={(e) => e.stopPropagation()}>
-              <img
-                src={selectedPhoto.url}
-                alt="Evidencia ampliada"
-              />
+            <div className="report-photo-viewer__content" onClick={(e) => e.stopPropagation()}>
+              <img src={selectedPhoto.url} alt="Evidencia ampliada" />
             </div>
           </div>
         )}

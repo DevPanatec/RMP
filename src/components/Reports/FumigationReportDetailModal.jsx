@@ -1,9 +1,29 @@
-import { X, MapPin, Clock, Calendar, FileText, Spray, UserCheck } from '../Icons';
+import { useQuery } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { X, MapPin, Clock, Calendar, FileText, Spray, UserCheck, Camera, CheckCircle, Wrench } from '../Icons';
 import MapComponent from '../Map/MapComponent';
 import './RouteReportDetailModal.css';
 
-const FumigationReportDetailModal = ({ report, onClose }) => {
-  if (!report) return null;
+// Helper para parsear fechas sin problemas de timezone
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  if (dateStr.includes('T')) return new Date(dateStr);
+  return new Date(dateStr + 'T00:00:00');
+};
+
+const FumigationReportDetailModal = ({ report: initialReport, onClose }) => {
+  // Cargar el reporte completo con fotos usando getReportById
+  const fullReport = useQuery(
+    api.fumigaciones.getReportById,
+    initialReport?._id ? { id: initialReport._id } : "skip"
+  );
+
+  // Usar el reporte completo si está disponible, sino el inicial
+  const report = fullReport || initialReport;
+
+  if (!initialReport) return null;
+
+  const isLoadingPhotos = !fullReport && initialReport;
 
   const formatDuration = (minutes) => {
     const hours = Math.floor(minutes / 60);
@@ -25,8 +45,10 @@ const FumigationReportDetailModal = ({ report, onClose }) => {
       }]
     : [];
 
-  console.log('🗺️ FumigationReportDetailModal - Reporte:', report);
-  console.log('🗺️ Lugar para mapa:', lugarParaMapa);
+  // Contar fotos totales
+  const totalFotos = (report.fotos_antes?.length || 0) +
+                     (report.fotos_durante?.length || 0) +
+                     (report.fotos_despues?.length || 0);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -49,44 +71,14 @@ const FumigationReportDetailModal = ({ report, onClose }) => {
 
         {/* Contenido */}
         <div className="route-report-body">
-          {/* 🗺️ MAPA ARRIBA */}
-          <div className="route-map-section">
-            <h3><MapPin size={20} /> Ubicación de Fumigación</h3>
-            {lugarParaMapa.length > 0 ? (
-              <div className="route-map-container">
-                <MapComponent
-                  key={`map-${report._id}`}
-                  camiones={[]}
-                  rutas={[]}
-                  personnel={[]}
-                  lugares={lugarParaMapa}
-                  showRealTime={false}
-                />
-              </div>
-            ) : (
-              <div className="route-map-container" style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#f3f4f6',
-                color: '#6b7280'
-              }}>
-                <div style={{ textAlign: 'center' }}>
-                  <MapPin size={48} style={{ opacity: 0.3, marginBottom: '12px' }} />
-                  <p>No hay coordenadas GPS disponibles para este lugar</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 📊 STATS ABAJO */}
+          {/* Stats principales */}
           <div className="route-report-stats">
             <div className="stat-card">
               <Calendar size={20} />
               <div>
                 <span className="stat-label">Fecha</span>
                 <span className="stat-value">
-                  {new Date(report.fecha).toLocaleDateString('es-ES', {
+                  {parseLocalDate(report.fecha).toLocaleDateString('es-ES', {
                     day: '2-digit',
                     month: 'short',
                     year: 'numeric'
@@ -117,6 +109,36 @@ const FumigationReportDetailModal = ({ report, onClose }) => {
             </div>
           </div>
 
+          {/* Mapa */}
+          <div className="route-map-section">
+            <h3><MapPin size={20} /> Ubicación de Fumigación</h3>
+            {lugarParaMapa.length > 0 ? (
+              <div className="route-map-container">
+                <MapComponent
+                  key={`map-${report._id}`}
+                  camiones={[]}
+                  rutas={[]}
+                  personnel={[]}
+                  lugares={lugarParaMapa}
+                  showRealTime={false}
+                />
+              </div>
+            ) : (
+              <div className="route-map-container" style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--color-surface-secondary)',
+                color: 'var(--color-text-secondary)'
+              }}>
+                <div style={{ textAlign: 'center' }}>
+                  <MapPin size={48} style={{ opacity: 0.3, marginBottom: '12px' }} />
+                  <p>No hay coordenadas GPS disponibles para este lugar</p>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Productos Utilizados */}
           {report.productos_utilizados && report.productos_utilizados.length > 0 && (
             <div className="paradas-section">
@@ -132,17 +154,87 @@ const FumigationReportDetailModal = ({ report, onClose }) => {
             </div>
           )}
 
-          {/* Fotos */}
-          {report.fotos && report.fotos.length > 0 && (
+          {/* Evidencia Fotográfica - 3 columnas horizontales */}
+          {(isLoadingPhotos || totalFotos > 0) && (
             <div className="paradas-section">
-              <h3><FileText size={20} /> Fotos ({report.fotos.length})</h3>
-              <div className="fotos-grid">
-                {report.fotos.map((foto, idx) => (
-                  <div key={idx} className="foto-item">
-                    <img src={foto.url} alt={foto.file_name} />
+              <h3><Camera size={20} /> Evidencia Fotográfica ({isLoadingPhotos ? '...' : totalFotos} fotos)</h3>
+
+              {isLoadingPhotos ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-secondary)' }}>
+                  Cargando fotos...
+                </div>
+              ) : (
+                <div className="fotos-horizontal-grid">
+                  {/* Columna Antes */}
+                  <div className="fotos-column">
+                    <div className="fotos-column-header fotos-antes">
+                      <Camera size={16} />
+                      <span>Antes ({report.fotos_antes?.length || 0})</span>
+                    </div>
+                    <div className="fotos-column-content">
+                      {report.fotos_antes && report.fotos_antes.length > 0 ? (
+                        report.fotos_antes.map((foto, idx) => (
+                          <div
+                            key={foto._id || idx}
+                            className="foto-item-horizontal"
+                            onClick={() => window.open(foto.url, '_blank')}
+                          >
+                            <img src={foto.url} alt={`Antes ${idx + 1}`} />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="fotos-empty">Sin fotos</div>
+                      )}
+                    </div>
                   </div>
-                ))}
-              </div>
+
+                  {/* Columna Durante */}
+                  <div className="fotos-column">
+                    <div className="fotos-column-header fotos-durante">
+                      <Wrench size={16} />
+                      <span>Durante ({report.fotos_durante?.length || 0})</span>
+                    </div>
+                    <div className="fotos-column-content">
+                      {report.fotos_durante && report.fotos_durante.length > 0 ? (
+                        report.fotos_durante.map((foto, idx) => (
+                          <div
+                            key={foto._id || idx}
+                            className="foto-item-horizontal"
+                            onClick={() => window.open(foto.url, '_blank')}
+                          >
+                            <img src={foto.url} alt={`Durante ${idx + 1}`} />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="fotos-empty">Sin fotos</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Columna Después */}
+                  <div className="fotos-column">
+                    <div className="fotos-column-header fotos-despues">
+                      <CheckCircle size={16} />
+                      <span>Después ({report.fotos_despues?.length || 0})</span>
+                    </div>
+                    <div className="fotos-column-content">
+                      {report.fotos_despues && report.fotos_despues.length > 0 ? (
+                        report.fotos_despues.map((foto, idx) => (
+                          <div
+                            key={foto._id || idx}
+                            className="foto-item-horizontal"
+                            onClick={() => window.open(foto.url, '_blank')}
+                          >
+                            <img src={foto.url} alt={`Después ${idx + 1}`} />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="fotos-empty">Sin fotos</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

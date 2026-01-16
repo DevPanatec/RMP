@@ -3,6 +3,13 @@ import { X, Calendar, Download, Search, Camera, Clock, FileText } from '../Icons
 import { Badge } from '../UI';
 import './LocationMapModal.css';
 
+// Helper para parsear fechas sin problemas de timezone
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  if (dateStr.includes('T')) return new Date(dateStr);
+  return new Date(dateStr + 'T00:00:00');
+};
+
 const LocationMapModal = ({ location, onClose, getPhotoUrl, getStatusVariant }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState({
@@ -14,9 +21,9 @@ const LocationMapModal = ({ location, onClose, getPhotoUrl, getStatusVariant }) 
     if (!location.assignments || location.assignments.length === 0) return [];
 
     return location.assignments.filter(assignment => {
-      const assignmentDate = new Date(assignment.fecha);
-      const startDate = new Date(dateRange.inicio);
-      const endDate = new Date(dateRange.fin);
+      const assignmentDate = parseLocalDate(assignment.fecha);
+      const startDate = parseLocalDate(dateRange.inicio);
+      const endDate = parseLocalDate(dateRange.fin);
       const dateMatch = assignmentDate >= startDate && assignmentDate <= endDate;
 
       const searchMatch = !searchTerm ||
@@ -142,7 +149,7 @@ const LocationMapModal = ({ location, onClose, getPhotoUrl, getStatusVariant }) 
                       <div className="report-card-meta">
                         <span className="meta-item">
                           <Calendar size={14} />
-                          {new Date(report.fecha).toLocaleDateString('es-ES', {
+                          {parseLocalDate(report.fecha).toLocaleDateString('es-ES', {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric'

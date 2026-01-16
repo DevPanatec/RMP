@@ -104,46 +104,49 @@ function AutoFitBounds({ rutas }) {
   return null;
 }
 
-// Componente para optimizar el mapa y pre-cargar tiles
+// Componente para optimizar el mapa - VERSIÓN MEJORADA
 function MapOptimizer() {
   const map = useMap();
 
   useEffect(() => {
     if (!map) return;
 
-    // Configurar opciones de rendimiento
-    map.options.zoomSnap = 0.5;
-    map.options.zoomDelta = 0.5;
-    map.options.wheelDebounceTime = 40;
-    map.options.wheelPxPerZoomLevel = 60;
-    
-    // Pre-cargar tiles cercanos
-    map.on('zoomend moveend', () => {
-      const bounds = map.getBounds();
-      const zoom = map.getZoom();
-      
-      // Pre-cargar tiles de niveles de zoom adyacentes
-      const tileLayers = [];
-      map.eachLayer((layer) => {
-        if (layer instanceof L.TileLayer) {
-          tileLayers.push(layer);
-        }
-      });
-
-      tileLayers.forEach((layer) => {
-        // Forzar carga de tiles visibles
-        if (layer._tileZoom !== undefined) {
-          layer._resetView();
-        }
-      });
-    });
-
-    // Optimizar animaciones
+    // Optimizar el contenedor para GPU acceleration
     const container = map.getContainer();
+    container.style.contain = 'layout style paint';
     container.style.willChange = 'transform';
-    
+
+    // Pre-cargar tiles adyacentes al terminar movimiento
+    const handleMoveEnd = () => {
+      // Pequeño delay para que el browser termine de renderizar
+      requestAnimationFrame(() => {
+        map.eachLayer((layer) => {
+          if (layer._update && layer._tileZoom !== undefined) {
+            layer._update();
+          }
+        });
+      });
+    };
+
+    // Actualizar tiles después del zoom con requestAnimationFrame
+    const handleZoomEnd = () => {
+      requestAnimationFrame(() => {
+        map.invalidateSize({ animate: false });
+        map.eachLayer((layer) => {
+          if (layer._update) {
+            layer._update();
+          }
+        });
+      });
+    };
+
+    map.on('zoomend', handleZoomEnd);
+    map.on('moveend', handleMoveEnd);
+
     return () => {
-      map.off('zoomend moveend');
+      map.off('zoomend', handleZoomEnd);
+      map.off('moveend', handleMoveEnd);
+      container.style.willChange = 'auto';
     };
   }, [map]);
 
@@ -648,7 +651,7 @@ const calcularRutaCompleta = async (paradas) => {
   }
 };
 
-const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], geofences = [], allRouteProgress = [], userType, showRealTime = true, selectedTruck = null, serviceTypeFilter = 'todos', onViewLocationReports, isMaximized = false }) => {
+const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], geofences = [], allRouteProgress = [], userType, showRealTime = true, selectedTruck = null, serviceTypeFilter = 'todos', onViewLocationReports, isMaximized = false, gpsTrail = [], showMapboxRoute = true }) => {
   const [mapCamiones, setMapCamiones] = useState(camiones);
   const [showTrails, setShowTrails] = useState(true); // Activado por defecto para ver rutas
   const [realTimeEnabled, setRealTimeEnabled] = useState(showRealTime);
@@ -987,7 +990,8 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], geof
       }
     };
 
-    if (rutas && rutas.length > 0) {
+    // Solo calcular rutas de Mapbox si showMapboxRoute es true
+    if (rutas && rutas.length > 0 && showMapboxRoute) {
       buildAllRoutes();
     } else {
       setRoutesLoading(false);
@@ -996,7 +1000,7 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], geof
     return () => {
       mounted = false;
     };
-  }, [rutas]);
+  }, [rutas, showMapboxRoute]);
 
   // Calcular centro y zoom dinámicamente basado en las rutas
   const centerPosition = useMemo(() => {
@@ -1204,16 +1208,26 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], geof
         <MapContainer
           center={centerPosition}
           zoom={initialZoom}
-          style={{ height: '1000px', width: '100%' }}
+          style={{ height: '100%', width: '100%', minHeight: '400px' }}
           className="leaflet-container gps-map"
+          // Límites del mundo para evitar que el mapa se repita
+          maxBounds={[[-85, -180], [85, 180]]}
+          maxBoundsViscosity={1.0}
+          minZoom={2}
+          // Optimizaciones de rendimiento
           zoomAnimation={true}
           zoomAnimationThreshold={4}
           fadeAnimation={true}
-          markerZoomAnimation={false}
+          markerZoomAnimation={true}
           preferCanvas={true}
-          zoomSnap={1}
+          zoomSnap={0.5}
           zoomDelta={1}
           wheelPxPerZoomLevel={120}
+          wheelDebounceTime={40}
+          inertia={true}
+          inertiaDeceleration={3000}
+          inertiaMaxSpeed={1500}
+          easeLinearity={0.2}
           doubleClickZoom={true}
           scrollWheelZoom={true}
           touchZoom={true}
@@ -1221,21 +1235,26 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], geof
           keyboard={true}
           dragging={true}
           zoomControl={true}
-          attributionControl={true}
+          attributionControl={false}
         >
           <TileLayer
-            url={`https://api.mapbox.com/styles/v1/mapbox/${mapTheme}-v11/tiles/{z}/{x}/{y}?access_token=${MAPBOX_TOKEN}`}
-            attribution='&copy; <a href="https://www.mapbox.com/">Mapbox</a> - Datos © <a href="https://www.openstreetmap.org/">OpenStreetMap</a>.'
-            tileSize={512}
-            zoomOffset={-1}
-            minZoom={3}
+            url={mapTheme === 'dark'
+              ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+              : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+            }
+            attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+            subdomains="abcd"
+            minZoom={2}
             maxZoom={19}
+            maxNativeZoom={18}
+            // Optimizaciones de rendimiento de tiles
             keepBuffer={4}
             updateWhenIdle={false}
-            updateWhenZooming={true}
+            updateWhenZooming={false}
             updateInterval={100}
-            crossOrigin={true}
+            noWrap={true}
             className="map-tiles-optimized"
+            errorTileUrl="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
           />
 
           {/* Optimizador de mapa para zoom fluido */}
@@ -1854,8 +1873,8 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], geof
 
             return (
               <div key={routeKey}>
-                {/* Polyline de la ruta calculada */}
-                {rutaCalculada && rutaCalculada.length > 1 && (
+                {/* Polyline de la ruta calculada - Solo si showMapboxRoute es true */}
+                {showMapboxRoute && rutaCalculada && rutaCalculada.length > 1 && (
                   <>
                     {/* Glow para ruta completada */}
                     <Polyline
@@ -1880,6 +1899,28 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], geof
                       weight={3}
                       opacity={0.9}
                       className="route-highlight"
+                    />
+                  </>
+                )}
+
+                {/* 🟠 GPS Trail Real del vehículo (si está disponible) */}
+                {gpsTrail && gpsTrail.length > 1 && (
+                  <>
+                    {/* Glow para el trail real */}
+                    <Polyline
+                      positions={gpsTrail.map(p => [p.lat, p.lng])}
+                      color="#f97316"
+                      weight={10}
+                      opacity={0.25}
+                      className="gps-trail-glow"
+                    />
+                    {/* Línea principal del trail real */}
+                    <Polyline
+                      positions={gpsTrail.map(p => [p.lat, p.lng])}
+                      color="#f97316"
+                      weight={4}
+                      opacity={0.9}
+                      className="gps-trail-real"
                     />
                   </>
                 )}

@@ -14,6 +14,7 @@ import PhotoUploadField from '../Cleaning/PhotoUploadField';
 import HelperManager from './HelperManager';
 import WeekdayPicker from './WeekdayPicker';
 import { FumigationComponent } from '../Fumigation';
+import FumigationModal from '../Fumigation/FumigationModal';
 import './ScheduleComponent.css';
 import './ScheduleModal.css';
 
@@ -51,7 +52,9 @@ const ScheduleComponent = () => {
 
   const {
     assignments: fumigationAssignments,
-    loading: fumigationLoading
+    loading: fumigationLoading,
+    createAssignment: createFumigationAssignment,
+    uploadPhoto: uploadFumigationPhoto
   } = useFumigation();
 
   console.log('🎯 DEBUG Schedule Component - scheduleAssignments:', scheduleAssignments);
@@ -112,6 +115,7 @@ const ScheduleComponent = () => {
   const [showRulesBanner, setShowRulesBanner] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [showFumigationModal, setShowFumigationModal] = useState(false);
 
   const [routeFormData, setRouteFormData] = useState({
     tipo_servicio: 'recoleccion', // Solo recolección
@@ -203,6 +207,21 @@ const ScheduleComponent = () => {
     setShowModal(true);
   };
 
+  const handleOpenFumigationModal = () => {
+    setActiveTab('fumigation');
+    setShowFumigationModal(true);
+  };
+
+  const handleFumigationSave = async (assignmentData) => {
+    const result = await createFumigationAssignment(assignmentData);
+    if (result.success) {
+      setShowFumigationModal(false);
+      setSuccessMessage('Fumigación registrada exitosamente');
+      setShowSuccessModal(true);
+    }
+    return result;
+  };
+
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingAssignment(null);
@@ -227,6 +246,17 @@ const ScheduleComponent = () => {
     setErrors({});
   };
 
+  // Helper: normalizar días (quitar acentos para consistencia)
+  const normalizeDays = (days) => {
+    if (!Array.isArray(days)) return [];
+    return days.map(day => {
+      return day
+        .normalize('NFD') // Descomponer caracteres con acentos
+        .replace(/[\u0300-\u036f]/g, '') // Eliminar marcas diacríticas
+        .toLowerCase();
+    });
+  };
+
   // Helper: obtener días bloqueados para una ruta en una semana específica
   const getBlockedDays = () => {
     const blockedDaysMap = {};
@@ -245,7 +275,7 @@ const ScheduleComponent = () => {
 
     // Bloquear días que NO están en dias_operacion de la ruta
     if (selectedRoute && selectedRoute.dias_operacion) {
-      const allDays = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+      const allDays = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 
       // Parsear dias_operacion si viene como string o asegurarse que es array
       let allowedDays = selectedRoute.dias_operacion;
@@ -258,6 +288,9 @@ const ScheduleComponent = () => {
           allowedDays = [];
         }
       }
+
+      // Normalizar días (quitar acentos)
+      allowedDays = normalizeDays(allowedDays);
 
       console.log('🔍 DEBUG - Días permitidos FINAL:', allowedDays);
       console.log('🔍 DEBUG - Tipo de allowedDays:', typeof allowedDays, 'isArray:', Array.isArray(allowedDays));
@@ -583,10 +616,10 @@ const ScheduleComponent = () => {
     const diasMap = {
       'lunes': 'L',
       'martes': 'M',
-      'miércoles': 'X',
+      'miercoles': 'X',
       'jueves': 'J',
       'viernes': 'V',
-      'sábado': 'S',
+      'sabado': 'S',
       'domingo': 'D'
     };
 
@@ -594,7 +627,7 @@ const ScheduleComponent = () => {
     if (diasArray.length === 7) return 'Todos los días';
 
     // Si son días de semana (L-V)
-    const diasSemana = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes'];
+    const diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes'];
     if (diasArray.length === 5 && diasSemana.every(d => diasArray.includes(d))) {
       return 'Lun-Vie';
     }
@@ -605,41 +638,34 @@ const ScheduleComponent = () => {
 
   return (
     <div className="schedule-v2">
-      {/* Header V2 */}
+      {/* Header Compacto */}
       <div className="schedule-header-v2">
         <div className="schedule-header-info">
           <div className="schedule-header-icon">
-            <CalendarCheck size={28} />
+            <CalendarCheck size={20} />
           </div>
           <div className="schedule-header-text">
-            <h2>Programación y Asignaciones</h2>
-            <p>Gestiona todas las asignaciones de rutas, limpieza y fumigación</p>
+            <h2>Programación</h2>
           </div>
-        </div>
-
-        <div className="schedule-header-stats">
-          <div className="schedule-stat-pill success">
-            <span className="stat-number">{scheduleAssignments.length}</span>
-            <span className="stat-label">Rutas</span>
-          </div>
-          <div className="schedule-stat-pill info">
-            <span className="stat-number">{cleaningAssignments.length}</span>
-            <span className="stat-label">Limpieza</span>
-          </div>
-          <div className="schedule-stat-pill warning">
-            <span className="stat-number">{fumigationAssignments.length}</span>
-            <span className="stat-label">Fumigación</span>
+          <div className="schedule-header-badges">
+            <span className="header-badge success">{scheduleAssignments.length} Rutas</span>
+            <span className="header-badge info">{cleaningAssignments.length} Limpieza</span>
+            <span className="header-badge warning">{fumigationAssignments.length} Fumigación</span>
           </div>
         </div>
 
         <div className="schedule-header-actions">
           <button className="btn-add-v2" onClick={() => handleOpenRouteModal()}>
-            <Plus size={18} />
+            <Plus size={16} />
             Ruta
           </button>
           <button className="btn-add-v2 secondary" onClick={handleOpenCleaningModal}>
-            <Plus size={18} />
+            <Plus size={16} />
             Limpieza
+          </button>
+          <button className="btn-add-v2 secondary" onClick={handleOpenFumigationModal}>
+            <Plus size={16} />
+            Fumigación
           </button>
         </div>
       </div>
@@ -649,24 +675,24 @@ const ScheduleComponent = () => {
           className={`tab-unified ${activeTab === 'routes' ? 'active' : ''}`}
           onClick={() => setActiveTab('routes')}
         >
-          <Truck size={18} />
-          <span>Rutas de Seguimiento</span>
+          <Truck size={16} />
+          Rutas
           <span className="tab-badge">{scheduleAssignments.length}</span>
         </button>
         <button
           className={`tab-unified ${activeTab === 'cleaning' ? 'active' : ''}`}
           onClick={() => setActiveTab('cleaning')}
         >
-          <Sparkles size={18} />
-          <span>Asignaciones de Limpieza</span>
+          <Sparkles size={16} />
+          Limpieza
           <span className="tab-badge">{cleaningAssignments.length}</span>
         </button>
         <button
           className={`tab-unified ${activeTab === 'fumigation' ? 'active' : ''}`}
           onClick={() => setActiveTab('fumigation')}
         >
-          <Bug size={18} />
-          <span>Asignaciones de Fumigación</span>
+          <Bug size={16} />
+          Fumigación
           <span className="tab-badge">{fumigationAssignments.length}</span>
         </button>
       </div>
@@ -682,79 +708,74 @@ const ScheduleComponent = () => {
             <div className="assignments-list">
               {scheduleAssignments.length === 0 ? (
                 <div className="empty-state">
-                  <Truck size={48} />
+                  <Truck size={40} />
                   <h3>No hay rutas programadas</h3>
                   <p>Comienza agregando una nueva asignación de ruta</p>
-                  <button className="btn btn--primary" onClick={() => handleOpenRouteModal()}>
-                    <Plus size={16} /> Nueva Ruta de Seguimiento
+                  <button className="btn btn--primary btn--sm" onClick={() => handleOpenRouteModal()}>
+                    <Plus size={16} /> Nueva Ruta
                   </button>
                 </div>
               ) : (
-                <div className="assignments-grid">
-                  {scheduleAssignments.map(assignment => {
-                    const fechaSemana = assignment.fecha_asignacion || assignment.fecha;
-                    const fechaInicio = new Date(fechaSemana + 'T12:00:00');
-                    const fechaFin = new Date(fechaSemana + 'T12:00:00');
-                    fechaFin.setDate(fechaFin.getDate() + 6);
+                <div className="assignments-table-container">
+                  <table className="assignments-table">
+                    <thead>
+                      <tr>
+                        <th>Ruta</th>
+                        <th>Semana</th>
+                        <th>Días</th>
+                        <th>Horario</th>
+                        <th>Conductor</th>
+                        <th>Vehículo</th>
+                        <th style={{ width: '80px' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scheduleAssignments.map(assignment => {
+                        const fechaSemana = assignment.fecha_asignacion || assignment.fecha;
+                        const fechaInicio = new Date(fechaSemana + 'T12:00:00');
+                        const fechaFin = new Date(fechaSemana + 'T12:00:00');
+                        fechaFin.setDate(fechaFin.getDate() + 6);
 
-                    const formatoCorto = `${fechaInicio.getDate()}-${fechaFin.getDate()} ${fechaInicio.toLocaleDateString('es-ES', { month: 'short' })}`;
+                        const formatoCorto = `${fechaInicio.getDate()}-${fechaFin.getDate()} ${fechaInicio.toLocaleDateString('es-ES', { month: 'short' })}`;
 
-                    // Buscar ruta y vehículo en los arrays
-                    const ruta = routes.find(r => (r._id || r.id) === assignment.ruta_id);
-                    const vehiculo = vehicles.find(v => (v._id || v.id) === assignment.vehiculo_id);
+                        const ruta = routes.find(r => (r._id || r.id) === assignment.ruta_id);
+                        const vehiculo = vehicles.find(v => (v._id || v.id) === assignment.vehiculo_id);
 
-                    return (
-                      <div key={assignment._id || assignment.id} className="assignment-card-unified compact">
-                        <div className="assignment-header-unified">
-                          <div className="assignment-type-icon route">
-                            <Truck size={18} />
-                          </div>
-                          <div className="assignment-title-unified">
-                            <h4>{ruta?.nombre || assignment.ruta?.nombre || 'Ruta sin nombre'}</h4>
-                            <div className="assignment-metadata">
-                              <span className="week-badge">{formatoCorto}</span>
-                              <span className="days-badge">{formatDiasSemana(assignment.dias_semana)}</span>
-                            </div>
-                          </div>
-                          <div className="assignment-actions-unified">
-                            <button
-                              className="btn-icon btn-icon--sm"
-                              onClick={() => handleOpenRouteModal(assignment)}
-                              title="Editar"
-                            >
-                              <Edit size={14} />
-                            </button>
-                            <button
-                              className="btn-icon btn-icon--sm btn-icon--danger"
-                              onClick={() => handleDeleteRoute(assignment._id || assignment.id)}
-                              title="Eliminar"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </div>
-                        <div className="assignment-details-unified">
-                          <div className="detail-item">
-                            <Clock size={14} />
-                            <span>{formatTime12h(assignment.hora_inicio)} - {formatTime12h(assignment.hora_fin)}</span>
-                          </div>
-                          <div className="detail-item">
-                            <Users size={14} />
-                            <span>{assignment.conductor_nombre}</span>
-                          </div>
-                          <div className="detail-item">
-                            <Truck size={14} />
-                            <span>{vehiculo?.placa || assignment.vehiculo?.placa || 'Sin vehículo'}</span>
-                          </div>
-                        </div>
-                        {assignment.observaciones && (
-                          <div className="assignment-notes">
-                            <p>{assignment.observaciones}</p>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                        return (
+                          <tr key={assignment._id || assignment.id}>
+                            <td className="cell-name">{ruta?.nombre || assignment.ruta?.nombre || 'Sin nombre'}</td>
+                            <td>
+                              <span className="cell-badge success">{formatoCorto}</span>
+                            </td>
+                            <td>
+                              <span className="cell-badge info">{formatDiasSemana(assignment.dias_semana)}</span>
+                            </td>
+                            <td className="cell-meta">
+                              {formatTime12h(assignment.hora_inicio)} - {formatTime12h(assignment.hora_fin)}
+                            </td>
+                            <td>{assignment.conductor_nombre}</td>
+                            <td className="cell-meta">{vehiculo?.placa || 'N/A'}</td>
+                            <td className="cell-actions">
+                              <button
+                                className="btn-icon btn-icon--sm"
+                                onClick={() => handleOpenRouteModal(assignment)}
+                                title="Editar"
+                              >
+                                <Edit size={14} />
+                              </button>
+                              <button
+                                className="btn-icon btn-icon--sm btn-icon--danger"
+                                onClick={() => handleDeleteRoute(assignment._id || assignment.id)}
+                                title="Eliminar"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -764,48 +785,50 @@ const ScheduleComponent = () => {
             <div className="assignments-list">
               {cleaningAssignments.length === 0 ? (
                 <div className="empty-state">
-                  <Sparkles size={48} />
+                  <Sparkles size={40} />
                   <h3>No hay tareas de limpieza programadas</h3>
                   <p>Comienza agregando una nueva asignación de limpieza</p>
-                  <button className="btn btn--primary" onClick={handleOpenCleaningModal}>
+                  <button className="btn btn--primary btn--sm" onClick={handleOpenCleaningModal}>
                     <Plus size={16} /> Nueva Asignación
                   </button>
                 </div>
               ) : (
-                <div className="assignments-grid">
-                  {cleaningAssignments.map(assignment => (
-                    <div key={assignment._id || assignment.id} className="assignment-card-unified">
-                      <div className="assignment-header-unified">
-                        <div className="assignment-type-icon cleaning">
-                          <Sparkles size={20} />
-                        </div>
-                        <div className="assignment-title-unified">
-                          <h4>{getLugarNombre(assignment.lugar_id)} - {getAreaNombre(assignment.area_id)}</h4>
-                          <p className="assignment-date">{formatDate(assignment.fecha)}</p>
-                        </div>
-                        <span className={`status-badge status-${assignment.estado}`}>
-                          {assignment.estado}
-                        </span>
-                      </div>
-                       <div className="assignment-details-unified">
-                        <div className="detail-item">
-                          <Clock size={14} />
-                          <span>{formatTime12h(assignment.hora)}</span>
-                        </div>
-                        {assignment.fotos && assignment.fotos.length > 0 && (
-                          <div className="detail-item">
-                            <Camera size={14} />
-                            <span>{assignment.fotos.length} foto(s)</span>
-                          </div>
-                        )}
-                      </div>
-                      {assignment.notas && (
-                        <div className="assignment-notes">
-                          <p>{assignment.notas}</p>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                <div className="assignments-table-container">
+                  <table className="assignments-table">
+                    <thead>
+                      <tr>
+                        <th>Lugar</th>
+                        <th>Área</th>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>Estado</th>
+                        <th>Fotos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cleaningAssignments.map(assignment => (
+                        <tr key={assignment._id || assignment.id}>
+                          <td className="cell-name">{getLugarNombre(assignment.lugar_id)}</td>
+                          <td>{getAreaNombre(assignment.area_id)}</td>
+                          <td className="cell-meta">{formatDate(assignment.fecha)}</td>
+                          <td className="cell-meta">{formatTime12h(assignment.hora)}</td>
+                          <td>
+                            <span className={`cell-badge ${assignment.estado === 'completada' ? 'success' : 'info'}`}>
+                              {assignment.estado}
+                            </span>
+                          </td>
+                          <td className="cell-meta">
+                            {assignment.fotos && assignment.fotos.length > 0 ? (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <Camera size={14} />
+                                {assignment.fotos.length}
+                              </span>
+                            ) : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -1333,6 +1356,17 @@ const ScheduleComponent = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Modal de Fumigación */}
+      {showFumigationModal && (
+        <FumigationModal
+          isOpen={showFumigationModal}
+          onClose={() => setShowFumigationModal(false)}
+          assignment={null}
+          onSave={handleFumigationSave}
+          isEditing={false}
+        />
       )}
     </div>
   );

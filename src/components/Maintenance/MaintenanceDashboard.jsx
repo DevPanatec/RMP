@@ -1,412 +1,443 @@
 import { useMaintenance } from '../../context/MaintenanceContext';
-import { Calendar, Clock, CheckCircle, AlertTriangle, TrendingUp, Package } from '../Icons';
+import { Calendar, Clock, CheckCircle, AlertTriangle, Wrench, TrendingUp } from '../Icons';
 
 const MaintenanceDashboard = ({ userRole }) => {
-  const { tasks, alerts, getUpcomingTasks, getTasksByStatus, getOperationalStats } = useMaintenance();
+  const { tasks, getUpcomingTasks, getTasksByStatus, getOperationalStats } = useMaintenance();
 
   const upcomingTasks = getUpcomingTasks(7);
-  const programmedTasks = getTasksByStatus('programada');
-  const inProgressTasks = getTasksByStatus('en_proceso');
   const completedTasks = getTasksByStatus('completada');
-  const activeAlerts = alerts.filter(a => a.status === 'active');
   const stats = getOperationalStats();
 
-  // Calculate overdue tasks
   const now = new Date();
-  const overdueTasks = tasks.filter(task => {
-    const taskDate = new Date(`${task.scheduled_date}T${task.scheduled_time}`);
-    return taskDate < now && task.status !== 'completada';
-  });
+
+  // Formatear fecha de forma legible
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    try {
+      return new Date(dateStr).toLocaleDateString('es-PA', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
+  // Obtener color de tipo
+  const getTipoColor = (tipo) => {
+    switch (tipo) {
+      case 'preventivo': return 'var(--color-primary)';
+      case 'correctivo': return 'var(--color-warning)';
+      case 'inspección': return 'var(--color-info)';
+      default: return 'var(--color-text-secondary)';
+    }
+  };
+
+  // Obtener label de tipo
+  const getTipoLabel = (tipo) => {
+    switch (tipo) {
+      case 'preventivo': return 'Preventivo';
+      case 'correctivo': return 'Correctivo';
+      case 'inspección': return 'Inspección';
+      default: return tipo || 'General';
+    }
+  };
 
   return (
     <div>
-
-      {/* Operational Stats - Diseño delgado con divisiones */}
+      {/* Stats Cards - Fluent Design */}
       <div style={{
-        background: 'linear-gradient(135deg, #556B2F 0%, #3D5229 100%)',
-        borderRadius: '16px',
-        padding: '20px 0',
-        marginBottom: '32px',
-        boxShadow: '0 4px 16px rgba(61, 82, 41, 0.2)',
         display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+        gap: 'var(--space-16)',
+        marginBottom: 'var(--space-24)'
       }}>
-        {/* Volumen Total */}
+        {/* Total Tareas */}
         <div style={{
-          padding: '0 24px',
-          borderRight: '1px solid rgba(255, 255, 255, 0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-md)',
+          padding: 'var(--space-16)',
+          boxShadow: 'var(--shadow-sm)'
         }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            background: 'rgba(255, 255, 255, 0.15)',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <Package size={24} style={{ color: 'white' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-12)', marginBottom: 'var(--space-12)' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              background: 'var(--color-primary)',
+              borderRadius: 'var(--radius-base)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Wrench size={20} style={{ color: 'white' }} />
+            </div>
+            <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Total Tareas
+            </span>
           </div>
-          <div>
-            <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>
-              Volumen Total
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: 'white', lineHeight: 1, marginBottom: '2px' }}>
-              {stats.totalDischarges.toLocaleString()}
-            </div>
-            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.65)' }}>
-              galones descargados
-            </div>
+          <div style={{ fontSize: '32px', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text)' }}>
+            {stats.total}
           </div>
         </div>
 
-        {/* Costo Acumulado */}
+        {/* Pendientes */}
         <div style={{
-          padding: '0 24px',
-          borderRight: '1px solid rgba(255, 255, 255, 0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-md)',
+          padding: 'var(--space-16)',
+          boxShadow: 'var(--shadow-sm)'
         }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            background: 'rgba(255, 255, 255, 0.15)',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <TrendingUp size={24} style={{ color: 'white' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-12)', marginBottom: 'var(--space-12)' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              background: 'var(--color-warning)',
+              borderRadius: 'var(--radius-base)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Clock size={20} style={{ color: 'white' }} />
+            </div>
+            <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Pendientes
+            </span>
           </div>
-          <div>
-            <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>
-              Costo Acumulado
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: 'white', lineHeight: 1, marginBottom: '2px' }}>
-              B/. {stats.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </div>
-            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.65)' }}>
-              inversión total
-            </div>
+          <div style={{ fontSize: '32px', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text)' }}>
+            {stats.pendiente}
           </div>
         </div>
 
-        {/* Alto Impacto */}
+        {/* Completadas */}
         <div style={{
-          padding: '0 24px',
-          borderRight: '1px solid rgba(255, 255, 255, 0.15)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-md)',
+          padding: 'var(--space-16)',
+          boxShadow: 'var(--shadow-sm)'
         }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            background: 'rgba(255, 255, 255, 0.15)',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <AlertTriangle size={24} style={{ color: 'white' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-12)', marginBottom: 'var(--space-12)' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              background: 'var(--color-success)',
+              borderRadius: 'var(--radius-base)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <CheckCircle size={20} style={{ color: 'white' }} />
+            </div>
+            <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Completadas
+            </span>
           </div>
-          <div>
-            <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>
-              Alto Impacto
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: 'white', lineHeight: 1, marginBottom: '2px' }}>
-              {stats.highImpactCleanups}
-            </div>
-            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.65)' }}>
-              limpiezas realizadas
-            </div>
+          <div style={{ fontSize: '32px', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text)' }}>
+            {stats.completed}
           </div>
         </div>
 
-        {/* Duración Promedio */}
+        {/* Costo Total */}
         <div style={{
-          padding: '0 24px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px'
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-md)',
+          padding: 'var(--space-16)',
+          boxShadow: 'var(--shadow-sm)'
         }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            background: 'rgba(255, 255, 255, 0.15)',
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}>
-            <Clock size={24} style={{ color: 'white' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-12)', marginBottom: 'var(--space-12)' }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              background: 'var(--color-info)',
+              borderRadius: 'var(--radius-base)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <TrendingUp size={20} style={{ color: 'white' }} />
+            </div>
+            <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 'var(--font-weight-medium)', color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Costo Total
+            </span>
           </div>
-          <div>
-            <div style={{ fontSize: '10px', fontWeight: '600', color: 'rgba(255, 255, 255, 0.7)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '4px' }}>
-              Duración Promedio
-            </div>
-            <div style={{ fontSize: '24px', fontWeight: '700', color: 'white', lineHeight: 1, marginBottom: '2px' }}>
-              {stats.averageWorkDuration.toFixed(1)}
-            </div>
-            <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.65)' }}>
-              horas de trabajo
-            </div>
+          <div style={{ fontSize: '32px', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text)' }}>
+            B/. {stats.totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
       </div>
 
-      {/* Tasks Grid - Compact Side by Side */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: '24px' }}>
-        {/* Upcoming Tasks */}
+      {/* Two Column Layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 'var(--space-24)' }}>
+
+        {/* Próximos Mantenimientos */}
         <div style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
-          border: '2px solid #dcfce7',
-          borderRadius: '20px',
-          padding: '24px',
-          boxShadow: '0 4px 16px rgba(61, 82, 41, 0.08)',
-          minHeight: '400px',
-          display: 'flex',
-          flexDirection: 'column'
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: 'var(--shadow-sm)',
+          overflow: 'hidden'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', paddingBottom: '16px', borderBottom: '2px solid #dcfce7' }}>
+          {/* Header */}
+          <div style={{
+            padding: 'var(--space-16) var(--space-20)',
+            borderBottom: '1px solid var(--color-border)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-12)'
+          }}>
             <div style={{
-              width: '40px',
-              height: '40px',
-              background: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
-              borderRadius: '12px',
+              width: '36px',
+              height: '36px',
+              background: 'var(--color-primary)',
+              borderRadius: 'var(--radius-base)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(61, 82, 41, 0.2)'
+              justifyContent: 'center'
             }}>
-              <Calendar size={22} style={{ color: 'white' }} />
+              <Calendar size={18} style={{ color: 'white' }} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937' }}>Próximos Mantenimientos</h3>
-              <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>Próximos 7 días</p>
+              <h3 style={{ margin: 0, fontSize: 'var(--font-size-md)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text)' }}>
+                Próximos Mantenimientos
+              </h3>
+              <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+                Próximos 7 días
+              </p>
             </div>
           </div>
 
-          {upcomingTasks.length === 0 ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
-              <div style={{
-                width: '80px',
-                height: '80px',
-                margin: '0 auto 16px',
-                borderRadius: '20px',
-                background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Calendar size={40} style={{ color: '#9ca3af' }} />
+          {/* Content */}
+          <div style={{ padding: 'var(--space-12)' }}>
+            {upcomingTasks.length === 0 ? (
+              <div style={{ padding: 'var(--space-32)', textAlign: 'center' }}>
+                <Calendar size={48} style={{ color: 'var(--color-text-tertiary)', marginBottom: 'var(--space-12)' }} />
+                <p style={{ margin: 0, fontSize: 'var(--font-size-base)', color: 'var(--color-text-secondary)' }}>
+                  No hay mantenimientos programados
+                </p>
               </div>
-              <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600', color: '#374151' }}>Sin mantenimientos</h4>
-              <p style={{ margin: 0, fontSize: '14px', color: '#9ca3af', textAlign: 'center' }}>
-                No hay mantenimientos programados
-              </p>
-            </div>
-          ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '500px', overflowY: 'auto', paddingRight: '4px' }}>
-              {upcomingTasks.slice(0, 5).map((task) => {
-              const taskDate = new Date(`${task.scheduled_date}T${task.scheduled_time}`);
-              const daysUntil = Math.ceil((taskDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-              const urgency = daysUntil <= 1 ? 'red' : daysUntil <= 3 ? 'yellow' : 'green';
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
+                {upcomingTasks.slice(0, 5).map((task) => {
+                  const taskDate = task.fecha_programada ? new Date(task.fecha_programada) : new Date();
+                  const daysUntil = Math.ceil((taskDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                  const urgencyColor = daysUntil <= 1 ? '#dc2626' : daysUntil <= 3 ? '#d97706' : 'var(--color-primary)';
 
-              const urgencyColor = daysUntil <= 1 ? '#dc2626' : daysUntil <= 3 ? '#d97706' : '#3D5229';
-
-              return (
-                <div
-                  key={task.id}
-                  style={{
-                    background: 'white',
-                    border: '1px solid #e5e7eb',
-                    borderLeft: `3px solid ${urgencyColor}`,
-                    borderRadius: '12px',
-                    padding: '14px 16px',
-                    transition: 'all 0.2s ease',
-                    cursor: 'pointer'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', gap: '12px' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                        <span className={`maintenance-task-item__badge maintenance-task-item__badge--${task.type}`} style={{ fontSize: '11px', padding: '3px 10px' }}>
-                          {task.type}
-                        </span>
-                        <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500' }}>
-                          {new Date(task.scheduled_date).toLocaleDateString('es-PA')}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '14px', color: '#1f2937', marginBottom: '4px', lineHeight: '1.4' }}>
-                        {task.observations}
+                  return (
+                    <div
+                      key={task._id}
+                      style={{
+                        padding: 'var(--space-12) var(--space-16)',
+                        background: 'var(--color-background)',
+                        borderRadius: 'var(--radius-base)',
+                        borderLeft: `3px solid ${urgencyColor}`,
+                        transition: 'background var(--duration-fast) var(--ease-out)'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-hover-overlay)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'var(--color-background)'}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-12)' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)', marginBottom: 'var(--space-4)' }}>
+                            <span style={{
+                              fontSize: 'var(--font-size-xs)',
+                              fontWeight: 'var(--font-weight-semibold)',
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-sm)',
+                              background: 'var(--color-primary-light)',
+                              color: 'var(--color-primary)',
+                              textTransform: 'uppercase'
+                            }}>
+                              {getTipoLabel(task.tipo)}
+                            </span>
+                            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+                              {formatDate(task.fecha_programada)}
+                            </span>
+                          </div>
+                          <p style={{
+                            margin: 0,
+                            fontSize: 'var(--font-size-base)',
+                            color: 'var(--color-text)',
+                            fontWeight: 'var(--font-weight-medium)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {task.titulo || 'Tarea de mantenimiento'}
+                          </p>
+                        </div>
+                        <div style={{
+                          fontSize: 'var(--font-size-xs)',
+                          fontWeight: 'var(--font-weight-semibold)',
+                          color: urgencyColor,
+                          padding: '4px 10px',
+                          background: `${urgencyColor}10`,
+                          borderRadius: 'var(--radius-base)',
+                          whiteSpace: 'nowrap',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}>
+                          {daysUntil === 0 ? (
+                            <>
+                              <AlertTriangle size={12} />
+                              <span>Hoy</span>
+                            </>
+                          ) : daysUntil === 1 ? (
+                            <>
+                              <Clock size={12} />
+                              <span>Mañana</span>
+                            </>
+                          ) : (
+                            <span>{daysUntil} días</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div style={{
-                      fontSize: '11px',
-                      fontWeight: '700',
-                      color: urgencyColor,
-                      padding: '6px 12px',
-                      background: '#f9fafb',
-                      borderRadius: '8px',
-                      whiteSpace: 'nowrap',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}>
-                      {daysUntil === 0 ? (
-                        <>
-                          <AlertTriangle size={12} />
-                          <span>Hoy</span>
-                        </>
-                      ) : daysUntil === 1 ? (
-                        <>
-                          <Clock size={12} />
-                          <span>Mañana</span>
-                        </>
-                      ) : (
-                        <span>{daysUntil}d</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Recent Completed Tasks */}
+        {/* Completados Recientes */}
         <div style={{
-          background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
-          border: '2px solid #dcfce7',
-          borderRadius: '20px',
-          padding: '24px',
-          boxShadow: '0 4px 16px rgba(61, 82, 41, 0.08)',
-          minHeight: '400px',
-          display: 'flex',
-          flexDirection: 'column'
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: 'var(--shadow-sm)',
+          overflow: 'hidden'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', paddingBottom: '16px', borderBottom: '2px solid #dcfce7' }}>
+          {/* Header */}
+          <div style={{
+            padding: 'var(--space-16) var(--space-20)',
+            borderBottom: '1px solid var(--color-border)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-12)'
+          }}>
             <div style={{
-              width: '40px',
-              height: '40px',
-              background: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
-              borderRadius: '12px',
+              width: '36px',
+              height: '36px',
+              background: 'var(--color-success)',
+              borderRadius: 'var(--radius-base)',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(61, 82, 41, 0.2)'
+              justifyContent: 'center'
             }}>
-              <CheckCircle size={22} style={{ color: 'white' }} />
+              <CheckCircle size={18} style={{ color: 'white' }} />
             </div>
             <div>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937' }}>Completados Recientes</h3>
-              <p style={{ margin: 0, fontSize: '13px', color: '#6b7280' }}>Últimos 5 mantenimientos</p>
+              <h3 style={{ margin: 0, fontSize: 'var(--font-size-md)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--color-text)' }}>
+                Completados Recientes
+              </h3>
+              <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)' }}>
+                Últimos 5 mantenimientos
+              </p>
             </div>
           </div>
 
-          {completedTasks.length === 0 ? (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
-              <div style={{
-                width: '80px',
-                height: '80px',
-                margin: '0 auto 16px',
-                borderRadius: '20px',
-                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <CheckCircle size={40} style={{ color: '#3D5229' }} />
+          {/* Content */}
+          <div style={{ padding: 'var(--space-12)' }}>
+            {completedTasks.length === 0 ? (
+              <div style={{ padding: 'var(--space-32)', textAlign: 'center' }}>
+                <CheckCircle size={48} style={{ color: 'var(--color-text-tertiary)', marginBottom: 'var(--space-12)' }} />
+                <p style={{ margin: 0, fontSize: 'var(--font-size-base)', color: 'var(--color-text-secondary)' }}>
+                  No hay mantenimientos completados
+                </p>
               </div>
-              <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600', color: '#374151' }}>Sin completados</h4>
-              <p style={{ margin: 0, fontSize: '14px', color: '#9ca3af', textAlign: 'center' }}>
-                Los completados aparecerán aquí
-              </p>
-            </div>
-          ) : (
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '500px', overflowY: 'auto', paddingRight: '4px' }}>
-              {completedTasks.slice(0, 5).map((task) => (
-                <div
-                  key={task.id}
-                  style={{
-                    background: 'white',
-                    border: '1px solid #e5e7eb',
-                    borderLeft: '3px solid #3D5229',
-                    borderRadius: '12px',
-                    padding: '14px 16px',
-                    transition: 'all 0.2s ease',
-                    cursor: 'pointer'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'start', justifyContent: 'space-between', gap: '12px', marginBottom: '8px' }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                        <span className={`maintenance-task-item__badge maintenance-task-item__badge--${task.type}`} style={{ fontSize: '11px', padding: '3px 10px' }}>
-                          {task.type}
-                        </span>
-                        <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <CheckCircle size={12} style={{ color: '#3D5229' }} />
-                          {task.completed_at ? new Date(task.completed_at).toLocaleDateString('es-PA') : '-'}
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '14px', color: '#1f2937', lineHeight: '1.4' }}>
-                        {task.observations}
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
+                {completedTasks.slice(0, 5).map((task) => (
+                  <div
+                    key={task._id}
+                    style={{
+                      padding: 'var(--space-12) var(--space-16)',
+                      background: 'var(--color-background)',
+                      borderRadius: 'var(--radius-base)',
+                      borderLeft: '3px solid var(--color-success)',
+                      transition: 'background var(--duration-fast) var(--ease-out)'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-hover-overlay)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'var(--color-background)'}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-12)', marginBottom: 'var(--space-8)' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)', marginBottom: 'var(--space-4)' }}>
+                          <span style={{
+                            fontSize: 'var(--font-size-xs)',
+                            fontWeight: 'var(--font-weight-semibold)',
+                            padding: '2px 8px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--color-success-light)',
+                            color: 'var(--color-success)',
+                            textTransform: 'uppercase'
+                          }}>
+                            {getTipoLabel(task.tipo)}
+                          </span>
+                          <span style={{
+                            fontSize: 'var(--font-size-sm)',
+                            color: 'var(--color-text-secondary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            <CheckCircle size={12} style={{ color: 'var(--color-success)' }} />
+                            {formatDate(task.fecha_completada)}
+                          </span>
+                        </div>
+                        <p style={{
+                          margin: 0,
+                          fontSize: 'var(--font-size-base)',
+                          color: 'var(--color-text)',
+                          fontWeight: 'var(--font-weight-medium)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {task.titulo || 'Tarea de mantenimiento'}
+                        </p>
                       </div>
                     </div>
+
+                    {/* Info adicional */}
+                    {(task.costo || task.mecanico) && (
+                      <div style={{
+                        display: 'flex',
+                        gap: 'var(--space-16)',
+                        fontSize: 'var(--font-size-sm)',
+                        padding: 'var(--space-8) var(--space-12)',
+                        background: 'var(--color-surface)',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--color-border)'
+                      }}>
+                        {task.costo > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <TrendingUp size={14} style={{ color: 'var(--color-info)' }} />
+                            <span style={{ color: 'var(--color-text)', fontWeight: 'var(--font-weight-semibold)' }}>
+                              B/. {task.costo.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                        {task.mecanico && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Wrench size={14} style={{ color: 'var(--color-text-secondary)' }} />
+                            <span style={{ color: 'var(--color-text-secondary)' }}>
+                              {task.mecanico}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {task.operational_data && (
-                    <div style={{
-                      display: 'flex',
-                      gap: '16px',
-                      fontSize: '11px',
-                      padding: '10px',
-                      background: '#f9fafb',
-                      borderRadius: '8px'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6b7280' }}>
-                        <Package size={12} style={{ color: '#0284c7' }} />
-                        <span style={{ fontWeight: '600' }}>{task.operational_data.volume_discharged?.toLocaleString()} gal</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6b7280' }}>
-                        <TrendingUp size={12} style={{ color: '#3D5229' }} />
-                        <span style={{ fontWeight: '600' }}>B/. {task.operational_data.total_estimated_cost?.toFixed(2)}</span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#6b7280' }}>
-                        <Clock size={12} style={{ color: '#9333ea' }} />
-                        <span style={{ fontWeight: '600' }}>{task.operational_data.work_duration} hrs</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -46,13 +46,13 @@ export const ScheduleProvider = ({ children }) => {
 
   // Utility functions para calendario
   const getDayNameFromDate = (dateStr) => {
-    const date = new Date(dateStr + 'T00:00:00'); // Agregar hora para evitar problemas de zona horaria
-    const days = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    const date = new Date(dateStr + 'T12:00:00'); // Agregar hora al mediodía para evitar problemas de timezone
+    const days = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']; // Sin acentos para consistencia
     return days[date.getDay()];
   };
 
   const getStartOfWeekFromDate = (dateStr) => {
-    const date = new Date(dateStr + 'T00:00:00');
+    const date = new Date(dateStr + 'T12:00:00'); // Usar mediodía para evitar problemas de timezone
     const day = date.getDay();
     const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Ajustar cuando es domingo
     const monday = new Date(date.setDate(diff));

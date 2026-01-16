@@ -1,0 +1,365 @@
+/* ============================================
+   BOTTOM SHEET - MOBILE DRAWER
+   ============================================ */
+
+.bottom-sheet {
+  /* En mobile: parte del flujo normal (no fixed) para evitar conflictos con mapa */
+  position: relative;
+  background: var(--color-surface);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0 12px 12px 12px;
+  border: 1px solid var(--color-border);
+}
+
+/* Estados del drawer - ahora basados en altura, no posición fija */
+.bottom-sheet--collapsed {
+  height: 70px; /* Solo handle visible */
+}
+
+.bottom-sheet--collapsed .bottom-sheet-content {
+  display: none;
+}
+
+.bottom-sheet--expanded {
+  height: auto; /* Altura automática basada en contenido */
+  max-height: 50vh; /* Máximo 50% del viewport */
+}
+
+/* Mobile specific */
+.bottom-sheet--mobile {
+  touch-action: pan-y;
+}
+
+/* Desktop specific */
+.bottom-sheet--desktop.bottom-sheet--collapsed {
+  height: 70px;
+}
+
+.bottom-sheet--desktop.bottom-sheet--expanded {
+  height: 400px; /* Altura fija en desktop */
+}
+
+/* Header con handle */
+.bottom-sheet-header {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-divider);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.bottom-sheet-handle-bar {
+  width: 40px;
+  height: 4px;
+  background: var(--color-border-strong);
+  border-radius: 2px;
+  margin: 0 auto 12px;
+}
+
+.bottom-sheet-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.bottom-sheet-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.summary-icon {
+  font-size: 20px;
+  color: var(--color-text-secondary);
+}
+
+.summary-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.bottom-sheet-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.bottom-sheet-toggle-btn:hover {
+  color: var(--color-primary-hover);
+  transform: scale(1.1);
+}
+
+/* Content area (scrollable) */
+.bottom-sheet-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Contenido con scroll cuando está expandido */
+.bottom-sheet--expanded .bottom-sheet-content {
+  overflow-y: auto;
+}
+
+/* Stops list */
+.bottom-sheet-stops {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stop-item-compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--color-surface-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.stop-item-compact:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Estados de parada */
+.stop-item--completed {
+  background: var(--color-success-light);
+  border-color: var(--color-success);
+}
+
+.stop-item--current {
+  background: var(--color-info-light);
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.stop-item--pending {
+  opacity: 0.7;
+}
+
+/* Icono de parada */
+.stop-icon-container {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.stop-item--completed .stop-icon-container {
+  background: var(--color-success);
+  color: white;
+}
+
+.stop-item--current .stop-icon-container {
+  background: var(--color-info);
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.stop-item--pending .stop-icon-container {
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  color: var(--color-text-tertiary);
+}
+
+/* Stop details */
+.stop-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.stop-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stop-category {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+}
+
+/* Botón completar */
+.btn-complete-compact {
+  padding: 8px 16px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-base);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.btn-complete-compact:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Progress bar */
+.bottom-sheet-progress {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.progress-bar-container {
+  height: 6px;
+  background: var(--color-secondary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-full);
+  transition: width var(--duration-normal) var(--ease-out);
+}
+
+/* Animación pulse (parada actual) */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 122, 255, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+  }
+}
+
+/* Scrollbar custom */
+.bottom-sheet-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.bottom-sheet-content::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 2px;
+}
+
+/* Responsive - Desktop */
+@media (min-width: 769px) {
+  .bottom-sheet {
+    margin: 0 24px 24px 24px;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .bottom-sheet--collapsed {
+    height: 70px;
+  }
+
+  .bottom-sheet--expanded {
+    max-height: 400px;
+  }
+
+  .bottom-sheet-header {
+    cursor: pointer;
+  }
+
+  .bottom-sheet-toggle-btn {
+    cursor: pointer;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .bottom-sheet {
+    margin: 0 8px 8px 8px;
+  }
+
+  .bottom-sheet--expanded {
+    max-height: 45vh; /* Menos altura para dejar espacio al mapa */
+  }
+
+  .stop-item-compact {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .btn-complete-compact span {
+    display: none; /* Solo icono en mobile */
+  }
+
+  .btn-complete-compact {
+    padding: 10px;
+    min-width: 40px;
+  }
+
+  .bottom-sheet-header {
+    padding: 10px 16px;
+  }
+
+  .bottom-sheet-handle-bar {
+    margin-bottom: 8px;
+  }
+
+  .summary-text {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bottom-sheet--expanded {
+    max-height: 40vh;
+  }
+
+  .bottom-sheet-content {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .stop-item-compact {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .stop-name {
+    font-size: 13px;
+  }
+}

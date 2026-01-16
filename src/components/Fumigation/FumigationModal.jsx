@@ -5,7 +5,7 @@ import {
   X, CheckCircle, AlertTriangle, Bug
 } from '../Icons';
 import { useFumigation } from '../../context/FumigationContext';
-import PhotoUploadField from '../Cleaning/PhotoUploadField';
+import SimplePhotoSlots from '../Cleaning/SimplePhotoSlots';
 import './FumigationModal.css';
 
 const PRESET_HORARIO = {
@@ -25,7 +25,11 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
     descripcion: ''
   });
 
-  const [photos, setPhotos] = useState([]);
+  const [photos, setPhotos] = useState({
+    before: [],
+    during: [],
+    after: []
+  });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [duplicateWarning, setDuplicateWarning] = useState(null);
@@ -75,7 +79,7 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
       });
     }
     setErrors({});
-    setPhotos([]);
+    setPhotos({ before: [], during: [], after: [] });
     setDuplicateWarning(null);
   }, [assignment, isEditing, isOpen]);
 
@@ -94,8 +98,8 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
     }
   };
 
-  const handlePhotosChange = (newPhotos) => {
-    setPhotos(newPhotos);
+  const handlePhotosChange = (type, newPhotos) => {
+    setPhotos(prev => ({ ...prev, [type]: newPhotos }));
     if (errors.photos) {
       setErrors(prev => ({ ...prev, photos: undefined }));
     }
@@ -116,7 +120,8 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
       newErrors.fecha = 'Seleccione una fecha';
     }
 
-    if (photos.length === 0) {
+    const totalPhotosCount = photos.before.length + photos.during.length + photos.after.length;
+    if (totalPhotosCount === 0) {
       newErrors.photos = 'Debe agregar al menos una evidencia fotográfica';
     }
 
@@ -150,9 +155,15 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
       if (result.success && result.id) {
         const assignmentId = result.id;
 
-        // Subir fotos
-        for (const photo of photos) {
-          await uploadPhoto(photo.file, assignmentId);
+        // Subir fotos con etapa
+        const allPhotos = [
+          ...photos.before.map(p => ({ file: p.file, etapa: 'antes' })),
+          ...photos.during.map(p => ({ file: p.file, etapa: 'durante' })),
+          ...photos.after.map(p => ({ file: p.file, etapa: 'despues' }))
+        ];
+
+        for (const photo of allPhotos) {
+          await uploadPhoto(photo.file, assignmentId, photo.etapa);
         }
 
         setFormData({
@@ -163,7 +174,7 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
           horario_fin: PRESET_HORARIO.fin,
           descripcion: ''
         });
-        setPhotos([]);
+        setPhotos({ before: [], during: [], after: [] });
         onClose();
       }
     } catch (error) {
@@ -176,17 +187,18 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
 
   if (!isOpen) return null;
 
+  const totalPhotos = (photos.before.length > 0 ? 1 : 0) + (photos.during.length > 0 ? 1 : 0) + (photos.after.length > 0 ? 1 : 0);
+
   const getValidationStatus = () => {
     if (!formData.tipo_fumigacion) return { icon: AlertTriangle, text: 'Selecciona el tipo de fumigación', type: 'error' };
     if (!formData.lugar_id) return { icon: AlertTriangle, text: 'Selecciona un lugar', type: 'error' };
     if (!formData.fecha) return { icon: AlertTriangle, text: 'Selecciona una fecha', type: 'error' };
-    if (photos.length === 0) return { icon: AlertTriangle, text: 'Agrega al menos una foto', type: 'warning' };
+    if (totalPhotos === 0) return { icon: AlertTriangle, text: 'Agrega al menos una foto', type: 'warning' };
     if (checkDuplicate === true) return { icon: AlertTriangle, text: 'Registro duplicado detectado', type: 'error' };
     return { icon: CheckCircle, text: 'Listo para guardar', type: 'success' };
   };
 
   const validationStatus = getValidationStatus();
-  const totalPhotos = photos.length;
 
   return (
     <div className="fumigation-modal-overlay" onClick={onClose}>
@@ -308,21 +320,15 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
 
           {/* Evidencias Fotográficas */}
           <div className="photos-section">
-            <div className="section-header">
-              <h5>Evidencias Fotográficas *</h5>
-              <span className="photos-count">{totalPhotos} foto{totalPhotos !== 1 ? 's' : ''}</span>
-            </div>
-
-            <PhotoUploadField
-              label=""
-              type="fumigation"
+            <SimplePhotoSlots
               photos={photos}
-              onPhotosChange={handlePhotosChange}
-              maxPhotos={6}
+              onPhotosChange={setPhotos}
+              disabled={submitting}
+              labels={{ before: 'ANTES', during: 'DURANTE', after: 'DESPUÉS' }}
             />
 
             {errors.photos && (
-              <div className="error-banner">
+              <div className="error-banner" style={{ marginTop: '12px' }}>
                 <AlertTriangle size={16} />
                 <span>{errors.photos}</span>
               </div>

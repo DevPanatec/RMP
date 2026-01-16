@@ -5,7 +5,7 @@ import {
   Edit, Save, Image as ImageIcon
 } from '../Icons';
 import { useCleaning } from '../../context/CleaningContext';
-import PhotoUploadField from './PhotoUploadField';
+import SimplePhotoSlots from './SimplePhotoSlots';
 import './CleaningModal.css';
 
 const TABS = {
@@ -190,7 +190,7 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
     return area ? area.nombre : '';
   };
 
-  const totalPhotos = photos.before.length + photos.during.length + photos.after.length;
+  const totalPhotos = (photos.before.length > 0 ? 1 : 0) + (photos.during.length > 0 ? 1 : 0) + (photos.after.length > 0 ? 1 : 0);
 
   return (
     <div className="cleaning-modal-overlay" onClick={onClose}>
@@ -334,45 +334,15 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
 
           {activeTab === TABS.EVIDENCE && (
             <div className="tab-content tab-evidence">
-              <div className="evidence-header">
-                <div className="evidence-header-content">
-                  <Camera size={24} />
-                  <div>
-                    <h5>Evidencias Fotográficas</h5>
-                    <p>Agrega fotos de antes, durante y después de la limpieza</p>
-                  </div>
-                </div>
-                <span className="photos-badge">{totalPhotos}/9 fotos</span>
-              </div>
-
-              <div className="photos-grid-container">
-                <PhotoUploadField
-                  label="Antes de Limpiar"
-                  type="before"
-                  photos={photos.before}
-                  onPhotosChange={(newPhotos) => handlePhotosChange('before', newPhotos)}
-                  maxPhotos={3}
-                />
-
-                <PhotoUploadField
-                  label="Durante la Limpieza"
-                  type="during"
-                  photos={photos.during}
-                  onPhotosChange={(newPhotos) => handlePhotosChange('during', newPhotos)}
-                  maxPhotos={3}
-                />
-
-                <PhotoUploadField
-                  label="Después de Limpiar"
-                  type="after"
-                  photos={photos.after}
-                  onPhotosChange={(newPhotos) => handlePhotosChange('after', newPhotos)}
-                  maxPhotos={3}
-                />
-              </div>
+              <SimplePhotoSlots
+                photos={photos}
+                onPhotosChange={setPhotos}
+                disabled={submitting}
+                labels={{ before: 'ANTES', during: 'DURANTE', after: 'DESPUÉS' }}
+              />
 
               {errors.photos && (
-                <div className="error-banner">
+                <div className="error-banner" style={{ marginTop: '12px' }}>
                   <AlertTriangle size={16} />
                   <span>{errors.photos}</span>
                 </div>

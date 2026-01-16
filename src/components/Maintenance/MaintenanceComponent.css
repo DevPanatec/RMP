@@ -1,106 +1,105 @@
 /* ============================================
-   MAINTENANCE MODULE - APPLE STYLE
+   MAINTENANCE MODULE - FLUENT DESIGN
    ============================================ */
 
 .maintenance-container {
-  padding: 24px;
+  padding: var(--space-24);
   max-width: 1400px;
   margin: 0 auto;
 }
 
 /* Header */
 .maintenance-header {
-  margin-bottom: 32px;
+  margin-bottom: var(--space-24);
 }
 
 .maintenance-header__content {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-20);
 }
 
 .maintenance-header__title-group {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-16);
 }
 
 .maintenance-header__icon {
   width: 48px;
   height: 48px;
-  padding: 12px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
-  border-radius: 16px;
+  padding: var(--space-12);
+  background: var(--color-primary);
+  border-radius: var(--radius-md);
   color: white;
   flex-shrink: 0;
 }
 
 .maintenance-header__title {
-  font-family: var(--font-family-display);
-  font-size: 32px;
-  font-weight: 700;
-  color: var(--color-text-primary);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .maintenance-header__subtitle {
-  font-size: 15px;
+  font-size: var(--font-size-base);
   color: var(--color-text-secondary);
-  margin: 4px 0 0 0;
-  font-weight: 400;
+  margin: var(--space-4) 0 0 0;
+  font-weight: var(--font-weight-regular);
 }
 
 /* Sub-tabs */
 .maintenance-subtabs {
   display: flex;
-  gap: 8px;
-  padding: 4px;
-  background: var(--color-secondary);
-  border-radius: 12px;
+  gap: var(--space-8);
+  padding: var(--space-4);
+  background: var(--color-background);
+  border-radius: var(--radius-md);
   width: fit-content;
 }
 
 .maintenance-subtab {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-16);
   background: transparent;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-base);
   font-family: var(--font-family-base);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--duration-fast) var(--ease-out);
   position: relative;
 }
 
 .maintenance-subtab:hover {
-  background: var(--color-primary-subtle);
+  background: var(--color-hover-overlay);
   color: var(--color-primary);
-  transform: translateY(-1px);
 }
 
 .maintenance-subtab--active {
   background: var(--color-surface);
   color: var(--color-primary);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-xs);
 }
 
 .maintenance-subtab--active:hover {
-  transform: translateY(0);
+  background: var(--color-surface);
 }
 
 /* Content Area */
 .maintenance-content {
-  animation: fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: fadeInUp var(--duration-normal) var(--ease-out);
 }
 
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -111,36 +110,35 @@
 /* Stats Cards */
 .maintenance-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-16);
+  margin-bottom: var(--space-24);
 }
 
 .maintenance-stat-card {
   background: var(--color-surface);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--radius-md);
+  padding: var(--space-16);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--duration-fast) var(--ease-out);
   border: 1px solid var(--color-border);
 }
 
 .maintenance-stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .maintenance-stat-card__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-12);
 }
 
 .maintenance-stat-card__icon {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--radius-base);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -148,52 +146,52 @@
 }
 
 .maintenance-stat-card__icon--blue {
-  background: rgba(0, 122, 255, 0.1);
+  background: var(--color-info-light);
   color: var(--color-info);
 }
 
 .maintenance-stat-card__icon--yellow {
-  background: rgba(255, 149, 0, 0.1);
+  background: var(--color-warning-light);
   color: var(--color-warning);
 }
 
 .maintenance-stat-card__icon--green {
-  background: var(--color-primary-subtle);
-  color: var(--color-primary);
+  background: var(--color-success-light);
+  color: var(--color-success);
 }
 
 .maintenance-stat-card__icon--red {
-  background: rgba(255, 59, 48, 0.1);
+  background: var(--color-error-light);
   color: var(--color-error);
 }
 
 .maintenance-stat-card__value {
-  font-size: 36px;
-  font-weight: 700;
-  color: var(--color-text-primary);
+  font-size: 32px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
   line-height: 1;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-4);
 }
 
 .maintenance-stat-card__label {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .maintenance-stat-card__subtitle {
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-tertiary);
-  margin-top: 4px;
+  margin-top: var(--space-4);
 }
 
 /* Tasks Section */
 .maintenance-section {
   background: var(--color-surface);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  margin-bottom: 24px;
+  border-radius: var(--radius-md);
+  padding: var(--space-20);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-24);
   border: 1px solid var(--color-border);
 }
 
@@ -201,94 +199,90 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
+  margin-bottom: var(--space-16);
+  padding-bottom: var(--space-12);
   border-bottom: 1px solid var(--color-border);
 }
 
 .maintenance-section__title {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--color-text-primary);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
   margin: 0;
 }
 
 .maintenance-section__action {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: var(--space-8);
+  padding: var(--space-8) var(--space-16);
   background: var(--color-primary);
   color: white;
   border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--duration-fast) var(--ease-out);
   font-family: var(--font-family-base);
 }
 
 .maintenance-section__action:hover {
   background: var(--color-primary-hover);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--color-primary-subtle);
 }
 
 /* Task List */
 .maintenance-task-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-8);
 }
 
 .maintenance-task-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  background: var(--color-secondary);
-  border-radius: 12px;
-  transition: all 0.2s ease;
+  padding: var(--space-12) var(--space-16);
+  background: var(--color-background);
+  border-radius: var(--radius-base);
+  transition: all var(--duration-fast) var(--ease-out);
   cursor: pointer;
   border: 1px solid var(--color-border);
 }
 
 .maintenance-task-item:hover {
-  background: var(--color-primary-light);
-  transform: translateX(4px);
-  border-color: var(--color-primary-subtle);
+  background: var(--color-hover-overlay);
 }
 
 .maintenance-task-item__content {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-12);
 }
 
 .maintenance-task-item__badge {
-  padding: 4px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .maintenance-task-item__badge--preventivo {
-  background: var(--color-primary-subtle);
+  background: var(--color-primary-light);
   color: var(--color-primary);
 }
 
 .maintenance-task-item__badge--correctivo {
-  background: rgba(61, 82, 41, 0.1);
-  color: #556B2F;
+  background: var(--color-warning-light);
+  color: #92400e;
 }
 
-.maintenance-task-item__badge--contingencia {
-  background: rgba(61, 82, 41, 0.15);
-  color: var(--color-primary);
+.maintenance-task-item__badge--inspección {
+  background: var(--color-info-light);
+  color: var(--color-info);
 }
 
 .maintenance-task-item__info {
@@ -296,52 +290,61 @@
 }
 
 .maintenance-task-item__date {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-bottom: 4px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
 }
 
 .maintenance-task-item__description {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
   line-height: 1.4;
 }
 
 .maintenance-task-item__status {
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
 }
 
-.maintenance-task-item__status--programada {
-  background: rgba(61, 82, 41, 0.08);
-  color: #556B2F;
+.maintenance-task-item__status--pendiente {
+  background: var(--color-warning-light);
+  color: #92400e;
+  border: 1px solid var(--color-warning);
 }
 
-.maintenance-task-item__status--en_proceso {
-  background: rgba(61, 82, 41, 0.12);
-  color: var(--color-primary);
+.maintenance-task-item__status--en_progreso {
+  background: var(--color-info-light);
+  color: var(--color-info);
+  border: 1px solid var(--color-info);
 }
 
 .maintenance-task-item__status--completada {
-  background: var(--color-primary-subtle);
-  color: var(--color-primary);
+  background: var(--color-success-light);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+.maintenance-task-item__status--cancelada {
+  background: var(--color-error-light);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
 }
 
 /* Empty State */
 .maintenance-empty {
   text-align: center;
-  padding: 48px 24px;
+  padding: var(--space-40) var(--space-24);
 }
 
 .maintenance-empty__icon {
   width: 80px;
   height: 80px;
-  margin: 0 auto 16px;
-  border-radius: 20px;
-  background: var(--color-secondary);
+  margin: 0 auto var(--space-16);
+  border-radius: var(--radius-lg);
+  background: var(--color-background);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -349,29 +352,29 @@
 }
 
 .maintenance-empty__title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-bottom: 8px;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-bottom: var(--space-8);
 }
 
 .maintenance-empty__description {
-  font-size: 14px;
+  font-size: var(--font-size-base);
   color: var(--color-text-secondary);
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .maintenance-container {
-    padding: 16px;
+    padding: var(--space-16);
   }
 
   .maintenance-header__title {
-    font-size: 24px;
+    font-size: var(--font-size-lg);
   }
 
   .maintenance-header__subtitle {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
   }
 
   .maintenance-subtabs {
@@ -386,7 +389,7 @@
   .maintenance-task-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: var(--space-12);
   }
 
   .maintenance-task-item__content {

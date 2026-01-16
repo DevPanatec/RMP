@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { BarChart3, Wrench, Bell } from '../Icons';
+import { BarChart3, Wrench } from '../Icons';
 import MaintenanceDashboard from './MaintenanceDashboard';
 import MaintenanceTasks from './MaintenanceTasks';
-import MaintenanceAlerts from './MaintenanceAlerts';
 import './MaintenanceComponent.css';
 
 const MaintenanceComponent = ({ userRole = 'admin' }) => {
@@ -10,8 +9,7 @@ const MaintenanceComponent = ({ userRole = 'admin' }) => {
 
   const categories = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'tareas', label: 'Tareas', icon: Wrench },
-    { id: 'alertas', label: 'Alertas', icon: Bell }
+    { id: 'tareas', label: 'Tareas', icon: Wrench }
   ];
 
   const renderCategoriesNav = () => (
@@ -35,8 +33,6 @@ const MaintenanceComponent = ({ userRole = 'admin' }) => {
         return <MaintenanceDashboard userRole={userRole} />;
       case 'tareas':
         return <MaintenanceTasks userRole={userRole} />;
-      case 'alertas':
-        return <MaintenanceAlerts userRole={userRole} />;
       default:
         return <MaintenanceDashboard userRole={userRole} />;
     }

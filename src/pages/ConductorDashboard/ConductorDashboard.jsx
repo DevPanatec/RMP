@@ -17,6 +17,7 @@ import {
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
 import { RouteTimeline } from '../../components/Dashboard';
+import BottomSheet from '../../components/BottomSheet';
 import './ConductorDashboard.css';
 
 // Hook para PWA
@@ -82,8 +83,8 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
   // Helper to get day name from date
   const getDayNameFromDate = (dateString) => {
-    const date = new Date(dateString);
-    const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const date = new Date(dateString + 'T12:00:00'); // Agregar hora para evitar problemas de timezone
+    const dayNames = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado']; // Sin acentos para consistencia
     return dayNames[date.getDay()];
   };
 
@@ -123,6 +124,26 @@ const ConductorDashboard = ({ user, onLogout }) => {
   const [selectedRiskForTermination, setSelectedRiskForTermination] = useState(null);
   const [useRiskAsReason, setUseRiskAsReason] = useState(true);
   const [skipStopData, setSkipStopData] = useState(null);
+
+  // Bottom sheet states
+  const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+
+  // FORCE SCROLL TO TOP on mount
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
+  // Listener para resize (detectar mobile/desktop)
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Obtener asignaciones del conductor
   const conductorAssignments = getAssignmentsByConductor(user.nombre || user.nombre_completo);
@@ -1276,10 +1297,46 @@ const ConductorDashboard = ({ user, onLogout }) => {
     );
   }
 
+  // Validar que la ruta existe (la asignación tiene ruta_id pero la ruta no se encuentra)
+  if (!assignedRoute) {
+    return (
+      <div className="dashboard-container">
+        <div className="sidebar">
+          <div className="sidebar-header">
+            <h2><Truck size={20} /> RMP Conductor</h2>
+            <p>Bienvenido, {user.nombre}</p>
+          </div>
+        </div>
+        <div className="main-content">
+          <div className="dashboard-header">
+            <h1><Truck size={24} /> Dashboard Conductor</h1>
+          </div>
+          <div className="no-assignment">
+            <div className="no-assignment-icon">
+              <AlertTriangle size={80} />
+            </div>
+            <h2>Error: Ruta no encontrada</h2>
+            <p>Tienes una asignación pero la ruta asociada no existe en el sistema.</p>
+            <p>
+              <strong>ID de Ruta:</strong> {todayAssignment?.ruta_id}<br />
+              <strong>Asignación:</strong> {todayAssignment?._id}
+            </p>
+            <p className="no-assignment-help">
+              Por favor contacta al administrador para resolver este problema.
+            </p>
+            <button className="logout-btn" onClick={handleLogout}>
+              <LogOut size={18} /> Cerrar Sesión
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const progressPercentage = getProgressPercentage();
 
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container conductor-dashboard">
       {/* Banner de estado offline */}
       {showOfflineBanner && (
         <div className="offline-banner">
@@ -1354,7 +1411,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   className="btn btn--danger"
                   onClick={() => setShowTerminateModal(true)}
                   title="Terminar ruta anticipadamente"
-                  style={{ background: '#dc2626', borderColor: '#dc2626' }}
                 >
                   <X size={16} /> Terminar Anticipadamente
                 </button>
@@ -1372,8 +1428,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
             </button>
           </div>
         </div>
-
-
 
         {activeTab === 'ruta' && (
           <>
@@ -1438,48 +1492,52 @@ const ConductorDashboard = ({ user, onLogout }) => {
               </div>
             )}
 
-            {/* KPIs del conductor (solo visible cuando la ruta está iniciada) */}
+            {/* Mapa del conductor (PRIMERO - siempre visible) */}
+            <div className="conductor-map-section">
+              <div className="map-container-large">
+                <MapComponent
+                  camiones={camonesArray}
+                  userType={user.tipo}
+                  showRealTime={true}
+                  selectedTruck={userTruck._id || userTruck.id}
+                />
+              </div>
+            </div>
+
+            {/* KPIs del conductor (SEGUNDO - debajo del mapa, solo visible cuando la ruta está iniciada) */}
             {routeStarted && (
             <div className="kpi-grid">
               <div className="kpi-card">
-                <div className="kpi-icon"><Truck size={28} /></div>
+                <div className="kpi-icon"><Truck size={20} /></div>
                 <div className="kpi-content">
                   <div className="kpi-value">{userTruck?.placa || 'N/A'}</div>
                   <div className="kpi-label">Mi Camión</div>
                 </div>
               </div>
               <div className="kpi-card">
-                <div className="kpi-icon"><Package size={28} /></div>
+                <div className="kpi-icon"><Package size={20} /></div>
                 <div className="kpi-content">
                   <div className="kpi-value">{completedStops.length}/{getParadasArray(assignedRoute.paradas).length}</div>
-                  <div className="kpi-label">Paradas Completadas</div>
+                  <div className="kpi-label">Paradas</div>
                 </div>
               </div>
               <div className="kpi-card">
-                <div className="kpi-icon"><TrendingUp size={28} /></div>
-                <div className="kpi-content">
-                  <div className="kpi-value">{progressPercentage}%</div>
-                  <div className="kpi-label">Progreso</div>
-                </div>
-              </div>
-              <div className="kpi-card">
-                <div className="kpi-icon"><Clock size={28} /></div>
+                <div className="kpi-icon"><Clock size={20} /></div>
                 <div className="kpi-content">
                   <div className="kpi-value">{formatTime(timeOnRoute)}</div>
-                  <div className="kpi-label">Tiempo en Ruta</div>
+                  <div className="kpi-label">Tiempo</div>
                 </div>
               </div>
             </div>
             )}
 
-            {/* Timeline de la ruta (solo visible cuando la ruta está iniciada) */}
+            {/* TERCERO - Bottom Sheet (mobile) o RouteTimeline (desktop) */}
             {routeStarted && (
-            <div className="route-timeline-section">
-              <RouteTimeline
-                route={{
-                  ...assignedRoute,
-                  estado: progressPercentage === 100 ? 'completada' : progressPercentage > 0 ? 'en progreso' : 'activa',
-                  paradas: getParadasArray(assignedRoute.paradas).map((parada, index) => {
+              isMobileView ? (
+                <BottomSheet
+                  isExpanded={isDrawerExpanded}
+                  onToggle={setIsDrawerExpanded}
+                  stops={getParadasArray(assignedRoute.paradas).map((parada, index) => {
                     const completedStop = completedStops.find(stop => stop.index === index);
                     return {
                       ...parada,
@@ -1488,48 +1546,42 @@ const ConductorDashboard = ({ user, onLogout }) => {
                       timestamp: completedStop?.timestamp,
                       index: index
                     };
-                  }),
-                  paradaActual: currentStop,
-                  duracionEstimada: assignedRoute.tiempo_estimado || assignedRoute.tiempoEstimado,
-                  distancia: assignedRoute.distancia_total || assignedRoute.distanciaTotal
-                }}
-                onCompleteStop={handleCompleteStop}
-                onViewMap={() => {
-                  // El mapa ya se muestra abajo, quizás hacer scroll
-                  console.log('View map for route');
-                }}
-                onEdit={() => {
-                  // Los conductores no pueden editar rutas
-                  console.log('Conductors cannot edit routes');
-                }}
-                onPause={() => {
-                  // TODO: Implement pause functionality
-                  console.log('Pause route');
-                }}
-                onViewStats={() => {
-                  // TODO: Implement stats view
-                  console.log('View route stats');
-                }}
-              />
-            </div>
-            )}
-
-            {/* Mapa del conductor (siempre visible) */}
-            <div className="conductor-map-section">
-              <div className="card">
-                <div className="card__body">
-                  <h3><MapPin size={20} /> Mi Ubicación en Tiempo Real</h3>
-                  <div className="map-container-large">
-                    <MapComponent
-                      camiones={camonesArray}
-                      userType={user.tipo}
-                      showRealTime={true}
-                      selectedTruck={userTruck._id || userTruck.id}
-                    />
-                  </div>
+                  })}
+                  completedStops={completedStops}
+                  currentStop={currentStop}
+                  onCompleteStop={handleCompleteStop}
+                  progressPercentage={progressPercentage}
+                  isMobile={true}
+                />
+              ) : (
+                <div className="route-timeline-section">
+                  <RouteTimeline
+                    route={{
+                      ...assignedRoute,
+                      estado: progressPercentage === 100 ? 'completada' : progressPercentage > 0 ? 'en progreso' : 'activa',
+                      paradas: getParadasArray(assignedRoute.paradas).map((parada, index) => {
+                        const completedStop = completedStops.find(stop => stop.index === index);
+                        return {
+                          ...parada,
+                          completada: !!completedStop,
+                          category: completedStop?.category,
+                          timestamp: completedStop?.timestamp,
+                          index: index
+                        };
+                      }),
+                      paradaActual: currentStop,
+                      duracionEstimada: assignedRoute.tiempo_estimado || assignedRoute.tiempoEstimado,
+                      distancia: assignedRoute.distancia_total || assignedRoute.distanciaTotal
+                    }}
+                    onCompleteStop={handleCompleteStop}
+                    onViewMap={() => console.log('View map')}
+                    onEdit={() => console.log('Edit disabled')}
+                    onPause={() => console.log('Pause')}
+                    onViewStats={() => console.log('Stats')}
+                  />
                 </div>
-              </div>
-            </div>
+              )
+            )}
           </>
         )}
 
@@ -1702,7 +1754,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   className="btn btn--warning"
                   onClick={handleSubmitRiskReport}
                 >
-                  <AlertTriangle size={16} style={{marginRight: '6px'}} />
+                  <AlertTriangle size={16} />
                   Enviar Reporte
                 </button>
               </div>
@@ -1840,9 +1892,8 @@ const ConductorDashboard = ({ user, onLogout }) => {
                 <button
                   className="btn btn--danger"
                   onClick={handleTerminarRutaAnticipadamente}
-                  style={{ background: '#dc2626', borderColor: '#dc2626' }}
                 >
-                  <X size={16} style={{marginRight: '6px'}} />
+                  <X size={16} />
                   Confirmar Terminación
                 </button>
               </div>

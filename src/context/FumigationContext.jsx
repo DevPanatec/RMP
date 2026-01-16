@@ -22,6 +22,7 @@ export const FumigationProvider = ({ children }) => {
   const generateUploadUrlMutation = useMutation(api.fumigaciones.generateUploadUrl);
   const savePhotoMutation = useMutation(api.fumigaciones.savePhoto);
   const deletePhotoMutation = useMutation(api.fumigaciones.deletePhoto);
+  const createReportMutation = useMutation(api.fumigaciones.createReport);
 
   // Data
   const lugares = lugaresData || [];
@@ -101,7 +102,8 @@ export const FumigationProvider = ({ children }) => {
   };
 
   // ========== PHOTOS ==========
-  const uploadPhoto = async (file, assignmentId) => {
+  // etapa: "antes" | "durante" | "despues"
+  const uploadPhoto = async (file, assignmentId, etapa = "durante") => {
     try {
       // 1. Generar URL de upload
       const uploadUrl = await generateUploadUrlMutation();
@@ -119,16 +121,18 @@ export const FumigationProvider = ({ children }) => {
 
       const { storageId } = await result.json();
 
-      // 3. Guardar metadata en DB
-      await savePhotoMutation({
+      // 3. Guardar metadata en DB con etapa
+      const photoId = await savePhotoMutation({
         assignment_id: assignmentId,
+        etapa: etapa,
         storage_id: storageId,
         file_name: file.name,
         file_size: file.size,
         mime_type: file.type,
       });
 
-      return { success: true, storageId };
+      console.log(`📸 Foto de fumigación subida: ${etapa} - ${file.name}`, photoId);
+      return { success: true, storageId, photoId };
     } catch (error) {
       console.error('❌ Error uploading photo:', error);
       return { success: false, error: error.message };
@@ -141,6 +145,38 @@ export const FumigationProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('❌ Error deleting photo:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Completar asignación y crear reporte (las fotos se vinculan automáticamente)
+  const completeAssignment = async (assignmentId, reportData) => {
+    try {
+      // Crear el reporte de fumigación (las fotos se buscan automáticamente del assignment)
+      const reportId = await createReportMutation({
+        assignment_id: assignmentId,
+        tipo_fumigacion: reportData.tipo_fumigacion,
+        lugar_id: reportData.lugar_id,
+        lugar_nombre: reportData.lugar_nombre,
+        latitud: reportData.latitud,
+        longitud: reportData.longitud,
+        fecha: reportData.fecha,
+        horario_inicio: reportData.horario_inicio,
+        horario_fin: reportData.horario_fin,
+        duracion_minutos: reportData.duracion_minutos,
+        productos_utilizados: reportData.productos_utilizados || [],
+        observaciones: reportData.observaciones,
+        usuario_completo: reportData.usuario_completo,
+        fecha_completacion: new Date().toISOString().split('T')[0],
+      });
+
+      // Actualizar estado de la asignación a "reportada"
+      await updateEstadoMutation({ id: assignmentId, estado: 'reportada' });
+
+      console.log('✅ Fumigación completada, reporte creado:', reportId);
+      return { success: true, reportId };
+    } catch (error) {
+      console.error('❌ Error completing fumigation assignment:', error);
       return { success: false, error: error.message };
     }
   };
@@ -195,6 +231,9 @@ export const FumigationProvider = ({ children }) => {
     // Photos
     uploadPhoto,
     deletePhoto,
+
+    // Completar con reporte
+    completeAssignment,
 
     // Helpers
     getAssignmentsByEstado,

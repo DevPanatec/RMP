@@ -29,7 +29,7 @@
 
 .photo-upload__count.complete {
   background: rgba(107, 150, 86, 0.15);
-  color: #3D5229;
+  color: var(--color-primary);
 }
 
 .photo-upload__dropzone {
@@ -53,8 +53,8 @@
 }
 
 .photo-upload__dropzone.drag-active {
-  border-color: #3D5229;
-  background: rgba(61, 82, 41, 0.1);
+  border-color: var(--color-primary);
+  background: var(--color-primary-subtle);
   transform: scale(1.02);
   box-shadow: 0 0 0 4px rgba(107, 150, 86, 0.1);
 }
@@ -75,7 +75,7 @@
 }
 
 .photo-upload__dropzone:hover .photo-upload__icon {
-  color: #3D5229;
+  color: var(--color-primary);
   transform: scale(1.1);
 }
 

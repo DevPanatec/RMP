@@ -67,7 +67,7 @@
   font-weight: 600;
   color: var(--color-primary);
   padding: 4px 12px;
-  background: rgba(61, 82, 41, 0.08);
+  background: var(--color-primary-subtle);
   border-radius: 12px;
 }
 

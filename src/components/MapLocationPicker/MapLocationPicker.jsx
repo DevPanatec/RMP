@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { Search, MapPin, CheckCircle, Navigation, Lightbulb } from '../Icons';
+import { Search, MapPin, CheckCircle, Navigation, Lightbulb, Home } from '../Icons';
+import { useGooglePlacesAutocomplete } from '../../hooks/useGooglePlacesAutocomplete';
+import { mapGooglePlaceToLocation } from '../../utils/googlePlacesMapper';
 import 'leaflet/dist/leaflet.css';
 import './MapLocationPicker.css';
 
@@ -53,123 +55,62 @@ const MapClickHandler = ({ onMapClick }) => {
   return null;
 };
 
-const MapLocationPicker = ({ 
-  onLocationSelect, 
-  placeholder = "Buscar ubicación...", 
+const MapLocationPicker = ({
+  onLocationSelect,
+  placeholder = "Buscar ubicación...",
   initialLocation = null,
   showCoordinateInput = true,
   height = "400px"
 }) => {
+  // Google Places hook
+  const {
+    suggestions,
+    isLoading,
+    searchPlaces,
+    getPlaceDetails,
+    reverseGeocode,
+    isReady
+  } = useGooglePlacesAutocomplete();
+
   const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [mapCenter, setMapCenter] = useState(initialLocation || [8.9824, -79.5199]); // Ciudad de Panamá por defecto
   const [selectedLocation, setSelectedLocation] = useState(initialLocation);
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualCoords, setManualCoords] = useState({ lat: '', lng: '' });
-  const debounceTimer = useRef(null);
   const inputRef = useRef(null);
-
-  // Función para buscar ubicaciones
-  const searchLocations = async (searchQuery) => {
-    if (!searchQuery.trim() || searchQuery.length < 3) {
-      setSuggestions([]);
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      // Usar Nominatim API con enfoque en Panamá
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=8&countrycodes=pa&addressdetails=1&bounded=1&viewbox=-83.0,7.0,-77.0,10.0`
-      );
-      
-      if (!response.ok) throw new Error('Error en la búsqueda');
-      
-      const data = await response.json();
-      
-      const formattedSuggestions = data.map(item => ({
-        id: item.place_id,
-        display_name: item.display_name,
-        address: item.display_name.split(',')[0],
-        full_address: item.display_name,
-        lat: parseFloat(item.lat),
-        lon: parseFloat(item.lon),
-        type: item.type || 'place'
-      }));
-      
-      setSuggestions(formattedSuggestions);
-      setShowSuggestions(true);
-    } catch (error) {
-      console.error('Error searching locations:', error);
-      setSuggestions([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Función para obtener dirección desde coordenadas (geocodificación inversa)
-  const reverseGeocode = async (lat, lng) => {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
-      );
-      
-      if (!response.ok) throw new Error('Error en geocodificación inversa');
-      
-      const data = await response.json();
-      return {
-        address: data.display_name?.split(',')[0] || `${lat}, ${lng}`,
-        full_address: data.display_name || `${lat}, ${lng}`,
-        latitude: lat,
-        longitude: lng
-      };
-    } catch (error) {
-      console.error('Error reverse geocoding:', error);
-      return {
-        address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-        full_address: `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
-        latitude: lat,
-        longitude: lng
-      };
-    }
-  };
 
   const handleInputChange = (e) => {
     const value = e.target.value;
     setQuery(value);
-    
-    // Cancelar búsqueda anterior
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
+
+    if (value.length >= 3) {
+      searchPlaces(value); // Llama a Google API (con debounce)
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
     }
-    
-    // Nueva búsqueda con delay
-    debounceTimer.current = setTimeout(() => {
-      searchLocations(value);
-    }, 300);
   };
 
-  const handleSuggestionClick = async (suggestion) => {
-    setQuery(suggestion.address);
-    setSuggestions([]);
-    setShowSuggestions(false);
-    
-    const newLocation = [suggestion.lat, suggestion.lon];
-    setMapCenter(newLocation);
-    setSelectedLocation(newLocation);
-    
-    // Llamar callback con los datos de la ubicación
-    if (onLocationSelect) {
-      onLocationSelect({
-        address: suggestion.address,
-        full_address: suggestion.full_address,
-        latitude: suggestion.lat,
-        longitude: suggestion.lon,
-        display_name: suggestion.display_name
-      });
+  const handleSuggestionClick = async (prediction) => {
+    try {
+      // Paso 1: Obtener detalles completos (incluye coordenadas)
+      const geocodeResult = await getPlaceDetails(prediction.place_id);
+
+      // Paso 2: Mapear a estructura RMP
+      const locationData = mapGooglePlaceToLocation(prediction, geocodeResult);
+
+      setQuery(locationData.direccion);
+      setShowSuggestions(false);
+      setMapCenter([locationData.latitud, locationData.longitud]);
+      setSelectedLocation([locationData.latitud, locationData.longitud]);
+
+      if (onLocationSelect) {
+        onLocationSelect(locationData);
+      }
+    } catch (error) {
+      console.error('Error getting place details:', error);
+      alert('Error al obtener detalles de la ubicación');
     }
   };
 
@@ -177,44 +118,66 @@ const MapLocationPicker = ({
     const newLocation = [latlng.lat, latlng.lng];
     setSelectedLocation(newLocation);
     setMapCenter(newLocation);
-    
-    // Obtener dirección de las coordenadas
-    const locationData = await reverseGeocode(latlng.lat, latlng.lng);
-    setQuery(locationData.address);
-    
-    // Llamar callback
-    if (onLocationSelect) {
-      onLocationSelect(locationData);
+
+    try {
+      const locationData = await reverseGeocode(latlng.lat, latlng.lng);
+      setQuery(locationData.direccion);
+
+      if (onLocationSelect) {
+        onLocationSelect(locationData);
+      }
+    } catch (error) {
+      console.error('Error reverse geocoding:', error);
+      // Fallback a coordenadas
+      const fallbackData = {
+        direccion: `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`,
+        direccion_completa: `Coordenadas: ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`,
+        latitud: latlng.lat,
+        longitud: latlng.lng
+      };
+      setQuery(fallbackData.direccion);
+      if (onLocationSelect) onLocationSelect(fallbackData);
     }
   };
 
   const handleManualCoordinates = async () => {
     const lat = parseFloat(manualCoords.lat);
     const lng = parseFloat(manualCoords.lng);
-    
+
     if (isNaN(lat) || isNaN(lng)) {
       alert('Por favor ingresa coordenadas válidas');
       return;
     }
-    
+
     if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
       alert('Coordenadas fuera del rango válido');
       return;
     }
-    
+
     const newLocation = [lat, lng];
     setSelectedLocation(newLocation);
     setMapCenter(newLocation);
-    
-    // Obtener dirección de las coordenadas
-    const locationData = await reverseGeocode(lat, lng);
-    setQuery(locationData.address);
-    
-    // Llamar callback
-    if (onLocationSelect) {
-      onLocationSelect(locationData);
+
+    try {
+      const locationData = await reverseGeocode(lat, lng);
+      setQuery(locationData.direccion);
+
+      if (onLocationSelect) {
+        onLocationSelect(locationData);
+      }
+    } catch (error) {
+      console.error('Error reverse geocoding:', error);
+      // Fallback a coordenadas
+      const fallbackData = {
+        direccion: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        direccion_completa: `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        latitud: lat,
+        longitud: lng
+      };
+      setQuery(fallbackData.direccion);
+      if (onLocationSelect) onLocationSelect(fallbackData);
     }
-    
+
     setShowManualInput(false);
     setManualCoords({ lat: '', lng: '' });
   };
@@ -242,14 +205,6 @@ const MapLocationPicker = ({
     }
   };
 
-  // Limpiar timer al desmontar
-  useEffect(() => {
-    return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
-    };
-  }, []);
 
   return (
     <div className="map-location-picker">
@@ -312,7 +267,8 @@ const MapLocationPicker = ({
             }}
             title="Centrar en Ciudad de Panamá"
           >
-            🏠 Panamá
+            <Home size={14} />
+            <span>Panamá</span>
           </button>
         </div>
       </div>
@@ -359,21 +315,34 @@ const MapLocationPicker = ({
         </div>
       )}
 
+      {/* Estado de carga del servicio */}
+      {!isReady && (
+        <div style={{ padding: '8px', textAlign: 'center', color: '#6b7280' }}>
+          Cargando servicios de mapas...
+        </div>
+      )}
+
       {/* Dropdown de sugerencias */}
       {showSuggestions && suggestions.length > 0 && (
         <div className="suggestions-dropdown">
-          {suggestions.map((suggestion) => (
+          {suggestions.map((prediction) => (
             <div
-              key={suggestion.id}
+              key={prediction.place_id}
               className="suggestion-item"
-              onClick={() => handleSuggestionClick(suggestion)}
+              onClick={() => handleSuggestionClick(prediction)}
             >
               <div className="suggestion-icon">
                 <MapPin size={16} />
               </div>
               <div className="suggestion-text">
-                <div className="suggestion-address">{suggestion.address}</div>
-                <div className="suggestion-full-address">{suggestion.full_address}</div>
+                <div className="suggestion-address">
+                  {prediction.structured_formatting?.main_text ||
+                   prediction.description.split(',')[0]}
+                </div>
+                <div className="suggestion-full-address">
+                  {prediction.structured_formatting?.secondary_text ||
+                   prediction.description}
+                </div>
               </div>
             </div>
           ))}

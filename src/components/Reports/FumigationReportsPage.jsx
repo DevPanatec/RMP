@@ -8,6 +8,13 @@ import './FumigationReportsPage.css';
 
 pdfMake.vfs = pdfFonts.vfs;
 
+// Helper para parsear fechas sin problemas de timezone
+const parseLocalDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  if (dateStr.includes('T')) return new Date(dateStr);
+  return new Date(dateStr + 'T00:00:00');
+};
+
 const FumigationReportsPage = ({ location, onClose, getStatusVariant }) => {
   const [dateRange, setDateRange] = useState({
     inicio: new Date(Date.now() - 365*24*60*60*1000).toISOString().split('T')[0],
@@ -24,9 +31,9 @@ const FumigationReportsPage = ({ location, onClose, getStatusVariant }) => {
     }
 
     return location.assignments.filter(assignment => {
-      const assignmentDate = new Date(assignment.fecha);
-      const startDate = new Date(dateRange.inicio);
-      const endDate = new Date(dateRange.fin);
+      const assignmentDate = parseLocalDate(assignment.fecha);
+      const startDate = parseLocalDate(dateRange.inicio);
+      const endDate = parseLocalDate(dateRange.fin);
       return assignmentDate >= startDate && assignmentDate <= endDate;
     });
   }, [location.assignments, dateRange]);
@@ -296,7 +303,7 @@ const FumigationReportsPage = ({ location, onClose, getStatusVariant }) => {
                     <div className="fumigation-report-meta">
                       <span className="fumigation-date">
                         <Calendar size={14} />
-                        {new Date(report.fecha).toLocaleDateString('es-ES', {
+                        {parseLocalDate(report.fecha).toLocaleDateString('es-ES', {
                           day: '2-digit',
                           month: 'short',
                           year: 'numeric'

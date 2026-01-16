@@ -159,9 +159,9 @@
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  background: rgba(61, 82, 41, 0.1);
+  background: var(--color-primary-subtle);
   border-radius: 6px;
-  color: #3D5229;
+  color: var(--color-primary);
 }
 
 .vehicle-placa {
@@ -201,7 +201,7 @@
   justify-content: center;
   gap: 6px;
   padding: 10px 16px;
-  background: linear-gradient(135deg, #3D5229 0%, #4a6830 100%);
+  background: var(--color-primary);
   color: #ffffff;
   border: none;
   border-radius: 8px;
@@ -214,7 +214,7 @@
 
 .alert-view-map-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(61, 82, 41, 0.3);
+  box-shadow: var(--shadow-sm);
 }
 
 .alert-view-map-btn:active {
@@ -235,7 +235,7 @@
 .alert-progress-fill {
   height: 100%;
   width: 100%;
-  background: #3D5229;
+  background: var(--color-primary);
   animation: progressShrink 10s linear forwards;
 }
 
@@ -356,7 +356,7 @@
   }
 
   .vehicle-badge {
-    background: rgba(61, 82, 41, 0.2);
+    background: var(--color-primary-subtle);
     color: #a3c95a;
   }
 

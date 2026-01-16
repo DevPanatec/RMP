@@ -53,9 +53,9 @@
 .custom-select-trigger.open {
   background: rgba(255, 255, 255, 0.95);
   border-color: var(--color-primary);
-  box-shadow: 
+  box-shadow:
     0 0 0 4px var(--color-primary-subtle),
-    0 4px 12px -2px rgba(61, 82, 41, 0.15);
+    var(--shadow-sm);
   transform: translateY(-1px);
 }
 
