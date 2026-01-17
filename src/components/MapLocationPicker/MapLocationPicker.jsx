@@ -1,59 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import Map, { Marker, NavigationControl } from 'react-map-gl/maplibre';
 import { Search, MapPin, CheckCircle, Navigation, Lightbulb, Home } from '../Icons';
 import { useGooglePlacesAutocomplete } from '../../hooks/useGooglePlacesAutocomplete';
 import { mapGooglePlaceToLocation } from '../../utils/googlePlacesMapper';
-import 'leaflet/dist/leaflet.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapLocationPicker.css';
 
-// Fix para iconos de Leaflet
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-// Icono personalizado para nueva ubicación
-const createLocationIcon = () => {
-  const iconHtml = `
-    <div style="
-      background: linear-gradient(135deg, #2E7D32, #43A047);
-      color: white;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 16px;
-      border: 3px solid white;
-      box-shadow: 0 4px 12px rgba(46, 125, 50, 0.4);
-      cursor: pointer;
-    ">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-    </div>
-  `;
-  
-  return L.divIcon({
-    html: iconHtml,
-    className: 'custom-location-icon',
-    iconSize: [32, 32],
-    iconAnchor: [16, 16]
-  });
-};
-
-// Componente para manejar clicks en el mapa
-const MapClickHandler = ({ onMapClick }) => {
-  useMapEvents({
-    click: (e) => {
-      onMapClick(e.latlng);
-    }
-  });
-  return null;
-};
+// Stadia Maps style URL (free, no token required for development)
+const MAP_STYLE = 'https://tiles.stadiamaps.com/styles/alidade_smooth.json';
 
 const MapLocationPicker = ({
   onLocationSelect,
@@ -74,18 +28,36 @@ const MapLocationPicker = ({
 
   const [query, setQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [mapCenter, setMapCenter] = useState(initialLocation || [8.9824, -79.5199]); // Ciudad de Panamá por defecto
-  const [selectedLocation, setSelectedLocation] = useState(initialLocation);
+  const [viewState, setViewState] = useState({
+    longitude: initialLocation ? initialLocation[1] : -79.5199,
+    latitude: initialLocation ? initialLocation[0] : 8.9824,
+    zoom: 13
+  });
+  const [selectedLocation, setSelectedLocation] = useState(
+    initialLocation ? { lat: initialLocation[0], lng: initialLocation[1] } : null
+  );
   const [showManualInput, setShowManualInput] = useState(false);
   const [manualCoords, setManualCoords] = useState({ lat: '', lng: '' });
   const inputRef = useRef(null);
+
+  // Update view when initialLocation changes
+  useEffect(() => {
+    if (initialLocation) {
+      setViewState(prev => ({
+        ...prev,
+        latitude: initialLocation[0],
+        longitude: initialLocation[1]
+      }));
+      setSelectedLocation({ lat: initialLocation[0], lng: initialLocation[1] });
+    }
+  }, [initialLocation]);
 
   const handleInputChange = (e) => {
     const value = e.target.value;
     setQuery(value);
 
     if (value.length >= 3) {
-      searchPlaces(value); // Llama a Google API (con debounce)
+      searchPlaces(value);
       setShowSuggestions(true);
     } else {
       setShowSuggestions(false);
@@ -94,16 +66,18 @@ const MapLocationPicker = ({
 
   const handleSuggestionClick = async (prediction) => {
     try {
-      // Paso 1: Obtener detalles completos (incluye coordenadas)
       const geocodeResult = await getPlaceDetails(prediction.place_id);
-
-      // Paso 2: Mapear a estructura RMP
       const locationData = mapGooglePlaceToLocation(prediction, geocodeResult);
 
       setQuery(locationData.direccion);
       setShowSuggestions(false);
-      setMapCenter([locationData.latitud, locationData.longitud]);
-      setSelectedLocation([locationData.latitud, locationData.longitud]);
+      setViewState(prev => ({
+        ...prev,
+        latitude: locationData.latitud,
+        longitude: locationData.longitud,
+        zoom: 16
+      }));
+      setSelectedLocation({ lat: locationData.latitud, lng: locationData.longitud });
 
       if (onLocationSelect) {
         onLocationSelect(locationData);
@@ -114,13 +88,12 @@ const MapLocationPicker = ({
     }
   };
 
-  const handleMapClick = async (latlng) => {
-    const newLocation = [latlng.lat, latlng.lng];
-    setSelectedLocation(newLocation);
-    setMapCenter(newLocation);
+  const handleMapClick = useCallback(async (event) => {
+    const { lng, lat } = event.lngLat;
+    setSelectedLocation({ lat, lng });
 
     try {
-      const locationData = await reverseGeocode(latlng.lat, latlng.lng);
+      const locationData = await reverseGeocode(lat, lng);
       setQuery(locationData.direccion);
 
       if (onLocationSelect) {
@@ -128,17 +101,16 @@ const MapLocationPicker = ({
       }
     } catch (error) {
       console.error('Error reverse geocoding:', error);
-      // Fallback a coordenadas
       const fallbackData = {
-        direccion: `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`,
-        direccion_completa: `Coordenadas: ${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`,
-        latitud: latlng.lat,
-        longitud: latlng.lng
+        direccion: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        direccion_completa: `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        latitud: lat,
+        longitud: lng
       };
       setQuery(fallbackData.direccion);
       if (onLocationSelect) onLocationSelect(fallbackData);
     }
-  };
+  }, [onLocationSelect, reverseGeocode]);
 
   const handleManualCoordinates = async () => {
     const lat = parseFloat(manualCoords.lat);
@@ -154,9 +126,13 @@ const MapLocationPicker = ({
       return;
     }
 
-    const newLocation = [lat, lng];
-    setSelectedLocation(newLocation);
-    setMapCenter(newLocation);
+    setSelectedLocation({ lat, lng });
+    setViewState(prev => ({
+      ...prev,
+      latitude: lat,
+      longitude: lng,
+      zoom: 16
+    }));
 
     try {
       const locationData = await reverseGeocode(lat, lng);
@@ -167,7 +143,6 @@ const MapLocationPicker = ({
       }
     } catch (error) {
       console.error('Error reverse geocoding:', error);
-      // Fallback a coordenadas
       const fallbackData = {
         direccion: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
         direccion_completa: `Coordenadas: ${lat.toFixed(6)}, ${lng.toFixed(6)}`,
@@ -189,7 +164,6 @@ const MapLocationPicker = ({
   };
 
   const handleBlur = () => {
-    // Delay para permitir click en sugerencias
     setTimeout(() => {
       setShowSuggestions(false);
     }, 200);
@@ -197,7 +171,6 @@ const MapLocationPicker = ({
 
   const clearSearch = () => {
     setQuery('');
-    setSuggestions([]);
     setShowSuggestions(false);
     setSelectedLocation(null);
     if (inputRef.current) {
@@ -205,6 +178,16 @@ const MapLocationPicker = ({
     }
   };
 
+  const resetToPanama = () => {
+    setViewState(prev => ({
+      ...prev,
+      latitude: 8.9824,
+      longitude: -79.5199,
+      zoom: 13
+    }));
+    setSelectedLocation(null);
+    setQuery('');
+  };
 
   return (
     <div className="map-location-picker">
@@ -224,7 +207,7 @@ const MapLocationPicker = ({
             placeholder={placeholder}
             className="search-input"
           />
-          
+
           {query && (
             <button
               type="button"
@@ -235,7 +218,7 @@ const MapLocationPicker = ({
               ✕
             </button>
           )}
-          
+
           {isLoading && (
             <div className="loading-indicator">
               <div className="spinner"></div>
@@ -256,15 +239,11 @@ const MapLocationPicker = ({
               <span>Coordenadas</span>
             </button>
           )}
-          
+
           <button
             type="button"
             className="btn btn--sm btn--secondary"
-            onClick={() => {
-              setMapCenter([8.9824, -79.5199]);
-              setSelectedLocation(null);
-              setQuery('');
-            }}
+            onClick={resetToPanama}
             title="Centrar en Ciudad de Panamá"
           >
             <Home size={14} />
@@ -348,7 +327,7 @@ const MapLocationPicker = ({
           ))}
         </div>
       )}
-      
+
       {showSuggestions && query.length >= 3 && suggestions.length === 0 && !isLoading && (
         <div className="suggestions-dropdown">
           <div className="no-results">
@@ -357,29 +336,31 @@ const MapLocationPicker = ({
         </div>
       )}
 
-      {/* Mapa interactivo */}
+      {/* Mapa interactivo - MapLibre */}
       <div className="map-container" style={{ height }}>
-        <MapContainer 
-          center={mapCenter} 
-          zoom={13} 
-          style={{ height: '100%', width: '100%' }}
-          key={`${mapCenter[0]}-${mapCenter[1]}`}
+        <Map
+          {...viewState}
+          onMove={evt => setViewState(evt.viewState)}
+          onClick={handleMapClick}
+          mapStyle={MAP_STYLE}
+          style={{ width: '100%', height: '100%' }}
+          attributionControl={false}
         >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          />
-          
-          <MapClickHandler onMapClick={handleMapClick} />
-          
+          <NavigationControl position="top-right" />
+
           {selectedLocation && (
             <Marker
-              position={selectedLocation}
-              icon={createLocationIcon()}
-            />
+              longitude={selectedLocation.lng}
+              latitude={selectedLocation.lat}
+              anchor="bottom"
+            >
+              <div className="maplibre-location-marker">
+                <MapPin size={32} strokeWidth={2.5} />
+              </div>
+            </Marker>
           )}
-        </MapContainer>
-        
+        </Map>
+
         {/* Instrucciones del mapa */}
         <div className="map-instructions">
           <MapPin size={14} />
@@ -397,7 +378,7 @@ const MapLocationPicker = ({
             <div className="location-details">
               <div className="location-address">{query}</div>
               <div className="location-coordinates">
-                {selectedLocation[0].toFixed(6)}, {selectedLocation[1].toFixed(6)}
+                {selectedLocation.lat.toFixed(6)}, {selectedLocation.lng.toFixed(6)}
               </div>
             </div>
             <div className="location-status">

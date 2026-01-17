@@ -90,7 +90,9 @@ export {
   Recycle,
   SprayCan,
   User,
-  Tag
+  Tag,
+  Sun,
+  Moon
 } from 'lucide-react';
 
 // Alias para Spray

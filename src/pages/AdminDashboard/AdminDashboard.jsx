@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import MapComponent from '../../components/Map/MapComponent';
+import MapLibreComponent from '../../components/Map/MapLibreComponent';
 import PersonnelComponent from '../../components/Personnel/PersonnelComponent';
 import InventoryComponent from '../../components/Inventory/InventoryComponent';
 import RoutesComponent from '../../components/Routes/RoutesComponent';
@@ -513,7 +513,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                   }
                 }}
               >
-                <MapComponent
+                <MapLibreComponent
                   key="map-main"
                   camiones={normalizedCamiones}
                   rutas={displayRoutes || []}
@@ -707,7 +707,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             </div>
             <div className="map-maximized-content">
               <div className="map-maximized-map-wrapper">
-                <MapComponent
+                <MapLibreComponent
                   key="map-maximized"
                   camiones={normalizedCamiones}
                   rutas={displayRoutes || []}

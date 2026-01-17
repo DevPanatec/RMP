@@ -18,12 +18,14 @@
     "convex": "^1.31.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.545.0",
+    "maplibre-gl": "^5.16.0",
     "node-fetch": "^3.3.2",
     "pdfmake": "^0.2.20",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.6.0",
     "react-leaflet": "^4.2.1",
+    "react-map-gl": "^8.1.0",
     "react-sparklines": "^1.7.0"
   },
   "devDependencies": {

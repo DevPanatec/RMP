@@ -1,23 +1,17 @@
-import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useState, useEffect, useMemo } from 'react';
+import Map, { Marker, Source, Layer, NavigationControl } from 'react-map-gl/maplibre';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import EnhancedStopsManager from '../EnhancedStopsManager/EnhancedStopsManager';
 import {
   Trash2, Calendar, Sparkles,
   Truck, CheckCircle, XCircle, AlertTriangle, Edit,
-  Plus, X, FileText, MapPin, Settings, Map, Ruler,
+  Plus, X, FileText, MapPin, Settings, Map as MapIcon, Ruler,
   Clock, Target, Lightbulb, Save, Bot, Pencil
 } from '../Icons';
 import './RouteModal.css';
 
-// Fix para iconos de Leaflet
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+// Stadia Maps style URL (free, no token required for development)
+const MAP_STYLE = 'https://tiles.stadiamaps.com/styles/alidade_smooth.json';
 
 const TABS = {
   INFO: 'info',
@@ -41,7 +35,7 @@ const calculateHaversineDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
@@ -135,11 +129,11 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
 
   const calculateMetrics = (paradas) => {
     let totalDistance = 0;
-    
+
     for (let i = 0; i < paradas.length - 1; i++) {
       const p1 = paradas[i];
       const p2 = paradas[i + 1];
-      
+
       if (p1.latitud && p1.longitud && p2.latitud && p2.longitud) {
         const distance = calculateHaversineDistance(
           p1.latitud, p1.longitud,
@@ -148,9 +142,9 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
         totalDistance += distance;
       }
     }
-    
+
     const estimatedTime = Math.round((totalDistance / 30) * 60 + (paradas.length * 5));
-    
+
     return {
       distancia_total: Math.round(totalDistance * 10) / 10,
       tiempo_estimado: estimatedTime
@@ -223,10 +217,10 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
   const handleStopsChange = (newStops) => {
     setFormData(prev => ({ ...prev, paradas: newStops }));
     if (errors.paradas || errors.paradas_coords) {
-      setErrors(prev => ({ 
-        ...prev, 
-        paradas: undefined, 
-        paradas_coords: undefined 
+      setErrors(prev => ({
+        ...prev,
+        paradas: undefined,
+        paradas_coords: undefined
       }));
     }
   };
@@ -284,6 +278,56 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
     onSave(routeData);
   };
 
+  // Calculate map bounds from stops
+  const mapBounds = useMemo(() => {
+    if (formData.paradas.length === 0) return null;
+
+    const validStops = formData.paradas.filter(p => p.latitud && p.longitud);
+    if (validStops.length === 0) return null;
+
+    const lngs = validStops.map(p => p.longitud);
+    const lats = validStops.map(p => p.latitud);
+
+    return {
+      minLng: Math.min(...lngs),
+      maxLng: Math.max(...lngs),
+      minLat: Math.min(...lats),
+      maxLat: Math.max(...lats)
+    };
+  }, [formData.paradas]);
+
+  // Initial view state
+  const initialViewState = useMemo(() => {
+    if (formData.paradas.length > 0 && formData.paradas[0].latitud) {
+      return {
+        longitude: formData.paradas[0].longitud,
+        latitude: formData.paradas[0].latitud,
+        zoom: 13
+      };
+    }
+    return {
+      longitude: -79.5167,
+      latitude: 8.9833,
+      zoom: 12
+    };
+  }, [formData.paradas]);
+
+  // Route line GeoJSON
+  const routeLineGeoJSON = useMemo(() => {
+    if (formData.paradas.length < 2) return null;
+
+    const validStops = formData.paradas.filter(p => p.latitud && p.longitud);
+    if (validStops.length < 2) return null;
+
+    return {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: validStops.map(p => [p.longitud, p.latitud])
+      }
+    };
+  }, [formData.paradas]);
+
   if (!isOpen) return null;
 
   const getValidationStatus = () => {
@@ -312,7 +356,7 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
             </div>
             <button className="modal-close-v2" onClick={onClose}><X size={20} /></button>
           </div>
-          
+
           <div className="header-stats-row">
             <div className="stat-pill-v2 stat-stops">
               <MapPin size={16} />
@@ -410,7 +454,7 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
               <div className="info-form-section">
                 <div className="form-section">
                   <h5><FileText size={18} /> Información Básica</h5>
-                  
+
                   <div className="form-group">
                     <label>
                       Nombre de la Ruta *
@@ -429,7 +473,7 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
                     />
                     {errors.nombre && <span className="error-text">{errors.nombre}</span>}
                   </div>
-                  
+
                   <div className="form-group">
                     <label>
                       Descripción
@@ -468,7 +512,7 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
 
                 <div className="form-section">
                   <h5><Clock size={18} /> Horarios de Operación</h5>
-                  
+
                   <div className="form-row">
                     <div className="form-group">
                       <label>Hora de Inicio *</label>
@@ -543,58 +587,60 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
 
               <div className="info-map-section">
                 <div className="map-preview-header">
-                  <h5><Map size={18} /> Vista Previa del Recorrido</h5>
+                  <h5><MapIcon size={18} /> Vista Previa del Recorrido</h5>
                 </div>
                 <div className="map-preview-container">
                   {formData.paradas.length > 0 ? (
-                    <MapContainer
-                      key={`map-${formData.paradas.length}-${formData.paradas.map(p => `${p.latitud},${p.longitud}`).join('-')}`}
-                      center={[formData.paradas[0].latitud || 8.9833, formData.paradas[0].longitud || -79.5167]}
-                      zoom={13}
+                    <Map
+                      initialViewState={initialViewState}
+                      mapStyle={MAP_STYLE}
                       style={{ height: '100%', width: '100%' }}
-                      className="route-preview-map"
+                      attributionControl={false}
                     >
-                      <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      />
+                      <NavigationControl position="top-right" />
 
-                      {/* Línea de la ruta */}
-                      {formData.paradas.length > 1 && (
-                        <Polyline
-                          positions={formData.paradas.map(p => [p.latitud, p.longitud])}
-                          color="#3D5229"
-                          weight={4}
-                          opacity={0.8}
-                          dashArray="10, 5"
-                        />
+                      {/* Route Line */}
+                      {routeLineGeoJSON && (
+                        <Source id="route-line" type="geojson" data={routeLineGeoJSON}>
+                          <Layer
+                            id="route-line-layer"
+                            type="line"
+                            paint={{
+                              'line-color': '#0078D4',
+                              'line-width': 4,
+                              'line-opacity': 0.8,
+                              'line-dasharray': [2, 1]
+                            }}
+                          />
+                        </Source>
                       )}
 
-                      {/* Marcadores de paradas */}
+                      {/* Stop Markers */}
                       {formData.paradas.map((parada, index) => {
+                        if (!parada.latitud || !parada.longitud) return null;
                         const isFirst = index === 0;
                         const isLast = index === formData.paradas.length - 1;
-                        
+
                         return (
                           <Marker
                             key={`marker-${parada.id || index}-${parada.latitud}-${parada.longitud}`}
-                            position={[parada.latitud, parada.longitud]}
-                            icon={L.divIcon({
-                              className: 'custom-marker',
-                              html: `<div class="marker-pin ${isFirst ? 'marker-start' : isLast ? 'marker-end' : 'marker-middle'}">
-                                <span class="marker-number">${index + 1}</span>
-                              </div>`,
-                              iconSize: [32, 32],
-                              iconAnchor: [16, 32]
-                            })}
-                          />
+                            longitude={parada.longitud}
+                            latitude={parada.latitud}
+                            anchor="center"
+                          >
+                            <div
+                              className={`route-marker-pin ${isFirst ? 'marker-start' : isLast ? 'marker-end' : 'marker-middle'}`}
+                            >
+                              <span className="marker-number">{index + 1}</span>
+                            </div>
+                          </Marker>
                         );
                       })}
-                    </MapContainer>
+                    </Map>
                   ) : (
                     <div className="map-placeholder">
                       <div className="map-placeholder-content">
-                        <div className="placeholder-icon"><Map size={64} strokeWidth={1.5} /></div>
+                        <div className="placeholder-icon"><MapIcon size={64} strokeWidth={1.5} /></div>
                         <h6>Sin paradas aún</h6>
                         <p>Ve a la pestaña "Paradas" para agregar ubicaciones</p>
                       </div>

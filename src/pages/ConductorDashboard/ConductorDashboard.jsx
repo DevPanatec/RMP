@@ -3,7 +3,7 @@ import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import WeightModal from '../../components/WeightModal/WeightModal';
 import RouteCompletionModal from '../../components/RouteCompletionModal/RouteCompletionModal';
-import MapComponent from '../../components/Map/MapComponent';
+import MapLibreComponent from '../../components/Map/MapLibreComponent';
 import { useRiskReports } from '../../context/RiskReportsContext';
 import { useFleet } from '../../context/FleetContext';
 import { useRoutes } from '../../context/RoutesContext';
@@ -1495,7 +1495,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
             {/* Mapa del conductor (PRIMERO - siempre visible) */}
             <div className="conductor-map-section">
               <div className="map-container-large">
-                <MapComponent
+                <MapLibreComponent
                   camiones={camonesArray}
                   userType={user.tipo}
                   showRealTime={true}

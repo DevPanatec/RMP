@@ -1462,3 +1462,44 @@
     padding: 3px 8px;
   }
 }
+
+/* ============================================
+   MAPLIBRE ROUTE MARKERS
+   ============================================ */
+.route-marker-pin {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 2px solid white;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.route-marker-pin:hover {
+  transform: scale(1.1);
+}
+
+.route-marker-pin.marker-start {
+  background: #107C10;
+}
+
+.route-marker-pin.marker-middle {
+  background: var(--color-primary, #0078D4);
+}
+
+.route-marker-pin.marker-end {
+  background: #D13438;
+}
+
+.route-marker-pin .marker-number {
+  color: white;
+  font-weight: 700;
+  font-size: 12px;
+  font-family: var(--font-family-display);
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
