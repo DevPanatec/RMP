@@ -1,9 +1,14 @@
+/* ============================================
+   VEHICLE CARD - FLUENT DESIGN
+   ============================================ */
+
 .vehicle-card-new {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
-  padding: 24px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--radius-md);
+  padding: var(--space-16);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
   position: relative;
   overflow: hidden;
 }
@@ -14,17 +19,16 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 2px;
   background: var(--color-primary);
   transform: scaleX(0);
   transform-origin: left;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform var(--duration-normal) var(--ease-out);
 }
 
 .vehicle-card-new:hover {
   border-color: var(--color-border-strong);
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-4px);
+  box-shadow: var(--shadow-sm);
 }
 
 .vehicle-card-new:hover::before {
@@ -34,27 +38,20 @@
 .vehicle-card-new__header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: var(--space-12);
+  margin-bottom: var(--space-16);
 }
 
 .vehicle-card-new__icon {
-  width: 56px;
-  height: 56px;
+  width: 40px;
+  height: 40px;
   background: var(--color-primary);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   flex-shrink: 0;
-  box-shadow: var(--shadow-sm);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.vehicle-card-new:hover .vehicle-card-new__icon {
-  transform: scale(1.1) rotate(5deg);
-  box-shadow: var(--shadow-md);
 }
 
 .vehicle-card-new__title {
@@ -62,68 +59,68 @@
 }
 
 .vehicle-card-new__title h4 {
-  margin: 0 0 8px 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a1a1a;
+  margin: 0 0 var(--space-4) 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
   line-height: 1.3;
 }
 
 .vehicle-status-new {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
+  gap: var(--space-4);
+  padding: 3px var(--space-8);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
   text-transform: capitalize;
   border: 1px solid transparent;
 }
 
 .vehicle-status-new--success {
-  background: rgba(52, 199, 89, 0.1);
-  color: #059669;
-  border-color: rgba(52, 199, 89, 0.2);
+  background: var(--color-success-light);
+  color: var(--color-success);
+  border-color: var(--color-success);
 }
 
 .vehicle-status-new--info {
-  background: rgba(142, 142, 147, 0.1);
-  color: #6b7280;
-  border-color: rgba(142, 142, 147, 0.2);
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
 }
 
 .vehicle-status-new--warning {
-  background: rgba(245, 158, 11, 0.1);
-  color: #d97706;
-  border-color: rgba(245, 158, 11, 0.2);
+  background: var(--color-warning-light);
+  color: #C19C00;
+  border-color: var(--color-warning);
 }
 
 .vehicle-status-new--error {
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
-  border-color: rgba(239, 68, 68, 0.2);
+  background: var(--color-error-light);
+  color: var(--color-error);
+  border-color: var(--color-error);
 }
 
 .vehicle-card-new__content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: var(--space-8);
+  margin-bottom: var(--space-16);
 }
 
 .vehicle-info-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8);
 }
 
 .vehicle-info-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #6b7280;
+  gap: var(--space-8);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
   flex: 1;
 }
 
@@ -136,18 +133,18 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: var(--color-hover-overlay);
-  border-radius: 8px;
+  padding: var(--space-8) var(--space-12);
+  background: var(--color-surface-secondary);
+  border-radius: var(--radius-base);
   border: 1px solid var(--color-border);
 }
 
 .maintenance-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #6b7280;
+  gap: var(--space-4);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
 }
 
 .maintenance-item svg {
@@ -156,7 +153,7 @@
 
 .vehicle-card-new__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
   justify-content: flex-end;
 }
 
@@ -164,23 +161,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: var(--radius-base);
   background: transparent;
   color: var(--color-primary);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
 .vehicle-action-btn:hover {
   background: var(--color-primary);
   color: white;
   border-color: var(--color-primary);
-  transform: scale(1.05);
 }
 
 .vehicle-action-btn:active {
-  transform: scale(0.95);
+  opacity: 0.8;
 }

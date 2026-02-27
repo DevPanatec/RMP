@@ -44,67 +44,39 @@ export const RoutesProvider = ({ children }) => {
     }
   };
 
-  const toggleRouteStatus = async (routeId) => {
-    const route = routes.find(r => r._id === routeId);
-    if (route) {
-      const newStatus = route.estado === 'activa' ? 'inactiva' : 'activa';
-      return updateRoute(routeId, { estado: newStatus });
-    }
-  };
-
-  const assignVehicleToRoute = async (routeId, vehicleId) => {
-    return updateRoute(routeId, { vehiculo_id: vehicleId });
-  };
-
-  const assignDriverToRoute = async (routeId, driverId) => {
-    return updateRoute(routeId, { conductor_id: driverId });
-  };
-
-  const updateRoutePriority = async (routeId, priority) => {
-    return updateRoute(routeId, { prioridad: priority });
-  };
-
   const getRoutesByType = (type) => {
-    return routes.filter(route => route.tipo === type);
+    return routes.filter(route => route.tipo_servicio === type);
   };
 
   const getRoutesByStatus = (status) => {
     return routes.filter(route => route.estado === status);
   };
 
-  const getRoutesByPriority = (priority) => {
-    return routes.filter(route => route.prioridad === priority);
-  };
-
   const getRoutesStats = () => {
     const total = routes.length;
-    const active = routes.filter(r => r.estado === 'activa').length;
-    const inactive = routes.filter(r => r.estado === 'inactiva').length;
-    const recoleccion = routes.filter(r => r.tipo === 'recoleccion').length;
-    const fumigacion = routes.filter(r => r.tipo === 'fumigacion').length;
-    const assigned = routes.filter(r => r.vehiculo_id).length;
-    const unassigned = total - assigned;
-
-    const byPriority = {
-      alta: routes.filter(r => r.prioridad === 'alta').length,
-      media: routes.filter(r => r.prioridad === 'media').length,
-      baja: routes.filter(r => r.prioridad === 'baja').length
-    };
+    const programada = routes.filter(r => r.estado === 'programada').length;
+    const enProgreso = routes.filter(r => r.estado === 'en_progreso').length;
+    const completada = routes.filter(r => r.estado === 'completada').length;
+    const cancelada = routes.filter(r => r.estado === 'cancelada').length;
+    const recoleccion = routes.filter(r => r.tipo_servicio === 'recoleccion').length;
+    const fumigacion = routes.filter(r => r.tipo_servicio === 'fumigacion').length;
 
     return {
       total,
-      active,
-      inactive,
+      programada,
+      enProgreso,
+      completada,
+      cancelada,
       recoleccion,
       fumigacion,
-      assigned,
-      unassigned,
-      byPriority
+      // Backwards compatibility
+      active: enProgreso,
+      inactive: cancelada,
     };
   };
 
   const getRouteById = (routeId) => {
-    return routes.find(route => route._id === routeId);
+    return routes.find(route => route._id === routeId || route.id === routeId);
   };
 
   const value = {
@@ -113,13 +85,8 @@ export const RoutesProvider = ({ children }) => {
     addRoute,
     updateRoute,
     deleteRoute,
-    toggleRouteStatus,
-    assignVehicleToRoute,
-    assignDriverToRoute,
-    updateRoutePriority,
     getRoutesByType,
     getRoutesByStatus,
-    getRoutesByPriority,
     getRoutesStats,
     getRouteById,
   };

@@ -1,0 +1,825 @@
+/* ============================================
+   MAINTENANCE TASK MODAL - FLUENT DESIGN
+   ============================================ */
+
+/* Modal Overlay */
+.maintenance-task-modal__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-20);
+  animation: mtm-fadeIn 0.2s ease-out;
+}
+
+@keyframes mtm-fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes mtm-slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Modal Container */
+.maintenance-task-modal__container {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  max-width: 900px;
+  width: 100%;
+  max-height: 85vh;
+  overflow: auto;
+  box-shadow: var(--shadow-xl);
+  animation: mtm-slideUp 0.3s ease-out;
+}
+
+.maintenance-task-modal__container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.maintenance-task-modal__container::-webkit-scrollbar-track {
+  background: var(--color-surface-secondary);
+  border-radius: var(--radius-lg);
+}
+
+.maintenance-task-modal__container::-webkit-scrollbar-thumb {
+  background: var(--color-text-muted);
+  border-radius: var(--radius-lg);
+}
+
+.maintenance-task-modal__container::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* Header */
+.maintenance-task-modal__header {
+  position: sticky;
+  top: 0;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-20) var(--space-24);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  z-index: 1;
+}
+
+.maintenance-task-modal__title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.maintenance-task-modal__close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-8);
+  color: var(--color-text-muted);
+  border-radius: var(--radius-base);
+  transition: all var(--duration-fast, 0.15s) ease;
+}
+
+.maintenance-task-modal__close-btn:hover {
+  background: var(--color-hover-overlay);
+  color: var(--color-text-secondary);
+}
+
+/* Form Content */
+.maintenance-task-modal__form {
+  padding: var(--space-24);
+}
+
+/* Form Group (reusable for all field wrappers) */
+.maintenance-task-modal__field-group {
+  margin-bottom: var(--space-20);
+}
+
+.maintenance-task-modal__field-group--compact {
+  margin-bottom: var(--space-12);
+}
+
+.maintenance-task-modal__field-group--large {
+  margin-bottom: var(--space-24);
+}
+
+/* Form Label (shared for all labels) */
+.maintenance-task-modal__label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-8);
+  color: var(--color-text);
+}
+
+/* Operational section labels (smaller) */
+.maintenance-task-modal__label--small {
+  display: block;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-6);
+  color: var(--color-text-secondary);
+}
+
+/* Form Input (shared for text, date, time, number inputs) */
+.maintenance-task-modal__input {
+  width: 100%;
+  padding: var(--space-8) var(--space-12);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  background: var(--color-surface);
+  transition: border-color var(--duration-fast, 0.15s) ease;
+  font-family: var(--font-family-base);
+}
+
+.maintenance-task-modal__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.maintenance-task-modal__input:disabled {
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+}
+
+/* Operational section inputs (slightly more prominent) */
+.maintenance-task-modal__input--operational {
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Total cost input (read-only highlight) */
+.maintenance-task-modal__input--total {
+  border-color: var(--color-primary);
+  font-weight: var(--font-weight-bold);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  text-align: center;
+}
+
+/* Form Select (shared for all selects) */
+.maintenance-task-modal__select {
+  width: 100%;
+  padding: var(--space-8) var(--space-12);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: border-color var(--duration-fast, 0.15s) ease;
+  font-family: var(--font-family-base);
+}
+
+.maintenance-task-modal__select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.maintenance-task-modal__select:disabled {
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+}
+
+/* Small select variant (operational section) */
+.maintenance-task-modal__select--small {
+  font-size: var(--font-size-sm);
+}
+
+/* Package select (green accent when selected) */
+.maintenance-task-modal__select--package {
+  border-color: var(--color-success-light);
+}
+
+.maintenance-task-modal__select--package-active {
+  color: var(--color-primary);
+}
+
+.maintenance-task-modal__select--package-inactive {
+  color: var(--color-text-tertiary);
+}
+
+/* Textarea (shared) */
+.maintenance-task-modal__textarea {
+  width: 100%;
+  padding: var(--space-12);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family-base);
+  color: var(--color-text);
+  background: var(--color-surface);
+  resize: vertical;
+  transition: border-color var(--duration-fast, 0.15s) ease;
+}
+
+.maintenance-task-modal__textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.maintenance-task-modal__textarea:disabled {
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+  cursor: not-allowed;
+}
+
+/* Operational section textarea (smaller font) */
+.maintenance-task-modal__textarea--small {
+  font-size: var(--font-size-sm);
+  padding: var(--space-10);
+}
+
+/* Package hint text */
+.maintenance-task-modal__hint {
+  margin: var(--space-6) 0 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  line-height: 1.4;
+}
+
+/* Grid Layouts */
+.maintenance-task-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-16);
+  margin-bottom: var(--space-24);
+}
+
+.maintenance-task-modal__grid--operational {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-12);
+  margin-bottom: var(--space-12);
+}
+
+/* Operational Data Section */
+.maintenance-task-modal__operational-section {
+  background: var(--color-surface-secondary);
+  padding: var(--space-20);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-24);
+  border: 1px solid var(--color-border);
+}
+
+.maintenance-task-modal__section-title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-16);
+  color: var(--color-text);
+}
+
+/* Save Preset Button Container */
+.maintenance-task-modal__save-preset-container {
+  margin-top: var(--space-12);
+  text-align: right;
+}
+
+/* Save Preset Button */
+.maintenance-task-modal__save-preset-btn {
+  padding: var(--space-8) var(--space-16);
+  color: white;
+  border: none;
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  font-weight: var(--font-weight-semibold);
+  transition: all var(--duration-fast, 0.15s) ease;
+}
+
+.maintenance-task-modal__save-preset-btn--active {
+  background: var(--color-primary);
+}
+
+.maintenance-task-modal__save-preset-btn--active:hover {
+  background: var(--color-primary-hover);
+}
+
+.maintenance-task-modal__save-preset-btn--disabled {
+  background: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+/* Photo Evidence Section */
+.maintenance-task-modal__photo-section {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-24);
+  margin-bottom: var(--space-20);
+}
+
+.maintenance-task-modal__photo-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+  margin-bottom: var(--space-8);
+}
+
+.maintenance-task-modal__photo-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+  color: var(--color-text);
+}
+
+.maintenance-task-modal__photo-counter {
+  font-size: var(--font-size-xs);
+  padding: var(--space-4) var(--space-10);
+  border-radius: var(--radius-full);
+  font-weight: var(--font-weight-semibold);
+}
+
+.maintenance-task-modal__photo-counter--complete {
+  background: var(--color-success-light);
+  color: var(--color-success-dark);
+}
+
+.maintenance-task-modal__photo-counter--incomplete {
+  background: var(--color-warning-light);
+  color: var(--color-warning-dark);
+}
+
+.maintenance-task-modal__photo-description {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-16);
+}
+
+/* Photo Slots Grid */
+.maintenance-task-modal__photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-12);
+}
+
+/* Photo Slot (shared for before/during/after) */
+.maintenance-task-modal__photo-slot {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  overflow: hidden;
+  transition: all var(--duration-fast, 0.15s) ease;
+}
+
+.maintenance-task-modal__photo-slot--filled {
+  border: 2px solid var(--color-success);
+  background: var(--color-success-light);
+  cursor: default;
+}
+
+.maintenance-task-modal__photo-slot--empty {
+  border: 2px dashed var(--color-text-muted);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.maintenance-task-modal__photo-slot--empty:hover {
+  border-color: var(--color-primary);
+  background: var(--color-surface-secondary);
+}
+
+/* Photo Slot Image */
+.maintenance-task-modal__photo-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Photo Remove Button */
+.maintenance-task-modal__photo-remove-btn {
+  position: absolute;
+  top: var(--space-8);
+  right: var(--space-8);
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--duration-fast, 0.15s) ease;
+}
+
+.maintenance-task-modal__photo-remove-btn:hover {
+  background: var(--color-error);
+  box-shadow: var(--shadow-md);
+}
+
+/* Photo Overlay Label */
+.maintenance-task-modal__photo-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  padding: var(--space-20) var(--space-10) var(--space-10);
+  text-align: center;
+}
+
+.maintenance-task-modal__photo-overlay-label {
+  color: white;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+}
+
+/* Photo Empty Slot Number Circle */
+.maintenance-task-modal__photo-number {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.maintenance-task-modal__photo-number--before {
+  background: var(--color-error-light);
+}
+
+.maintenance-task-modal__photo-number--during {
+  background: var(--color-warning-light);
+}
+
+.maintenance-task-modal__photo-number--after {
+  background: var(--color-success-light);
+}
+
+.maintenance-task-modal__photo-number-text {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.maintenance-task-modal__photo-number-text--before {
+  color: var(--color-error-dark);
+}
+
+.maintenance-task-modal__photo-number-text--during {
+  color: var(--color-warning-dark);
+}
+
+.maintenance-task-modal__photo-number-text--after {
+  color: var(--color-success-dark);
+}
+
+/* Photo Slot Label */
+.maintenance-task-modal__photo-slot-label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+}
+
+.maintenance-task-modal__photo-slot-label--before {
+  color: var(--color-error-dark);
+}
+
+.maintenance-task-modal__photo-slot-label--during {
+  color: var(--color-warning-dark);
+}
+
+.maintenance-task-modal__photo-slot-label--after {
+  color: var(--color-success-dark);
+}
+
+.maintenance-task-modal__photo-slot-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* Hidden file inputs */
+.maintenance-task-modal__file-input {
+  display: none;
+}
+
+/* Upload Status */
+.maintenance-task-modal__upload-status {
+  padding: var(--space-12);
+  background: var(--color-info-light);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  color: var(--color-info-dark);
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin-top: var(--space-12);
+}
+
+/* Photo Complete Message */
+.maintenance-task-modal__photo-complete {
+  margin-top: var(--space-16);
+  padding: var(--space-12) var(--space-16);
+  background: var(--color-success-light);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+}
+
+.maintenance-task-modal__photo-complete-text {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-success-dark);
+}
+
+/* View Mode Photo Evidence Section */
+.maintenance-task-modal__view-photos {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-24);
+  margin-bottom: var(--space-20);
+  background: var(--color-surface);
+  padding: var(--space-24);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-success-light);
+}
+
+.maintenance-task-modal__view-photos-header {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--space-20);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: var(--space-10);
+}
+
+/* View Mode Stage Section */
+.maintenance-task-modal__view-stage {
+  margin-bottom: var(--space-20);
+}
+
+.maintenance-task-modal__view-stage:last-child {
+  margin-bottom: 0;
+}
+
+.maintenance-task-modal__view-stage-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin-bottom: var(--space-12);
+  padding: var(--space-8) var(--space-12);
+  background: var(--color-surface-secondary);
+  border-radius: var(--radius-md);
+  width: fit-content;
+}
+
+.maintenance-task-modal__view-stage-name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+}
+
+.maintenance-task-modal__view-stage-count {
+  font-size: var(--font-size-xs);
+  background: var(--color-primary);
+  color: white;
+  padding: var(--space-2) var(--space-8);
+  border-radius: var(--radius-full);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* View Mode Image Grid */
+.maintenance-task-modal__view-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-12);
+}
+
+.maintenance-task-modal__view-image-card {
+  position: relative;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-success-light);
+  box-shadow: var(--shadow-xs);
+}
+
+.maintenance-task-modal__view-image {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  cursor: pointer;
+  transition: transform var(--duration-fast, 0.15s) ease;
+}
+
+.maintenance-task-modal__view-image:hover {
+  transform: scale(1.02);
+}
+
+/* Footer / Action Buttons */
+.maintenance-task-modal__footer {
+  position: sticky;
+  bottom: 0;
+  background: var(--color-surface);
+  padding: var(--space-20) 0 0 0;
+  display: flex;
+  gap: var(--space-12);
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.03);
+}
+
+.maintenance-task-modal__btn-cancel {
+  padding: var(--space-8) var(--space-24);
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--duration-fast, 0.15s) ease;
+  font-family: var(--font-family-base);
+}
+
+.maintenance-task-modal__btn-cancel:hover {
+  background: var(--color-hover-overlay);
+  border-color: var(--color-text-muted);
+}
+
+.maintenance-task-modal__btn-submit {
+  padding: var(--space-8) var(--space-24);
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: all var(--duration-fast, 0.15s) ease;
+  font-family: var(--font-family-base);
+}
+
+.maintenance-task-modal__btn-submit:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.maintenance-task-modal__btn-submit:disabled {
+  background: var(--color-text-muted);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Save Preset Dialog Overlay */
+.maintenance-task-modal__preset-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.maintenance-task-modal__preset-dialog {
+  background: var(--color-surface);
+  padding: var(--space-24);
+  border-radius: var(--radius-md);
+  width: 400px;
+  max-width: 90vw;
+  box-shadow: var(--shadow-lg);
+}
+
+.maintenance-task-modal__preset-title {
+  margin: 0;
+  margin-bottom: var(--space-16);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+/* Preset Dialog Field Group */
+.maintenance-task-modal__preset-field {
+  margin-bottom: var(--space-16);
+}
+
+.maintenance-task-modal__preset-label {
+  display: block;
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.maintenance-task-modal__preset-input {
+  width: 100%;
+  padding: var(--space-8);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--color-border);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+}
+
+.maintenance-task-modal__preset-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.maintenance-task-modal__preset-textarea {
+  width: 100%;
+  padding: var(--space-8);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--color-border);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  resize: vertical;
+  font-family: var(--font-family-base);
+}
+
+.maintenance-task-modal__preset-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+/* Preset Dialog Actions */
+.maintenance-task-modal__preset-actions {
+  display: flex;
+  gap: var(--space-8);
+  justify-content: flex-end;
+}
+
+.maintenance-task-modal__preset-btn-cancel {
+  padding: var(--space-8) var(--space-16);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  transition: all var(--duration-fast, 0.15s) ease;
+}
+
+.maintenance-task-modal__preset-btn-cancel:hover {
+  background: var(--color-hover-overlay);
+}
+
+.maintenance-task-modal__preset-btn-save {
+  padding: var(--space-8) var(--space-16);
+  color: white;
+  border: none;
+  border-radius: var(--radius-base);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-base);
+  transition: all var(--duration-fast, 0.15s) ease;
+}
+
+.maintenance-task-modal__preset-btn-save--active {
+  background: var(--color-primary);
+  cursor: pointer;
+}
+
+.maintenance-task-modal__preset-btn-save--active:hover {
+  background: var(--color-primary-hover);
+}
+
+.maintenance-task-modal__preset-btn-save--disabled {
+  background: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+/* Icon color utilities (for inline icon components) */
+.maintenance-task-modal__icon--primary {
+  color: var(--color-primary);
+}
+
+.maintenance-task-modal__icon--success {
+  color: var(--color-success-dark);
+}

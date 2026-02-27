@@ -82,13 +82,13 @@
 
 .cleaning-form__select:hover,
 .cleaning-form__input:hover {
-  border-color: #007AFF;
+  border-color: var(--color-info);
   transform: translateY(-1px);
 }
 
 .cleaning-form__select:focus,
 .cleaning-form__input:focus {
-  border-color: #007AFF;
+  border-color: var(--color-info);
   box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
   transform: translateY(-1px);
 }
@@ -103,12 +103,12 @@
 
 .cleaning-form__select--error,
 .cleaning-form__input--error {
-  border-color: #ff3b30;
+  border-color: var(--color-error);
 }
 
 .cleaning-form__error {
   font-size: 12px;
-  color: #ff3b30;
+  color: var(--color-error);
   margin-top: -4px;
 }
 
@@ -160,7 +160,7 @@
 .photos-required-badge {
   padding: 6px 14px;
   background: rgba(255, 59, 48, 0.1);
-  color: #ff3b30;
+  color: var(--color-error);
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
@@ -178,9 +178,9 @@
   margin-top: 16px;
   padding: 12px 16px;
   background: rgba(255, 59, 48, 0.1);
-  border-left: 4px solid #ff3b30;
+  border-left: 4px solid var(--color-error);
   border-radius: 8px;
-  color: #ff3b30;
+  color: var(--color-error);
   font-size: 14px;
   font-weight: 500;
   animation: shake 0.4s ease-in-out;
@@ -268,12 +268,12 @@
 
 .assignment-card__status--pendiente {
   background: rgba(255, 149, 0, 0.1);
-  color: #ff9500;
+  color: var(--color-warning);
 }
 
 .assignment-card__status--en_progreso {
   background: rgba(0, 122, 255, 0.1);
-  color: #007aff;
+  color: var(--color-info);
 }
 
 .assignment-card__status--completado {
@@ -283,7 +283,7 @@
 
 .assignment-card__status--cancelado {
   background: rgba(255, 59, 48, 0.1);
-  color: #ff3b30;
+  color: var(--color-error);
 }
 
 .assignment-card__area {
@@ -336,7 +336,7 @@
   margin-top: 12px;
   padding: 8px 16px;
   background: rgba(16, 124, 16, 0.1);
-  color: #107c10;
+  color: var(--color-success);
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -345,7 +345,7 @@
 /* Estado completada */
 .assignment-card__status--completada {
   background: rgba(16, 124, 16, 0.1);
-  color: #107c10;
+  color: var(--color-success);
 }
 
 /* Animations */

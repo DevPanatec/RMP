@@ -48,11 +48,11 @@
 }
 
 .bar-enter {
-  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(180deg, var(--color-success) 0%, var(--color-success-dark) 100%);
 }
 
 .bar-exit {
-  background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+  background: linear-gradient(180deg, var(--color-warning) 0%, var(--color-warning-dark) 100%);
 }
 
 /* Contenido */
@@ -86,12 +86,12 @@
 }
 
 .alert-icon--enter {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--color-success) 0%, var(--color-success-dark) 100%);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .alert-icon--exit {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  background: linear-gradient(135deg, var(--color-warning) 0%, var(--color-warning-dark) 100%);
   box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
 }
 
@@ -103,23 +103,23 @@
 .alert-title {
   font-size: 14px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--color-text);
   margin: 0 0 2px 0;
   line-height: 1.2;
 }
 
 .alert-enter .alert-title {
-  color: #059669;
+  color: var(--color-success-dark);
 }
 
 .alert-exit .alert-title {
-  color: #d97706;
+  color: var(--color-warning-dark);
 }
 
 .alert-zone-name {
   font-size: 16px;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
   display: block;
   white-space: nowrap;
   overflow: hidden;
@@ -135,7 +135,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9ca3af;
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
@@ -143,7 +143,7 @@
 
 .alert-close-btn:hover {
   background: rgba(0, 0, 0, 0.1);
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 /* Vehicle Info */
@@ -172,7 +172,7 @@
 
 .vehicle-details {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 /* Meta info */
@@ -187,11 +187,11 @@
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .meta-item svg {
-  color: #9ca3af;
+  color: var(--color-text-muted);
 }
 
 /* View Map Button */
@@ -240,11 +240,11 @@
 }
 
 .alert-enter .alert-progress-fill {
-  background: #10b981;
+  background: var(--color-success);
 }
 
 .alert-exit .alert-progress-fill {
-  background: #f59e0b;
+  background: var(--color-warning);
 }
 
 @keyframes progressShrink {
@@ -289,11 +289,11 @@
 }
 
 .geofence-alert-popup.entering {
-  border-top: 5px solid #10b981;
+  border-top: 5px solid var(--color-success);
 }
 
 .geofence-alert-popup.exiting {
-  border-top: 5px solid #f59e0b;
+  border-top: 5px solid var(--color-warning);
 }
 
 /* Responsive */
@@ -325,34 +325,34 @@
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
   .geofence-alert-card {
-    background: #1f2937;
+    background: var(--color-text);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .alert-title {
-    color: #f3f4f6;
+    color: var(--color-surface-secondary);
   }
 
   .alert-enter .alert-title {
-    color: #34d399;
+    color: var(--color-success);
   }
 
   .alert-exit .alert-title {
-    color: #fbbf24;
+    color: var(--color-warning);
   }
 
   .alert-zone-name {
-    color: #e5e7eb;
+    color: var(--color-border);
   }
 
   .alert-close-btn {
     background: rgba(255, 255, 255, 0.1);
-    color: #9ca3af;
+    color: var(--color-text-muted);
   }
 
   .alert-close-btn:hover {
     background: rgba(255, 255, 255, 0.15);
-    color: #d1d5db;
+    color: var(--color-border-strong);
   }
 
   .vehicle-badge {
@@ -362,7 +362,7 @@
 
   .vehicle-details,
   .meta-item {
-    color: #9ca3af;
+    color: var(--color-text-muted);
   }
 
   .alert-progress-bar {
@@ -370,7 +370,7 @@
   }
 
   .geofence-alert-popup {
-    background: #1f2937;
+    background: var(--color-text);
     color: white;
   }
 }

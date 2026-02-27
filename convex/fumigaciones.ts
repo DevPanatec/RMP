@@ -29,11 +29,20 @@ export const updateLugar = mutation({
     id: v.id("lugares"),
     nombre: v.optional(v.string()),
     descripcion: v.optional(v.string()),
+    latitud: v.optional(v.number()),
+    longitud: v.optional(v.number()),
     activo: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
-    return await ctx.db.patch(id, updates);
+    // Filtrar campos undefined para no sobreescribir con undefined
+    const cleanUpdates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) {
+        cleanUpdates[key] = value;
+      }
+    }
+    return await ctx.db.patch(id, cleanUpdates);
   },
 });
 
@@ -433,6 +442,72 @@ export const getReportsByDateRange = query({
     return all.filter(
       (r) => r.fecha_completacion >= args.fecha_inicio && r.fecha_completacion <= args.fecha_fin
     );
+  },
+});
+
+// Query para obtener reportes con fotos para generacion de PDF
+export const listReportsWithPhotos = query({
+  args: {
+    fecha_inicio: v.optional(v.string()),
+    fecha_fin: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let reports = await ctx.db
+      .query("fumigation_reports")
+      .withIndex("by_fecha", (q) => q)
+      .order("desc")
+      .collect();
+
+    // Filtrar por rango de fechas si se proporcionan
+    if (args.fecha_inicio && args.fecha_fin) {
+      reports = reports.filter(
+        (r) => r.fecha_completacion >= args.fecha_inicio! && r.fecha_completacion <= args.fecha_fin!
+      );
+    }
+
+    // Funcion helper para obtener fotos con URLs
+    const getPhotosWithUrls = async (photoIds: any[]) => {
+      return await Promise.all(
+        (photoIds || []).map(async (photoId) => {
+          const photo = await ctx.db.get(photoId);
+          if (!photo) return null;
+          const url = await ctx.storage.getUrl(photo.storage_id);
+          return {
+            id: photo._id,
+            etapa: photo.etapa,
+            file_name: photo.file_name,
+            url,
+          };
+        })
+      );
+    };
+
+    // Procesar cada reporte con sus fotos
+    const reportsWithPhotos = await Promise.all(
+      reports.map(async (report) => {
+        // Manejar estructura nueva (fotos_*_ids) y legacy (fotos_ids)
+        let fotosAntes: any[] = [];
+        let fotosDurante: any[] = [];
+        let fotosDespues: any[] = [];
+
+        if (report.fotos_antes_ids || report.fotos_durante_ids || report.fotos_despues_ids) {
+          fotosAntes = await getPhotosWithUrls(report.fotos_antes_ids || []);
+          fotosDurante = await getPhotosWithUrls(report.fotos_durante_ids || []);
+          fotosDespues = await getPhotosWithUrls(report.fotos_despues_ids || []);
+        } else if ((report as any).fotos_ids) {
+          fotosDurante = await getPhotosWithUrls((report as any).fotos_ids);
+        }
+
+        return {
+          ...report,
+          fotos_antes: fotosAntes.filter(Boolean),
+          fotos_durante: fotosDurante.filter(Boolean),
+          fotos_despues: fotosDespues.filter(Boolean),
+        };
+      })
+    );
+
+    return reportsWithPhotos;
   },
 });
 

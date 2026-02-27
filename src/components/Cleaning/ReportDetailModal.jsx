@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Download, Calendar, MapPin, Clock, Building, FileText, Image as ImageIcon, Camera, CheckCircle, Wrench } from '../Icons';
-import MapComponent from '../Map/MapComponent';
+import { MapLibreComponent } from '../Map';
 import '../Reports/StandardReportModal.css';
 
 const ReportDetailModal = ({ isOpen, onClose, report, onDownload, location }) => {
@@ -74,7 +74,7 @@ const ReportDetailModal = ({ isOpen, onClose, report, onDownload, location }) =>
             <div className="report-section__body" style={{ padding: 0 }}>
               {lugarParaMapa.length > 0 ? (
                 <div className="report-map-container">
-                  <MapComponent
+                  <MapLibreComponent
                     key={`map-cleaning-${report.fecha}`}
                     camiones={[]}
                     rutas={[]}

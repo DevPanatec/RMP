@@ -10,6 +10,7 @@ export {
   Save,
   Check,
   CheckCircle,
+  CheckSquare,
   XCircle,
   AlertTriangle,
   AlertOctagon,

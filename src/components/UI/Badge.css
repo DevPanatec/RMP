@@ -36,32 +36,32 @@
 
 .badge--success {
   background: var(--color-success-light);
-  color: #0B6A0B; /* Dark green for contrast */
-  border-color: rgba(16, 124, 16, 0.3);
+  color: var(--color-success-contrast);
+  border-color: var(--color-success-border);
 }
 
 .badge--error {
   background: var(--color-error-light);
-  color: #A4262C; /* Dark red for contrast */
-  border-color: rgba(209, 52, 56, 0.3);
+  color: var(--color-error-contrast);
+  border-color: var(--color-error-border);
 }
 
 .badge--warning {
   background: var(--color-warning-light);
-  color: #8A5700; /* Dark amber for contrast */
-  border-color: rgba(255, 185, 0, 0.3);
+  color: var(--color-warning-contrast);
+  border-color: var(--color-warning-border);
 }
 
 .badge--info {
   background: var(--color-info-light);
-  color: #004578; /* Dark blue for contrast */
-  border-color: rgba(0, 120, 212, 0.3);
+  color: var(--color-info-contrast);
+  border-color: var(--color-info-border);
 }
 
 .badge--primary {
   background: var(--color-primary-subtle);
   color: var(--color-primary-dark);
-  border-color: rgba(0, 120, 212, 0.3);
+  border-color: var(--color-info-border);
 }
 
 /* ============================================
@@ -70,14 +70,14 @@
 
 .badge--active {
   background: var(--color-success-light);
-  color: #0B6A0B;
-  border-color: rgba(16, 124, 16, 0.3);
+  color: var(--color-success-contrast);
+  border-color: var(--color-success-border);
 }
 
 .badge--inactive {
-  background: #E1DFDD;
+  background: var(--color-neutral-light);
   color: var(--color-text-secondary);
-  border-color: rgba(138, 136, 134, 0.3);
+  border-color: var(--color-neutral-border);
 }
 
 /* ============================================
@@ -86,32 +86,32 @@
 
 .badge--en-ruta {
   background: var(--color-info-light);
-  color: #004578;
-  border-color: rgba(0, 120, 212, 0.3);
+  color: var(--color-info-contrast);
+  border-color: var(--color-info-border);
 }
 
 .badge--disponible {
   background: var(--color-success-light);
-  color: #0B6A0B;
-  border-color: rgba(16, 124, 16, 0.3);
+  color: var(--color-success-contrast);
+  border-color: var(--color-success-border);
 }
 
 .badge--mantenimiento {
   background: var(--color-error-light);
-  color: #A4262C;
-  border-color: rgba(209, 52, 56, 0.3);
+  color: var(--color-error-contrast);
+  border-color: var(--color-error-border);
 }
 
 .badge--recoleccion {
-  background: #DFF6DD;
-  color: #0B6A0B;
-  border-color: rgba(16, 124, 16, 0.3);
+  background: var(--color-success-light);
+  color: var(--color-success-contrast);
+  border-color: var(--color-success-border);
 }
 
 .badge--fumigacion {
-  background: #FFF4CE;
-  color: #8A5700;
-  border-color: rgba(255, 185, 0, 0.3);
+  background: var(--color-warning-light);
+  color: var(--color-warning-contrast);
+  border-color: var(--color-warning-border);
 }
 
 /* ============================================

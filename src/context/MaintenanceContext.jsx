@@ -125,6 +125,7 @@ export const MaintenanceProvider = ({ children }) => {
         titulo: task.titulo,
         descripcion: task.descripcion,
         tipo: task.tipo,
+        prioridad: task.prioridad || 'media',
         fecha_programada: task.fecha_programada,
         fecha_completada: new Date().toISOString().split('T')[0],
         costo: reportData.costo || task.costo,

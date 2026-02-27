@@ -1,9 +1,13 @@
+/* ============================================
+   PERSONNEL TABLE - FLUENT DESIGN
+   ============================================ */
+
 .personnel-table-container {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-xs);
 }
 
 .personnel-table-wrapper {
@@ -13,53 +17,52 @@
 .personnel-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
 }
 
 .personnel-table thead th {
-  background: var(--color-primary);
-  color: white;
-  padding: 16px 20px;
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+  padding: var(--space-8) var(--space-12);
   text-align: left;
-  font-weight: 700;
-  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border: none;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .personnel-table tbody td {
-  padding: 20px;
+  padding: var(--space-8) var(--space-12);
   border-bottom: 1px solid var(--color-divider);
   vertical-align: middle;
 }
 
 .personnel-table tbody tr {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background var(--duration-fast) var(--ease-out);
 }
 
 .personnel-table tbody tr:hover {
   background: var(--color-surface-secondary);
-  transform: scale(1.01);
 }
 
 .employee-cell {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-12);
 }
 
 .employee-avatar {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: 700;
-  font-size: 14px;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
   flex-shrink: 0;
 }
 
@@ -69,100 +72,112 @@
 }
 
 .employee-name {
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 4px;
-  font-size: 15px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin-bottom: 2px;
+  font-size: var(--font-size-sm);
 }
 
 .employee-contact {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  font-size: 12px;
-  color: #6b7280;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
 }
+
+/* ============================================
+   ROLE BADGES - Fluent Semantic
+   ============================================ */
 
 .role-badge {
   display: inline-flex;
   align-items: center;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 3px var(--space-8);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
   text-transform: capitalize;
   border: 1px solid transparent;
 }
 
 .role-badge--conductor {
-  background: rgba(52, 199, 89, 0.1);
-  color: #059669;
-  border-color: rgba(52, 199, 89, 0.2);
+  background: var(--color-success-light);
+  color: var(--color-success);
+  border-color: var(--color-success);
 }
 
 .role-badge--ayudante {
-  background: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
-  border-color: rgba(59, 130, 246, 0.2);
+  background: var(--color-info-light);
+  color: var(--color-info);
+  border-color: var(--color-info);
 }
 
 .role-badge--supervisor {
-  background: rgba(168, 85, 247, 0.1);
-  color: #7c3aed;
-  border-color: rgba(168, 85, 247, 0.2);
+  background: var(--color-warning-light);
+  color: #C19C00;
+  border-color: var(--color-warning);
 }
 
 .role-badge--default {
-  background: rgba(142, 142, 147, 0.1);
-  color: #6b7280;
-  border-color: rgba(142, 142, 147, 0.2);
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
 }
+
+/* ============================================
+   STATUS BADGES
+   ============================================ */
 
 .status-badge-table {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
+  gap: var(--space-4);
+  padding: 3px var(--space-8);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
   text-transform: capitalize;
   border: 1px solid transparent;
 }
 
 .status-badge-table--success {
-  background: rgba(52, 199, 89, 0.1);
-  color: #059669;
-  border-color: rgba(52, 199, 89, 0.2);
+  background: var(--color-success-light);
+  color: var(--color-success);
+  border-color: var(--color-success);
 }
 
 .status-badge-table--warning {
-  background: rgba(245, 158, 11, 0.1);
-  color: #d97706;
-  border-color: rgba(245, 158, 11, 0.2);
+  background: var(--color-warning-light);
+  color: #C19C00;
+  border-color: var(--color-warning);
 }
 
 .status-badge-table--info {
-  background: rgba(142, 142, 147, 0.1);
-  color: #6b7280;
-  border-color: rgba(142, 142, 147, 0.2);
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
 }
 
 .status-badge-table--default {
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
-  border-color: rgba(239, 68, 68, 0.2);
+  background: var(--color-error-light);
+  color: var(--color-error);
+  border-color: var(--color-error);
 }
 
 .assignment-info {
-  font-size: 14px;
-  color: #6b7280;
-  font-weight: 500;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
 }
+
+/* ============================================
+   ACTION BUTTONS
+   ============================================ */
 
 .table-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-8);
   justify-content: flex-end;
 }
 
@@ -172,107 +187,110 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: none;
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--duration-fast) var(--ease-out);
   flex-shrink: 0;
+  background: transparent;
 }
 
 .action-btn--edit {
-  background: rgba(59, 130, 246, 0.1);
-  color: #2563eb;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  color: var(--color-info);
 }
 
 .action-btn--edit:hover {
-  background: #2563eb;
+  background: var(--color-info);
   color: white;
-  transform: scale(1.1);
+  border-color: var(--color-info);
 }
 
 .action-btn--delete {
-  background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--color-error);
 }
 
 .action-btn--delete:hover {
-  background: #dc2626;
+  background: var(--color-error);
   color: white;
-  transform: scale(1.1);
+  border-color: var(--color-error);
 }
+
+/* ============================================
+   PAGINATION
+   ============================================ */
 
 .table-pagination {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
+  padding: var(--space-12) var(--space-16);
   background: var(--color-surface-secondary);
   border-top: 1px solid var(--color-divider);
 }
 
 .pagination-btn {
-  padding: 8px 16px;
+  padding: var(--space-8) var(--space-16);
   background: var(--color-primary);
   color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background var(--duration-fast) var(--ease-out);
 }
 
 .pagination-btn:hover:not(:disabled) {
   background: var(--color-primary-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
 }
 
 .pagination-btn:disabled {
-  background: #94a3b8;
+  background: var(--color-border);
+  border-color: var(--color-border);
+  color: var(--color-text-tertiary);
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
 }
 
 .pagination-info {
-  font-size: 14px;
-  color: #6b7280;
-  font-weight: 500;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
 }
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
 
 @media (max-width: 768px) {
   .personnel-table {
-    font-size: 12px;
+    font-size: var(--font-size-xs);
   }
 
   .personnel-table thead th,
   .personnel-table tbody td {
-    padding: 12px 8px;
+    padding: var(--space-8);
   }
 
   .employee-cell {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--space-8);
   }
 
   .employee-contact {
     flex-direction: row;
-    gap: 8px;
+    gap: var(--space-8);
     flex-wrap: wrap;
   }
 
   .table-actions {
     flex-direction: column;
-    gap: 4px;
+    gap: var(--space-4);
   }
 
   .table-pagination {
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-12);
     text-align: center;
   }
 }

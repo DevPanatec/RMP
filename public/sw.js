@@ -1,6 +1,6 @@
-const CACHE_NAME = 'rmp-conductor-v5.1';
-const STATIC_CACHE = 'rmp-static-v5.1';
-const DYNAMIC_CACHE = 'rmp-dynamic-v5.1';
+const CACHE_NAME = 'rmp-conductor-v6.0';
+const STATIC_CACHE = 'rmp-static-v6.0';
+const DYNAMIC_CACHE = 'rmp-dynamic-v6.0';
 
 const urlsToCache = [
   '/',
@@ -12,7 +12,6 @@ const urlsToCache = [
   '/src/main.jsx',
   '/src/pages/ConductorDashboard/ConductorDashboard.jsx',
   '/src/pages/ConductorDashboard/ConductorDashboard.css',
-  '/src/components/Map/MapComponent.jsx',
   '/src/components/WeightModal/WeightModal.jsx'
 ];
 
@@ -91,13 +90,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Ignorar archivos de desarrollo de Vite
+  // En desarrollo, NO interceptar nada - dejar que Vite maneje todo
+  if (isDevelopment()) {
+    return;
+  }
+
+  // Ignorar archivos de desarrollo de Vite (producción fallback)
   if (url.pathname.includes('/node_modules/.vite/') ||
       url.pathname.includes('/@vite/') ||
       url.pathname.includes('/@fs/') ||
       url.searchParams.has('t') || // timestamp parameter de Vite
       url.searchParams.has('v')) { // version parameter de Vite
-    return; // No interceptar requests de Vite en desarrollo
+    return;
   }
 
   // Estrategia condicional para archivos estáticos (JS, CSS, imágenes)

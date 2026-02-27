@@ -952,7 +952,7 @@ const MapLibreComponent = ({
           .filter(lugar => lugar.latitud && lugar.longitud)
           .map(lugar => (
             <Marker
-              key={lugar.id}
+              key={lugar._id || lugar.id}
               longitude={lugar.longitud}
               latitude={lugar.latitud}
               anchor="bottom"
@@ -1039,9 +1039,27 @@ const MapLibreComponent = ({
             closeOnClick={false}
             className="maplibre-location-popup"
           >
-            <div className="popup-content">
-              <h4>{popupInfo.nombre}</h4>
-              <p>{popupInfo.direccion}</p>
+            <div className="location-popup-inline">
+              <h4 className="location-popup-inline__title">
+                <MapPin size={16} />
+                {popupInfo.nombre}
+              </h4>
+              {popupInfo.descripcion && (
+                <p className="location-popup-inline__desc">{popupInfo.descripcion}</p>
+              )}
+              <div className="location-popup-inline__coords">
+                {popupInfo.latitud.toFixed(4)}, {popupInfo.longitud.toFixed(4)}
+              </div>
+              <button
+                className="location-popup-inline__btn"
+                onClick={() => {
+                  if (onViewLocationReports) {
+                    onViewLocationReports(popupInfo._id || popupInfo.id);
+                  }
+                }}
+              >
+                📊 Ver Reportes de Limpieza
+              </button>
             </div>
           </Popup>
         )}

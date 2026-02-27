@@ -688,6 +688,16 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], geof
   const createGeofence = useMutation(api.geofences.create);
   const deleteGeofence = useMutation(api.geofences.remove);
 
+  // Registrar función global para popups de ubicación (bindPopup usa HTML strings)
+  useEffect(() => {
+    window.__viewLocationReports = (locationId) => {
+      if (onViewLocationReports) {
+        onViewLocationReports(locationId);
+      }
+    };
+    return () => { delete window.__viewLocationReports; };
+  }, [onViewLocationReports]);
+
   // Route progress (data comes from props)
   const activeRouteProgress = useMemo(() => {
     return allRouteProgress.filter(rp => rp.estado === 'en_progreso');
@@ -1972,23 +1982,38 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], geof
           {/* Marcadores de puntos de limpieza */}
           {lugares
             .filter(lugar => lugar.latitud && lugar.longitud)
-            .map(lugar => (
-              <Marker
-                key={lugar.id}
-                position={[lugar.latitud, lugar.longitud]}
-                icon={createLocationIcon()}
-                eventHandlers={{
-                  click: () => setSelectedLocation(lugar)
-                }}
-              >
-                <Popup>
-                  <div className="location-popup-mini">
-                    <h4>{lugar.nombre}</h4>
-                    <p>{lugar.direccion}</p>
+            .map(lugar => {
+              const popupContent = `
+                <div style="padding:4px 0;min-width:220px;">
+                  <h4 style="display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600;color:#323130;margin:0 0 8px 0;">
+                    📍 ${lugar.nombre}
+                  </h4>
+                  ${lugar.descripcion ? `<p style="font-size:13px;color:#605e5c;margin:0 0 6px 0;line-height:1.4;">${lugar.descripcion}</p>` : ''}
+                  <div style="font-size:12px;color:#a19f9d;margin-bottom:10px;font-family:monospace;">
+                    ${lugar.latitud.toFixed(4)}, ${lugar.longitud.toFixed(4)}
                   </div>
-                </Popup>
-              </Marker>
-            ))}
+                  <button
+                    onclick="window.__viewLocationReports && window.__viewLocationReports('${lugar._id || lugar.id}')"
+                    style="width:100%;padding:8px 12px;background:#0078D4;color:white;border:none;border-radius:4px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;"
+                  >
+                    📊 Ver Reportes de Limpieza
+                  </button>
+                </div>
+              `;
+              return (
+                <Marker
+                  key={lugar._id || lugar.id}
+                  position={[lugar.latitud, lugar.longitud]}
+                  icon={createLocationIcon()}
+                  eventHandlers={{
+                    add: (e) => {
+                      e.target.bindPopup(popupContent, { maxWidth: 320, minWidth: 250 });
+                    }
+                  }}
+                >
+                </Marker>
+              );
+            })}
         </MapContainer>
 
         {/* Panel de controles del mapa - Diseño profesional compacto */}
@@ -2557,19 +2582,6 @@ const MapComponent = ({ camiones, rutas = [], personnel = [], lugares = [], geof
             </div>
           );
         })()}
-
-        {/* Popup de ubicación */}
-        {selectedLocation && (
-          <LocationPopup
-            location={selectedLocation}
-            onClose={() => setSelectedLocation(null)}
-            onViewReports={(location) => {
-              if (onViewLocationReports) {
-                onViewLocationReports(location.id);
-              }
-            }}
-          />
-        )}
 
         {/* Modal de Reproducción GPS - Fullscreen */}
         <GPSPlaybackModal

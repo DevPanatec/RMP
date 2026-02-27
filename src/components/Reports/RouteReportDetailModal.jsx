@@ -1,8 +1,6 @@
-import { useEffect } from 'react';
 import { X, MapPin, Truck, Clock, UserCheck, Package, Calendar, FileText, AlertTriangle, Wrench, AlertOctagon } from '../Icons';
-import MapComponent from '../Map/MapComponent';
+import { MapLibreComponent } from '../Map';
 import { useRiskReports } from '../../context/RiskReportsContext';
-import { useMap } from 'react-leaflet';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import './RouteReportDetailModal.css';
@@ -12,29 +10,6 @@ const parseLocalDate = (dateStr) => {
   if (!dateStr) return new Date();
   if (dateStr.includes('T')) return new Date(dateStr);
   return new Date(dateStr + 'T00:00:00');
-};
-
-// Componente para auto-centrar el mapa en las paradas
-const AutoFitBounds = ({ paradas }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!paradas || paradas.length === 0) return;
-
-    const paradasValidas = paradas.filter(p => p.lat && p.lng);
-    if (paradasValidas.length === 0) return;
-
-    if (paradasValidas.length === 1) {
-      // Una sola parada: centrar con zoom fijo
-      map.setView([paradasValidas[0].lat, paradasValidas[0].lng], 15);
-    } else {
-      // Múltiples paradas: fitBounds para mostrar todas
-      const bounds = paradasValidas.map(p => [p.lat, p.lng]);
-      map.fitBounds(bounds, { padding: [50, 50] });
-    }
-  }, [map, paradas]);
-
-  return null;
 };
 
 const RouteReportDetailModal = ({ report, onClose }) => {
@@ -169,7 +144,7 @@ const RouteReportDetailModal = ({ report, onClose }) => {
             <h3><MapPin size={20} /> Mapa de Ruta ({rutaParaMapa[0]?.paradas?.length || 0} paradas)</h3>
             {rutaParaMapa[0]?.paradas?.length > 0 ? (
               <div className="route-map-container">
-                <MapComponent
+                <MapLibreComponent
                   key={`map-${report._id}`}
                   camiones={[]}
                   rutas={rutaParaMapa}

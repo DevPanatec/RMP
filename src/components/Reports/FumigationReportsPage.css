@@ -8,7 +8,7 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f9fafb;
+  background: var(--color-surface-secondary);
   overflow: hidden;
   z-index: 9998;
 }
@@ -20,7 +20,7 @@
   justify-content: space-between;
   padding: 24px 32px;
   background: white;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
@@ -38,7 +38,7 @@
   margin: 0;
   font-size: 28px;
   font-weight: 700;
-  color: #111827;
+  color: var(--color-text);
 }
 
 .fumigation-page-close {
@@ -47,13 +47,13 @@
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   transition: all 0.2s ease;
 }
 
 .fumigation-page-close:hover {
-  background: #f3f4f6;
-  color: #111827;
+  background: var(--color-surface-secondary);
+  color: var(--color-text);
 }
 
 /* Mapa */
@@ -61,7 +61,7 @@
   position: relative;
   height: 400px;
   flex-shrink: 0;
-  background: #e5e7eb;
+  background: var(--color-border);
 }
 
 .fumigation-map-overlay {
@@ -106,7 +106,7 @@
 }
 
 .fumigation-open-maps:hover {
-  background: #f9fafb;
+  background: var(--color-surface-secondary);
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
@@ -126,7 +126,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 32px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
 
@@ -141,11 +141,11 @@
   gap: 8px;
   padding: 10px 16px;
   background: white;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   font-weight: 500;
   font-size: 14px;
-  color: #374151;
+  color: var(--color-text);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -188,8 +188,8 @@
 /* Date Filters */
 .fumigation-date-filters {
   padding: 16px 32px;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background: var(--color-surface-secondary);
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   gap: 16px;
   align-items: center;
@@ -204,11 +204,11 @@
 .fumigation-date-presets button {
   padding: 8px 16px;
   background: white;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -227,14 +227,14 @@
 
 .fumigation-date-range input {
   padding: 8px 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 13px;
   font-family: inherit;
 }
 
 .fumigation-date-range span {
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 /* Reports List */
@@ -250,7 +250,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .fumigation-empty svg {
@@ -266,7 +266,7 @@
 /* Report Card */
 .fumigation-report-card {
   background: white;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--color-border);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
@@ -280,7 +280,7 @@
 
 .fumigation-report-card.selected {
   border-color: var(--color-primary);
-  background: #f9fafb;
+  background: var(--color-surface-secondary);
 }
 
 .fumigation-report-header {
@@ -304,7 +304,7 @@
   margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text);
 }
 
 .fumigation-report-meta {
@@ -318,7 +318,7 @@
   align-items: center;
   gap: 6px;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .fumigation-date svg {
@@ -356,27 +356,27 @@
 }
 
 .fumigation-download-single {
-  background: #f3f4f6;
-  border: 2px solid #e5e7eb;
-  color: #374151;
+  background: var(--color-surface-secondary);
+  border: 2px solid var(--color-border);
+  color: var(--color-text);
   padding: 8px 12px;
 }
 
 .fumigation-download-single:hover {
-  background: #e5e7eb;
+  background: var(--color-border);
 }
 
 .fumigation-report-notes {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--color-border);
   font-size: 14px;
-  color: #374151;
+  color: var(--color-text);
   line-height: 1.6;
 }
 
 .fumigation-report-notes strong {
-  color: #111827;
+  color: var(--color-text);
   margin-right: 6px;
 }
 

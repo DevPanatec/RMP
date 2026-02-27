@@ -33,6 +33,7 @@ import type * as route_reports from "../route_reports.js";
 import type * as rutas from "../rutas.js";
 import type * as safetag from "../safetag.js";
 import type * as seed from "../seed.js";
+import type * as seedVolumePresets from "../seedVolumePresets.js";
 import type * as setupWebhookVehicle from "../setupWebhookVehicle.js";
 import type * as testLocationHistory from "../testLocationHistory.js";
 import type * as testSafeTagAPI from "../testSafeTagAPI.js";
@@ -78,6 +79,7 @@ declare const fullApi: ApiFromModules<{
   rutas: typeof rutas;
   safetag: typeof safetag;
   seed: typeof seed;
+  seedVolumePresets: typeof seedVolumePresets;
   setupWebhookVehicle: typeof setupWebhookVehicle;
   testLocationHistory: typeof testLocationHistory;
   testSafeTagAPI: typeof testSafeTagAPI;

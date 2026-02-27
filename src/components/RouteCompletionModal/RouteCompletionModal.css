@@ -58,7 +58,7 @@
 .completion-modal-header {
   text-align: center;
   padding: 32px 24px 24px;
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  background: linear-gradient(135deg, var(--color-success-light) 0%, var(--color-success-light) 100%);
   border-bottom: 1px solid var(--color-divider);
 }
 
@@ -91,14 +91,14 @@
   margin: 0 0 8px 0;
   font-size: 28px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--color-text);
   letter-spacing: -0.5px;
 }
 
 .completion-modal-header p {
   margin: 0;
   font-size: 15px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -113,11 +113,11 @@
 }
 
 .completion-section {
-  background: #f8f9fa;
+  background: var(--color-surface-secondary);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
 }
 
 .completion-section:last-child {
@@ -141,7 +141,7 @@
   margin: 0;
   font-size: 17px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--color-text);
 }
 
 /* ============================================
@@ -162,7 +162,7 @@
 
 .completion-info-label {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -170,7 +170,7 @@
 
 .completion-info-value {
   font-size: 16px;
-  color: #1a1a1a;
+  color: var(--color-text);
   font-weight: 600;
 }
 
@@ -191,7 +191,7 @@
   background: white;
   padding: 12px;
   border-radius: 10px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   transition: all 0.2s ease;
 }
 
@@ -222,7 +222,7 @@
 .completion-stop-address {
   font-size: 15px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--color-text);
   margin-bottom: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -241,7 +241,7 @@
   align-items: center;
   gap: 4px;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -290,7 +290,7 @@
 .completion-risk-title {
   font-size: 15px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--color-text);
   margin-bottom: 6px;
 }
 
@@ -318,12 +318,12 @@
 
 .completion-risk-priority--media {
   background: rgba(255, 149, 0, 0.15);
-  color: #d97706;
+  color: var(--color-warning-dark);
 }
 
 .completion-risk-priority--alta {
   background: rgba(255, 59, 48, 0.15);
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .completion-risk-priority--critica {
@@ -333,13 +333,13 @@
 
 .completion-risk-type {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
 .completion-risk-description {
   font-size: 14px;
-  color: #4b5563;
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
@@ -350,10 +350,10 @@
 .completion-observations {
   width: 100%;
   padding: 12px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--color-border);
   border-radius: 10px;
   font-size: 15px;
-  color: #1a1a1a;
+  color: var(--color-text);
   font-family: inherit;
   resize: vertical;
   transition: all 0.2s ease;
@@ -366,7 +366,7 @@
 }
 
 .completion-observations::placeholder {
-  color: #9ca3af;
+  color: var(--color-text-muted);
 }
 
 /* ============================================
@@ -379,8 +379,8 @@
   justify-content: space-between;
   gap: 12px;
   padding: 20px 24px;
-  background: #f8f9fa;
-  border-top: 1px solid #e5e7eb;
+  background: var(--color-surface-secondary);
+  border-top: 1px solid var(--color-border);
 }
 
 .completion-actions-group {
@@ -410,25 +410,25 @@
 
 .completion-btn--download {
   background: transparent;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--color-border);
   color: var(--color-primary);
 }
 
 .completion-btn--download:hover:not(:disabled) {
-  background: #f3f4f6;
+  background: var(--color-surface-secondary);
   border-color: var(--color-primary);
   transform: translateY(-1px);
 }
 
 .completion-btn--cancel {
   background: transparent;
-  border: 2px solid #e5e7eb;
-  color: #6b7280;
+  border: 2px solid var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .completion-btn--cancel:hover:not(:disabled) {
-  background: #f3f4f6;
-  border-color: #9ca3af;
+  background: var(--color-surface-secondary);
+  border-color: var(--color-text-muted);
 }
 
 .completion-btn--confirm {
@@ -487,13 +487,13 @@
 .completion-alert-box p {
   margin: 0;
   font-size: 14px;
-  color: #dc2626;
+  color: var(--color-error);
   font-weight: 500;
   line-height: 1.5;
 }
 
 .completion-alert-box svg {
-  color: #ff3b30;
+  color: var(--color-error);
   flex-shrink: 0;
 }
 
@@ -503,12 +503,12 @@
 }
 
 .completion-stop-item--incomplete:hover {
-  border-color: #ff3b30;
+  border-color: var(--color-error);
   box-shadow: 0 4px 12px rgba(255, 59, 48, 0.15);
 }
 
 .completion-stop-number--incomplete {
-  background: linear-gradient(135deg, #ff3b30 0%, #dc2626 100%);
+  background: linear-gradient(135deg, var(--color-error) 0%, var(--color-error) 100%);
   box-shadow: 0 2px 8px rgba(255, 59, 48, 0.3);
 }
 
@@ -517,7 +517,7 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #dc2626;
+  color: var(--color-error);
   font-weight: 600;
   background: rgba(255, 59, 48, 0.1);
   padding: 4px 10px;

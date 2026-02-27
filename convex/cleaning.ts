@@ -86,7 +86,7 @@ export const getAssignmentsByEstado = query({
 export const addAssignment = mutation({
   args: {
     sala_id: v.id("salas"),
-    area_id: v.id("areas"),
+    area_id: v.optional(v.id("areas")),
     fecha: v.string(),
     hora: v.string(),
     notas: v.optional(v.string()),
@@ -213,13 +213,70 @@ export const getReportsByDateRange = query({
   },
 });
 
+// Query para obtener reportes con fotos para generacion de PDF
+export const listReportsWithPhotos = query({
+  args: {
+    fecha_inicio: v.optional(v.string()),
+    fecha_fin: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let reports = await ctx.db
+      .query("cleaning_reports")
+      .withIndex("by_fecha", (q) => q)
+      .order("desc")
+      .collect();
+
+    // Filtrar por rango de fechas si se proporcionan
+    if (args.fecha_inicio && args.fecha_fin) {
+      reports = reports.filter(
+        (r) => r.fecha_completacion >= args.fecha_inicio! && r.fecha_completacion <= args.fecha_fin!
+      );
+    }
+
+    // Funcion helper para obtener fotos con URLs
+    const getPhotosWithUrls = async (photoIds: any[]) => {
+      return await Promise.all(
+        (photoIds || []).map(async (photoId) => {
+          const photo = await ctx.db.get(photoId);
+          if (!photo) return null;
+          const url = await ctx.storage.getUrl(photo.storage_id);
+          return {
+            id: photo._id,
+            etapa: photo.etapa,
+            file_name: photo.file_name,
+            url,
+          };
+        })
+      );
+    };
+
+    // Procesar cada reporte con sus fotos
+    const reportsWithPhotos = await Promise.all(
+      reports.map(async (report) => {
+        const fotosAntes = await getPhotosWithUrls(report.fotos_antes_ids);
+        const fotosDurante = await getPhotosWithUrls(report.fotos_durante_ids);
+        const fotosDespues = await getPhotosWithUrls(report.fotos_despues_ids);
+
+        return {
+          ...report,
+          fotos_antes: fotosAntes.filter(Boolean),
+          fotos_durante: fotosDurante.filter(Boolean),
+          fotos_despues: fotosDespues.filter(Boolean),
+        };
+      })
+    );
+
+    return reportsWithPhotos;
+  },
+});
+
 export const createReport = mutation({
   args: {
     assignment_id: v.id("cleaning_assignments"),
     sala_id: v.id("salas"),
-    area_id: v.id("areas"),
+    area_id: v.optional(v.id("areas")),
     sala_nombre: v.string(),
-    area_nombre: v.string(),
+    area_nombre: v.optional(v.string()),
     latitud: v.optional(v.number()),
     longitud: v.optional(v.number()),
     fecha: v.string(),

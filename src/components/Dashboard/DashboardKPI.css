@@ -1,37 +1,43 @@
+/* ============================================
+   DASHBOARD KPI - FLUENT DESIGN
+   ============================================ */
+
 .dashboard-kpi {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 20px;
+  border-radius: var(--radius-md);
+  padding: var(--space-16);
   display: flex;
   align-items: center;
-  gap: 14px;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  gap: var(--space-12);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+  box-shadow: var(--shadow-xs);
 }
 
 .dashboard-kpi:hover {
   border-color: var(--color-border-strong);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-sm);
 }
 
 .dashboard-kpi__icon {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  color: #6b7280;
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  color: var(--color-text-secondary);
   flex-shrink: 0;
-  transition: all 0.2s ease;
+  transition: all var(--duration-fast) var(--ease-out);
 }
 
 .dashboard-kpi:hover .dashboard-kpi__icon {
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
 }
 
 .dashboard-kpi__content {
@@ -41,17 +47,18 @@
 
 .dashboard-kpi__value {
   font-family: var(--font-family-display);
-  font-size: 28px;
+  font-size: var(--font-size-2xl);
   font-weight: 700;
-  color: #111827;
-  margin: 0 0 4px 0;
+  color: var(--color-text);
+  margin: 0 0 var(--space-4) 0;
   line-height: 1;
+  letter-spacing: -0.02em;
 }
 
 .dashboard-kpi__label {
-  font-size: 12px;
-  color: #6b7280;
-  font-weight: 500;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   line-height: 1.2;

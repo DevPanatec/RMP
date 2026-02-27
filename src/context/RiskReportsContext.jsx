@@ -45,7 +45,12 @@ export const RiskReportsProvider = ({ children }) => {
   };
 
   const getReportsByDriver = (driverName) => {
-    return reports.filter(report => report.conductor === driverName);
+    if (!driverName) return [];
+    const normalized = driverName.trim().toLowerCase();
+    return reports.filter(report => {
+      const conductor = (report.conductor || report.conductor_nombre || '').trim().toLowerCase();
+      return conductor === normalized;
+    });
   };
 
   const getReportStats = () => {

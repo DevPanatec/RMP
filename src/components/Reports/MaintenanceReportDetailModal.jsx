@@ -5,7 +5,8 @@ import {
   X, Download, MapPin, Calendar, FileText, Wrench, UserCheck, Truck, DollarSign,
   Clock, CheckCircle, AlertTriangle, Camera, Image as ImageIcon
 } from '../Icons';
-import MapComponent from '../Map/MapComponent';
+import { MapLibreComponent } from '../Map';
+import { generateMantenimientoPDFComplete } from '../../utils/reportPdfGenerator';
 import './StandardReportModal.css';
 
 // Helper para parsear fechas sin problemas de timezone
@@ -17,6 +18,7 @@ const parseLocalDate = (dateStr) => {
 
 const MaintenanceReportDetailModal = ({ report: initialReport, onClose }) => {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Cargar el reporte completo con fotos usando getReportById
   const fullReport = useQuery(
@@ -48,6 +50,24 @@ const MaintenanceReportDetailModal = ({ report: initialReport, onClose }) => {
       case 'correctivo': return 'Correctivo';
       case 'inspeccion': return 'Inspeccion';
       default: return tipo || 'General';
+    }
+  };
+
+  // Descargar PDF individual del reporte
+  const handleDownloadPDF = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    try {
+      // Usar fecha del reporte como rango (un solo dia)
+      const fecha = report.fecha_reporte || report.fecha_completada;
+      const dateRange = { desde: fecha, hasta: fecha };
+      await generateMantenimientoPDFComplete([report], dateRange);
+      console.log('📄 PDF de mantenimiento individual generado');
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      alert('Error al generar el PDF');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -356,9 +376,13 @@ const MaintenanceReportDetailModal = ({ report: initialReport, onClose }) => {
             <X size={18} />
             Cerrar
           </button>
-          <button className="report-modal__btn report-modal__btn--primary" onClick={() => {}}>
+          <button
+            className="report-modal__btn report-modal__btn--primary"
+            onClick={handleDownloadPDF}
+            disabled={isDownloading}
+          >
             <Download size={18} />
-            Descargar PDF
+            {isDownloading ? 'Generando...' : 'Descargar PDF'}
           </button>
         </div>
 

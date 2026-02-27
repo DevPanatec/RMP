@@ -868,6 +868,106 @@ export const DEMO_LUGARES = [
     tipo: 'punto_limpieza',
     direccion: 'Pueblo Nuevo, Panamá',
     descripcion: 'Mercado popular de Pueblo Nuevo'
+  },
+  {
+    id: 'demo-lugar-6',
+    nombre: 'Complejo Turístico Mi Pueblito',
+    latitud: 8.9650,
+    longitud: -79.5520,
+    foto: '/lugares/Mi Pueblito.jpeg',
+    tipo: 'punto_limpieza',
+    direccion: 'Cerro Ancón, Panamá',
+    descripcion: 'Complejo turístico y cultural Mi Pueblito'
+  },
+  {
+    id: 'demo-lugar-7',
+    nombre: 'Palacio Municipal',
+    latitud: 8.9515,
+    longitud: -79.5345,
+    foto: '/lugares/Palacio Municipal.jpg',
+    tipo: 'punto_limpieza',
+    direccion: 'Casco Antiguo, Panamá',
+    descripcion: 'Palacio Municipal de la ciudad de Panamá'
+  },
+  {
+    id: 'demo-lugar-8',
+    nombre: 'Casa Góngora',
+    latitud: 8.9525,
+    longitud: -79.5338,
+    foto: '/lugares/Plaza Gongora.jpg',
+    tipo: 'punto_limpieza',
+    direccion: 'Casco Antiguo, Panamá',
+    descripcion: 'Casa Góngora - edificio histórico del Casco Antiguo'
+  },
+  {
+    id: 'demo-lugar-9',
+    nombre: 'Casa de la Municipalidad',
+    latitud: 8.9520,
+    longitud: -79.5340,
+    foto: '/lugares/Casa de la Municipidad.jpg',
+    tipo: 'punto_limpieza',
+    direccion: 'Casco Antiguo, Panamá',
+    descripcion: 'Casa de la Municipalidad en el Casco Antiguo'
+  },
+  {
+    id: 'demo-lugar-10',
+    nombre: 'Edificio Hatillo',
+    latitud: 8.9680,
+    longitud: -79.5370,
+    foto: '/lugares/Edificio Hatillo.jpeg',
+    tipo: 'punto_limpieza',
+    direccion: 'El Hatillo, Panamá',
+    descripcion: 'Edificio administrativo Hatillo'
+  },
+  {
+    id: 'demo-lugar-11',
+    nombre: 'Almacén Central',
+    latitud: 8.9700,
+    longitud: -79.5400,
+    foto: '/lugares/Almacen Central MINSA.jpg',
+    tipo: 'punto_limpieza',
+    direccion: 'Calidonia, Panamá',
+    descripcion: 'Almacén Central de suministros'
+  },
+  {
+    id: 'demo-lugar-12',
+    nombre: 'Centro de Recaudación Magna Corp.',
+    latitud: 8.9830,
+    longitud: -79.5190,
+    foto: '/lugares/Centro de Recaudacion Magna Corp..jpg',
+    tipo: 'punto_limpieza',
+    direccion: 'Bella Vista, Panamá',
+    descripcion: 'Centro de Recaudación Magna Corp.'
+  },
+  {
+    id: 'demo-lugar-13',
+    nombre: 'Oficinas del Parque Summit',
+    latitud: 9.0600,
+    longitud: -79.6300,
+    foto: '/lugares/Oficina del Parque Summit.jpg',
+    tipo: 'punto_limpieza',
+    direccion: 'Gamboa, Panamá',
+    descripcion: 'Oficinas administrativas del Parque Summit'
+  },
+  {
+    id: 'demo-lugar-14',
+    nombre: 'Taller',
+    latitud: 8.9750,
+    longitud: -79.5280,
+    foto: '/lugares/Taller.jpg',
+    tipo: 'punto_limpieza',
+    direccion: 'Calidonia, Panamá',
+    descripcion: 'Taller de mantenimiento de equipos'
+  },
+  {
+    id: 'demo-lugar-15',
+    nombre: 'Planta de tratamiento (Mercado San Felipe Neri)',
+    latitud: 8.9540,
+    longitud: -79.5330,
+    foto: '/lugares/san felipe neri.jpeg',
+    tipo: 'punto_limpieza',
+    direccion: 'San Felipe, Casco Antiguo',
+    descripcion: 'Planta de tratamiento ubicada en el Mercado San Felipe Neri'
   }
 ];
 
@@ -882,7 +982,37 @@ export const DEMO_AREAS = [
   { id: 'demo-area-7', nombre: 'Entrada Principal', lugar_id: 'demo-lugar-4', activo: true },
   { id: 'demo-area-8', nombre: 'Patio Interior', lugar_id: 'demo-lugar-4', activo: true },
   { id: 'demo-area-9', nombre: 'Zona de Frutas y Verduras', lugar_id: 'demo-lugar-5', activo: true },
-  { id: 'demo-area-10', nombre: 'Área de Carnes', lugar_id: 'demo-lugar-5', activo: true }
+  { id: 'demo-area-10', nombre: 'Área de Carnes', lugar_id: 'demo-lugar-5', activo: true },
+  // Mi Pueblito
+  { id: 'demo-area-11', nombre: 'Área de Exhibiciones', lugar_id: 'demo-lugar-6', activo: true },
+  { id: 'demo-area-12', nombre: 'Senderos y Jardines', lugar_id: 'demo-lugar-6', activo: true },
+  // Palacio Municipal
+  { id: 'demo-area-13', nombre: 'Vestíbulo Principal', lugar_id: 'demo-lugar-7', activo: true },
+  { id: 'demo-area-14', nombre: 'Oficinas Administrativas', lugar_id: 'demo-lugar-7', activo: true },
+  // Casa Góngora
+  { id: 'demo-area-15', nombre: 'Sala de Exposiciones', lugar_id: 'demo-lugar-8', activo: true },
+  { id: 'demo-area-16', nombre: 'Patio Central', lugar_id: 'demo-lugar-8', activo: true },
+  // Casa de la Municipalidad
+  { id: 'demo-area-17', nombre: 'Recepción y Pasillos', lugar_id: 'demo-lugar-9', activo: true },
+  { id: 'demo-area-18', nombre: 'Salón de Sesiones', lugar_id: 'demo-lugar-9', activo: true },
+  // Edificio Hatillo
+  { id: 'demo-area-19', nombre: 'Lobby y Recepción', lugar_id: 'demo-lugar-10', activo: true },
+  { id: 'demo-area-20', nombre: 'Pisos Administrativos', lugar_id: 'demo-lugar-10', activo: true },
+  // Almacén Central
+  { id: 'demo-area-21', nombre: 'Zona de Almacenaje', lugar_id: 'demo-lugar-11', activo: true },
+  { id: 'demo-area-22', nombre: 'Área de Despacho', lugar_id: 'demo-lugar-11', activo: true },
+  // Centro de Recaudación Magna Corp.
+  { id: 'demo-area-23', nombre: 'Área de Atención al Público', lugar_id: 'demo-lugar-12', activo: true },
+  { id: 'demo-area-24', nombre: 'Oficinas Internas', lugar_id: 'demo-lugar-12', activo: true },
+  // Oficinas del Parque Summit
+  { id: 'demo-area-25', nombre: 'Oficinas Principales', lugar_id: 'demo-lugar-13', activo: true },
+  { id: 'demo-area-26', nombre: 'Zona de Mantenimiento', lugar_id: 'demo-lugar-13', activo: true },
+  // Taller
+  { id: 'demo-area-27', nombre: 'Área de Reparaciones', lugar_id: 'demo-lugar-14', activo: true },
+  { id: 'demo-area-28', nombre: 'Almacén de Repuestos', lugar_id: 'demo-lugar-14', activo: true },
+  // Planta de tratamiento
+  { id: 'demo-area-29', nombre: 'Zona de Procesamiento', lugar_id: 'demo-lugar-15', activo: true },
+  { id: 'demo-area-30', nombre: 'Área de Control', lugar_id: 'demo-lugar-15', activo: true }
 ];
 
 // Assignments de limpieza demo con estructura completa

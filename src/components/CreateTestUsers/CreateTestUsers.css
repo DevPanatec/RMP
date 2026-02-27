@@ -17,7 +17,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: #f5f5f5;
+  background: var(--color-surface-secondary);
   border-radius: 8px;
   margin-bottom: 8px;
 }
@@ -53,8 +53,8 @@
 .user-type {
   display: inline-block;
   padding: 2px 8px;
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--color-info-light);
+  color: var(--color-info-contrast);
   border-radius: 4px;
   font-size: 11px;
   text-transform: uppercase;
@@ -96,7 +96,7 @@
 }
 
 .result-item.success {
-  background: #e8f5e9;
+  background: var(--color-success-light);
 }
 
 .result-item.error {

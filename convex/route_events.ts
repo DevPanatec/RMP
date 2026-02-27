@@ -18,7 +18,8 @@ export const add = mutation({
       v.literal("parada_completada"),
       v.literal("ruta_completada"),
       v.literal("ruta_pausada"),
-      v.literal("ruta_reanudada")
+      v.literal("ruta_reanudada"),
+      v.literal("ruta_terminada_anticipadamente")
     ),
     parada_nombre: v.optional(v.string()),
     parada_orden: v.optional(v.float64()),

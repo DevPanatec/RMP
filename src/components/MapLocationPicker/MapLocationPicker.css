@@ -215,7 +215,7 @@
 
 /* MapLibre Location Marker */
 .maplibre-location-marker {
-  color: var(--color-primary, #0078D4);
+  color: var(--color-primary, var(--color-info));
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
   animation: markerBounce 0.3s ease-out;
 }
@@ -290,7 +290,7 @@
 }
 
 .suggestion-icon {
-  color: var(--color-primary, #0078D4);
+  color: var(--color-primary, var(--color-info));
   flex-shrink: 0;
   margin-top: 2px;
 }
@@ -302,7 +302,7 @@
 
 .suggestion-address {
   font-weight: 600;
-  color: var(--color-text, #323130);
+  color: var(--color-text, var(--color-primary));
   margin-bottom: 2px;
 }
 
@@ -358,7 +358,7 @@
 
 .coord-input:focus {
   outline: none;
-  border-color: var(--color-primary, #0078D4);
+  border-color: var(--color-primary, var(--color-info));
   box-shadow: 0 0 0 2px var(--color-focus-ring, rgba(0, 120, 212, 0.2));
 }
 
@@ -374,7 +374,7 @@
 /* Selected Location Info */
 .selected-location-info {
   background: var(--color-success-light, #DFF6DD);
-  border: 1px solid var(--color-success, #107C10);
+  border: 1px solid var(--color-success, var(--color-success));
   border-radius: var(--radius-md, 6px);
   padding: 12px 16px;
 }
@@ -386,7 +386,7 @@
 }
 
 .location-icon {
-  color: var(--color-success, #107C10);
+  color: var(--color-success, var(--color-success));
   flex-shrink: 0;
 }
 
@@ -397,7 +397,7 @@
 
 .location-address {
   font-weight: 600;
-  color: var(--color-text, #323130);
+  color: var(--color-text, var(--color-primary));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -410,7 +410,7 @@
 }
 
 .location-status {
-  color: var(--color-success, #107C10);
+  color: var(--color-success, var(--color-success));
   flex-shrink: 0;
 }
 
@@ -427,7 +427,7 @@
 }
 
 .clear-button:hover {
-  color: var(--color-text, #323130);
+  color: var(--color-text, var(--color-primary));
 }
 
 /* Loading Indicator */
@@ -441,7 +441,7 @@
   width: 16px;
   height: 16px;
   border: 2px solid var(--color-border, #EDEBE9);
-  border-top-color: var(--color-primary, #0078D4);
+  border-top-color: var(--color-primary, var(--color-info));
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

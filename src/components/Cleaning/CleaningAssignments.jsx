@@ -8,7 +8,7 @@ import CleaningModal from './CleaningModal';
 import './CleaningAssignments.css';
 
 const CleaningAssignments = ({ userRole }) => {
-  const { lugares, areas, assignments, loading, addAssignment, completeAssignment } = useCleaning();
+  const { lugares, assignments, loading, addAssignment, completeAssignment } = useCleaning();
   const { user } = useAuth();
 
   const [showModal, setShowModal] = useState(false);
@@ -54,7 +54,6 @@ const CleaningAssignments = ({ userRole }) => {
     // Buscar datos de la sala y área
     const assignment = currentAssignment;
     const sala = lugares.find(l => l._id === assignment.sala_id);
-    const area = areas.find(a => a._id === assignment.area_id);
 
     const horaFin = new Date().toTimeString().slice(0, 5);
 
@@ -66,9 +65,7 @@ const CleaningAssignments = ({ userRole }) => {
     try {
       const reportResult = await completeAssignment(assignment._id, {
         sala_id: assignment.sala_id,
-        area_id: assignment.area_id,
         sala_nombre: sala?.nombre || 'Sala desconocida',
-        area_nombre: area?.nombre || 'Área desconocida',
         latitud: sala?.latitud,
         longitud: sala?.longitud,
         fecha: assignment.fecha,
@@ -149,7 +146,6 @@ const CleaningAssignments = ({ userRole }) => {
           assignmentId={currentAssignmentId}
           assignmentData={{
             sala: lugares.find(l => l._id === currentAssignment.sala_id)?.nombre || 'Sala',
-            area: areas.find(a => a._id === currentAssignment.area_id)?.nombre || 'Área',
           }}
         />
       )}
@@ -168,9 +164,7 @@ const CleaningAssignments = ({ userRole }) => {
           ) : (
             <div className="cleaning-assignments__grid">
               {assignments.slice(0, 10).map((assignment) => {
-                // Buscar nombres de sala y área
                 const sala = lugares.find(l => l._id === assignment.sala_id);
-                const area = areas.find(a => a._id === assignment.area_id);
 
                 return (
                   <div key={assignment._id} className="assignment-card">
@@ -181,9 +175,6 @@ const CleaningAssignments = ({ userRole }) => {
                       <span className={`assignment-card__status assignment-card__status--${assignment.estado}`}>
                         {assignment.estado}
                       </span>
-                    </div>
-                    <div className="assignment-card__area">
-                      {area?.nombre || 'Sin área'}
                     </div>
                     <div className="assignment-card__date">
                       <Calendar size={14} />

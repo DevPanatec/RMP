@@ -78,8 +78,24 @@ export const add = mutation({
     observaciones: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Auto-resolve conductor_id from perfiles_usuarios if not provided
+    let conductor_id = args.conductor_id;
+    if (!conductor_id && args.conductor_nombre) {
+      const perfiles = await ctx.db
+        .query("perfiles_usuarios")
+        .withIndex("by_tipo", (q) => q.eq("tipo_usuario", "conductor"))
+        .collect();
+      const match = perfiles.find(
+        (p) => p.nombre_completo?.trim().toLowerCase() === args.conductor_nombre.trim().toLowerCase()
+      );
+      if (match) {
+        conductor_id = match._id;
+      }
+    }
+
     return await ctx.db.insert("asignaciones_rutas", {
       ...args,
+      conductor_id,
       estado: args.estado || "asignada",
     });
   },
@@ -112,7 +128,13 @@ export const update = mutation({
 export const updateEstado = mutation({
   args: {
     id: v.id("asignaciones_rutas"),
-    estado: v.string(),
+    estado: v.union(
+      v.literal("asignada"),
+      v.literal("programada"),
+      v.literal("en_progreso"),
+      v.literal("completada"),
+      v.literal("cancelada")
+    ),
   },
   handler: async (ctx, args) => {
     return await ctx.db.patch(args.id, { estado: args.estado });

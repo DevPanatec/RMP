@@ -127,7 +127,7 @@
 .header-btn.close-btn:hover {
   background: rgba(239, 68, 68, 0.2);
   border-color: rgba(239, 68, 68, 0.4);
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .date-btn span {
@@ -342,7 +342,7 @@
 }
 
 .playback-error-state p {
-  color: #ef4444;
+  color: var(--color-error);
   font-size: 15px;
   font-weight: 500;
 }
@@ -352,7 +352,7 @@
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 10px;
-  color: #ef4444;
+  color: var(--color-error);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -995,11 +995,11 @@
 }
 
 .playback-marker-start {
-  background: #10b981;
+  background: var(--color-success);
 }
 
 .playback-marker-end {
-  background: #ef4444;
+  background: var(--color-error);
 }
 
 /* Vehicle Marker for MapLibre */
@@ -1014,12 +1014,12 @@
 }
 
 .playback-vehicle-marker.moving {
-  color: #10b981;
+  color: var(--color-success);
   filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
 }
 
 .playback-vehicle-marker.stopped {
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .playback-vehicle-marker:hover {

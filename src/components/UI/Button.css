@@ -126,13 +126,13 @@
 }
 
 .btn-new--danger:hover:not(:disabled) {
-  background: #A4262C; /* Fluent red hover */
-  border-color: #A4262C;
+  background: var(--color-error-dark);
+  border-color: var(--color-error-dark);
 }
 
 .btn-new--danger:active:not(:disabled) {
-  background: #8B0000; /* Fluent red pressed */
-  border-color: #8B0000;
+  background: var(--color-error-contrast);
+  border-color: var(--color-error-contrast);
 }
 
 /* ============================================
@@ -146,13 +146,13 @@
 }
 
 .btn-new--success:hover:not(:disabled) {
-  background: #0B6A0B; /* Fluent green hover */
-  border-color: #0B6A0B;
+  background: var(--color-success-dark);
+  border-color: var(--color-success-dark);
 }
 
 .btn-new--success:active:not(:disabled) {
-  background: #094509; /* Fluent green pressed */
-  border-color: #094509;
+  background: var(--color-success-contrast);
+  border-color: var(--color-success-contrast);
 }
 
 /* ============================================

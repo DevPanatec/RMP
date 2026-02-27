@@ -445,7 +445,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
 
         const vehicleCount = normalizedCamiones.length;
         const activeCount = normalizedCamiones.filter(c => c.estado === 'En ruta' || c.estado === 'en_ruta').length;
-        const personnelCount = 16;
+        const personnelCount = displayPersonnel?.length || 0;
         const activeRoutesCount = displayRoutes.filter(r => r.estado === 'activa' || r.status === 'active').length;
 
         const heroStatsData = [

@@ -13,7 +13,8 @@ import { useReports } from '../../context/ReportsContext';
 import {
   Truck, LogOut, Download, Map, Clock, AlertTriangle,
   ClipboardList, Package, TrendingUp, FileText, MapPin,
-  CheckCircle, Calendar, Loader, Wrench, AlertOctagon, X
+  CheckCircle, Calendar, Loader, Wrench, AlertOctagon, X,
+  Activity
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
 import { RouteTimeline } from '../../components/Dashboard';
@@ -656,9 +657,9 @@ const ConductorDashboard = ({ user, onLogout }) => {
       asignacion_id: todayAssignment?._id || todayAssignment?.id,
       ruta_nombre: assignedRoute.nombre || `Ruta ${assignedRoute._id || assignedRoute.id}`, // FIXED: snake_case
       conductor_nombre: user.nombre || user.nombre_completo, // FIXED: snake_case
-      conductor_id: user._id || user.id || null,
+      conductor_id: user._id || user.id || undefined,
       vehiculo_placa: userTruck?.placa || 'N/A', // FIXED: snake_case
-      vehiculo_id: userTruck?._id || userTruck?.id || null,
+      vehiculo_id: userTruck?._id || userTruck?.id || undefined,
       fechaInicio: routeStartTime,
       fechaCompletacion: new Date().toISOString(),
       tiempoTotal: timeOnRoute,
@@ -843,9 +844,9 @@ const ConductorDashboard = ({ user, onLogout }) => {
       asignacion_id: todayAssignment?._id || todayAssignment?.id,
       ruta_nombre: assignedRoute.nombre || `Ruta ${assignedRoute._id || assignedRoute.id}`,
       conductor_nombre: user.nombre || user.nombre_completo,
-      conductor_id: user._id || user.id || null,
+      conductor_id: user._id || user.id || undefined,
       vehiculo_placa: userTruck?.placa || 'N/A',
-      vehiculo_id: userTruck?._id || userTruck?.id || null,
+      vehiculo_id: userTruck?._id || userTruck?.id || undefined,
       fechaInicio: routeStartTime,
       fechaCompletacion: new Date().toISOString(),
       tiempoTotal: timeOnRoute,
@@ -1144,61 +1145,43 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
   if (!todayAssignment) {
     return (
-      <div className="dashboard-container">
-        <div className="sidebar">
-          <div className="sidebar-header">
-            <h2><Truck size={20} /> RMP Conductor</h2>
-            <p>Bienvenido, {user.nombre}</p>
-          </div>
-          <nav className="sidebar-nav">
-            <ul>
-              <li>
-                <button
-                  className={activeTab === 'ruta' ? 'active' : ''}
-                  onClick={() => setActiveTab('ruta')}
-                >
-                  <Map size={18} /> Mi Ruta
-                </button>
-              </li>
-              <li>
-                <button
-                  className={activeTab === 'reportes' ? 'active' : ''}
-                  onClick={() => setActiveTab('reportes')}
-                >
-                  <ClipboardList size={18} /> Mis Reportes
-                </button>
-              </li>
-            </ul>
-          </nav>
-          <button
-            className="logout-btn"
-            onClick={handleLogout}
-            style={{
-              margin: '20px',
-              padding: '12px',
-              background: '#dc2626',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-          >
-            <LogOut size={18} /> Cerrar Sesión
-          </button>
-        </div>
-
-        <div className="main-content">
-          <div className="dashboard-header">
-            <h1><Truck size={24} /> Panel de Conductor</h1>
-            <div className="header-actions">
-              <button className="logout-btn" onClick={handleLogout}>
-                <LogOut size={18} /> Cerrar Sesión
+      <div className="dashboard-container conductor-dashboard">
+        <div className="app-bar">
+          <div className="app-bar__header">
+            <div className="app-bar__brand">
+              <Truck size={24} />
+              <h1 className="app-bar__title">RMP Conductor</h1>
+            </div>
+            <div className="app-bar__actions">
+              <div className="app-bar__status">
+                <Activity size={16} />
+                <span>{user.nombre}</span>
+              </div>
+              <button className="app-bar__logout" onClick={handleLogout}>
+                <LogOut size={18} />
+                <span>Cerrar Sesión</span>
               </button>
             </div>
           </div>
+          <nav className="top-nav">
+            <button
+              className={`top-nav__tab ${activeTab === 'ruta' ? 'active' : ''}`}
+              onClick={() => setActiveTab('ruta')}
+            >
+              <Map strokeWidth={1.5} size={18} />
+              <span>Mi Ruta</span>
+            </button>
+            <button
+              className={`top-nav__tab ${activeTab === 'reportes' ? 'active' : ''}`}
+              onClick={() => setActiveTab('reportes')}
+            >
+              <ClipboardList strokeWidth={1.5} size={18} />
+              <span>Mis Reportes</span>
+            </button>
+          </nav>
+        </div>
+
+        <main className="main-content">
 
           {activeTab === 'ruta' && (
             <div className="card">
@@ -1292,7 +1275,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
               )}
             </div>
           )}
-        </div>
+        </main>
       </div>
     );
   }
@@ -1300,17 +1283,22 @@ const ConductorDashboard = ({ user, onLogout }) => {
   // Validar que la ruta existe (la asignación tiene ruta_id pero la ruta no se encuentra)
   if (!assignedRoute) {
     return (
-      <div className="dashboard-container">
-        <div className="sidebar">
-          <div className="sidebar-header">
-            <h2><Truck size={20} /> RMP Conductor</h2>
-            <p>Bienvenido, {user.nombre}</p>
+      <div className="dashboard-container conductor-dashboard">
+        <div className="app-bar">
+          <div className="app-bar__header">
+            <div className="app-bar__brand">
+              <Truck size={24} />
+              <h1 className="app-bar__title">RMP Conductor</h1>
+            </div>
+            <div className="app-bar__actions">
+              <button className="app-bar__logout" onClick={handleLogout}>
+                <LogOut size={18} />
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
           </div>
         </div>
-        <div className="main-content">
-          <div className="dashboard-header">
-            <h1><Truck size={24} /> Dashboard Conductor</h1>
-          </div>
+        <main className="main-content">
           <div className="no-assignment">
             <div className="no-assignment-icon">
               <AlertTriangle size={80} />
@@ -1324,11 +1312,8 @@ const ConductorDashboard = ({ user, onLogout }) => {
             <p className="no-assignment-help">
               Por favor contacta al administrador para resolver este problema.
             </p>
-            <button className="logout-btn" onClick={handleLogout}>
-              <LogOut size={18} /> Cerrar Sesión
-            </button>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
@@ -1356,44 +1341,13 @@ const ConductorDashboard = ({ user, onLogout }) => {
         </div>
       )}
 
-      <div className="sidebar">
-        <div className="sidebar-header">
-          <h2><Truck size={20} /> RMP Conductor</h2>
-          <p>Bienvenido, {user.nombre}</p>
-        </div>
-        <nav className="sidebar-nav">
-          <ul>
-            <li>
-              <button
-                className={activeTab === 'ruta' ? 'active' : ''}
-                onClick={() => setActiveTab('ruta')}
-              >
-                <Map size={18} /> Mi Ruta
-              </button>
-            </li>
-            <li>
-              <button
-                className={activeTab === 'reportes' ? 'active' : ''}
-                onClick={() => setActiveTab('reportes')}
-              >
-                <ClipboardList size={18} /> Mis Reportes
-              </button>
-            </li>
-          </ul>
-        </nav>
-      </div>
-
-      <div className="main-content">
-        <div className="dashboard-header">
-          <div className="header-left">
-            <h1>Panel de Conductor</h1>
-            {routeStarted && (
-              <div className="header-subtitle">
-                <Map size={16} /> {assignedRoute.nombre || assignedRoute.name}
-              </div>
-            )}
+      <div className="app-bar">
+        <div className="app-bar__header">
+          <div className="app-bar__brand">
+            <Truck size={24} />
+            <h1 className="app-bar__title">RMP Conductor</h1>
           </div>
-          <div className="header-actions">
+          <div className="app-bar__actions">
             {routeStarted && (
               <>
                 <div className="time-badge">
@@ -1401,21 +1355,22 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   <span>{formatTime(timeOnRoute)}</span>
                 </div>
                 <button
-                  className="btn btn--warning"
+                  className="btn btn--warning btn--sm"
                   onClick={() => setShowRiskModal(true)}
                   title="Reportar un riesgo"
                 >
                   <AlertTriangle size={16} /> Reportar Riesgo
                 </button>
                 <button
-                  className="btn btn--danger"
+                  className="btn btn--sm"
                   onClick={() => setShowTerminateModal(true)}
                   title="Terminar ruta anticipadamente"
+                  style={{ background: 'var(--color-error)', color: 'white', border: 'none' }}
                 >
-                  <X size={16} /> Terminar Anticipadamente
+                  <X size={16} /> Terminar
                 </button>
                 <button
-                  className="btn btn--success"
+                  className="btn btn--success btn--sm"
                   onClick={handleFinalizarRuta}
                   title="Finalizar ruta actual"
                 >
@@ -1423,11 +1378,35 @@ const ConductorDashboard = ({ user, onLogout }) => {
                 </button>
               </>
             )}
-            <button className="logout-btn" onClick={handleLogout}>
+            <div className="app-bar__status">
+              <Activity size={16} />
+              <span>{user.nombre}</span>
+            </div>
+            <button className="app-bar__logout" onClick={handleLogout}>
               <LogOut size={18} />
+              <span>Salir</span>
             </button>
           </div>
         </div>
+        <nav className="top-nav">
+          <button
+            className={`top-nav__tab ${activeTab === 'ruta' ? 'active' : ''}`}
+            onClick={() => setActiveTab('ruta')}
+          >
+            <Map strokeWidth={1.5} size={18} />
+            <span>Mi Ruta</span>
+          </button>
+          <button
+            className={`top-nav__tab ${activeTab === 'reportes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('reportes')}
+          >
+            <ClipboardList strokeWidth={1.5} size={18} />
+            <span>Mis Reportes</span>
+          </button>
+        </nav>
+      </div>
+
+      <main className="main-content">
 
         {activeTab === 'ruta' && (
           <>
@@ -1783,20 +1762,11 @@ const ConductorDashboard = ({ user, onLogout }) => {
                 </div>
 
                 <div className="modal-body">
-                  <div style={{
-                    background: '#fef3c7',
-                    border: '2px solid #fbbf24',
-                    borderRadius: '8px',
-                    padding: '16px',
-                    marginBottom: '24px',
-                    display: 'flex',
-                    gap: '12px',
-                    alignItems: 'flex-start'
-                  }}>
-                    <AlertTriangle size={24} style={{ color: '#f59e0b', flexShrink: 0 }} />
+                  <div className="terminate-warning-box">
+                    <AlertTriangle size={24} className="terminate-warning-icon" />
                     <div>
-                      <h4 style={{ margin: '0 0 8px 0', color: '#92400e' }}>⚠️ Advertencia</h4>
-                      <p style={{ margin: 0, fontSize: '14px', color: '#78350f', lineHeight: '1.5' }}>
+                      <h4 className="terminate-warning-title">Advertencia</h4>
+                      <p className="terminate-warning-text">
                         Esta acción terminará tu ruta actual antes de completar todas las paradas.
                         Se generará un reporte parcial con las paradas completadas hasta el momento.
                       </p>
@@ -1804,38 +1774,23 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   </div>
 
                   {latestRisk ? (
-                    <div style={{
-                      background: '#fee2e2',
-                      border: '2px solid #ef4444',
-                      borderRadius: '8px',
-                      padding: '16px',
-                      marginBottom: '20px'
-                    }}>
-                      <h4 style={{ margin: '0 0 12px 0', color: '#7f1d1d', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className="terminate-risk-box">
+                      <h4 className="terminate-risk-title">
                         <AlertTriangle size={20} />
                         Reporte de Riesgo Detectado
                       </h4>
-                      <div style={{ marginBottom: '12px' }}>
-                        <strong style={{ color: '#991b1b' }}>{latestRisk.titulo}</strong>
-                        <p style={{ margin: '8px 0 0 0', fontSize: '14px', color: '#7f1d1d' }}>
-                          {latestRisk.descripcion}
-                        </p>
+                      <div className="terminate-risk-detail">
+                        <strong>{latestRisk.titulo}</strong>
+                        <p>{latestRisk.descripcion}</p>
                       </div>
-                      <div style={{
-                        background: 'white',
-                        padding: '12px',
-                        borderRadius: '6px',
-                        marginTop: '12px'
-                      }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                      <div className="terminate-risk-checkbox">
+                        <label>
                           <input
                             type="checkbox"
                             checked={useRiskAsReason}
                             onChange={e => setUseRiskAsReason(e.target.checked)}
                           />
-                          <span style={{ fontSize: '14px', color: '#374151' }}>
-                            Usar este reporte de riesgo como motivo de terminación
-                          </span>
+                          <span>Usar este reporte de riesgo como motivo de terminación</span>
                         </label>
                       </div>
                     </div>
@@ -1843,41 +1798,28 @@ const ConductorDashboard = ({ user, onLogout }) => {
                     <div className="form-group">
                       <label>Motivo de terminación anticipada *</label>
                       <textarea
+                        className="form-control"
                         placeholder="Describe el motivo de la terminación anticipada..."
                         rows={4}
                         value={terminateReason}
                         onChange={e => setTerminateReason(e.target.value)}
                         required
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          borderRadius: '8px',
-                          border: '1px solid #d1d5db',
-                          fontSize: '14px'
-                        }}
                       />
                     </div>
                   )}
 
-                <div style={{
-                  background: '#f3f4f6',
-                  borderRadius: '8px',
-                  padding: '16px',
-                  marginTop: '20px'
-                }}>
-                  <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#374151' }}>
-                    📊 Progreso actual
-                  </h4>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span>Paradas completadas:</span>
-                    <strong>{completedStops.length} / {getParadasArray(assignedRoute.paradas).length}</strong>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Tiempo en ruta:</span>
-                    <strong>{formatTime(timeOnRoute)}</strong>
+                  <div className="terminate-progress-box">
+                    <h4>Progreso actual</h4>
+                    <div className="terminate-progress-row">
+                      <span>Paradas completadas:</span>
+                      <strong>{completedStops.length} / {getParadasArray(assignedRoute.paradas).length}</strong>
+                    </div>
+                    <div className="terminate-progress-row">
+                      <span>Tiempo en ruta:</span>
+                      <strong>{formatTime(timeOnRoute)}</strong>
+                    </div>
                   </div>
                 </div>
-              </div>
 
               <div className="modal-footer">
                 <button
@@ -1948,7 +1890,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 /* ============================================
-   CALENDAR COMPONENT - MODERN APPLE STYLE V2
+   CALENDAR COMPONENT - FLUENT ENTERPRISE STYLE
    ============================================ */
 
 @keyframes fadeInUp {
@@ -16,9 +16,9 @@
 .calendar-v2 {
   width: 100%;
   height: 100%;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -41,7 +41,7 @@
   box-shadow:
     var(--shadow-sm),
     var(--shadow-xs),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    inset 0 1px 0 var(--color-white-alpha-15);
 }
 
 .calendar-header-info {
@@ -53,16 +53,16 @@
 .calendar-header-icon {
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%);
+  background: linear-gradient(135deg, var(--color-white-alpha-25) 0%, var(--color-white-alpha-15) 100%);
   border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    var(--shadow-md),
+    inset 0 1px 0 var(--color-white-alpha-25);
+  border: 1px solid var(--color-white-alpha-15);
 }
 
 .calendar-header-text h2 {
@@ -72,7 +72,7 @@
   color: white;
   margin: 0 0 6px 0;
   letter-spacing: -0.02em;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 1px 2px var(--color-active-overlay);
 }
 
 .calendar-header-text p {
@@ -89,9 +89,9 @@
 }
 
 .calendar-stat-pill {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--color-white-alpha-15);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--color-white-alpha-25);
   border-radius: 14px;
   padding: 10px 18px;
   display: flex;
@@ -124,30 +124,30 @@
 
 /* Stat pill variants */
 .calendar-stat-pill.success {
-  background: rgba(52, 199, 89, 0.25);
-  border-color: rgba(52, 199, 89, 0.4);
+  background: var(--color-success-light);
+  border-color: var(--color-success-border);
 }
 
 .calendar-stat-pill.success .stat-number {
-  color: #7DCEA0;
+  color: var(--color-success);
 }
 
 .calendar-stat-pill.info {
-  background: rgba(138, 43, 226, 0.25);
-  border-color: rgba(138, 43, 226, 0.4);
+  background: var(--color-info-light);
+  border-color: var(--color-info-border);
 }
 
 .calendar-stat-pill.info .stat-number {
-  color: #D8B4FF;
+  color: var(--color-info);
 }
 
 .calendar-stat-pill.warning {
-  background: rgba(0, 122, 255, 0.25);
-  border-color: rgba(0, 122, 255, 0.4);
+  background: var(--color-warning-light);
+  border-color: var(--color-warning-border);
 }
 
 .calendar-stat-pill.warning .stat-number {
-  color: #80BFFF;
+  color: var(--color-warning);
 }
 
 /* Responsive V2 Header */
@@ -189,9 +189,9 @@
 .calendar-container {
   width: 100%;
   height: 100%;
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-xs);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -199,7 +199,7 @@
 
 .calendar-header {
   padding: 24px;
-  border-bottom: 1px solid #e5e5e7;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .calendar-title h2 {
@@ -209,13 +209,13 @@
   margin: 0 0 8px 0;
   font-size: 24px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--color-text);
 }
 
 .calendar-title p {
   margin: 0;
   font-size: 14px;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
 }
 
 .calendar-controls {
@@ -224,17 +224,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid #e5e5e7;
-  background: #f5f5f7;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-secondary);
 }
 
 .view-mode-selector {
   display: flex;
   gap: 8px;
-  background: #fff;
+  background: var(--color-surface);
   padding: 4px;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-xs);
 }
 
 .view-mode-btn {
@@ -245,19 +245,19 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
   transition: all 0.2s ease;
 }
 
 .view-mode-btn:hover {
-  background: #f5f5f7;
-  color: #1d1d1f;
+  background: var(--color-surface-secondary);
+  color: var(--color-text);
 }
 
 .view-mode-btn.active {
-  background: #007aff;
-  color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 122, 255, 0.3);
+  background: var(--color-info);
+  color: white;
+  box-shadow: var(--shadow-sm);
 }
 
 .period-label {
@@ -265,7 +265,7 @@
   text-align: center;
   font-size: 16px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--color-text);
 }
 
 .date-navigation {
@@ -278,8 +278,8 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  background: #f5f5f7;
-  border-bottom: 1px solid #e5e5e7;
+  background: var(--color-surface-secondary);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .filters-label {
@@ -288,7 +288,7 @@
   gap: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
 }
 
 .filter-buttons {
@@ -299,13 +299,13 @@
 
 .filter-btn {
   padding: 8px 16px;
-  border: 2px solid #e5e5e7;
-  background: #fff;
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
   border-radius: 20px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -313,14 +313,14 @@
 }
 
 .filter-btn:hover {
-  border-color: #007aff;
-  color: #007aff;
+  border-color: var(--color-info);
+  color: var(--color-info);
 }
 
 .filter-btn.active {
-  border-color: #007aff;
-  background: #007aff;
-  color: #fff;
+  border-color: var(--color-info);
+  background: var(--color-info);
+  color: white;
 }
 
 .calendar-loading {
@@ -335,7 +335,7 @@
 
 .calendar-loading p {
   font-size: 14px;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
 }
 
 .calendar-day-view {
@@ -355,19 +355,19 @@
   justify-content: space-between;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 2px solid #e5e5e7;
+  border-bottom: 2px solid var(--color-border);
 }
 
 .single-day-header h3 {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--color-text);
 }
 
 .activity-count {
   font-size: 14px;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -380,20 +380,20 @@
 .no-activities-message {
   text-align: center;
   padding: 48px;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
 }
 
 .activity-card {
-  background: #fff;
-  border: 1px solid #e5e5e7;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 16px;
   transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-xs);
 }
 
 .activity-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   transform: translateY(-2px);
 }
 
@@ -405,19 +405,19 @@
 }
 
 .activity-time-badge {
-  background: #f5f5f7;
+  background: var(--color-surface-secondary);
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 13px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--color-text);
 }
 
 .activity-card-content h4 {
   margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--color-text);
 }
 
 .activity-meta {
@@ -432,50 +432,50 @@
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  background: #e5e5e7;
-  color: #6e6e73;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 /* Color coding por tipo de actividad */
 .activity-card.type-recoleccion {
   border-left: 4px solid var(--color-primary);
-  background: linear-gradient(to right, #f0f7f0 0%, #ffffff 8px);
+  background: linear-gradient(to right, var(--color-success-light) 0%, var(--color-surface) 8px);
 }
 
 .activity-card.type-fumigacion {
-  border-left: 4px solid #8B5CF6;
-  background: linear-gradient(to right, #f5f3ff 0%, #ffffff 8px);
+  border-left: 4px solid var(--color-warning);
+  background: linear-gradient(to right, var(--color-warning-light) 0%, var(--color-surface) 8px);
 }
 
 .activity-card.type-limpieza {
-  border-left: 4px solid #3B82F6;
-  background: linear-gradient(to right, #eff6ff 0%, #ffffff 8px);
+  border-left: 4px solid var(--color-info);
+  background: linear-gradient(to right, var(--color-info-light) 0%, var(--color-surface) 8px);
 }
 
 .activity-card.type-mantenimiento {
-  border-left: 4px solid #F59E0B;
-  background: linear-gradient(to right, #fffbeb 0%, #ffffff 8px);
+  border-left: 4px solid var(--color-error);
+  background: linear-gradient(to right, var(--color-error-light) 0%, var(--color-surface) 8px);
 }
 
 /* Badges de tipo con colores */
 .activity-type-badge.type-recoleccion {
-  background: #e8f5e8;
-  color: var(--color-primary);
+  background: var(--color-success-light);
+  color: var(--color-success-contrast);
 }
 
 .activity-type-badge.type-fumigacion {
-  background: #f5f3ff;
-  color: #7c3aed;
+  background: var(--color-warning-light);
+  color: var(--color-warning-contrast);
 }
 
 .activity-type-badge.type-limpieza {
-  background: #eff6ff;
-  color: #2563eb;
+  background: var(--color-info-light);
+  color: var(--color-info-contrast);
 }
 
 .activity-type-badge.type-mantenimiento {
-  background: #fffbeb;
-  color: #d97706;
+  background: var(--color-error-light);
+  color: var(--color-error-contrast);
 }
 
 .status-badge {
@@ -487,34 +487,34 @@
 }
 
 .status-programada {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--color-info-light);
+  color: var(--color-info-contrast);
 }
 
 .status-en-progreso {
-  background: #fff3e0;
-  color: #f57c00;
+  background: var(--color-warning-light);
+  color: var(--color-warning-contrast);
 }
 
 .status-completado {
-  background: #e8f5e9;
-  color: #388e3c;
+  background: var(--color-success-light);
+  color: var(--color-success-contrast);
 }
 
 .status-pendiente {
-  background: #fce4ec;
-  color: #c2185b;
+  background: var(--color-error-light);
+  color: var(--color-error-contrast);
 }
 
 .status-cancelada {
-  background: #fafafa;
-  color: #757575;
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
 }
 
 .activity-description {
   margin: 8px 0 0 0;
   font-size: 14px;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
@@ -533,8 +533,8 @@
 }
 
 .calendar-week-day {
-  background: #fff;
-  border: 1px solid #e5e5e7;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 12px;
   min-height: 200px;
@@ -543,17 +543,17 @@
 }
 
 .calendar-week-day:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   transform: translateY(-2px);
 }
 
 .calendar-week-day.today {
-  border: 2px solid #007aff;
-  background: #f0f7ff;
+  border: 2px solid var(--color-info);
+  background: var(--color-info-light);
 }
 
 .calendar-week-day.overloaded {
-  border-color: #ff9500;
+  border-color: var(--color-warning);
 }
 
 .week-day-header {
@@ -562,20 +562,20 @@
   justify-content: space-between;
   padding-bottom: 8px;
   margin-bottom: 8px;
-  border-bottom: 1px solid #e5e5e7;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .day-name {
   font-size: 12px;
   font-weight: 600;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
 }
 
 .day-number {
   font-size: 16px;
   font-weight: 700;
-  color: #1d1d1f;
+  color: var(--color-text);
 }
 
 .week-day-activities {
@@ -588,7 +588,7 @@
   text-align: center;
   padding: 16px;
   font-size: 13px;
-  color: #aeaeb2;
+  color: var(--color-text-muted);
 }
 
 .activity-item {
@@ -596,13 +596,13 @@
   align-items: flex-start;
   gap: 8px;
   padding: 8px;
-  background: #f5f5f7;
+  background: var(--color-surface-secondary);
   border-radius: 8px;
   transition: background 0.2s ease;
 }
 
 .activity-item:hover {
-  background: #e5e5e7;
+  background: var(--color-border);
 }
 
 .activity-details {
@@ -613,14 +613,14 @@
 .activity-time {
   font-size: 11px;
   font-weight: 600;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
   margin-bottom: 2px;
 }
 
 .activity-title {
   font-size: 12px;
   font-weight: 500;
-  color: #1d1d1f;
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -628,8 +628,8 @@
 
 .activity-overflow-card {
   padding: 8px;
-  background: #007aff;
-  color: #fff;
+  background: var(--color-info);
+  color: white;
   border-radius: 8px;
   text-align: center;
   font-size: 12px;
@@ -639,7 +639,7 @@
 }
 
 .activity-overflow-card:hover {
-  background: #0051d5;
+  background: var(--color-info-dark);
   transform: scale(1.02);
 }
 
@@ -671,7 +671,7 @@
   text-align: center;
   font-size: 12px;
   font-weight: 700;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   padding: 8px;
 }
@@ -685,8 +685,8 @@
 }
 
 .calendar-month-day {
-  background: #fff;
-  border: 1px solid #e5e5e7;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 8px;
   min-height: 100px;
@@ -696,13 +696,13 @@
 }
 
 .calendar-month-day:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   transform: translateY(-2px);
 }
 
 .calendar-month-day.today {
-  border: 2px solid #007aff;
-  background: #f0f7ff;
+  border: 2px solid var(--color-info);
+  background: var(--color-info-light);
 }
 
 .calendar-month-day.other-month {
@@ -711,14 +711,14 @@
 }
 
 .calendar-month-day.overloaded {
-  border-color: #ff9500;
-  background: #fff9f0;
+  border-color: var(--color-warning);
+  background: var(--color-warning-light);
 }
 
 .month-day-number {
   font-size: 14px;
   font-weight: 700;
-  color: #1d1d1f;
+  color: var(--color-text);
   margin-bottom: 8px;
 }
 
@@ -730,8 +730,8 @@
 
 .activity-overflow {
   padding: 4px 8px;
-  background: #007aff;
-  color: #fff;
+  background: var(--color-info);
+  color: white;
   border-radius: 8px;
   font-size: 11px;
   font-weight: 700;
@@ -741,8 +741,8 @@
   position: absolute;
   top: 8px;
   right: 8px;
-  background: #007aff;
-  color: #fff;
+  background: var(--color-info);
+  color: white;
   width: 20px;
   height: 20px;
   border-radius: 10px;
@@ -781,19 +781,19 @@
 }
 
 .activity-icon-recoleccion {
-  background: #e8f5e9;
+  background: var(--color-success-light);
 }
 
 .activity-icon-fumigacion {
-  background: #fff3e0;
+  background: var(--color-warning-light);
 }
 
 .activity-icon-limpieza {
-  background: #e3f2fd;
+  background: var(--color-info-light);
 }
 
 .activity-icon-default {
-  background: #f5f5f7;
+  background: var(--color-surface-secondary);
 }
 
 .day-details-modal .modal-content {
@@ -804,13 +804,13 @@
   margin: 0 0 4px 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--color-text);
 }
 
 .modal-subtitle {
   margin: 0;
   font-size: 14px;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
 }
 
 .modal-filters {
@@ -818,8 +818,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  border-bottom: 1px solid #e5e5e7;
-  background: #f5f5f7;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-secondary);
 }
 
 .filter-buttons-inline {
@@ -830,13 +830,13 @@
 
 .filter-btn-sm {
   padding: 6px 12px;
-  border: 1px solid #e5e5e7;
-  background: #fff;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   border-radius: 16px;
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -844,14 +844,14 @@
 }
 
 .filter-btn-sm:hover {
-  border-color: #007aff;
-  color: #007aff;
+  border-color: var(--color-info);
+  color: var(--color-info);
 }
 
 .filter-btn-sm.active {
-  border-color: #007aff;
-  background: #007aff;
-  color: #fff;
+  border-color: var(--color-info);
+  background: var(--color-info);
+  color: white;
 }
 
 .day-details-body {
@@ -863,7 +863,7 @@
 .no-activities-modal {
   text-align: center;
   padding: 48px;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
 }
 
 .activities-list {
@@ -873,15 +873,15 @@
 }
 
 .activity-detail-card {
-  background: #fff;
-  border: 1px solid #e5e5e7;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 16px;
   transition: all 0.2s ease;
 }
 
 .activity-detail-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .activity-detail-header {
@@ -900,7 +900,7 @@
 .activity-time-text {
   font-size: 14px;
   font-weight: 600;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
 }
 
 .activity-badges {
@@ -913,21 +913,21 @@
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
-  background: #e5e5e7;
-  color: #6e6e73;
+  background: var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .activity-detail-body h4 {
   margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--color-text);
 }
 
 .activity-detail-description {
   margin: 8px 0;
   font-size: 14px;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
@@ -937,7 +937,7 @@
   gap: 12px;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #e5e5e7;
+  border-top: 1px solid var(--color-border);
 }
 
 .meta-item {
@@ -953,14 +953,14 @@
 .meta-label {
   font-size: 12px;
   font-weight: 600;
-  color: #6e6e73;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
 }
 
 .meta-value {
   font-size: 14px;
   font-weight: 500;
-  color: #1d1d1f;
+  color: var(--color-text);
 }
 
 @media (max-width: 1024px) {

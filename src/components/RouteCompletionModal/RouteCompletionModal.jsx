@@ -52,9 +52,9 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
     const incompleteStops = routeData.paradas_no_completadas || [];
 
     let content = `=== REPORTE DE RUTA COMPLETADA ===\n\n`;
-    content += `Ruta: ${routeData.nombreRuta}\n`;
-    content += `Conductor: ${routeData.conductorNombre}\n`;
-    content += `Vehículo: ${routeData.vehiculoPlaca || 'N/A'}\n`;
+    content += `Ruta: ${routeData.ruta_nombre}\n`;
+    content += `Conductor: ${routeData.conductor_nombre}\n`;
+    content += `Vehículo: ${routeData.vehiculo_placa || 'N/A'}\n`;
     content += `Fecha: ${new Date(routeData.fechaInicio).toLocaleDateString('es-ES')}\n`;
     content += `Hora de inicio: ${new Date(routeData.fechaInicio).toLocaleTimeString('es-ES')}\n`;
     content += `Hora de finalización: ${new Date(routeData.fechaCompletacion).toLocaleTimeString('es-ES')}\n`;
@@ -100,7 +100,7 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `reporte-ruta-${routeData.nombreRuta}-${new Date().toISOString().split('T')[0]}.txt`;
+    a.download = `reporte-ruta-${routeData.ruta_nombre}-${new Date().toISOString().split('T')[0]}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -127,15 +127,15 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
             <div className="completion-info-grid">
               <div className="completion-info-item">
                 <span className="completion-info-label">Ruta:</span>
-                <span className="completion-info-value">{routeData.nombreRuta}</span>
+                <span className="completion-info-value">{routeData.ruta_nombre}</span>
               </div>
               <div className="completion-info-item">
                 <span className="completion-info-label">Conductor:</span>
-                <span className="completion-info-value">{routeData.conductorNombre}</span>
+                <span className="completion-info-value">{routeData.conductor_nombre}</span>
               </div>
               <div className="completion-info-item">
                 <span className="completion-info-label">Vehículo:</span>
-                <span className="completion-info-value">{routeData.vehiculoPlaca || 'N/A'}</span>
+                <span className="completion-info-value">{routeData.vehiculo_placa || 'N/A'}</span>
               </div>
               <div className="completion-info-item">
                 <span className="completion-info-label">Tiempo total:</span>

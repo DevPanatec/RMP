@@ -15,7 +15,7 @@
 
 .costos-v2 {
   padding: 24px;
-  background: #f5f7fa;
+  background: var(--color-surface-secondary);
   min-height: 100vh;
   animation: fadeInUp 0.5s ease-out;
 }
@@ -123,7 +123,7 @@
 }
 
 .costos-stat-pill.success .stat-number {
-  color: #7DCEA0;
+  color: var(--color-success);
 }
 
 .costos-stat-pill.info {
@@ -132,7 +132,169 @@
 }
 
 .costos-stat-pill.info .stat-number {
-  color: #B3B2FF;
+  color: var(--color-info);
+}
+
+.costos-stat-pill.warning {
+  background: rgba(202, 80, 16, 0.25);
+  border-color: rgba(202, 80, 16, 0.4);
+}
+
+.costos-stat-pill.warning .stat-number {
+  color: #CA5010;
+}
+
+/* Tab Selector */
+.costos-tab-selector {
+  display: flex;
+  gap: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  margin-bottom: 24px;
+  width: fit-content;
+}
+
+.costos-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.costos-tab-btn:hover:not(.active) {
+  background: var(--color-surface-secondary);
+  color: var(--color-text);
+}
+
+.costos-tab-btn.active {
+  background: var(--color-primary);
+  color: white;
+  box-shadow: var(--shadow-xs);
+}
+
+.costos-tab-content {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* Distribution Section */
+.costos-distribution-section {
+  margin-bottom: 28px;
+}
+
+.costos-distribution-section h3 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin: 0 0 16px 0;
+}
+
+.costos-distribution-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  box-shadow: var(--shadow-xs);
+}
+
+.distribution-bar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.distribution-bar {
+  display: flex;
+  height: 32px;
+  border-radius: var(--radius-base);
+  overflow: hidden;
+  background: var(--color-surface-secondary);
+}
+
+.distribution-segment {
+  transition: width 0.5s ease;
+  min-width: 2px;
+}
+
+.distribution-segment.inventario {
+  background: #5856d6;
+}
+
+.distribution-segment.mantenimiento {
+  background: #CA5010;
+}
+
+.distribution-legend {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.distribution-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.distribution-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.distribution-dot.inventario {
+  background: #5856d6;
+}
+
+.distribution-dot.mantenimiento {
+  background: #CA5010;
+}
+
+.distribution-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.distribution-value {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Tendencia Header with inline period selector */
+.tendencia-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.tendencia-header h3 {
+  margin: 0;
+}
+
+.period-selector-inline {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.period-selector-inline button {
+  color: var(--color-text-secondary);
+}
+
+.period-selector-inline button.active {
+  background: var(--color-primary);
+  color: white;
 }
 
 /* Period Selector V2 */
@@ -214,7 +376,7 @@
 
 .costos-container {
   padding: 24px;
-  background: #f5f7fa;
+  background: var(--color-surface-secondary);
   min-height: 100vh;
 }
 
@@ -228,13 +390,13 @@
 .costos-header h2 {
   font-size: 28px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--color-text);
   margin: 0 0 8px 0;
 }
 
 .costos-subtitle {
   font-size: 15px;
-  color: #86868b;
+  color: var(--color-text-secondary);
   margin: 0;
 }
 
@@ -254,19 +416,19 @@
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #86868b;
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .period-selector button.active {
-  background: #007aff;
+  background: var(--color-info);
   color: white;
 }
 
 .period-selector button:hover:not(.active) {
-  background: #f5f5f7;
-  color: #1d1d1f;
+  background: var(--color-surface-secondary);
+  color: var(--color-text);
 }
 
 /* Gráfico de costos */
@@ -295,7 +457,7 @@
 .breakdown-section h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--color-text);
   margin: 0 0 16px 0;
 }
 
@@ -343,19 +505,19 @@
 .breakdown-category {
   font-size: 14px;
   font-weight: 500;
-  color: #86868b;
+  color: var(--color-text-secondary);
 }
 
 .breakdown-percentage {
   font-size: 18px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--color-text);
 }
 
 .breakdown-amount {
   font-size: 28px;
   font-weight: 700;
-  color: #1d1d1f;
+  color: var(--color-text);
   margin-bottom: 12px;
 }
 
@@ -368,18 +530,18 @@
 }
 
 .breakdown-change.positive {
-  color: #34c759;
+  color: var(--color-success);
 }
 
 .breakdown-change.negative {
-  color: #ff3b30;
+  color: var(--color-error);
 }
 
 /* Tabla de evolución */
 .evolution-section h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--color-text);
   margin: 0 0 16px 0;
 }
 
@@ -397,7 +559,7 @@
 }
 
 .evolution-table thead {
-  background: #f5f5f7;
+  background: var(--color-surface-secondary);
 }
 
 .evolution-table th {
@@ -405,7 +567,7 @@
   text-align: left;
   font-size: 13px;
   font-weight: 600;
-  color: #86868b;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -413,8 +575,8 @@
 .evolution-table td {
   padding: 14px 16px;
   font-size: 14px;
-  color: #1d1d1f;
-  border-bottom: 1px solid #f5f5f7;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-surface-secondary);
 }
 
 .evolution-table tbody tr:last-child td {
@@ -422,14 +584,14 @@
 }
 
 .evolution-table tbody tr:hover {
-  background: #f9fafb;
+  background: var(--color-surface-secondary);
 }
 
 .index-badge {
   display: inline-block;
   padding: 4px 10px;
-  background: #007aff15;
-  color: #007aff;
+  background: var(--color-info)15;
+  color: var(--color-info);
   border-radius: 6px;
   font-weight: 600;
   font-size: 13px;
@@ -476,7 +638,7 @@
 .kpi-label {
   font-size: 13px;
   font-weight: 500;
-  color: #86868b;
+  color: var(--color-text-secondary);
   margin-bottom: 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -485,7 +647,7 @@
 .kpi-value {
   font-size: 32px;
   font-weight: 700;
-  color: #1d1d1f;
+  color: var(--color-text);
   line-height: 1;
   margin-bottom: 8px;
 }
@@ -499,17 +661,17 @@
 }
 
 .kpi-change.positive {
-  color: #34c759;
+  color: var(--color-success);
 }
 
 .kpi-change.negative {
-  color: #ff3b30;
+  color: var(--color-error);
 }
 
 /* Breakdown Metadata */
 .breakdown-meta {
   font-size: 13px;
-  color: #86868b;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -521,7 +683,7 @@
 .tendencia-section h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--color-text);
   margin: 0 0 16px 0;
 }
 
@@ -531,7 +693,7 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
-  color: #86868b;
+  color: var(--color-text-secondary);
   padding: 60px 20px;
 }
 
@@ -553,7 +715,7 @@
 .top-items-section h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #1d1d1f;
+  color: var(--color-text);
   margin: 0 0 16px 0;
 }
 
@@ -572,7 +734,7 @@
 }
 
 .top-items-table thead {
-  background: #f5f5f7;
+  background: var(--color-surface-secondary);
   border-radius: 8px;
 }
 
@@ -581,7 +743,7 @@
   text-align: left;
   font-size: 12px;
   font-weight: 600;
-  color: #86868b;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -599,8 +761,8 @@
 .top-items-table td {
   padding: 16px;
   font-size: 14px;
-  color: #1d1d1f;
-  border-bottom: 1px solid #f5f5f7;
+  color: var(--color-text);
+  border-bottom: 1px solid var(--color-surface-secondary);
   vertical-align: middle;
 }
 
@@ -609,16 +771,16 @@
 }
 
 .top-items-table tbody tr:hover {
-  background: #f9fafb;
+  background: var(--color-surface-secondary);
 }
 
 .top-items-table code {
-  background: #f5f5f7;
+  background: var(--color-surface-secondary);
   padding: 4px 8px;
   border-radius: 6px;
   font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
   font-size: 13px;
-  color: #007aff;
+  color: var(--color-info);
   font-weight: 600;
 }
 
@@ -637,7 +799,7 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
-  color: #86868b;
+  color: var(--color-text-secondary);
   padding: 60px 20px;
   background: white;
   border-radius: 16px;

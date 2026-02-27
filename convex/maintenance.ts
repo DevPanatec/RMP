@@ -53,8 +53,13 @@ export const addTask = mutation({
 export const updateTask = mutation({
   args: {
     id: v.id("maintenance_tasks"),
+    vehiculo_id: v.optional(v.id("vehiculos")),
+    titulo: v.optional(v.string()),
     descripcion: v.optional(v.string()),
+    tipo: v.optional(v.string()),
+    prioridad: v.optional(v.string()),
     estado: v.optional(v.string()),
+    fecha_programada: v.optional(v.string()),
     fecha_completada: v.optional(v.string()),
     costo: v.optional(v.number()),
     mecanico: v.optional(v.string()),
@@ -260,6 +265,63 @@ export const getReportsByVehiculo = query({
   },
 });
 
+// Query para obtener reportes con fotos para generacion de PDF
+export const listReportsWithPhotos = query({
+  args: {
+    fecha_inicio: v.optional(v.string()),
+    fecha_fin: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let reports = await ctx.db
+      .query("maintenance_reports")
+      .withIndex("by_fecha", (q) => q)
+      .order("desc")
+      .collect();
+
+    // Filtrar por rango de fechas si se proporcionan
+    if (args.fecha_inicio && args.fecha_fin) {
+      reports = reports.filter(
+        (r) => r.fecha_reporte >= args.fecha_inicio! && r.fecha_reporte <= args.fecha_fin!
+      );
+    }
+
+    // Funcion helper para obtener fotos con URLs
+    const getPhotosWithUrls = async (photoIds: any[]) => {
+      return await Promise.all(
+        (photoIds || []).map(async (photoId) => {
+          const photo = await ctx.db.get(photoId);
+          if (!photo) return null;
+          const url = await ctx.storage.getUrl(photo.storage_id);
+          return {
+            id: photo._id,
+            etapa: photo.etapa,
+            file_name: photo.file_name,
+            url,
+          };
+        })
+      );
+    };
+
+    // Procesar cada reporte con sus fotos
+    const reportsWithPhotos = await Promise.all(
+      reports.map(async (report) => {
+        const fotosAntes = await getPhotosWithUrls(report.fotos_antes_ids);
+        const fotosDurante = await getPhotosWithUrls(report.fotos_durante_ids);
+        const fotosDespues = await getPhotosWithUrls(report.fotos_despues_ids);
+
+        return {
+          ...report,
+          fotos_antes: fotosAntes.filter(Boolean),
+          fotos_durante: fotosDurante.filter(Boolean),
+          fotos_despues: fotosDespues.filter(Boolean),
+        };
+      })
+    );
+
+    return reportsWithPhotos;
+  },
+});
+
 export const createReport = mutation({
   args: {
     task_id: v.id("maintenance_tasks"),
@@ -318,5 +380,69 @@ export const createReport = mutation({
       usuario_completo: args.usuario_completo,
       fecha_reporte: new Date().toISOString().split("T")[0],
     });
+  },
+});
+
+// ========== MAINTENANCE VOLUME PRESETS ==========
+
+// List all presets (system + user's custom presets)
+export const listVolumePresets = query({
+  args: {
+    user_email: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const allPresets = await ctx.db.query("maintenance_volume_presets").collect();
+
+    // Filter: system presets (is_custom=false) + global custom + user's own custom
+    return allPresets.filter(preset =>
+      !preset.is_custom ||                          // System presets
+      preset.is_global ||                           // Global custom presets
+      preset.created_by === args.user_email         // User's own presets
+    );
+  },
+});
+
+// Create new custom preset
+export const createVolumePreset = mutation({
+  args: {
+    label: v.string(),
+    volume_gallons: v.number(),
+    cost_per_gallon: v.number(),
+    total_cost: v.number(),
+    description: v.optional(v.string()),
+    created_by: v.string(),
+    is_global: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("maintenance_volume_presets", {
+      label: args.label,
+      volume_gallons: args.volume_gallons,
+      cost_per_gallon: args.cost_per_gallon,
+      total_cost: args.total_cost,
+      description: args.description,
+      created_by: args.created_by,
+      is_custom: true,
+      is_global: args.is_global || false,
+      created_at: new Date().toISOString(),
+    });
+  },
+});
+
+// Delete custom preset (only if created by user or admin)
+export const deleteVolumePreset = mutation({
+  args: {
+    id: v.id("maintenance_volume_presets"),
+    user_email: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const preset = await ctx.db.get(args.id);
+    if (!preset) throw new Error("Preset no encontrado");
+
+    // Only allow deletion of custom presets created by this user
+    if (!preset.is_custom || preset.created_by !== args.user_email) {
+      throw new Error("No tienes permiso para eliminar este preset");
+    }
+
+    return await ctx.db.delete(args.id);
   },
 });

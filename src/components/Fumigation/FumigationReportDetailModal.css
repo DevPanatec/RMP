@@ -134,7 +134,7 @@
 }
 
 .fumigation-detail__content::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--color-surface-secondary);
   border-radius: 4px;
 }
 
@@ -153,7 +153,7 @@
 
 .fumigation-detail__map-section {
   background: white;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--color-border);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -161,11 +161,11 @@
 
 .fumigation-map-header {
   padding: 16px 20px;
-  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  background: linear-gradient(135deg, var(--color-surface-secondary) 0%, var(--color-surface-secondary) 100%);
   display: flex;
   align-items: center;
   gap: 12px;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid var(--color-border);
 }
 
 .fumigation-map-header svg {
@@ -177,7 +177,7 @@
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text);
 }
 
 .fumigation-detail__map-wrapper {
@@ -267,7 +267,7 @@
   z-index: 1000;
   font-weight: 600;
   font-size: 14px;
-  color: #111827;
+  color: var(--color-text);
 }
 
 .fumigation-map-label svg {
@@ -293,7 +293,7 @@
   gap: 12px;
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 2px solid #f3f4f6;
+  border-bottom: 2px solid var(--color-surface-secondary);
 }
 
 .fumigation-summary-header svg {
@@ -305,7 +305,7 @@
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text);
 }
 
 .fumigation-summary-grid {
@@ -315,8 +315,8 @@
 }
 
 .fumigation-summary-card {
-  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
-  border: 2px solid #e5e7eb;
+  background: linear-gradient(135deg, var(--color-surface-secondary) 0%, #ffffff 100%);
+  border: 2px solid var(--color-border);
   border-radius: 12px;
   padding: 20px;
   display: flex;
@@ -354,7 +354,7 @@
 .summary-card-label {
   font-size: 12px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -362,7 +362,7 @@
 .summary-card-value {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text);
   line-height: 1.4;
 }
 
@@ -370,7 +370,7 @@
   display: inline-block;
   margin-left: 8px;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -392,7 +392,7 @@
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 16px;
-  border-bottom: 2px solid #f3f4f6;
+  border-bottom: 2px solid var(--color-surface-secondary);
 }
 
 .fumigation-productos-header svg {
@@ -404,7 +404,7 @@
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text);
   flex: 1;
 }
 
@@ -432,12 +432,12 @@
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
-  border: 2px solid #e5e7eb;
+  background: linear-gradient(135deg, var(--color-surface-secondary) 0%, #ffffff 100%);
+  border: 2px solid var(--color-border);
   border-radius: 10px;
   font-size: 15px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text);
   transition: all 0.2s ease;
 }
 
@@ -457,8 +457,8 @@
    ======================================== */
 
 .fumigation-detail__observaciones-pro {
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-  border: 2px solid #fbbf24;
+  background: linear-gradient(135deg, #fffbeb 0%, var(--color-warning-light) 100%);
+  border: 2px solid var(--color-warning);
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(251, 191, 36, 0.15);
@@ -472,7 +472,7 @@
 }
 
 .fumigation-observaciones-header svg {
-  color: #d97706;
+  color: var(--color-warning-dark);
   flex-shrink: 0;
 }
 
@@ -509,7 +509,7 @@
   gap: 12px;
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 2px solid #f3f4f6;
+  border-bottom: 2px solid var(--color-surface-secondary);
 }
 
 .fumigation-photos-header svg {
@@ -521,7 +521,7 @@
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text);
   flex: 1;
 }
 
@@ -541,7 +541,7 @@
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  color: #9ca3af;
+  color: var(--color-text-muted);
 }
 
 .photos-empty-pro svg {
@@ -567,7 +567,7 @@
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--color-border);
   transition: all 0.3s ease;
 }
 

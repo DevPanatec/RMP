@@ -43,7 +43,7 @@
   height: 300px;
   position: relative;
   flex-shrink: 0;
-  background: #e5e7eb;
+  background: var(--color-border);
 }
 
 .location-map-container iframe {
@@ -160,7 +160,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #1f2937;
+  color: var(--color-text);
   transition: all 0.2s ease;
   box-shadow: 0 2px 12px rgba(0,0,0,0.2);
 }
@@ -206,11 +206,11 @@
   gap: 8px;
   padding: 8px 16px;
   background: white;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--color-border);
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -274,11 +274,11 @@
 .date-presets-buttons button {
   padding: 6px 14px;
   background: white;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-border-strong);
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -297,11 +297,11 @@
 
 .date-range-inputs-inline input {
   padding: 6px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-border-strong);
   border-radius: 6px;
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text);
   background: white;
   font-family: monospace;
 }
@@ -313,7 +313,7 @@
 }
 
 .date-range-inputs-inline span {
-  color: #9ca3af;
+  color: var(--color-text-muted);
   font-weight: 600;
 }
 
@@ -333,7 +333,7 @@
   align-items: center;
   justify-content: center;
   padding: 80px 20px;
-  color: #9ca3af;
+  color: var(--color-text-muted);
 }
 
 .empty-reports svg {
@@ -350,7 +350,7 @@
 /* Report Card */
 .report-card {
   background: white;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--color-border);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
@@ -393,7 +393,7 @@
   margin: 0 0 8px;
   font-size: 17px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text);
   line-height: 1.4;
 }
 
@@ -409,7 +409,7 @@
   align-items: center;
   gap: 6px;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -446,7 +446,7 @@
 
 .download-single-btn {
   background: transparent;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--color-border);
   width: 36px;
   height: 36px;
   border-radius: 8px;
@@ -454,7 +454,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   transition: all 0.2s ease;
   flex-shrink: 0;
 }
@@ -469,7 +469,7 @@
 /* Fotos Mini */
 .report-photos-mini {
   padding-top: 16px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--color-surface-secondary);
 }
 
 .photos-mini-header {
@@ -479,7 +479,7 @@
   margin-bottom: 12px;
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .photos-mini-grid {
@@ -493,8 +493,8 @@
   aspect-ratio: 1;
   border-radius: 8px;
   overflow: hidden;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .photo-mini-thumb img {
@@ -521,8 +521,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
   font-size: 16px;
   font-weight: 700;
 }
@@ -532,10 +532,10 @@
   margin-top: 16px;
   padding: 12px;
   background: #fffbeb;
-  border-left: 3px solid #f59e0b;
+  border-left: 3px solid var(--color-warning);
   border-radius: 6px;
   font-size: 14px;
-  color: #92400e;
+  color: var(--color-warning-dark);
   line-height: 1.6;
 }
 

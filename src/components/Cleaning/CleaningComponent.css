@@ -162,12 +162,12 @@
 }
 
 .cleaning-notice svg {
-  color: #007AFF;
+  color: var(--color-info);
   flex-shrink: 0;
 }
 
 .cleaning-notice strong {
-  color: #007AFF;
+  color: var(--color-info);
   font-weight: 600;
 }
 

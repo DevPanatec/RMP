@@ -50,32 +50,32 @@
 /* Estado: Conectado */
 .gps-status-indicator.gps-status--connected {
   background-color: rgba(16, 185, 129, 0.1);
-  color: #059669;
+  color: var(--color-success-dark);
   border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .gps-status--connected .gps-status-icon {
-  color: #10b981;
+  color: var(--color-success);
 }
 
 .gps-status--connected .gps-status-badge {
-  background-color: #10b981;
+  background-color: var(--color-success);
   color: white;
 }
 
 /* Estado: Desconectado */
 .gps-status-indicator.gps-status--disconnected {
   background-color: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  color: var(--color-error);
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .gps-status--disconnected .gps-status-icon {
-  color: #ef4444;
+  color: var(--color-error);
 }
 
 .gps-status--disconnected .gps-status-badge {
-  background-color: #ef4444;
+  background-color: var(--color-error);
   color: white;
 }
 

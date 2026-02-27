@@ -178,7 +178,7 @@
 
 .assignment-card__status--programada {
   background: rgba(0, 122, 255, 0.1);
-  color: #007AFF;
+  color: var(--color-info);
 }
 
 .assignment-card__status--realizada {

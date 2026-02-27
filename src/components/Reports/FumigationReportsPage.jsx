@@ -173,14 +173,15 @@ const FumigationReportsPage = ({ location, onClose, getStatusVariant }) => {
     });
   };
 
-  // Generar URL del mapa
-  const mapEmbedUrl = location.nombre
-    ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${encodeURIComponent(location.nombre + ', Panama City, Panama')}&zoom=17`
-    : null;
+  // Generar URL del mapa - preferir coordenadas GPS si están disponibles
+  const mapQuery = location.latitud && location.longitud
+    ? `${location.latitud},${location.longitud}`
+    : encodeURIComponent(location.nombre + ', Panama City, Panama');
+  const mapEmbedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${mapQuery}&zoom=17`;
 
-  const googleMapsUrl = location.nombre
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.nombre + ', Panama City, Panama')}`
-    : null;
+  const googleMapsUrl = location.latitud && location.longitud
+    ? `https://www.google.com/maps/search/?api=1&query=${location.latitud},${location.longitud}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.nombre + ', Panama City, Panama')}`;
 
   return (
     <div className="fumigation-reports-page">

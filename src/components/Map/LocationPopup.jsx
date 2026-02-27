@@ -4,11 +4,26 @@ import './LocationPopup.css';
 const LocationPopup = ({ location, onClose, onViewReports }) => {
   if (!location) return null;
 
-  // Calcular última limpieza
-  const getLastCleaning = () => {
-    // Esta info vendría de los assignments pero por ahora usamos placeholder
-    return 'Hoy 07:45 AM';
+  // Mapeo de imágenes por nombre de lugar
+  const imageMap = {
+    'Mercado del Marisco': '/lugares/mercado de mariscos.jpg',
+    'Mercado San Felipe Neri': '/lugares/san felipe neri.jpeg',
+    'Mercado de Alcalde Díaz': '/lugares/Mercado Alcalde Diaz.jpeg',
+    'Mercado de Pueblo Nuevo': '/lugares/Mercado Pueblo Nuevo.jpg',
+    'Mercado de Pacora': '/lugares/Mercado de Pacora.jpg',
+    'Complejo Turístico Mi Pueblito': '/lugares/Mi Pueblito.jpeg',
+    'Palacio Municipal': '/lugares/Palacio Municipal.jpg',
+    'Casa Góngora': '/lugares/Plaza Gongora.jpg',
+    'Casa de la Municipalidad': '/lugares/Casa de la Municipidad.jpg',
+    'Edificio Hatillo': '/lugares/Edificio Hatillo.jpeg',
+    'Almacén Central': '/lugares/Almacen Central MINSA.jpg',
+    'Centro de Recaudación Magna Corp.': '/lugares/Centro de Recaudacion Magna Corp..jpg',
+    'Oficinas del Parque Summit': '/lugares/Oficina del Parque Summit.jpg',
+    'Planta de tratamiento (Mercado San Felipe Neri)': '/lugares/san felipe neri.jpeg',
+    'Taller': '/lugares/Taller.jpg',
   };
+
+  const imageUrl = imageMap[location.nombre] || null;
 
   return (
     <div className="location-popup-overlay" onClick={onClose}>
@@ -19,13 +34,19 @@ const LocationPopup = ({ location, onClose, onViewReports }) => {
 
         {/* Imagen del lugar */}
         <div className="location-popup-image">
-          <img
-            src={location.foto}
-            alt={location.nombre}
-            onError={(e) => {
-              e.target.src = '/placeholder-location.jpg';
-            }}
-          />
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={location.nombre}
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'var(--color-surface-secondary, #f3f2f1)' }}>
+              <MapPin size={48} strokeWidth={1.5} style={{ color: 'var(--color-text-secondary, #605e5c)' }} />
+            </div>
+          )}
           <div className="location-popup-badge">
             <MapPin size={14} strokeWidth={2} />
             Punto de Limpieza
@@ -36,19 +57,23 @@ const LocationPopup = ({ location, onClose, onViewReports }) => {
         <div className="location-popup-content">
           <h3 className="location-popup-title">{location.nombre}</h3>
 
-          <div className="location-popup-info">
-            <div className="location-popup-info-item">
-              <MapPin size={14} />
-              <span>{location.direccion}</span>
+          {location.descripcion && (
+            <div className="location-popup-info">
+              <div className="location-popup-info-item">
+                <MapPin size={14} />
+                <span>{location.descripcion}</span>
+              </div>
             </div>
+          )}
 
-            <div className="location-popup-info-item">
-              <Calendar size={14} />
-              <span>Última limpieza: {getLastCleaning()}</span>
+          {location.latitud && location.longitud && (
+            <div className="location-popup-info">
+              <div className="location-popup-info-item">
+                <Calendar size={14} />
+                <span>{location.latitud.toFixed(4)}, {location.longitud.toFixed(4)}</span>
+              </div>
             </div>
-          </div>
-
-          <p className="location-popup-description">{location.descripcion}</p>
+          )}
 
           {/* Botón para ver reportes */}
           <button

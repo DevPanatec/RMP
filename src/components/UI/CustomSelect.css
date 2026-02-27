@@ -34,24 +34,22 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  background: rgba(255, 255, 255, 0.8);
-  border: 2px solid rgba(142, 142, 147, 0.15);
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
   border-radius: var(--radius-base); /* 4px - enterprise style */
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  transition: all var(--duration-fast) var(--ease-smooth);
   min-height: 48px;
 }
 
 .custom-select-trigger:hover {
-  border-color: rgba(142, 142, 147, 0.25);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.08);
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-xs);
 }
 
 .custom-select-trigger.open {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--color-surface);
   border-color: var(--color-primary);
   box-shadow:
     0 0 0 4px var(--color-primary-subtle),
@@ -90,10 +88,8 @@
   bottom: auto;
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(60px);
-  -webkit-backdrop-filter: blur(60px);
-  border: 1px solid rgba(142, 142, 147, 0.12);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-base); /* 4px - enterprise style */
   box-shadow: var(--shadow-md); /* Maximum allowed for dropdowns */
   z-index: 9999;
@@ -143,7 +139,7 @@
   align-items: center;
   gap: 10px;
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(142, 142, 147, 0.08);
+  border-bottom: 1px solid var(--color-divider);
   background: var(--color-surface); /* Enterprise: solid color */
   flex-shrink: 0;
 }
@@ -183,14 +179,14 @@
 }
 
 .select-options::-webkit-scrollbar-thumb {
-  background: rgba(142, 142, 147, 0.25);
+  background: var(--color-border-strong);
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
 .select-options::-webkit-scrollbar-thumb:hover {
-  background: rgba(142, 142, 147, 0.4);
+  background: var(--color-text-muted);
   background-clip: padding-box;
 }
 
@@ -199,7 +195,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   margin-bottom: 4px;
@@ -211,7 +207,7 @@
 }
 
 .select-option:hover {
-  background: rgba(142, 142, 147, 0.08);
+  background: var(--color-hover-overlay);
   transform: translateX(4px);
 }
 
@@ -280,8 +276,6 @@
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
     z-index: 10001;
     animation: fadeInBackdrop 0.2s ease;
   }
@@ -341,9 +335,7 @@
     position: sticky;
     top: 0;
     z-index: 10;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: var(--color-surface);
   }
 
   .select-options {

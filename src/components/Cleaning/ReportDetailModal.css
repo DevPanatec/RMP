@@ -354,15 +354,15 @@
 }
 
 .stage-indicator.antes {
-  background: #ef4444;
+  background: var(--color-error);
 }
 
 .stage-indicator.durante {
-  background: #f59e0b;
+  background: var(--color-warning);
 }
 
 .stage-indicator.despues {
-  background: #22c55e;
+  background: var(--color-success);
 }
 
 .stage-title {

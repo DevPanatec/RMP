@@ -78,7 +78,7 @@
 .fleet-header-text p {
   margin: 0;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -119,22 +119,22 @@
 .fleet-stat-pill .stat-number {
   font-size: 24px;
   font-weight: 700;
-  color: #1a1a1a;
+  color: var(--color-text);
   line-height: 1;
   letter-spacing: -0.02em;
 }
 
 .fleet-stat-pill.success .stat-number {
-  color: #34c759;
+  color: var(--color-success);
 }
 
 .fleet-stat-pill.info .stat-number {
-  color: #007aff;
+  color: var(--color-info);
 }
 
 .fleet-stat-pill .stat-label {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -209,13 +209,13 @@
   margin: 0 0 8px 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--color-text);
 }
 
 .fleet-empty-state p {
   margin: 0 0 24px 0;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   max-width: 300px;
 }
 
@@ -226,7 +226,7 @@
 .vehicle-card-v2 {
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
+  background: linear-gradient(135deg, #ffffff 0%, var(--color-surface-secondary) 100%);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-base); /* 4px - enterprise */
   overflow: hidden;
@@ -276,21 +276,21 @@
   background: white;
   border: 1.5px solid rgba(0, 0, 0, 0.08);
   border-radius: var(--radius-base); /* 4px - enterprise */
-  color: #6b7280;
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-icon-action:hover {
-  background: #f3f4f6;
-  color: #1a1a1a;
+  background: var(--color-surface-secondary);
+  color: var(--color-text);
   border-color: rgba(0, 0, 0, 0.15);
   transform: scale(1.05);
 }
 
 .btn-icon-action.danger:hover {
   background: rgba(255, 59, 48, 0.1);
-  color: #ff3b30;
+  color: var(--color-error);
   border-color: rgba(255, 59, 48, 0.3);
 }
 
@@ -304,7 +304,7 @@
   margin: 0 0 4px 0;
   font-size: 18px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--color-text);
   letter-spacing: -0.01em;
 }
 
@@ -312,7 +312,7 @@
   margin: 0 0 16px 0;
   font-size: 14px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-family: var(--font-family-mono, monospace);
   letter-spacing: 0.5px;
 }
@@ -337,19 +337,19 @@
 
 .gps-badge.online {
   background: rgba(52, 199, 89, 0.12);
-  color: #34c759;
+  color: var(--color-success);
   border: 1px solid rgba(52, 199, 89, 0.2);
 }
 
 .gps-badge.offline {
   background: rgba(255, 149, 0, 0.12);
-  color: #ff9500;
+  color: var(--color-warning);
   border: 1px solid rgba(255, 149, 0, 0.2);
 }
 
 .gps-badge.no-gps {
   background: rgba(142, 142, 147, 0.12);
-  color: #8e8e93;
+  color: var(--color-text-muted);
   border: 1px solid rgba(142, 142, 147, 0.2);
 }
 
@@ -359,7 +359,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #8e8e93;
+  color: var(--color-text-muted);
 }
 
 /* Card Footer */
@@ -466,7 +466,7 @@
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--color-text);
   letter-spacing: -0.01em;
 }
 
@@ -479,14 +479,14 @@
   background: rgba(0, 0, 0, 0.05);
   border: none;
   border-radius: var(--radius-base); /* 4px - enterprise */
-  color: #6b7280;
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-close-v2:hover {
   background: rgba(0, 0, 0, 0.1);
-  color: #1a1a1a;
+  color: var(--color-text);
 }
 
 /* Form V2 */
@@ -505,7 +505,7 @@
   margin-bottom: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--color-text);
 }
 
 .form-group-v2 input {
@@ -516,7 +516,7 @@
   font-size: 15px;
   font-family: inherit;
   transition: all 0.2s ease;
-  background: #fafafa;
+  background: var(--color-surface-secondary);
 }
 
 .form-group-v2 input:focus {
@@ -527,11 +527,11 @@
 }
 
 .form-group-v2 input::placeholder {
-  color: #9ca3af;
+  color: var(--color-text-muted);
 }
 
 .form-group-v2 input.input-warning {
-  border-color: #ff9500;
+  border-color: var(--color-warning);
   background: rgba(255, 149, 0, 0.05);
 }
 
@@ -549,12 +549,12 @@
 
 .imei-status.valid {
   background: rgba(52, 199, 89, 0.12);
-  color: #34c759;
+  color: var(--color-success);
 }
 
 .imei-status.partial {
   background: rgba(255, 149, 0, 0.12);
-  color: #ff9500;
+  color: var(--color-warning);
 }
 
 /* Form Divider */
@@ -574,7 +574,7 @@
   display: block;
   margin-top: 8px;
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--color-text-muted);
   line-height: 1.4;
 }
 
@@ -584,7 +584,7 @@
   background: rgba(255, 59, 48, 0.08);
   border: 1px solid rgba(255, 59, 48, 0.2);
   border-radius: var(--radius-base); /* 4px - enterprise */
-  color: #ff3b30;
+  color: var(--color-error);
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 20px;
@@ -613,11 +613,11 @@
 .btn-secondary-v2 {
   background: white;
   border: 2px solid rgba(0, 0, 0, 0.1);
-  color: #374151;
+  color: var(--color-text);
 }
 
 .btn-secondary-v2:hover {
-  background: #f9fafb;
+  background: var(--color-surface-secondary);
   border-color: rgba(0, 0, 0, 0.15);
 }
 

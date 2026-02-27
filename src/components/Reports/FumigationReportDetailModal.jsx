@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import { X, MapPin, Clock, Calendar, FileText, Spray, UserCheck, Camera, CheckCircle, Wrench } from '../Icons';
-import MapComponent from '../Map/MapComponent';
+import { X, Download, MapPin, Clock, Calendar, FileText, Spray, UserCheck, Camera, CheckCircle, Wrench } from '../Icons';
+import { MapLibreComponent } from '../Map';
+import { generateFumigacionPDFComplete } from '../../utils/reportPdfGenerator';
 import './RouteReportDetailModal.css';
 
 // Helper para parsear fechas sin problemas de timezone
@@ -12,6 +14,8 @@ const parseLocalDate = (dateStr) => {
 };
 
 const FumigationReportDetailModal = ({ report: initialReport, onClose }) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+
   // Cargar el reporte completo con fotos usando getReportById
   const fullReport = useQuery(
     api.fumigaciones.getReportById,
@@ -24,6 +28,20 @@ const FumigationReportDetailModal = ({ report: initialReport, onClose }) => {
   if (!initialReport) return null;
 
   const isLoadingPhotos = !fullReport && initialReport;
+
+  const handleDownloadPDF = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    try {
+      const fecha = report.fecha_completacion || report.fecha;
+      await generateFumigacionPDFComplete([report], { desde: fecha, hasta: fecha });
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      alert('Error al generar el PDF');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const formatDuration = (minutes) => {
     const hours = Math.floor(minutes / 60);
@@ -114,7 +132,7 @@ const FumigationReportDetailModal = ({ report: initialReport, onClose }) => {
             <h3><MapPin size={20} /> Ubicación de Fumigación</h3>
             {lugarParaMapa.length > 0 ? (
               <div className="route-map-container">
-                <MapComponent
+                <MapLibreComponent
                   key={`map-${report._id}`}
                   camiones={[]}
                   rutas={[]}
@@ -253,6 +271,14 @@ const FumigationReportDetailModal = ({ report: initialReport, onClose }) => {
         <div className="route-report-footer">
           <button className="btn btn--secondary" onClick={onClose}>
             Cerrar
+          </button>
+          <button
+            className="btn btn--primary"
+            onClick={handleDownloadPDF}
+            disabled={isDownloading}
+          >
+            <Download size={16} />
+            {isDownloading ? 'Generando...' : 'Descargar PDF'}
           </button>
         </div>
       </div>

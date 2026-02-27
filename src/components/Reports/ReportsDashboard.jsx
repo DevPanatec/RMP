@@ -2,17 +2,13 @@ import { useState, useMemo } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useAuth } from '../../context/AuthContext';
-import { useRoutes } from '../../context/RoutesContext';
 import { useCleaning } from '../../context/CleaningContext';
 import { useFumigation } from '../../context/FumigationContext';
 import { useMaintenance } from '../../context/MaintenanceContext';
 import { useReports } from '../../context/ReportsContext';
-import { Truck, Sparkles, Wrench, Bug, Download, ChevronRight, Calendar, BarChart3 } from '../Icons';
-import pdfMake from 'pdfmake/build/pdfmake';
-import * as pdfFonts from 'pdfmake/build/vfs_fonts';
+import { Truck, Sparkles, Wrench, Bug, Download, ChevronRight, Calendar, BarChart3, CheckSquare } from '../Icons';
+import { generateCombinedPDFComplete } from '../../utils/reportPdfGenerator';
 import './ReportsDashboard.css';
-
-pdfMake.vfs = pdfFonts.vfs;
 
 // Helper para parsear fechas sin problemas de timezone
 const parseLocalDate = (dateStr) => {
@@ -23,17 +19,22 @@ const parseLocalDate = (dateStr) => {
 
 const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
   const { user } = useAuth();
-  const { routes } = useRoutes();
   const { assignments: cleaningAssignments } = useCleaning();
   const { assignments: fumigationAssignments } = useFumigation();
   const { tasks: maintenanceTasks } = useMaintenance();
   const { reports } = useReports();
 
-  // Query para reportes de mantenimiento
+  // Query para reportes de mantenimiento (estadisticas)
   const maintenanceReportsData = useQuery(api.maintenance.listReports);
   const maintenanceReports = maintenanceReportsData || [];
 
+  // Queries para reportes COMPLETOS con fotos (para descarga)
+  const cleaningReportsWithPhotos = useQuery(api.cleaning.listReportsWithPhotos, {});
+  const fumigationReportsWithPhotos = useQuery(api.fumigaciones.listReportsWithPhotos, {});
+  const maintenanceReportsWithPhotos = useQuery(api.maintenance.listReportsWithPhotos, {});
+
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
   const [showDownloadPanel, setShowDownloadPanel] = useState(false);
 
   // Estado para controles de descarga
@@ -48,6 +49,8 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
     limpieza: true,
     mantenimiento: false
   });
+
+  const [includeIndex, setIncludeIndex] = useState(true);
 
   // Datos de reportes
   const rutasRecoleccion = reports.filter(r => r.tipo_ruta === 'recoleccion');
@@ -83,25 +86,31 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
     return { recoleccionRecent, fumigacionRecent, limpiezaRecent, mantenimientoRecent };
   }, [rutasRecoleccion, fumigationAssignments, cleaningAssignments, maintenanceTasks]);
 
-  // Última actualización
-  const lastUpdate = useMemo(() => {
-    if (rutasRecoleccion.length === 0) return 'Sin datos';
-    const dates = rutasRecoleccion.map(r => parseLocalDate(r.fecha_completacion)).filter(d => !isNaN(d));
-    if (dates.length === 0) return 'Sin datos';
-    const maxDate = new Date(Math.max(...dates));
-    return maxDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  }, [rutasRecoleccion]);
+  // Última actualización por módulo
+  const getLastUpdate = (dates) => {
+    const validDates = dates.filter(d => d && !isNaN(d));
+    if (validDates.length === 0) return 'Sin datos';
+    const maxDate = new Date(Math.max(...validDates));
+    return maxDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const lastUpdates = useMemo(() => ({
+    recoleccion: getLastUpdate(rutasRecoleccion.map(r => r.fecha_completacion ? parseLocalDate(r.fecha_completacion) : null)),
+    fumigacion: getLastUpdate((fumigationAssignments || []).filter(a => a.estado === 'realizada' || a.estado === 'reportada').map(a => a.fecha ? parseLocalDate(a.fecha) : null)),
+    limpieza: getLastUpdate(cleaningAssignments.filter(a => a.estado === 'completado').map(a => a.fecha ? parseLocalDate(a.fecha) : null)),
+    mantenimiento: getLastUpdate(maintenanceReports.map(r => r.fecha_reporte ? parseLocalDate(r.fecha_reporte) : null)),
+  }), [rutasRecoleccion, fumigationAssignments, cleaningAssignments, maintenanceReports]);
 
   // Toggle módulo
   const toggleModule = (module) => {
     setSelectedModules(prev => ({ ...prev, [module]: !prev[module] }));
   };
 
-  // Descargar reportes combinados
+  // Descargar reportes combinados COMPLETOS con fotos
   const handleCombinedDownload = async () => {
     const hasSelection = Object.values(selectedModules).some(v => v);
     if (!hasSelection) {
-      alert('Debe seleccionar al menos un módulo para descargar');
+      alert('Debe seleccionar al menos un modulo para descargar');
       return;
     }
 
@@ -116,154 +125,44 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
     }
 
     setIsDownloading(true);
+    setDownloadProgress(0);
 
     try {
-      const content = [];
-      const desde = parseLocalDate(dateRange.desde);
-      const hasta = parseLocalDate(dateRange.hasta);
-
-      content.push({
-        text: 'REPORTES COMBINADOS - RMP',
-        style: 'header',
-        alignment: 'center',
-        margin: [0, 0, 0, 10]
-      });
-
-      content.push({
-        columns: [
-          { text: `Periodo: ${desde.toLocaleDateString('es-ES')} - ${hasta.toLocaleDateString('es-ES')}`, width: '*' },
-          { text: `Generado: ${new Date().toLocaleString('es-ES')}`, width: 'auto', alignment: 'right' }
-        ],
-        margin: [0, 0, 0, 20]
-      });
-
-      content.push({
-        canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1 }],
-        margin: [0, 0, 0, 20]
-      });
-
-      // Recolección
-      if (selectedModules.recoleccion) {
-        const filtered = reports.filter(r => {
-          const rDate = parseLocalDate(r.fecha_completacion);
-          return rDate >= desde && rDate <= hasta;
-        });
-
-        content.push({ text: 'REPORTES DE RECOLECCIÓN', style: 'sectionHeader', margin: [0, 0, 0, 10] });
-        content.push({ text: `Total de reportes: ${filtered.length}`, margin: [0, 0, 0, 10] });
-
-        if (filtered.length > 0) {
-          filtered.forEach((report, idx) => {
-            content.push({
-              text: `${idx + 1}. ${report.ruta_nombre || 'Ruta'} - ${parseLocalDate(report.fecha_completacion).toLocaleDateString('es-ES')}`,
-              margin: [10, 5, 0, 0]
-            });
-            content.push({
-              text: `   Conductor: ${report.conductor_nombre} | Vehículo: ${report.vehiculo_placa}`,
-              fontSize: 10,
-              color: '#666',
-              margin: [10, 2, 0, 5]
-            });
-          });
-        } else {
-          content.push({ text: 'No hay reportes en el periodo seleccionado', italics: true, color: '#999', margin: [10, 0, 0, 10] });
-        }
-        content.push({ text: '', margin: [0, 0, 0, 15] });
-      }
-
-      // Fumigación
-      if (selectedModules.fumigacion && fumigationAssignments) {
-        const filtered = fumigationAssignments.filter(f => {
-          const fDate = parseLocalDate(f.fecha);
-          return fDate >= desde && fDate <= hasta;
-        });
-
-        content.push({ text: 'REPORTES DE FUMIGACIÓN', style: 'sectionHeader', margin: [0, 0, 0, 10] });
-        content.push({ text: `Total de reportes: ${filtered.length}`, margin: [0, 0, 0, 10] });
-
-        if (filtered.length > 0) {
-          filtered.forEach((fumigation, idx) => {
-            const tipo = fumigation.tipo_fumigacion === 'interna' ? 'Interna' : 'Externa';
-            content.push({
-              text: `${idx + 1}. ${tipo} - ${fumigation.lugar_nombre} - ${parseLocalDate(fumigation.fecha).toLocaleDateString('es-ES')}`,
-              margin: [10, 5, 0, 0]
-            });
-          });
-        } else {
-          content.push({ text: 'No hay reportes en el periodo seleccionado', italics: true, color: '#999', margin: [10, 0, 0, 10] });
-        }
-        content.push({ text: '', margin: [0, 0, 0, 15] });
-      }
-
-      // Limpieza
-      if (selectedModules.limpieza && cleaningAssignments) {
-        const filtered = cleaningAssignments.filter(a => {
-          const aDate = parseLocalDate(a.fecha);
-          return aDate >= desde && aDate <= hasta;
-        });
-
-        content.push({ text: 'REPORTES DE LIMPIEZA', style: 'sectionHeader', margin: [0, 0, 0, 10] });
-        content.push({ text: `Total de reportes: ${filtered.length}`, margin: [0, 0, 0, 10] });
-
-        if (filtered.length > 0) {
-          filtered.forEach((cleaning, idx) => {
-            content.push({
-              text: `${idx + 1}. ${cleaning.lugar?.nombre || 'Lugar'} - ${cleaning.area?.nombre || 'Área'} - ${parseLocalDate(cleaning.fecha).toLocaleDateString('es-ES')}`,
-              margin: [10, 5, 0, 0]
-            });
-          });
-        } else {
-          content.push({ text: 'No hay reportes en el periodo seleccionado', italics: true, color: '#999', margin: [10, 0, 0, 10] });
-        }
-        content.push({ text: '', margin: [0, 0, 0, 15] });
-      }
-
-      // Mantenimiento
-      if (selectedModules.mantenimiento && maintenanceTasks) {
-        const filtered = maintenanceTasks.filter(t => {
-          const tDate = new Date(t.scheduled_date);
-          return tDate >= desde && tDate <= hasta;
-        });
-
-        content.push({ text: 'REPORTES DE MANTENIMIENTO', style: 'sectionHeader', margin: [0, 0, 0, 10] });
-        content.push({ text: `Total de reportes: ${filtered.length}`, margin: [0, 0, 0, 10] });
-
-        if (filtered.length > 0) {
-          filtered.forEach((task, idx) => {
-            content.push({
-              text: `${idx + 1}. ${task.type} - ${new Date(task.scheduled_date).toLocaleDateString('es-ES')}`,
-              margin: [10, 5, 0, 0]
-            });
-          });
-        } else {
-          content.push({ text: 'No hay reportes en el periodo seleccionado', italics: true, color: '#999', margin: [10, 0, 0, 10] });
-        }
-      }
-
-      const docDefinition = {
-        content,
-        footer: (currentPage, pageCount) => ({
-          text: `Página ${currentPage} de ${pageCount} | RMP - Recolecting Manager Pro`,
-          alignment: 'center',
-          fontSize: 8,
-          italics: true,
-          margin: [0, 10, 0, 0]
-        }),
-        styles: {
-          header: { fontSize: 18, bold: true },
-          sectionHeader: { fontSize: 14, bold: true, color: '#0078D4' }
-        },
-        defaultStyle: { fontSize: 11 }
+      // Preparar datos con reportes COMPLETOS (con fotos)
+      const data = {
+        recoleccion: reports || [],
+        fumigacion: fumigationReportsWithPhotos || [],
+        limpieza: cleaningReportsWithPhotos || [],
+        mantenimiento: maintenanceReportsWithPhotos || []
       };
 
-      const fileName = `Reportes_${desde.toISOString().split('T')[0]}_${hasta.toISOString().split('T')[0]}.pdf`;
-      pdfMake.createPdf(docDefinition).download(fileName);
+      const result = await generateCombinedPDFComplete(
+        data,
+        dateRange,
+        selectedModules,
+        (progress) => setDownloadProgress(progress),
+        { includeIndex }
+      );
+      console.log('📄 PDF completo generado:', result);
     } catch (error) {
       console.error('Error generando PDF:', error);
       alert('Error al generar el reporte.');
     } finally {
       setIsDownloading(false);
+      setDownloadProgress(0);
     }
+  };
+
+  // Seleccionar/deseleccionar todos
+  const selectAllModules = () => {
+    const allSelected = Object.values(selectedModules).every(v => v);
+    const newValue = !allSelected;
+    setSelectedModules({
+      recoleccion: newValue,
+      fumigacion: newValue,
+      limpieza: newValue,
+      mantenimiento: newValue
+    });
   };
 
   // Configuración de módulos
@@ -275,7 +174,8 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
       color: '#107C10',
       total: rutasRecoleccion.length,
       recent: last7Days.recoleccionRecent,
-      image: '/icons/modules/RECOLECCION.png'
+      image: '/icons/modules/RECOLECCION.png',
+      lastUpdate: lastUpdates.recoleccion
     },
     {
       id: 'fumigacion',
@@ -284,7 +184,8 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
       color: '#0078D4',
       total: fumigacionTotal,
       recent: last7Days.fumigacionRecent,
-      image: '/icons/modules/FUMIGACION.png'
+      image: '/icons/modules/FUMIGACION.png',
+      lastUpdate: lastUpdates.fumigacion
     },
     {
       id: 'limpieza',
@@ -293,7 +194,8 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
       color: '#8764B8',
       total: limpiezaTotal,
       recent: last7Days.limpiezaRecent,
-      image: '/icons/modules/limpieza.png'
+      image: '/icons/modules/limpieza.png',
+      lastUpdate: lastUpdates.limpieza
     },
     {
       id: 'mantenimiento',
@@ -302,7 +204,8 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
       color: '#CA5010',
       total: mantenimientoTotal,
       recent: last7Days.mantenimientoRecent,
-      image: '/icons/modules/mantenimiento.png'
+      image: '/icons/modules/mantenimiento.png',
+      lastUpdate: lastUpdates.mantenimiento
     }
   ];
 
@@ -359,7 +262,16 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
             </div>
 
             <div className="rd-modules-select">
-              <label>Incluir módulos:</label>
+              <div className="rd-modules-header">
+                <label>Incluir modulos:</label>
+                <button
+                  className="rd-select-all-btn"
+                  onClick={selectAllModules}
+                >
+                  <CheckSquare size={14} />
+                  {Object.values(selectedModules).every(v => v) ? 'Deseleccionar' : 'Seleccionar'} todos
+                </button>
+              </div>
               <div className="rd-module-chips">
                 {modules.map(mod => (
                   <button
@@ -375,13 +287,26 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
               </div>
             </div>
 
+            <div className="rd-index-toggle">
+              <label className="rd-toggle-label">
+                <input
+                  type="checkbox"
+                  checked={includeIndex}
+                  onChange={(e) => setIncludeIndex(e.target.checked)}
+                />
+                <span>Incluir índice de reportes</span>
+              </label>
+            </div>
+
             <button
               className="rd-export-btn"
               onClick={handleCombinedDownload}
               disabled={isDownloading || !Object.values(selectedModules).some(v => v)}
             >
               <Download size={16} />
-              {isDownloading ? 'Generando...' : 'Descargar PDF'}
+              {isDownloading
+                ? `Generando... ${Math.round(downloadProgress)}%`
+                : 'Descargar PDF Completo'}
             </button>
           </div>
         </div>
@@ -425,7 +350,7 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
             <div className="rd-card-footer">
               <span className="rd-card-update">
                 <Calendar size={12} />
-                {lastUpdate}
+                {mod.lastUpdate}
               </span>
               <ChevronRight size={18} className="rd-card-arrow" />
             </div>

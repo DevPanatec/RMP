@@ -4,6 +4,9 @@
   --color-surface: #ffffff;           /* Blanco puro - cards */
   --color-surface-secondary: #f1f5f9; /* Slate 100 - backgrounds secundarios */
   --color-surface-elevated: #ffffff;  /* Elevated surfaces */
+  --color-surface-acrylic: rgba(255, 255, 255, 0.8); /* Acrylic/frosted surfaces */
+  --color-white-alpha-15: rgba(255, 255, 255, 0.15); /* White overlay light */
+  --color-white-alpha-25: rgba(255, 255, 255, 0.25); /* White overlay medium */
   --color-text: #0f172a;              /* Slate 900 - text oscuro */
   --color-text-secondary: #475569;    /* Slate 600 - secondary text */
   --color-text-tertiary: #64748b;     /* Slate 500 - tertiary text */
@@ -58,6 +61,22 @@
   --status-border-opacity: 0.25;
   --select-caret-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%231B4523' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
   --select-caret-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+
+  /* Dark contrast colors for badges/labels */
+  --color-success-contrast: #0B6A0B;    /* Dark green for text on light green bg */
+  --color-error-contrast: #A4262C;      /* Dark red for text on light red bg */
+  --color-warning-contrast: #8A5700;    /* Dark amber for text on light amber bg */
+  --color-info-contrast: #004578;       /* Dark blue for text on light blue bg */
+
+  /* Semantic border colors (30% opacity) */
+  --color-success-border: rgba(16, 124, 16, 0.3);
+  --color-error-border: rgba(209, 52, 56, 0.3);
+  --color-warning-border: rgba(255, 185, 0, 0.3);
+  --color-info-border: rgba(0, 120, 212, 0.3);
+  --color-neutral-border: rgba(138, 136, 134, 0.3);
+
+  /* Neutral/inactive badge */
+  --color-neutral-light: #E1DFDD;
 
   /* RGB versions for opacity control - Government Slate */
   --color-primary-rgb: 30, 41, 59;       /* Slate 800 RGB */
@@ -384,64 +403,64 @@ a:hover {
 }
 
 .btn--primary {
-  background-color: #1fb09e;
+  background-color: var(--color-primary);
   color: white;
   box-shadow: var(--shadow-sm);
 }
 
 .btn--primary:hover {
-  background-color: #22c4ad;
-  box-shadow: 0 4px 12px rgba(31, 176, 158, 0.35);
+  background-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-primary-glow);
   transform: translateY(-1px);
 }
 
 .btn--primary:active {
-  background-color: #1ca595;
+  background-color: var(--color-primary-active);
   transform: translateY(0);
   box-shadow: var(--shadow-sm);
 }
 
 .btn--secondary {
-  background-color: #F5F5F5;
-  color: #212121;
-  border: 1px solid #757575;
+  background-color: var(--color-surface-secondary);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
 }
 
 .btn--secondary:hover {
-  background-color: #F5F5F5;
-  border-color: #1565C0;
-  color: #1565C0;
+  background-color: var(--color-surface-secondary);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .btn--secondary:active {
-  background-color: #F5F5F5;
+  background-color: var(--color-surface-secondary);
 }
 
 .btn--outline {
   background: transparent;
-  border: 2px solid #43A047;
-  color: #43A047;
+  border: 2px solid var(--color-success);
+  color: var(--color-success);
 }
 
 .btn--outline:hover {
-  background-color: #43A047;
+  background-color: var(--color-success);
   color: #FFFFFF;
 }
 
 .btn--success {
-  background-color: #43A047;
+  background-color: var(--color-success);
   color: #FFFFFF;
   box-shadow: var(--shadow-sm);
 }
 
 .btn--success:hover {
-  background-color: #2E7D32;
-  box-shadow: var(--shadow-md);
+  background-color: var(--color-success-dark);
+  box-shadow: var(--shadow-success-glow);
   transform: translateY(-1px);
 }
 
 .btn--success:active {
-  background-color: #1B5E20;
+  background-color: var(--color-success-dark);
   transform: translateY(0);
 }
 
@@ -697,7 +716,7 @@ select.form-control:focus {
 
 .table th {
   font-weight: var(--font-weight-semibold);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-eco-secondary));
+  background: var(--color-primary);
   color: white;
   text-transform: uppercase;
   font-size: var(--font-size-xs);
@@ -1058,6 +1077,41 @@ select.form-control:focus {
   box-shadow: var(--focus-ring);
 }
 
+/* ============================================
+   RESPONSIVE - Global Mobile Styles
+   ============================================ */
+
+/* Modals go full-screen on small devices */
+@media (max-width: 480px) {
+  .modal-overlay [class*="modal-content"],
+  .modal-backdrop [class*="modal-content"],
+  [class*="modal-overlay"] > div:first-child {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 100vh !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+/* Tables scroll horizontally on mobile */
+@media (max-width: 768px) {
+  .table-responsive,
+  [class*="table-container"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Map containers - constrained height */
+  [class*="map-container"],
+  .leaflet-container,
+  .maplibregl-map {
+    min-height: 200px;
+    max-height: 400px;
+  }
+}
+
 /* Animations - Smooth & Refined */
 @keyframes fadeIn {
   from {
@@ -1105,7 +1159,7 @@ select.form-control:focus {
 
 @keyframes spin {
   from { transform: rotate(0deg); }
-  to { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @keyframes shimmer {
@@ -1375,7 +1429,7 @@ select.form-control:focus {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-eco-secondary));
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1663,7 +1717,7 @@ select.form-control:focus {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-eco-secondary));
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1944,7 +1998,7 @@ select.form-control:focus {
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-eco-secondary));
+  background: var(--gradient-primary);
   transition: width var(--duration-normal) var(--ease-standard);
 }
 

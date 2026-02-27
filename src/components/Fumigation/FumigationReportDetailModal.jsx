@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { X, Download, Calendar, MapPin, Clock, Spray, FileText, UserCheck, Image as ImageIcon, CheckCircle, Camera, Wrench } from '../Icons';
-import MapComponent from '../Map/MapComponent';
+import { MapLibreComponent } from '../Map';
 import '../Reports/StandardReportModal.css';
 
 const FumigationReportDetailModal = ({ isOpen, onClose, assignment, location, onDownload }) => {
@@ -105,7 +105,7 @@ const FumigationReportDetailModal = ({ isOpen, onClose, assignment, location, on
             <div className="report-section__body" style={{ padding: 0 }}>
               {lugarParaMapa.length > 0 ? (
                 <div className="report-map-container">
-                  <MapComponent
+                  <MapLibreComponent
                     key={`map-fumigation-${assignment.fecha}`}
                     camiones={[]}
                     rutas={[]}

@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useMaintenance } from '../../context/MaintenanceContext';
+import { useAuth } from '../../context/AuthContext';
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { X, Upload, Image as ImageIcon, Check, Trash2 } from '../Icons';
+import { X, Upload, Image as ImageIcon, Check, Trash2, Save } from '../Icons';
 import { MAINTENANCE_PRESETS } from '../../constants/maintenancePresets';
+import toast from 'react-hot-toast';
+import './MaintenanceTaskModal.css';
 
 const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
   const { addTask, updateTask, deleteTask, completeTask } = useMaintenance();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const isAdmin = userRole === 'admin';
   const isEnterprise = userRole === 'enterprise';
@@ -20,6 +24,13 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
     api.maintenance.listPhotos,
     task?._id ? { task_id: task._id } : "skip"
   );
+
+  // Load volume presets from database
+  const volumePresets = useQuery(api.maintenance.listVolumePresets, {
+    user_email: user?.email || ''
+  });
+  const createVolumePreset = useMutation(api.maintenance.createVolumePreset);
+  const deleteVolumePreset = useMutation(api.maintenance.deleteVolumePreset);
 
   const [formData, setFormData] = useState({
     titulo: task?.titulo || '',
@@ -41,6 +52,12 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
 
   const [selectedPackage, setSelectedPackage] = useState('');
   const [selectedTasks, setSelectedTasks] = useState([]);
+  const [selectedPresetId, setSelectedPresetId] = useState('');
+
+  // Estados para "Save Preset" dialog
+  const [showSavePresetDialog, setShowSavePresetDialog] = useState(false);
+  const [newPresetLabel, setNewPresetLabel] = useState('');
+  const [newPresetDescription, setNewPresetDescription] = useState('');
 
   // Estados para fotos (solo para completar tareas)
   const [photos, setPhotos] = useState({
@@ -141,16 +158,51 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
 
   // Manejar selección de preset de volumen
   const handleVolumePresetSelect = (presetId) => {
-    if (!presetId) return;
+    if (!presetId) {
+      // Manual mode - reset preset selection
+      setSelectedPresetId('');
+      return;
+    }
 
-    const preset = MAINTENANCE_PRESETS.volumeAndCost.find(v => v.id === presetId);
-    if (preset) {
-      setOperationalData(prev => ({
-        ...prev,
-        volume_discharged: preset.volume_gallons,
-        cost_per_gallon: preset.cost_per_gallon,
-        total_estimated_cost: preset.total_cost
-      }));
+    setSelectedPresetId(presetId);
+
+    // Find preset in loaded list (database presets, not hardcoded array)
+    const preset = volumePresets?.find(p => p._id === presetId);
+    if (!preset) return;
+
+    setOperationalData(prev => ({
+      ...prev,
+      volume_discharged: preset.volume_gallons,
+      cost_per_gallon: preset.cost_per_gallon,
+      total_estimated_cost: preset.total_cost
+    }));
+  };
+
+  // Handler para guardar preset personalizado
+  const handleSavePreset = async () => {
+    if (!newPresetLabel.trim()) {
+      toast.error('Por favor ingresa un nombre para el preset');
+      return;
+    }
+
+    try {
+      await createVolumePreset({
+        label: newPresetLabel.trim(),
+        volume_gallons: operationalData.volume_discharged,
+        cost_per_gallon: operationalData.cost_per_gallon,
+        total_cost: operationalData.total_estimated_cost,
+        description: newPresetDescription.trim() || undefined,
+        created_by: user?.email || 'unknown',
+        is_global: false // Personal preset by default
+      });
+
+      toast.success('✅ Preset guardado exitosamente');
+      setShowSavePresetDialog(false);
+      setNewPresetLabel('');
+      setNewPresetDescription('');
+    } catch (error) {
+      console.error('❌ Error saving preset:', error);
+      toast.error('Error al guardar preset');
     }
   };
 
@@ -248,6 +300,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
               titulo: taskData.titulo,
               descripcion: taskData.descripcion,
               tipo: taskData.tipo,
+              prioridad: formData.prioridad || 'media',
               fecha_programada: taskData.fecha_programada,
               fecha_completada: new Date().toISOString().split('T')[0],
               costo: operationalData.total_estimated_cost || 0,
@@ -435,109 +488,33 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(0, 0, 0, 0.5)',
-      backdropFilter: 'blur(4px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '20px',
-      animation: 'fadeIn 0.2s ease-out'
-    }}>
-      <style>
-        {`
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          @keyframes slideUp {
-            from {
-              opacity: 0;
-              transform: translateY(20px) scale(0.95);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0) scale(1);
-            }
-          }
-          .modal-scroll::-webkit-scrollbar {
-            width: 8px;
-          }
-          .modal-scroll::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-          }
-          .modal-scroll::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 10px;
-          }
-          .modal-scroll::-webkit-scrollbar-thumb:hover {
-            background: #555;
-          }
-        `}
-      </style>
-      <div
-        className="modal-scroll"
-        style={{
-          background: 'white',
-          borderRadius: '20px',
-          maxWidth: '900px',
-          width: '100%',
-          maxHeight: '85vh',
-          overflow: 'auto',
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-          animation: 'slideUp 0.3s ease-out'
-        }}
-      >
+    <div className="maintenance-task-modal__overlay">
+      <div className="maintenance-task-modal__container">
         {/* Header */}
-        <div style={{
-          position: 'sticky',
-          top: 0,
-          background: 'white',
-          borderBottom: '1px solid var(--color-border)',
-          padding: '20px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderRadius: '16px 16px 0 0'
-        }}>
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>
+        <div className="maintenance-task-modal__header">
+          <h2 className="maintenance-task-modal__title">
             {viewMode ? 'Detalles de Tarea' : task ? 'Editar Tarea' : 'Nueva Tarea de Mantenimiento'}
           </h2>
           <button
             onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', color: '#999' }}
+            className="maintenance-task-modal__close-btn"
           >
             <X size={24} />
           </button>
         </div>
 
         {/* Content */}
-        <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
+        <form onSubmit={handleSubmit} className="maintenance-task-modal__form">
           {/* Paquete de Mantenimiento - Compacto */}
           {!viewMode && (
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
+            <div className="maintenance-task-modal__field-group">
+              <label className="maintenance-task-modal__label">
                 Paquete de Mantenimiento (Opcional)
               </label>
               <select
                 value={selectedPackage}
                 onChange={(e) => handlePackageSelect(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '2px solid #dcfce7',
-                  borderRadius: '10px',
-                  fontSize: '14px',
-                  background: 'white',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  color: selectedPackage ? 'var(--color-primary)' : '#64748b'
-                }}
+                className={`maintenance-task-modal__select maintenance-task-modal__select--package ${selectedPackage ? 'maintenance-task-modal__select--package-active' : 'maintenance-task-modal__select--package-inactive'}`}
               >
                 <option value="">Personalizado</option>
                 {MAINTENANCE_PRESETS.maintenancePackages.map(pkg => (
@@ -547,7 +524,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                 ))}
               </select>
               {selectedPackage && (
-                <p style={{ margin: '6px 0 0 0', fontSize: '12px', color: '#64748b', lineHeight: '1.4' }}>
+                <p className="maintenance-task-modal__hint">
                   {MAINTENANCE_PRESETS.maintenancePackages.find(p => p.id === selectedPackage)?.description}
                 </p>
               )}
@@ -555,8 +532,8 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
           )}
 
           {/* Título */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
+          <div className="maintenance-task-modal__field-group">
+            <label className="maintenance-task-modal__label">
               Título de la Tarea *
             </label>
             <input
@@ -565,44 +542,23 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
               onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
               disabled={viewMode}
               placeholder="Ej: Mantenimiento preventivo mensual"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: '2px solid #e5e7eb',
-                borderRadius: '10px',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}
+              className="maintenance-task-modal__input"
               required
             />
           </div>
 
           {/* Información Básica - Grid compacto */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '16px',
-            marginBottom: '24px'
-          }}>
+          <div className="maintenance-task-modal__grid">
             {/* Tipo de Mantenimiento */}
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
+              <label className="maintenance-task-modal__label">
                 Tipo
               </label>
               <select
                 value={formData.tipo}
                 onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
                 disabled={viewMode}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '10px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  transition: 'all 0.2s',
-                  cursor: 'pointer'
-                }}
+                className="maintenance-task-modal__select"
                 required
               >
                 {MAINTENANCE_PRESETS.maintenanceType.map(type => (
@@ -615,7 +571,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
 
             {/* Fecha */}
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
+              <label className="maintenance-task-modal__label">
                 Fecha
               </label>
               <input
@@ -623,21 +579,14 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                 value={formData.fecha_programada}
                 onChange={(e) => setFormData({ ...formData, fecha_programada: e.target.value })}
                 disabled={viewMode}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '10px',
-                  fontSize: '14px',
-                  fontWeight: '500'
-                }}
+                className="maintenance-task-modal__input"
                 required
               />
             </div>
 
             {/* Hora */}
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
+              <label className="maintenance-task-modal__label">
                 Hora
               </label>
               <input
@@ -645,36 +594,21 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                 value={formData.scheduled_time}
                 onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
                 disabled={viewMode}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '10px',
-                  fontSize: '14px',
-                  fontWeight: '500'
-                }}
+                className="maintenance-task-modal__input"
                 required
               />
             </div>
 
             {/* Estado */}
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
+              <label className="maintenance-task-modal__label">
                 Estado
               </label>
               <select
                 value={formData.estado}
                 onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
                 disabled={viewMode}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '10px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
+                className="maintenance-task-modal__select"
                 required
               >
                 <option value="pendiente">Pendiente</option>
@@ -686,8 +620,8 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
           </div>
 
           {/* Observaciones/Descripción */}
-          <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', marginBottom: '8px', color: '#333' }}>
+          <div className="maintenance-task-modal__field-group--large">
+            <label className="maintenance-task-modal__label">
               Descripción
             </label>
             <textarea
@@ -695,69 +629,42 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
               onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
               disabled={viewMode}
               rows={2}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '2px solid #e5e7eb',
-                borderRadius: '12px',
-                fontSize: '14px',
-                fontFamily: 'inherit',
-                resize: 'vertical',
-                transition: 'all 0.2s'
-              }}
+              className="maintenance-task-modal__textarea"
               placeholder="Descripción general de la tarea..."
             />
           </div>
 
           {/* Datos Operativos */}
-          <div style={{
-            background: '#f8fafc',
-            padding: '20px',
-            borderRadius: '16px',
-            marginBottom: '24px',
-            border: '2px solid #e2e8f0'
-          }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '16px', color: '#334155' }}>
+          <div className="maintenance-task-modal__operational-section">
+            <h3 className="maintenance-task-modal__section-title">
               Datos Operativos
             </h3>
 
             {/* Preset de Volumen - Compacto */}
             {!viewMode && (
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569' }}>
+              <div className="maintenance-task-modal__field-group--compact">
+                <label className="maintenance-task-modal__label--small">
                   Preset de Volumen (Opcional)
                 </label>
                 <select
+                  value={selectedPresetId}
                   onChange={(e) => handleVolumePresetSelect(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    background: 'white'
-                  }}
+                  className="maintenance-task-modal__select maintenance-task-modal__select--small"
                 >
                   <option value="">Manual</option>
-                  {MAINTENANCE_PRESETS.volumeAndCost.map(preset => (
-                    <option key={preset.id} value={preset.id}>
+                  {(volumePresets || []).map(preset => (
+                    <option key={preset._id} value={preset._id}>
                       {preset.label} ({preset.volume_gallons.toLocaleString()} gal, B/.{preset.total_cost.toFixed(2)})
+                      {preset.is_custom ? ' 🔧' : ''}
                     </option>
                   ))}
                 </select>
               </div>
             )}
 
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-              gap: '12px',
-              marginBottom: '12px'
-            }}>
+            <div className="maintenance-task-modal__grid--operational">
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569' }}>
+                <label className="maintenance-task-modal__label--small">
                   Volumen (gal)
                 </label>
                 <input
@@ -765,20 +672,12 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   value={operationalData.volume_discharged}
                   onChange={(e) => setOperationalData({ ...operationalData, volume_discharged: parseFloat(e.target.value) || 0 })}
                   disabled={viewMode}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '10px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    background: 'white'
-                  }}
+                  className="maintenance-task-modal__input maintenance-task-modal__input--operational"
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569' }}>
+                <label className="maintenance-task-modal__label--small">
                   Costo/Gal (B/.)
                 </label>
                 <input
@@ -787,42 +686,24 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   value={operationalData.cost_per_gallon}
                   onChange={(e) => setOperationalData({ ...operationalData, cost_per_gallon: parseFloat(e.target.value) || 0.11 })}
                   disabled={viewMode}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '10px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    background: 'white'
-                  }}
+                  className="maintenance-task-modal__input maintenance-task-modal__input--operational"
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569' }}>
+                <label className="maintenance-task-modal__label--small">
                   Total (B/.)
                 </label>
                 <input
                   type="text"
                   value={`B/. ${operationalData.total_estimated_cost?.toFixed(2)}`}
                   readOnly
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '2px solid var(--color-primary)',
-                    borderRadius: '10px',
-                    fontSize: '14px',
-                    fontWeight: '700',
-                    background: '#f0f4e8',
-                    color: 'var(--color-primary)',
-                    textAlign: 'center'
-                  }}
+                  className="maintenance-task-modal__input maintenance-task-modal__input--total"
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569' }}>
+                <label className="maintenance-task-modal__label--small">
                   Duración (h)
                 </label>
                 <input
@@ -831,49 +712,13 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   value={operationalData.work_duration}
                   onChange={(e) => setOperationalData({ ...operationalData, work_duration: parseFloat(e.target.value) || 0 })}
                   disabled={viewMode}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '10px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    background: 'white'
-                  }}
+                  className="maintenance-task-modal__input maintenance-task-modal__input--operational"
                 />
-              </div>
-
-              <div style={{ gridColumn: 'span 2' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569' }}>
-                  Impacto
-                </label>
-                <select
-                  value={operationalData.cleanup_type}
-                  onChange={(e) => setOperationalData({ ...operationalData, cleanup_type: e.target.value })}
-                  disabled={viewMode}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '10px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    background: 'white'
-                  }}
-                >
-                  <option value="">Seleccionar...</option>
-                  {MAINTENANCE_PRESETS.impactLevel.map(impact => (
-                    <option key={impact.id} value={impact.label}>
-                      {impact.label}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', marginBottom: '6px', color: '#475569' }}>
+              <label className="maintenance-task-modal__label--small">
                 Tareas Técnicas
               </label>
               <textarea
@@ -881,50 +726,53 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                 onChange={(e) => setOperationalData({ ...operationalData, technical_observations: e.target.value })}
                 disabled={viewMode}
                 rows={2}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  border: '2px solid #e5e7eb',
-                  borderRadius: '10px',
-                  fontSize: '13px',
-                  fontFamily: 'inherit',
-                  resize: 'vertical',
-                  background: 'white'
-                }}
+                className="maintenance-task-modal__textarea maintenance-task-modal__textarea--small"
                 placeholder="Ej: Succión completa, limpieza de paredes, extracción de grasa..."
               />
             </div>
+
+            {/* Save as Preset Button (only in Manual mode) */}
+            {!viewMode && !selectedPresetId && (
+              <div className="maintenance-task-modal__save-preset-container">
+                <button
+                  type="button"
+                  onClick={() => setShowSavePresetDialog(true)}
+                  disabled={!operationalData.volume_discharged || !operationalData.cost_per_gallon}
+                  className={`maintenance-task-modal__save-preset-btn ${
+                    operationalData.volume_discharged && operationalData.cost_per_gallon
+                      ? 'maintenance-task-modal__save-preset-btn--active'
+                      : 'maintenance-task-modal__save-preset-btn--disabled'
+                  }`}
+                >
+                  <Save size={16} />
+                  Guardar como Preset
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Sección de Evidencia Fotográfica - Simplificada */}
           {!viewMode && isAdmin && (
-            <div style={{ borderTop: '2px solid #e2e8f0', paddingTop: '24px', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+            <div className="maintenance-task-modal__photo-section">
+              <div className="maintenance-task-modal__photo-header">
                 <ImageIcon size={22} style={{ color: 'var(--color-primary)' }} />
-                <h3 style={{ fontSize: '18px', fontWeight: '700', margin: 0, color: '#1f2937' }}>
+                <h3 className="maintenance-task-modal__photo-title">
                   Evidencia Fotográfica
                 </h3>
-                <span style={{
-                  fontSize: '12px',
-                  background: photos.before.length && photos.during.length && photos.after.length ? '#dcfce7' : '#fef3c7',
-                  color: photos.before.length && photos.during.length && photos.after.length ? '#166534' : '#92400e',
-                  padding: '4px 10px',
-                  borderRadius: '12px',
-                  fontWeight: '600'
-                }}>
+                <span className={`maintenance-task-modal__photo-counter ${
+                  photos.before.length && photos.during.length && photos.after.length
+                    ? 'maintenance-task-modal__photo-counter--complete'
+                    : 'maintenance-task-modal__photo-counter--incomplete'
+                }`}>
                   {(photos.before.length > 0 ? 1 : 0) + (photos.during.length > 0 ? 1 : 0) + (photos.after.length > 0 ? 1 : 0)}/3
                 </span>
               </div>
-              <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
-                Arrastra o haz clic en cada casilla. Se asignan automáticamente: Antes → Durante → Después
+              <p className="maintenance-task-modal__photo-description">
+                Arrastra o haz clic en cada casilla. Se asignan automáticamente: Antes &rarr; Durante &rarr; Después
               </p>
 
               {/* 3 Slots visuales en fila */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '12px'
-              }}>
+              <div className="maintenance-task-modal__photo-grid">
                 {/* Slot ANTES */}
                 <div
                   onDragOver={handleDragOver}
@@ -937,78 +785,37 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                     }
                   }}
                   onClick={() => photos.before.length === 0 && document.getElementById('file-before').click()}
-                  style={{
-                    position: 'relative',
-                    aspectRatio: '1',
-                    border: photos.before.length > 0 ? '2px solid #22c55e' : '2px dashed #94a3b8',
-                    borderRadius: '12px',
-                    cursor: photos.before.length > 0 ? 'default' : 'pointer',
-                    background: photos.before.length > 0 ? '#f0fdf4' : 'white',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    overflow: 'hidden',
-                    transition: 'all 0.2s'
-                  }}
+                  className={`maintenance-task-modal__photo-slot ${
+                    photos.before.length > 0
+                      ? 'maintenance-task-modal__photo-slot--filled'
+                      : 'maintenance-task-modal__photo-slot--empty'
+                  }`}
                 >
                   {photos.before.length > 0 ? (
                     <>
                       <img
                         src={photos.before[0].url || photos.before[0].preview}
                         alt="Antes"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        className="maintenance-task-modal__photo-image"
                       />
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); removePhoto('before', 0); }}
-                        style={{
-                          position: 'absolute',
-                          top: '8px',
-                          right: '8px',
-                          background: 'rgba(239, 68, 68, 0.9)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '50%',
-                          width: '28px',
-                          height: '28px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
-                        }}
+                        className="maintenance-task-modal__photo-remove-btn"
                       >
                         <X size={16} />
                       </button>
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '0',
-                        left: '0',
-                        right: '0',
-                        background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                        padding: '20px 10px 10px',
-                        textAlign: 'center'
-                      }}>
-                        <span style={{ color: 'white', fontWeight: '600', fontSize: '13px' }}>ANTES</span>
+                      <div className="maintenance-task-modal__photo-overlay">
+                        <span className="maintenance-task-modal__photo-overlay-label">ANTES</span>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div style={{
-                        width: '48px',
-                        height: '48px',
-                        borderRadius: '50%',
-                        background: '#fee2e2',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <span style={{ fontSize: '20px', fontWeight: '700', color: '#dc2626' }}>1</span>
+                      <div className="maintenance-task-modal__photo-number maintenance-task-modal__photo-number--before">
+                        <span className="maintenance-task-modal__photo-number-text maintenance-task-modal__photo-number-text--before">1</span>
                       </div>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#dc2626' }}>ANTES</span>
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>Clic o arrastra</span>
+                      <span className="maintenance-task-modal__photo-slot-label maintenance-task-modal__photo-slot-label--before">ANTES</span>
+                      <span className="maintenance-task-modal__photo-slot-hint">Clic o arrastra</span>
                     </>
                   )}
                 </div>
@@ -1017,7 +824,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   type="file"
                   accept="image/*,video/*"
                   onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0], 'before')}
-                  style={{ display: 'none' }}
+                  className="maintenance-task-modal__file-input"
                 />
 
                 {/* Slot DURANTE */}
@@ -1032,78 +839,37 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                     }
                   }}
                   onClick={() => photos.during.length === 0 && document.getElementById('file-during').click()}
-                  style={{
-                    position: 'relative',
-                    aspectRatio: '1',
-                    border: photos.during.length > 0 ? '2px solid #22c55e' : '2px dashed #94a3b8',
-                    borderRadius: '12px',
-                    cursor: photos.during.length > 0 ? 'default' : 'pointer',
-                    background: photos.during.length > 0 ? '#f0fdf4' : 'white',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    overflow: 'hidden',
-                    transition: 'all 0.2s'
-                  }}
+                  className={`maintenance-task-modal__photo-slot ${
+                    photos.during.length > 0
+                      ? 'maintenance-task-modal__photo-slot--filled'
+                      : 'maintenance-task-modal__photo-slot--empty'
+                  }`}
                 >
                   {photos.during.length > 0 ? (
                     <>
                       <img
                         src={photos.during[0].url || photos.during[0].preview}
                         alt="Durante"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        className="maintenance-task-modal__photo-image"
                       />
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); removePhoto('during', 0); }}
-                        style={{
-                          position: 'absolute',
-                          top: '8px',
-                          right: '8px',
-                          background: 'rgba(239, 68, 68, 0.9)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '50%',
-                          width: '28px',
-                          height: '28px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
-                        }}
+                        className="maintenance-task-modal__photo-remove-btn"
                       >
                         <X size={16} />
                       </button>
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '0',
-                        left: '0',
-                        right: '0',
-                        background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                        padding: '20px 10px 10px',
-                        textAlign: 'center'
-                      }}>
-                        <span style={{ color: 'white', fontWeight: '600', fontSize: '13px' }}>DURANTE</span>
+                      <div className="maintenance-task-modal__photo-overlay">
+                        <span className="maintenance-task-modal__photo-overlay-label">DURANTE</span>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div style={{
-                        width: '48px',
-                        height: '48px',
-                        borderRadius: '50%',
-                        background: '#fef3c7',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <span style={{ fontSize: '20px', fontWeight: '700', color: '#d97706' }}>2</span>
+                      <div className="maintenance-task-modal__photo-number maintenance-task-modal__photo-number--during">
+                        <span className="maintenance-task-modal__photo-number-text maintenance-task-modal__photo-number-text--during">2</span>
                       </div>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#d97706' }}>DURANTE</span>
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>Clic o arrastra</span>
+                      <span className="maintenance-task-modal__photo-slot-label maintenance-task-modal__photo-slot-label--during">DURANTE</span>
+                      <span className="maintenance-task-modal__photo-slot-hint">Clic o arrastra</span>
                     </>
                   )}
                 </div>
@@ -1112,7 +878,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   type="file"
                   accept="image/*,video/*"
                   onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0], 'during')}
-                  style={{ display: 'none' }}
+                  className="maintenance-task-modal__file-input"
                 />
 
                 {/* Slot DESPUÉS */}
@@ -1127,78 +893,37 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                     }
                   }}
                   onClick={() => photos.after.length === 0 && document.getElementById('file-after').click()}
-                  style={{
-                    position: 'relative',
-                    aspectRatio: '1',
-                    border: photos.after.length > 0 ? '2px solid #22c55e' : '2px dashed #94a3b8',
-                    borderRadius: '12px',
-                    cursor: photos.after.length > 0 ? 'default' : 'pointer',
-                    background: photos.after.length > 0 ? '#f0fdf4' : 'white',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    overflow: 'hidden',
-                    transition: 'all 0.2s'
-                  }}
+                  className={`maintenance-task-modal__photo-slot ${
+                    photos.after.length > 0
+                      ? 'maintenance-task-modal__photo-slot--filled'
+                      : 'maintenance-task-modal__photo-slot--empty'
+                  }`}
                 >
                   {photos.after.length > 0 ? (
                     <>
                       <img
                         src={photos.after[0].url || photos.after[0].preview}
                         alt="Después"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        className="maintenance-task-modal__photo-image"
                       />
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); removePhoto('after', 0); }}
-                        style={{
-                          position: 'absolute',
-                          top: '8px',
-                          right: '8px',
-                          background: 'rgba(239, 68, 68, 0.9)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '50%',
-                          width: '28px',
-                          height: '28px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
-                        }}
+                        className="maintenance-task-modal__photo-remove-btn"
                       >
                         <X size={16} />
                       </button>
-                      <div style={{
-                        position: 'absolute',
-                        bottom: '0',
-                        left: '0',
-                        right: '0',
-                        background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                        padding: '20px 10px 10px',
-                        textAlign: 'center'
-                      }}>
-                        <span style={{ color: 'white', fontWeight: '600', fontSize: '13px' }}>DESPUÉS</span>
+                      <div className="maintenance-task-modal__photo-overlay">
+                        <span className="maintenance-task-modal__photo-overlay-label">DESPUÉS</span>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div style={{
-                        width: '48px',
-                        height: '48px',
-                        borderRadius: '50%',
-                        background: '#dcfce7',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <span style={{ fontSize: '20px', fontWeight: '700', color: '#16a34a' }}>3</span>
+                      <div className="maintenance-task-modal__photo-number maintenance-task-modal__photo-number--after">
+                        <span className="maintenance-task-modal__photo-number-text maintenance-task-modal__photo-number-text--after">3</span>
                       </div>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#16a34a' }}>DESPUÉS</span>
-                      <span style={{ fontSize: '11px', color: '#94a3b8' }}>Clic o arrastra</span>
+                      <span className="maintenance-task-modal__photo-slot-label maintenance-task-modal__photo-slot-label--after">DESPUÉS</span>
+                      <span className="maintenance-task-modal__photo-slot-hint">Clic o arrastra</span>
                     </>
                   )}
                 </div>
@@ -1207,22 +932,12 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   type="file"
                   accept="image/*,video/*"
                   onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0], 'after')}
-                  style={{ display: 'none' }}
+                  className="maintenance-task-modal__file-input"
                 />
               </div>
 
               {uploadingPhotos && (
-                <div style={{
-                  padding: '12px',
-                  background: '#f0f9ff',
-                  borderRadius: '8px',
-                  fontSize: '13px',
-                  color: '#0369a1',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginTop: '12px'
-                }}>
+                <div className="maintenance-task-modal__upload-status">
                   <Upload size={16} />
                   Subiendo foto...
                 </div>
@@ -1230,17 +945,9 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
 
               {/* Mensaje de éxito cuando están las 3 fotos */}
               {photos.before.length > 0 && photos.during.length > 0 && photos.after.length > 0 && (
-                <div style={{
-                  marginTop: '16px',
-                  padding: '12px 16px',
-                  background: '#dcfce7',
-                  borderRadius: '10px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
-                }}>
-                  <Check size={20} style={{ color: '#16a34a' }} />
-                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#166534' }}>
+                <div className="maintenance-task-modal__photo-complete">
+                  <Check size={20} style={{ color: 'var(--color-success-dark)' }} />
+                  <span className="maintenance-task-modal__photo-complete-text">
                     Evidencia fotográfica completa
                   </span>
                 </div>
@@ -1250,61 +957,29 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
 
           {/* Imágenes - mostrar si existen */}
           {viewMode && task && (task.images_before?.length > 0 || task.images_during?.length > 0 || task.images_after?.length > 0) && (
-            <div style={{
-              borderTop: '2px solid #e2e8f0',
-              paddingTop: '24px',
-              marginBottom: '20px',
-              background: 'var(--color-surface)',
-              padding: '24px',
-              borderRadius: '16px',
-              border: '2px solid #dcfce7'
-            }}>
-              <div style={{
-                fontSize: '18px',
-                fontWeight: '700',
-                marginBottom: '20px',
-                color: '#1f2937',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}>
+            <div className="maintenance-task-modal__view-photos">
+              <div className="maintenance-task-modal__view-photos-header">
                 <ImageIcon size={22} style={{ color: 'var(--color-primary)' }} />
                 Evidencia Fotográfica del Mantenimiento
               </div>
 
               {/* Sección Antes */}
               {task.images_before && task.images_before.length > 0 && (
-                <div style={{ marginBottom: '20px' }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '12px',
-                    padding: '8px 12px',
-                    background: 'var(--shadow-xs)',
-                    borderRadius: '8px',
-                    width: 'fit-content'
-                  }}>
+                <div className="maintenance-task-modal__view-stage">
+                  <div className="maintenance-task-modal__view-stage-label">
                     <ImageIcon size={16} style={{ color: 'var(--color-primary)' }} />
-                    <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--color-primary)' }}>Antes</span>
-                    <span style={{
-                      fontSize: '12px',
-                      background: 'var(--color-primary)',
-                      color: 'white',
-                      padding: '2px 8px',
-                      borderRadius: '12px',
-                      fontWeight: '600'
-                    }}>
+                    <span className="maintenance-task-modal__view-stage-name">Antes</span>
+                    <span className="maintenance-task-modal__view-stage-count">
                       {task.images_before.length}
                     </span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
+                  <div className="maintenance-task-modal__view-image-grid">
                     {task.images_before.map((url, index) => (
-                      <div key={index} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '2px solid #dcfce7', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                      <div key={index} className="maintenance-task-modal__view-image-card">
                         <img
                           src={url}
                           alt={`Antes ${index + 1}`}
-                          style={{ width: '100%', height: '140px', objectFit: 'cover', cursor: 'pointer' }}
+                          className="maintenance-task-modal__view-image"
                           onClick={() => window.open(url, '_blank')}
                         />
                       </div>
@@ -1315,37 +990,21 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
 
               {/* Sección Durante */}
               {task.images_during && task.images_during.length > 0 && (
-                <div style={{ marginBottom: '20px' }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '12px',
-                    padding: '8px 12px',
-                    background: 'var(--shadow-xs)',
-                    borderRadius: '8px',
-                    width: 'fit-content'
-                  }}>
+                <div className="maintenance-task-modal__view-stage">
+                  <div className="maintenance-task-modal__view-stage-label">
                     <ImageIcon size={16} style={{ color: 'var(--color-primary)' }} />
-                    <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--color-primary)' }}>Durante</span>
-                    <span style={{
-                      fontSize: '12px',
-                      background: 'var(--color-primary)',
-                      color: 'white',
-                      padding: '2px 8px',
-                      borderRadius: '12px',
-                      fontWeight: '600'
-                    }}>
+                    <span className="maintenance-task-modal__view-stage-name">Durante</span>
+                    <span className="maintenance-task-modal__view-stage-count">
                       {task.images_during.length}
                     </span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
+                  <div className="maintenance-task-modal__view-image-grid">
                     {task.images_during.map((url, index) => (
-                      <div key={index} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '2px solid #dcfce7', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                      <div key={index} className="maintenance-task-modal__view-image-card">
                         <img
                           src={url}
                           alt={`Durante ${index + 1}`}
-                          style={{ width: '100%', height: '140px', objectFit: 'cover', cursor: 'pointer' }}
+                          className="maintenance-task-modal__view-image"
                           onClick={() => window.open(url, '_blank')}
                         />
                       </div>
@@ -1356,37 +1015,21 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
 
               {/* Sección Después */}
               {task.images_after && task.images_after.length > 0 && (
-                <div style={{ marginBottom: '0' }}>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '12px',
-                    padding: '8px 12px',
-                    background: 'var(--shadow-xs)',
-                    borderRadius: '8px',
-                    width: 'fit-content'
-                  }}>
+                <div className="maintenance-task-modal__view-stage">
+                  <div className="maintenance-task-modal__view-stage-label">
                     <ImageIcon size={16} style={{ color: 'var(--color-primary)' }} />
-                    <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--color-primary)' }}>Después</span>
-                    <span style={{
-                      fontSize: '12px',
-                      background: 'var(--color-primary)',
-                      color: 'white',
-                      padding: '2px 8px',
-                      borderRadius: '12px',
-                      fontWeight: '600'
-                    }}>
+                    <span className="maintenance-task-modal__view-stage-name">Después</span>
+                    <span className="maintenance-task-modal__view-stage-count">
                       {task.images_after.length}
                     </span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
+                  <div className="maintenance-task-modal__view-image-grid">
                     {task.images_after.map((url, index) => (
-                      <div key={index} style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '2px solid #dcfce7', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                      <div key={index} className="maintenance-task-modal__view-image-card">
                         <img
                           src={url}
                           alt={`Después ${index + 1}`}
-                          style={{ width: '100%', height: '140px', objectFit: 'cover', cursor: 'pointer' }}
+                          className="maintenance-task-modal__view-image"
                           onClick={() => window.open(url, '_blank')}
                         />
                       </div>
@@ -1399,55 +1042,18 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
 
           {/* Botones */}
           {!viewMode && (
-            <div style={{
-              position: 'sticky',
-              bottom: 0,
-              background: 'white',
-              padding: '20px 0 0 0',
-              display: 'flex',
-              gap: '12px',
-              justifyContent: 'flex-end',
-              borderTop: '2px solid #e5e7eb',
-              boxShadow: '0 -4px 10px rgba(0,0,0,0.05)'
-            }}>
+            <div className="maintenance-task-modal__footer">
               <button
                 type="button"
                 onClick={onClose}
-                style={{
-                  padding: '12px 28px',
-                  background: '#f1f5f9',
-                  color: '#475569',
-                  border: '2px solid #e2e8f0',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.background = '#e2e8f0'}
-                onMouseOut={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                className="maintenance-task-modal__btn-cancel"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                style={{
-                  padding: '12px 32px',
-                  background: loading ? '#94a3b8' : 'var(--color-primary)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  fontWeight: '700',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s',
-                  boxShadow: loading ? 'none' : '0 4px 12px rgba(61, 82, 41, 0.4)',
-                  transform: loading ? 'scale(1)' : 'scale(1)'
-                }}
-                onMouseOver={(e) => !loading && (e.currentTarget.style.transform = 'translateY(-2px)', e.currentTarget.style.boxShadow = '0 6px 16px rgba(61, 82, 41, 0.5)')}
-                onMouseOut={(e) => !loading && (e.currentTarget.style.transform = 'translateY(0)', e.currentTarget.style.boxShadow = '0 4px 12px rgba(61, 82, 41, 0.4)')}
+                className="maintenance-task-modal__btn-submit"
               >
                 {loading
                   ? 'Guardando...'
@@ -1461,6 +1067,69 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
           )}
         </form>
       </div>
+
+      {/* Save Preset Dialog */}
+      {showSavePresetDialog && (
+        <div className="maintenance-task-modal__preset-overlay">
+          <div className="maintenance-task-modal__preset-dialog">
+            <h3 className="maintenance-task-modal__preset-title">
+              Guardar Preset Personalizado
+            </h3>
+
+            <div className="maintenance-task-modal__preset-field">
+              <label className="maintenance-task-modal__preset-label">
+                Nombre del Preset *
+              </label>
+              <input
+                type="text"
+                value={newPresetLabel}
+                onChange={(e) => setNewPresetLabel(e.target.value)}
+                placeholder="Ej: Mi Descarga Personalizada"
+                className="maintenance-task-modal__preset-input"
+              />
+            </div>
+
+            <div className="maintenance-task-modal__preset-field">
+              <label className="maintenance-task-modal__preset-label">
+                Descripción (Opcional)
+              </label>
+              <textarea
+                value={newPresetDescription}
+                onChange={(e) => setNewPresetDescription(e.target.value)}
+                placeholder="Ej: Descarga especial para vehículos grandes"
+                rows={3}
+                className="maintenance-task-modal__preset-textarea"
+              />
+            </div>
+
+            <div className="maintenance-task-modal__preset-actions">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSavePresetDialog(false);
+                  setNewPresetLabel('');
+                  setNewPresetDescription('');
+                }}
+                className="maintenance-task-modal__preset-btn-cancel"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSavePreset}
+                disabled={!newPresetLabel.trim()}
+                className={`maintenance-task-modal__preset-btn-save ${
+                  newPresetLabel.trim()
+                    ? 'maintenance-task-modal__preset-btn-save--active'
+                    : 'maintenance-task-modal__preset-btn-save--disabled'
+                }`}
+              >
+                Guardar Preset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

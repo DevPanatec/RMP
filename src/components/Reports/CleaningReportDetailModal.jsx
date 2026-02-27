@@ -1,5 +1,7 @@
-import { X, MapPin, Clock, Calendar, FileText, Sparkles, User, Camera, CheckCircle, Wrench } from '../Icons';
-import MapComponent from '../Map/MapComponent';
+import { useState } from 'react';
+import { X, Download, MapPin, Clock, Calendar, FileText, Sparkles, User, Camera, CheckCircle, Wrench } from '../Icons';
+import { MapLibreComponent } from '../Map';
+import { generateLimpiezaPDFComplete } from '../../utils/reportPdfGenerator';
 import './RouteReportDetailModal.css';
 
 // Helper para parsear fechas sin problemas de timezone
@@ -10,6 +12,8 @@ const parseLocalDate = (dateStr) => {
 };
 
 const CleaningReportDetailModal = ({ report, onClose }) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+
   if (!report) return null;
 
   const formatDuration = (minutes) => {
@@ -19,6 +23,20 @@ const CleaningReportDetailModal = ({ report, onClose }) => {
       return `${hours}h ${mins}m`;
     }
     return `${mins}m`;
+  };
+
+  const handleDownloadPDF = async () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    try {
+      const fecha = report.fecha_completacion || report.fecha;
+      await generateLimpiezaPDFComplete([report], { desde: fecha, hasta: fecha });
+    } catch (error) {
+      console.error('Error generando PDF:', error);
+      alert('Error al generar el PDF');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   // Preparar punto para el mapa
@@ -101,7 +119,7 @@ const CleaningReportDetailModal = ({ report, onClose }) => {
             <h3><MapPin size={20} /> Ubicación de Limpieza</h3>
             {salaParaMapa.length > 0 ? (
               <div className="route-map-container">
-                <MapComponent
+                <MapLibreComponent
                   key={`map-${report._id}`}
                   camiones={[]}
                   rutas={[]}
@@ -219,6 +237,14 @@ const CleaningReportDetailModal = ({ report, onClose }) => {
         <div className="route-report-footer">
           <button className="btn btn--secondary" onClick={onClose}>
             Cerrar
+          </button>
+          <button
+            className="btn btn--primary"
+            onClick={handleDownloadPDF}
+            disabled={isDownloading}
+          >
+            <Download size={16} />
+            {isDownloading ? 'Generando...' : 'Descargar PDF'}
           </button>
         </div>
       </div>

@@ -14,11 +14,13 @@ import MaintenanceReportDetailModal from './MaintenanceReportDetailModal';
 import FumigationReportsPage from './FumigationReportsPage';
 import { DEMO_LUGARES, DEMO_CLEANING_ASSIGNMENTS, mergeDemoData } from '../../utils/demoData';
 import { useDemoMode } from '../../hooks/useDemoMode';
-import pdfMake from 'pdfmake/build/pdfmake';
-import * as pdfFonts from 'pdfmake/build/vfs_fonts';
+import {
+  generateRecoleccionPDFComplete,
+  generateFumigacionPDFComplete,
+  generateLimpiezaPDFComplete,
+  generateMantenimientoPDFComplete
+} from '../../utils/reportPdfGenerator';
 import './ReportsComponent.css';
-
-pdfMake.vfs = pdfFonts.vfs;
 
 // Helper para parsear fechas sin problemas de timezone
 // "2026-01-13" -> Date local (no UTC)
@@ -75,6 +77,11 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
   const maintenanceReportsData = useQuery(api.maintenance.listReports);
   const maintenanceReports = maintenanceReportsData || [];
 
+  // Queries para reportes COMPLETOS con fotos (para descarga profesional)
+  const fumigationReportsWithPhotos = useQuery(api.fumigaciones.listReportsWithPhotos, {});
+  const cleaningReportsWithPhotos = useQuery(api.cleaning.listReportsWithPhotos, {});
+  const maintenanceReportsWithPhotos = useQuery(api.maintenance.listReportsWithPhotos, {});
+
   // Resetear página cuando cambie de categoría
   useEffect(() => {
     setCurrentPage(1);
@@ -94,26 +101,40 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
   // Manejar pre-selección de ubicación desde mapa
   useEffect(() => {
     if (preSelectedLocationId) {
-      const location = displayLugares.find(l => l.id === preSelectedLocationId);
-      if (location) {
-        // Enriquecer el lugar con los assignments
+      // Buscar primero en fumigationLugares (recoleccion/fumigacion)
+      const fumigationMatch = fumigationLugares.find(l => l._id === preSelectedLocationId);
+      if (fumigationMatch) {
+        const enrichedLocation = {
+          ...fumigationMatch,
+          id: fumigationMatch._id,
+          assignmentsCount: 0,
+          completedCount: 0,
+          assignments: []
+        };
+        setActiveCategory('recoleccion');
+        setSelectedLocation(enrichedLocation);
+        return;
+      }
+
+      // Luego buscar en displayLugares (limpieza - tabla salas)
+      const cleaningMatch = displayLugares.find(l => l.id === preSelectedLocationId);
+      if (cleaningMatch) {
         const lugarAssignments = displayAssignments.filter(a => {
-          const matchLocation = a.lugar?.id === location.id || a.lugar_id === location.id;
+          const matchLocation = a.lugar?.id === cleaningMatch.id || a.lugar_id === cleaningMatch.id;
           return matchLocation;
         });
 
         const enrichedLocation = {
-          ...location,
+          ...cleaningMatch,
           assignmentsCount: lugarAssignments.length,
           completedCount: lugarAssignments.filter(a => a.estado === 'completado').length,
           assignments: lugarAssignments
         };
-
-        setActiveCategory('recoleccion'); // o 'limpieza' según el tipo
+        setActiveCategory('limpieza');
         setSelectedLocation(enrichedLocation);
       }
     }
-  }, [preSelectedLocationId, displayLugares, displayAssignments]);
+  }, [preSelectedLocationId, fumigationLugares, displayLugares, displayAssignments]);
 
   const categories = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
@@ -140,9 +161,8 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     return null;
   };
 
-  // Función para descargar reportes por módulo
+  // Función para descargar reportes por módulo (usa generador profesional con logos, mapas, fotos)
   const handleModuleDownload = async (module) => {
-    // Validar permisos
     if (user?.tipo === 'conductor') {
       alert('No tiene permisos para descargar reportes');
       return;
@@ -150,7 +170,6 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
 
     const dateRange = moduleDateRanges[module];
 
-    // Validar rango de fechas
     if (dateRange.desde > dateRange.hasta) {
       alert('La fecha "Desde" debe ser anterior a la fecha "Hasta"');
       return;
@@ -159,166 +178,16 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     setModuleDownloading(module);
 
     try {
-      const content = [];
-      const desde = parseLocalDate(dateRange.desde);
-      const hasta = parseLocalDate(dateRange.hasta);
-
-      // Header
-      const moduleNames = {
-        recoleccion: 'RECOLECCIÓN',
-        fumigacion: 'FUMIGACIÓN',
-        limpieza: 'LIMPIEZA',
-        mantenimiento: 'MANTENIMIENTO'
+      let result;
+      const generators = {
+        recoleccion: () => generateRecoleccionPDFComplete(reportsData || [], dateRange),
+        fumigacion: () => generateFumigacionPDFComplete(fumigationReportsWithPhotos || [], dateRange),
+        limpieza: () => generateLimpiezaPDFComplete(cleaningReportsWithPhotos || [], dateRange),
+        mantenimiento: () => generateMantenimientoPDFComplete(maintenanceReportsWithPhotos || [], dateRange)
       };
 
-      content.push({
-        text: `REPORTES DE ${moduleNames[module]} - RMP`,
-        style: 'header',
-        alignment: 'center',
-        margin: [0, 0, 0, 10]
-      });
-
-      content.push({
-        columns: [
-          { text: `Periodo: ${desde.toLocaleDateString('es-ES')} - ${hasta.toLocaleDateString('es-ES')}`, width: '*' },
-          { text: `Generado: ${new Date().toLocaleString('es-ES')}`, width: 'auto', alignment: 'right' }
-        ],
-        margin: [0, 0, 0, 20]
-      });
-
-      content.push({
-        canvas: [{ type: 'line', x1: 0, y1: 0, x2: 515, y2: 0, lineWidth: 1 }],
-        margin: [0, 0, 0, 20]
-      });
-
-      // Generar contenido según el módulo
-      if (module === 'recoleccion') {
-        const filtered = reportsData.filter(r => {
-          const rDate = parseLocalDate(r.fecha_completacion);
-          return rDate >= desde && rDate <= hasta;
-        });
-
-        content.push({ text: `Total de reportes: ${filtered.length}`, margin: [0, 0, 0, 15], bold: true });
-
-        if (filtered.length > 0) {
-          filtered.forEach((report, idx) => {
-            content.push({
-              text: `${idx + 1}. ${report.ruta_nombre || 'Ruta'}`,
-              style: 'reportTitle',
-              margin: [0, 10, 0, 5]
-            });
-            content.push({ text: `Fecha: ${parseLocalDate(report.fecha_completacion).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
-            content.push({ text: `Conductor: ${report.conductor_nombre}`, margin: [10, 0, 0, 2], fontSize: 10 });
-            content.push({ text: `Vehículo: ${report.vehiculo_placa}`, margin: [10, 0, 0, 2], fontSize: 10 });
-            content.push({ text: `Paradas completadas: ${report.paradas_completadas?.length || 0}`, margin: [10, 0, 0, 5], fontSize: 10 });
-          });
-        } else {
-          content.push({ text: 'No hay reportes en el periodo seleccionado', italics: true, color: '#999', margin: [0, 10, 0, 0] });
-        }
-      } else if (module === 'fumigacion' && fumigationAssignments) {
-        const filtered = fumigationAssignments.filter(f => {
-          const fDate = parseLocalDate(f.fecha);
-          return fDate >= desde && fDate <= hasta;
-        });
-
-        content.push({ text: `Total de reportes: ${filtered.length}`, margin: [0, 0, 0, 15], bold: true });
-
-        if (filtered.length > 0) {
-          filtered.forEach((fumigation, idx) => {
-            const tipo = fumigation.tipo_fumigacion === 'interna' ? 'Interna' : 'Externa';
-            content.push({
-              text: `${idx + 1}. Fumigación ${tipo} - ${fumigation.lugar_nombre}`,
-              style: 'reportTitle',
-              margin: [0, 10, 0, 5]
-            });
-            content.push({ text: `Fecha: ${parseLocalDate(fumigation.fecha).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
-            content.push({ text: `Horario: ${fumigation.horario_inicio} - ${fumigation.horario_fin}`, margin: [10, 0, 0, 2], fontSize: 10 });
-            if (fumigation.observaciones) {
-              content.push({ text: `Observaciones: ${fumigation.observaciones}`, margin: [10, 0, 0, 5], fontSize: 10 });
-            }
-          });
-        } else {
-          content.push({ text: 'No hay reportes en el periodo seleccionado', italics: true, color: '#999', margin: [0, 10, 0, 0] });
-        }
-      } else if (module === 'limpieza' && assignments) {
-        const filtered = assignments.filter(a => {
-          const aDate = parseLocalDate(a.fecha);
-          return aDate >= desde && aDate <= hasta;
-        });
-
-        content.push({ text: `Total de reportes: ${filtered.length}`, margin: [0, 0, 0, 15], bold: true });
-
-        if (filtered.length > 0) {
-          filtered.forEach((cleaning, idx) => {
-            content.push({
-              text: `${idx + 1}. ${cleaning.lugar?.nombre || 'Lugar'} - ${cleaning.area?.nombre || 'Área'}`,
-              style: 'reportTitle',
-              margin: [0, 10, 0, 5]
-            });
-            content.push({ text: `Fecha: ${parseLocalDate(cleaning.fecha).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
-            content.push({ text: `Hora: ${cleaning.hora}`, margin: [10, 0, 0, 2], fontSize: 10 });
-            content.push({ text: `Estado: ${cleaning.estado}`, margin: [10, 0, 0, 5], fontSize: 10 });
-          });
-        } else {
-          content.push({ text: 'No hay reportes en el periodo seleccionado', italics: true, color: '#999', margin: [0, 10, 0, 0] });
-        }
-      } else if (module === 'mantenimiento' && maintenanceTasks) {
-        const filtered = maintenanceTasks.filter(t => {
-          const tDate = parseLocalDate(t.scheduled_date);
-          return tDate >= desde && tDate <= hasta;
-        });
-
-        content.push({ text: `Total de reportes: ${filtered.length}`, margin: [0, 0, 0, 15], bold: true });
-
-        if (filtered.length > 0) {
-          filtered.forEach((task, idx) => {
-            content.push({
-              text: `${idx + 1}. Mantenimiento ${task.type}`,
-              style: 'reportTitle',
-              margin: [0, 10, 0, 5]
-            });
-            content.push({ text: `Fecha programada: ${parseLocalDate(task.scheduled_date).toLocaleDateString('es-ES')}`, margin: [10, 0, 0, 2], fontSize: 10 });
-            content.push({ text: `Hora: ${task.scheduled_time || 'No especificada'}`, margin: [10, 0, 0, 2], fontSize: 10 });
-            content.push({ text: `Estado: ${task.status}`, margin: [10, 0, 0, 2], fontSize: 10 });
-            if (task.observations) {
-              content.push({ text: `Observaciones: ${task.observations}`, margin: [10, 0, 0, 5], fontSize: 10 });
-            }
-          });
-        } else {
-          content.push({ text: 'No hay reportes en el periodo seleccionado', italics: true, color: '#999', margin: [0, 10, 0, 0] });
-        }
-      }
-
-      // Generar PDF
-      const docDefinition = {
-        content,
-        footer: (currentPage, pageCount) => ({
-          text: `Página ${currentPage} de ${pageCount} | RMP - ${moduleNames[module]}`,
-          alignment: 'center',
-          fontSize: 8,
-          italics: true,
-          margin: [0, 10, 0, 0]
-        }),
-        styles: {
-          header: {
-            fontSize: 18,
-            bold: true
-          },
-          reportTitle: {
-            fontSize: 12,
-            bold: true,
-            color: '#3D5229'
-          }
-        },
-        defaultStyle: {
-          fontSize: 11
-        }
-      };
-
-      const fileName = `${moduleNames[module]}_${desde.toISOString().split('T')[0]}_${hasta.toISOString().split('T')[0]}.pdf`;
-      pdfMake.createPdf(docDefinition).download(fileName);
-
-      console.log(`✅ PDF de ${module} generado exitosamente:`, fileName);
+      result = await generators[module]();
+      console.log(`📄 PDF profesional de ${module} generado:`, result);
     } catch (error) {
       console.error(`Error generando PDF de ${module}:`, error);
       alert(`Error al generar el reporte de ${module}. Por favor intenta nuevamente.`);
@@ -338,24 +207,13 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     }));
   };
 
-  // Filtrar lugares para recolección - solo mercados y Mi Pueblito
+  // Filtrar lugares para recolección - usa tabla `lugares` (misma que fumigación: 5 mercados + Mi Pueblito)
   const recoleccionLocations = useMemo(() => {
-    const recoleccionPlaces = displayLugares.filter(lugar =>
-      (lugar.nombre.includes('Mercado') || lugar.nombre.includes('Complejo')) &&
-      !lugar.nombre.includes('Planta de tratamiento') &&
-      lugar.activo !== false
-    );
+    const recoleccionPlaces = fumigationLugares.filter(lugar => lugar.activo !== false);
     console.log('🏢 Total lugares de recolección:', recoleccionPlaces.length);
     console.log('🏢 Lugares:', recoleccionPlaces.map(l => l.nombre));
 
     return recoleccionPlaces.map(lugar => {
-      // Obtener assignments del lugar
-      const lugarAssignments = displayAssignments.filter(a => {
-        const matchLocation = a.lugar?.id === lugar.id || a.lugar_id === lugar.id;
-        const matchType = a.tipo === 'recoleccion' || a.tipoServicio === 'recoleccion';
-        return matchLocation && matchType;
-      });
-
       // Buscar reportes de rutas que pasaron por este lugar
       const lugarReports = [];
       routeReports.forEach(report => {
@@ -380,32 +238,23 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
         }
       });
 
-      // Combinar assignments y reportes
-      const allReports = [...lugarAssignments, ...lugarReports];
-
       return {
         ...lugar,
-        assignmentsCount: allReports.length,
-        completedCount: allReports.length,
-        assignments: allReports
+        id: lugar._id, // Para compatibilidad con MapCard
+        assignmentsCount: lugarReports.length,
+        completedCount: lugarReports.length,
+        assignments: lugarReports
       };
     });
-  }, [displayLugares, displayAssignments, routeReports]);
+  }, [fumigationLugares, routeReports]);
 
-  // ⚡ Component para tarjeta con imagen estática de mapa (carga rápida)
+  // ⚡ Component para tarjeta con mapa embebido real de Google Maps
   const MapCard = memo(({ location, icon: Icon }) => {
-    // Mapeo de lugares a imágenes de mapa estático
-    const mapImageMap = {
-      'Complejo Turístico Mi Pueblito': 'mi-pueblito-map.png',
-      'Mercado de Alcalde Díaz': 'alcalde-diaz-map.png',
-      'Mercado de Pacora': 'pacora-map.png',
-      'Mercado de Pueblo Nuevo': 'pueblo-nuevo-map.png',
-      'Mercado del Marisco': 'marisco-map.png',
-      'Mercado San Felipe Neri': 'san-felipe-map.png'
-    };
-
-    const mapImage = mapImageMap[location.nombre];
-    const imageUrl = mapImage ? `/mapas/${mapImage}` : null;
+    const hasCoords = location.latitud && location.longitud;
+    const mapQuery = hasCoords
+      ? `${location.latitud},${location.longitud}`
+      : encodeURIComponent(location.nombre + ', Panama City, Panama');
+    const embedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${mapQuery}&zoom=16`;
 
     return (
       <div
@@ -414,25 +263,14 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
         style={{ cursor: 'pointer' }}
       >
         <div className="location-image-wrapper">
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt={`Mapa de ${location.nombre}`}
-              className="location-image"
-              loading="lazy"
-              onError={(e) => {
-                console.error('Error cargando imagen de mapa:', imageUrl);
-                e.target.style.display = 'none';
-                e.target.nextElementSibling.style.display = 'flex';
-              }}
-            />
-          ) : null}
-          <div className="location-image-fallback" style={{ display: imageUrl ? 'none' : 'flex' }}>
-            <Icon size={48} />
-            <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
-              {location.nombre}
-            </p>
-          </div>
+          <iframe
+            src={embedUrl}
+            className="location-map-iframe"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            title={`Mapa de ${location.nombre}`}
+            style={{ width: '100%', height: '100%', border: 0, pointerEvents: 'none' }}
+          />
         </div>
         <div className="map-card-overlay">
           <h4>{location.nombre}</h4>
@@ -502,7 +340,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
           </div>
         )}
 
-        {cleaningLoading ? (
+        {fumigationLoading ? (
           <div className="loading-state">
             <div className="loading-spinner"></div>
             <p>Cargando ubicaciones...</p>
@@ -516,7 +354,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
           <>
             <div className="locations-grid">
               {paginatedLocations.map(location => (
-                <MapCard key={location.id} location={location} icon={Truck} />
+                <MapCard key={location._id || location.id} location={location} icon={Truck} />
               ))}
           </div>
 
@@ -701,7 +539,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
               {paginatedLocations.map(location => {
                 // Mapeo de imágenes para lugares
                 const imageMap = {
-                  'Mercado de Mariscos': 'mercado de mariscos.jpg',
+                  'Mercado del Marisco': 'mercado de mariscos.jpg',
                   'Mercado San Felipe Neri': 'san felipe neri.jpeg',
                   'Mercado de Alcalde Díaz': 'Mercado Alcalde Diaz.jpeg',
                   'Mercado de Pueblo Nuevo': 'Mercado Pueblo Nuevo.jpg',
@@ -714,7 +552,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
 
                 return (
                   <div
-                    key={location.id}
+                    key={location._id || location.id}
                     className="location-map-card"
                     onClick={() => setSelectedLocation(location)}
                     style={{ cursor: 'pointer' }}
@@ -862,7 +700,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
               {paginatedLocations.map(location => {
                 // Mapeo exacto entre nombres de BD y nombres de archivos
                 const imageMap = {
-                  'Almacén Central del MINSA': 'Almacen Central MINSA.jpg',
+                  'Almacén Central': 'Almacen Central MINSA.jpg',
                   'Casa de la Municipalidad': 'Casa de la Municipidad.jpg',
                   'Casa Góngora': 'Plaza Gongora.jpg',
                   'Centro de Recaudación Magna Corp.': 'Centro de Recaudacion Magna Corp..jpg',
@@ -886,7 +724,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
 
               return (
                 <div
-                  key={location.id}
+                  key={location._id || location.id}
                   className="location-map-card"
                   onClick={() => setSelectedLocation(location)}
                   style={{ cursor: 'pointer' }}
@@ -1007,85 +845,13 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     );
   };
 
-  // Agrupar tareas de mantenimiento por lugar (Planta de Tratamiento San Felipe Neri)
-  const maintenanceByLocation = useMemo(() => {
-    // Buscar San Felipe Neri en los lugares disponibles
-    const sanFelipeNeri = displayLugares.find(l =>
-      l.nombre === 'Mercado San Felipe Neri' ||
-      l.nombre === 'Planta de tratamiento (Mercado San Felipe Neri)'
-    );
-
-    // Si no hay tareas pero existe el lugar, mostrar la ubicación sin tareas
-    if (maintenanceTasks.length === 0) {
-      if (sanFelipeNeri) {
-        return [{
-          id: sanFelipeNeri.id,
-          nombre: sanFelipeNeri.nombre,
-          latitud: sanFelipeNeri.latitud,
-          longitud: sanFelipeNeri.longitud,
-          assignments: [],
-          assignmentsCount: 0,
-          completedCount: 0
-        }];
-      }
-      // Si no existe el lugar, crear uno por defecto
-      return [{
-        id: 'san-felipe-default',
-        nombre: 'Planta de tratamiento (Mercado San Felipe Neri)',
-        latitud: null,
-        longitud: null,
-        assignments: [],
-        assignmentsCount: 0,
-        completedCount: 0
-      }];
-    }
-
-    // Agrupar tareas por lugar_id
-    const locationMap = new Map();
-
-    maintenanceTasks.forEach(task => {
-      if (task.lugar_id && task.lugar) {
-        const key = task.lugar_id;
-        if (!locationMap.has(key)) {
-          locationMap.set(key, {
-            id: task.lugar.id,
-            nombre: task.lugar.nombre,
-            latitud: task.lugar.latitud,
-            longitud: task.lugar.longitud,
-            assignments: []
-          });
-        }
-
-        // Convertir la tarea al formato esperado por LocationMapModal
-        locationMap.get(key).assignments.push({
-          id: task.id,
-          fecha: task.scheduled_date,
-          hora: task.scheduled_time,
-          estado: task.status === 'completada' ? 'completado' : task.status === 'en_proceso' ? 'en_progreso' : 'pendiente',
-          notas: task.observations,
-          area: { nombre: task.type === 'preventivo' ? 'Mantenimiento Preventivo' : task.type === 'correctivo' ? 'Mantenimiento Correctivo' : 'Contingencia' },
-          fotos: [
-            ...(task.images_before || []).map((img, idx) => ({ id: `before-${idx}`, file_path: img, etapa: 'antes' })),
-            ...(task.images_during || []).map((img, idx) => ({ id: `during-${idx}`, file_path: img, etapa: 'durante' })),
-            ...(task.images_after || []).map((img, idx) => ({ id: `after-${idx}`, file_path: img, etapa: 'despues' }))
-          ]
-        });
-      }
-    });
-
-    return Array.from(locationMap.values()).map(location => ({
-      ...location,
-      assignmentsCount: location.assignments.length,
-      completedCount: location.assignments.filter(a => a.estado === 'completado').length
-    }));
-  }, [maintenanceTasks, displayLugares]);
+  // maintenanceByLocation removed - maintenance tasks are grouped by vehicle, not location
 
   const renderMantenimiento = () => {
     console.log('🔧 DEBUG Mantenimiento:', {
       maintenanceLoading,
       maintenanceTasks: maintenanceTasks.length,
-      maintenanceReports: maintenanceReports.length,
-      maintenanceByLocation: maintenanceByLocation.length
+      maintenanceReports: maintenanceReports.length
     });
 
     // Paginación para reportes

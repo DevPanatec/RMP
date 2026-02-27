@@ -297,7 +297,7 @@ export default defineSchema({
   // 13. Asignaciones de Limpieza
   cleaning_assignments: defineTable({
     sala_id: v.id("salas"),
-    area_id: v.id("areas"),
+    area_id: v.optional(v.id("areas")),
     fecha: v.string(),
     hora: v.string(),
     estado: v.string(), // "pendiente", "en_progreso", "completado", "cancelado"
@@ -387,6 +387,22 @@ export default defineSchema({
     .index("by_vehiculo", ["vehiculo_id"])
     .index("by_tipo", ["tipo"]),
 
+  // 16d. Presets de Volumen para Mantenimiento
+  maintenance_volume_presets: defineTable({
+    label: v.string(), // "Mi Preset Personalizado"
+    volume_gallons: v.number(), // 4500
+    cost_per_gallon: v.number(), // 0.12
+    total_cost: v.number(), // 540.00
+    description: v.optional(v.string()), // Optional note about preset
+    is_custom: v.boolean(), // true for user-created, false for system defaults
+    created_by: v.optional(v.string()), // User email/ID who created it
+    created_at: v.string(), // ISO timestamp
+    is_global: v.boolean(), // true = all users can use, false = only creator
+  })
+    .index("by_created_by", ["created_by"])
+    .index("by_is_custom", ["is_custom"])
+    .index("by_is_global", ["is_global"]),
+
   // 17. Asignaciones de Fumigación
   fumigation_assignments: defineTable({
     tipo_fumigacion: v.union(v.literal("interna"), v.literal("externa")),
@@ -452,9 +468,9 @@ export default defineSchema({
   cleaning_reports: defineTable({
     assignment_id: v.id("cleaning_assignments"),
     sala_id: v.id("salas"),
-    area_id: v.id("areas"),
+    area_id: v.optional(v.id("areas")),
     sala_nombre: v.string(),
-    area_nombre: v.string(),
+    area_nombre: v.optional(v.string()),
     latitud: v.optional(v.number()),
     longitud: v.optional(v.number()),
     fecha: v.string(),

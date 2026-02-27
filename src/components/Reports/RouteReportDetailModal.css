@@ -31,7 +31,7 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--space-16) var(--space-24);
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
   background: var(--color-primary);
   color: white;
   flex-shrink: 0;
@@ -132,8 +132,8 @@
 }
 
 .progress-section {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 32px;
@@ -150,7 +150,7 @@
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text);
 }
 
 .progress-percentage {
@@ -161,7 +161,7 @@
 
 .progress-bar-container {
   height: 12px;
-  background: #e5e7eb;
+  background: var(--color-border);
   border-radius: 6px;
   overflow: hidden;
   margin-bottom: 12px;
@@ -186,7 +186,7 @@
 }
 
 .stat-warning {
-  color: #6b7280;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
@@ -246,13 +246,13 @@
 }
 
 .parada-item.completada {
-  border-color: #e5e7eb;
-  background: #f9fafb;
+  border-color: var(--color-border);
+  background: var(--color-surface-secondary);
 }
 
 .parada-item.no-completada {
-  border-color: #e5e7eb;
-  background: #f9fafb;
+  border-color: var(--color-border);
+  background: var(--color-surface-secondary);
 }
 
 .parada-number {
@@ -270,7 +270,7 @@
 }
 
 .parada-item.no-completada .parada-number {
-  background: #6b7280;
+  background: var(--color-text-secondary);
 }
 
 .parada-content {
@@ -289,7 +289,7 @@
 .parada-direccion {
   font-size: 15px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text);
 }
 
 .badge {
@@ -326,17 +326,17 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .parada-detail svg {
-  color: #9ca3af;
+  color: var(--color-text-muted);
 }
 
 .parada-motivo {
   margin-top: 8px;
   padding: 8px 12px;
-  background: #e5e7eb;
+  background: var(--color-border);
   border-radius: 6px;
   font-size: 13px;
 }
@@ -348,7 +348,7 @@
 }
 
 .motivo-text {
-  color: #111827;
+  color: var(--color-text);
 }
 
 .risk-reports-section {
@@ -388,26 +388,26 @@
 
 .risk-report-card.critico,
 .risk-report-card.critica {
-  border-color: #e5e7eb;
-  background: #f9fafb;
+  border-color: var(--color-border);
+  background: var(--color-surface-secondary);
 }
 
 .risk-report-card.alto,
 .risk-report-card.alta {
-  border-color: #e5e7eb;
-  background: #f9fafb;
+  border-color: var(--color-border);
+  background: var(--color-surface-secondary);
 }
 
 .risk-report-card.medio,
 .risk-report-card.media {
-  border-color: #e5e7eb;
-  background: #f9fafb;
+  border-color: var(--color-border);
+  background: var(--color-surface-secondary);
 }
 
 .risk-report-card.bajo,
 .risk-report-card.baja {
-  border-color: #e5e7eb;
-  background: #f9fafb;
+  border-color: var(--color-border);
+  background: var(--color-surface-secondary);
 }
 
 .risk-report-header {
@@ -423,7 +423,7 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
 }
 
@@ -448,13 +448,13 @@
 
 .risk-priority.priority-medio,
 .risk-priority.priority-media {
-  background: #6b7280;
+  background: var(--color-text-secondary);
   color: white;
 }
 
 .risk-priority.priority-bajo,
 .risk-priority.priority-baja {
-  background: #6b7280;
+  background: var(--color-text-secondary);
   color: white;
 }
 
@@ -462,7 +462,7 @@
   margin: 0 0 8px 0;
   font-size: 15px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text);
 }
 
 .risk-category {
@@ -471,14 +471,14 @@
   gap: 6px;
   margin: 0 0 8px 0;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .risk-description {
   margin: 0 0 12px 0;
   font-size: 14px;
   line-height: 1.5;
-  color: #374151;
+  color: var(--color-text);
 }
 
 .risk-meta {
@@ -492,15 +492,15 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
 }
 
 .terminacion-warning {
   display: flex;
   gap: 12px;
   padding: 16px;
-  background: #f9fafb;
-  border: 2px solid #e5e7eb;
+  background: var(--color-surface-secondary);
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   margin-top: 16px;
 }
@@ -519,7 +519,7 @@
 .terminacion-warning p {
   margin: 0;
   font-size: 14px;
-  color: #111827;
+  color: var(--color-text);
 }
 
 .observaciones-section {
@@ -585,8 +585,8 @@
 .parada-risk-report {
   margin-top: 12px;
   padding: 12px;
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-  border: 2px solid #fecaca;
+  background: linear-gradient(135deg, var(--color-error-light) 0%, var(--color-error-light) 100%);
+  border: 2px solid var(--color-error-border);
   border-radius: 8px;
   animation: fadeInDown 0.3s ease;
 }
@@ -608,14 +608,14 @@
   gap: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: #991b1b;
+  color: var(--color-error-contrast);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 8px;
 }
 
 .parada-risk-header svg {
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 .parada-risk-body {
@@ -627,12 +627,12 @@
 .parada-risk-title {
   font-size: 14px;
   font-weight: 600;
-  color: #7f1d1d;
+  color: var(--color-error-contrast);
 }
 
 .parada-risk-description {
   font-size: 13px;
-  color: #991b1b;
+  color: var(--color-error-contrast);
   line-height: 1.4;
 }
 
@@ -663,13 +663,13 @@
 
 .parada-risk-priority.priority-medio,
 .parada-risk-priority.priority-media {
-  background: #6b7280;
+  background: var(--color-text-secondary);
   color: white;
 }
 
 .parada-risk-priority.priority-bajo,
 .parada-risk-priority.priority-baja {
-  background: #6b7280;
+  background: var(--color-text-secondary);
   color: white;
 }
 
@@ -697,11 +697,11 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   font-size: 14px;
-  color: #374151;
+  color: var(--color-text);
 }
 
 .producto-item svg {
@@ -776,44 +776,44 @@
 
 .maintenance-badge.tipo-preventivo {
   background: rgba(16, 124, 16, 0.1);
-  color: #107c10;
-  border: 1px solid #107c10;
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
 }
 
 .maintenance-badge.tipo-correctivo {
   background: rgba(0, 120, 212, 0.1);
-  color: #0078d4;
-  border: 1px solid #0078d4;
+  color: var(--color-info);
+  border: 1px solid var(--color-info);
 }
 
 .maintenance-badge.tipo-inspección {
   background: rgba(100, 116, 139, 0.1);
-  color: #64748b;
-  border: 1px solid #64748b;
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-text-tertiary);
 }
 
 .maintenance-badge.priority-urgente {
   background: rgba(209, 52, 56, 0.1);
-  color: #d13438;
-  border: 1px solid #d13438;
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
 }
 
 .maintenance-badge.priority-alta {
   background: rgba(255, 140, 0, 0.1);
-  color: #ff8c00;
-  border: 1px solid #ff8c00;
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
 }
 
 .maintenance-badge.priority-media {
   background: rgba(255, 185, 0, 0.1);
-  color: #ffb900;
-  border: 1px solid #ffb900;
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
 }
 
 .maintenance-badge.priority-baja {
   background: rgba(100, 116, 139, 0.1);
-  color: #64748b;
-  border: 1px solid #64748b;
+  color: var(--color-text-tertiary);
+  border: 1px solid var(--color-text-tertiary);
 }
 
 .maintenance-description {
@@ -848,37 +848,37 @@
 
 .maintenance-badge-mini.tipo-preventivo {
   background: rgba(16, 124, 16, 0.1);
-  color: #107c10;
+  color: var(--color-success);
 }
 
 .maintenance-badge-mini.tipo-correctivo {
   background: rgba(0, 120, 212, 0.1);
-  color: #0078d4;
+  color: var(--color-info);
 }
 
 .maintenance-badge-mini.tipo-inspección {
   background: rgba(100, 116, 139, 0.1);
-  color: #64748b;
+  color: var(--color-text-tertiary);
 }
 
 .maintenance-badge-mini.priority-urgente {
   background: rgba(209, 52, 56, 0.1);
-  color: #d13438;
+  color: var(--color-error);
 }
 
 .maintenance-badge-mini.priority-alta {
   background: rgba(255, 140, 0, 0.1);
-  color: #ff8c00;
+  color: var(--color-warning);
 }
 
 .maintenance-badge-mini.priority-media {
   background: rgba(255, 185, 0, 0.1);
-  color: #c49a00;
+  color: var(--color-warning-dark);
 }
 
 .maintenance-badge-mini.priority-baja {
   background: rgba(100, 116, 139, 0.1);
-  color: #64748b;
+  color: var(--color-text-tertiary);
 }
 
 /* ========== HORIZONTAL PHOTO GRID (3 COLUMNS) ========== */
@@ -918,17 +918,17 @@
 
 .fotos-column-header.fotos-antes {
   background: rgba(255, 185, 0, 0.15);
-  color: #92400e;
+  color: var(--color-warning-dark);
 }
 
 .fotos-column-header.fotos-durante {
   background: rgba(0, 120, 212, 0.15);
-  color: #0078d4;
+  color: var(--color-info);
 }
 
 .fotos-column-header.fotos-despues {
   background: rgba(16, 124, 16, 0.15);
-  color: #107c10;
+  color: var(--color-success);
 }
 
 .fotos-column-content {

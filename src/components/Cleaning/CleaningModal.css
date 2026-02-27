@@ -533,8 +533,8 @@
 
 .validation-banner.warning {
   background: rgba(245, 158, 11, 0.1);
-  border-color: #f59e0b;
-  color: #f59e0b;
+  border-color: var(--color-warning);
+  color: var(--color-warning);
 }
 
 .validation-banner.error {
@@ -590,8 +590,8 @@
 
 .validation-info.warning {
   background: rgba(245, 158, 11, 0.1);
-  border-color: #f59e0b;
-  color: #f59e0b;
+  border-color: var(--color-warning);
+  color: var(--color-warning);
 }
 
 .validation-info.success {
@@ -668,7 +668,7 @@
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
-  background: #86868b;
+  background: var(--color-text-secondary);
   box-shadow: none;
 }
 

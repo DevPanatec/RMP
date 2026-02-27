@@ -683,7 +683,7 @@
 }
 
 .marker-pin.marker-start {
-  background: #22c55e;
+  background: var(--color-success);
 }
 
 .marker-pin.marker-middle {
@@ -691,7 +691,7 @@
 }
 
 .marker-pin.marker-end {
-  background: #dc2626;
+  background: var(--color-error);
 }
 
 .marker-number {
@@ -1484,15 +1484,15 @@
 }
 
 .route-marker-pin.marker-start {
-  background: #107C10;
+  background: var(--color-success);
 }
 
 .route-marker-pin.marker-middle {
-  background: var(--color-primary, #0078D4);
+  background: var(--color-primary, var(--color-info));
 }
 
 .route-marker-pin.marker-end {
-  background: #D13438;
+  background: var(--color-error);
 }
 
 .route-marker-pin .marker-number {

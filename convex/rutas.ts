@@ -59,7 +59,7 @@ export const add = mutation({
   handler: async (ctx, args) => {
     return await ctx.db.insert("rutas", {
       ...args,
-      estado: args.estado || "pendiente",
+      estado: args.estado || "programada",
     });
   },
 });

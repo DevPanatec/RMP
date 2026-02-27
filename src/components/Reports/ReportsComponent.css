@@ -176,12 +176,12 @@
 
 .stat-change.positive {
   background: rgba(34, 197, 94, 0.1);
-  color: #059669;
+  color: var(--color-success-dark);
 }
 
 .stat-change.negative {
   background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  color: var(--color-error);
 }
 
 /* ============================================
@@ -506,19 +506,19 @@
 
 .cargo--alta {
   background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  color: var(--color-error);
   border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .cargo--media {
   background: rgba(245, 158, 11, 0.1);
-  color: #d97706;
+  color: var(--color-warning-dark);
   border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .cargo--baja {
   background: rgba(34, 197, 94, 0.1);
-  color: #059669;
+  color: var(--color-success-dark);
   border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
@@ -879,12 +879,12 @@
 
 .route-status--activo {
   background: rgba(52, 199, 89, 0.15);
-  color: #34C759;
+  color: var(--color-success);
 }
 
 .route-status--inactivo {
   background: rgba(142, 142, 147, 0.15);
-  color: #8E8E93;
+  color: var(--color-text-muted);
 }
 
 .route-card-action {
@@ -893,7 +893,7 @@
   justify-content: space-between;
   font-size: 14px;
   font-weight: 500;
-  color: #007AFF;
+  color: var(--color-info);
 }
 
 .empty-state {
@@ -1093,7 +1093,7 @@
 .location-card {
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid #e5e7eb !important;
+  border: 2px solid var(--color-border) !important;
   background: white !important;
   padding: 24px !important;
   position: relative;
@@ -1129,7 +1129,7 @@
   gap: 16px;
   margin-bottom: 24px;
   padding-bottom: 20px;
-  border-bottom: 2px solid #f3f4f6;
+  border-bottom: 2px solid var(--color-surface-secondary);
 }
 
 .location-card-header svg {
@@ -1142,7 +1142,7 @@
 .location-card-header h4 {
   font-size: 19px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text);
   margin: 0;
   line-height: 1.4;
   flex: 1;
@@ -1184,7 +1184,7 @@
 .location-stat .stat-label {
   font-size: 11px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.8px;
   text-align: center;
@@ -1198,7 +1198,7 @@
   font-weight: 600;
   color: var(--color-primary);
   padding-top: 20px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--color-surface-secondary);
   transition: all 0.2s ease;
 }
 
@@ -1236,7 +1236,7 @@
   height: 100%;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  background: linear-gradient(135deg, var(--color-surface-secondary) 0%, var(--color-border) 100%);
 }
 
 .location-image {
@@ -1257,6 +1257,14 @@
 
 .location-map-card:hover .location-image {
   transform: scale(1.05) translateZ(0);
+}
+
+/* Embedded Google Map iframe in cards */
+.location-map-iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  pointer-events: none;
 }
 
 /* Static Map Images - Optimized for performance */
@@ -1284,7 +1292,7 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #dbeafe 100%);
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, var(--color-info-light) 100%);
   overflow: hidden;
 }
 
@@ -1349,11 +1357,11 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  background: linear-gradient(135deg, var(--color-surface-secondary) 0%, var(--color-border) 100%);
 }
 
 .location-image-fallback svg {
-  color: #9ca3af;
+  color: var(--color-text-muted);
 }
 
 .map-card-overlay {
@@ -1675,9 +1683,9 @@
   justify-content: space-between;
   gap: 16px;
   padding: 16px 20px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  background: linear-gradient(135deg, var(--color-surface-secondary) 0%, #ffffff 100%);
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--color-border);
   margin-bottom: 24px;
   animation: fadeIn 0.3s ease-out;
 }
@@ -1700,12 +1708,12 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: #374151;
+  color: var(--color-text);
 }
 
 .date-input-small input[type="date"] {
   padding: 8px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-border-strong);
   border-radius: 8px;
   font-size: 13px;
   font-family: inherit;
@@ -1801,7 +1809,7 @@
   margin: 0 0 20px 0;
   font-size: 20px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1816,7 +1824,7 @@
   background: white;
   padding: 20px 24px;
   border-radius: 12px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--color-border);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -1837,14 +1845,14 @@
 .route-report-card-title {
   font-size: 18px;
   font-weight: 600;
-  color: #111827;
+  color: var(--color-text);
   margin: 0;
 }
 
 .route-report-badge {
   padding: 6px 14px;
   background: #d1fae5;
-  color: #065f46;
+  color: var(--color-success-dark);
   border-radius: 12px;
   font-size: 13px;
   font-weight: 600;
@@ -1858,7 +1866,7 @@
   gap: 24px;
   flex-wrap: wrap;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
   margin-bottom: 10px;
 }
 
@@ -1870,7 +1878,7 @@
 
 .route-report-hint {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--color-text-muted);
   font-style: italic;
   margin: 0;
 }
