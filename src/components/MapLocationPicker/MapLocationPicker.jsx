@@ -55,6 +55,7 @@ const MapLocationPicker = ({
   const handleInputChange = (e) => {
     const value = e.target.value;
     setQuery(value);
+    console.log('🔍 Search input:', value, '| isReady:', isReady, '| length:', value.length);
 
     if (value.length >= 3) {
       searchPlaces(value);
@@ -224,6 +225,41 @@ const MapLocationPicker = ({
               <div className="spinner"></div>
             </div>
           )}
+
+          {/* Dropdown de sugerencias - dentro del input container para posición absoluta */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="suggestions-dropdown">
+              {suggestions.map((prediction) => (
+                <div
+                  key={prediction.place_id}
+                  className="suggestion-item"
+                  onClick={() => handleSuggestionClick(prediction)}
+                >
+                  <div className="suggestion-icon">
+                    <MapPin size={16} />
+                  </div>
+                  <div className="suggestion-text">
+                    <div className="suggestion-address">
+                      {prediction.structured_formatting?.main_text ||
+                       prediction.description.split(',')[0]}
+                    </div>
+                    <div className="suggestion-full-address">
+                      {prediction.structured_formatting?.secondary_text ||
+                       prediction.description}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {showSuggestions && query.length >= 3 && suggestions.length === 0 && !isLoading && (
+            <div className="suggestions-dropdown">
+              <div className="no-results">
+                No se encontraron resultados para "{query}"
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Botones de acciones adicionales */}
@@ -298,41 +334,6 @@ const MapLocationPicker = ({
       {!isReady && (
         <div style={{ padding: '8px', textAlign: 'center', color: '#6b7280' }}>
           Cargando servicios de mapas...
-        </div>
-      )}
-
-      {/* Dropdown de sugerencias */}
-      {showSuggestions && suggestions.length > 0 && (
-        <div className="suggestions-dropdown">
-          {suggestions.map((prediction) => (
-            <div
-              key={prediction.place_id}
-              className="suggestion-item"
-              onClick={() => handleSuggestionClick(prediction)}
-            >
-              <div className="suggestion-icon">
-                <MapPin size={16} />
-              </div>
-              <div className="suggestion-text">
-                <div className="suggestion-address">
-                  {prediction.structured_formatting?.main_text ||
-                   prediction.description.split(',')[0]}
-                </div>
-                <div className="suggestion-full-address">
-                  {prediction.structured_formatting?.secondary_text ||
-                   prediction.description}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {showSuggestions && query.length >= 3 && suggestions.length === 0 && !isLoading && (
-        <div className="suggestions-dropdown">
-          <div className="no-results">
-            No se encontraron resultados para "{query}"
-          </div>
         </div>
       )}
 
