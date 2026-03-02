@@ -820,6 +820,154 @@
   box-shadow: var(--shadow-sm);
 }
 
+/* ============================================
+   NAV APP BUTTON - Open route in Waze/Google Maps
+   ============================================ */
+
+.nav-app-container {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
+.nav-app-fab {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  transition: background var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-out);
+}
+
+.nav-app-fab:hover {
+  background: var(--color-primary-hover);
+  transform: scale(1.05);
+}
+
+.nav-app-fab:active {
+  transform: scale(0.95);
+}
+
+.nav-app-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9;
+}
+
+.nav-app-menu {
+  position: absolute;
+  bottom: 52px;
+  right: 0;
+  width: 260px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  z-index: 11;
+  animation: navMenuSlideUp 0.15s var(--ease-out);
+}
+
+@keyframes navMenuSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nav-app-menu-header {
+  padding: var(--space-8) var(--space-12);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nav-app-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  width: 100%;
+  padding: var(--space-12);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.nav-app-option:hover {
+  background: var(--color-hover-overlay);
+}
+
+.nav-app-option:not(:last-of-type) {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nav-app-option img {
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+}
+
+.nav-app-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.nav-app-option-name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.nav-app-option-desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-app-menu-footer {
+  padding: var(--space-8) var(--space-12);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .nav-app-container {
+    bottom: 12px;
+    right: 12px;
+  }
+
+  .nav-app-fab {
+    width: 40px;
+    height: 40px;
+  }
+
+  .nav-app-menu {
+    width: 240px;
+    right: -4px;
+  }
+}
+
 /* Start Route Container */
 .start-route-container {
   margin: 0 !important;

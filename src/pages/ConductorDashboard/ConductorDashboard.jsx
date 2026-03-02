@@ -14,7 +14,7 @@ import {
   Truck, LogOut, Download, Map, Clock, AlertTriangle,
   ClipboardList, Package, TrendingUp, FileText, MapPin,
   CheckCircle, Calendar, Loader, Wrench, AlertOctagon, X,
-  Activity
+  Activity, Navigation
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
 import { RouteTimeline } from '../../components/Dashboard';
@@ -125,6 +125,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
   const [selectedRiskForTermination, setSelectedRiskForTermination] = useState(null);
   const [useRiskAsReason, setUseRiskAsReason] = useState(true);
   const [skipStopData, setSkipStopData] = useState(null);
+  const [showNavMenu, setShowNavMenu] = useState(false);
 
   // Bottom sheet states
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
@@ -1473,13 +1474,101 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
             {/* Mapa del conductor (PRIMERO - siempre visible) */}
             <div className="conductor-map-section">
-              <div className="map-container-large">
+              <div className="map-container-large" style={{ position: 'relative' }}>
                 <MapLibreComponent
                   camiones={camonesArray}
                   userType={user.tipo}
                   showRealTime={true}
                   selectedTruck={userTruck._id || userTruck.id}
                 />
+
+                {/* Botón de navegación externa (Waze / Google Maps) */}
+                {assignedRoute && getParadasArray(assignedRoute.paradas).length > 0 && (
+                  <div className="nav-app-container">
+                    <button
+                      className="nav-app-fab"
+                      onClick={() => setShowNavMenu(!showNavMenu)}
+                      title="Abrir ruta en app de navegación"
+                    >
+                      <Navigation size={20} />
+                    </button>
+
+                    {showNavMenu && (
+                      <>
+                        <div className="nav-app-backdrop" onClick={() => setShowNavMenu(false)} />
+                        <div className="nav-app-menu">
+                          <div className="nav-app-menu-header">Abrir ruta en:</div>
+
+                          {/* Google Maps - soporta múltiples waypoints */}
+                          <button
+                            className="nav-app-option"
+                            onClick={() => {
+                              const paradas = getParadasArray(assignedRoute.paradas);
+                              const pendientes = paradas.filter((p, i) => !completedStops.includes(i) && !p.completada);
+                              const stops = pendientes.length > 0 ? pendientes : paradas;
+
+                              if (stops.length === 0) return;
+
+                              const origin = currentGPS.lat && currentGPS.lng
+                                ? `${currentGPS.lat},${currentGPS.lng}`
+                                : `${stops[0].latitud || stops[0].lat},${stops[0].longitud || stops[0].lng}`;
+
+                              const destination = stops[stops.length - 1];
+                              const destStr = `${destination.latitud || destination.lat},${destination.longitud || destination.lng}`;
+
+                              // Google Maps soporta hasta 9 waypoints intermedios
+                              const waypoints = stops.slice(0, -1).slice(0, 9)
+                                .map(s => `${s.latitud || s.lat},${s.longitud || s.lng}`)
+                                .join('|');
+
+                              let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destStr}&travelmode=driving`;
+                              if (waypoints) url += `&waypoints=${waypoints}`;
+
+                              window.open(url, '_blank');
+                              setShowNavMenu(false);
+                            }}
+                          >
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/a/aa/Google_Maps_icon_%282020%29.svg" alt="Google Maps" width="24" height="24" />
+                            <div className="nav-app-option-text">
+                              <span className="nav-app-option-name">Google Maps</span>
+                              <span className="nav-app-option-desc">Ruta completa con todas las paradas</span>
+                            </div>
+                          </button>
+
+                          {/* Waze - solo destino único, navega a siguiente parada pendiente */}
+                          <button
+                            className="nav-app-option"
+                            onClick={() => {
+                              const paradas = getParadasArray(assignedRoute.paradas);
+                              const nextPendingIdx = paradas.findIndex((p, i) => !completedStops.includes(i) && !p.completada);
+                              const target = nextPendingIdx >= 0 ? paradas[nextPendingIdx] : paradas[0];
+
+                              const lat = target.latitud || target.lat;
+                              const lng = target.longitud || target.lng;
+
+                              window.open(`https://www.waze.com/ul?ll=${lat},${lng}&navigate=yes`, '_blank');
+                              setShowNavMenu(false);
+                            }}
+                          >
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/3/39/Waze_icon.svg" alt="Waze" width="24" height="24" />
+                            <div className="nav-app-option-text">
+                              <span className="nav-app-option-name">Waze</span>
+                              <span className="nav-app-option-desc">Navegar a siguiente parada pendiente</span>
+                            </div>
+                          </button>
+
+                          <div className="nav-app-menu-footer">
+                            {(() => {
+                              const paradas = getParadasArray(assignedRoute.paradas);
+                              const pendientes = paradas.filter((p, i) => !completedStops.includes(i) && !p.completada);
+                              return `${pendientes.length} parada${pendientes.length !== 1 ? 's' : ''} pendiente${pendientes.length !== 1 ? 's' : ''}`;
+                            })()}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
