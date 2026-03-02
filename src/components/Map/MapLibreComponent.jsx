@@ -516,10 +516,13 @@ const MapLibreComponent = ({
     checkDimensions();
 
     // Also use ResizeObserver for dynamic changes
+    let alreadyReady = false;
     const resizeObserver = new ResizeObserver((entries) => {
+      if (alreadyReady) return;
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
         if (width > 0 && height > 0) {
+          alreadyReady = true;
           setIsContainerReady(true);
         }
       }
@@ -540,7 +543,7 @@ const MapLibreComponent = ({
   // Calculate routes with Mapbox Directions API
   useEffect(() => {
     if (!rutas || rutas.length === 0 || !showMapboxRoute) {
-      setRoadRoutes({});
+      setRoadRoutes(prev => Object.keys(prev).length === 0 ? prev : {});
       setRoutesLoading(false);
       return;
     }

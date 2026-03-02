@@ -1474,7 +1474,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
             {/* Mapa del conductor (PRIMERO - siempre visible) */}
             <div className="conductor-map-section">
-              <div className="map-container-large" style={{ position: 'relative' }}>
+              <div className="map-container-large">
                 <MapLibreComponent
                   camiones={camonesArray}
                   userType={user.tipo}
