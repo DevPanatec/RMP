@@ -1150,8 +1150,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
         <div className="app-bar">
           <div className="app-bar__header">
             <div className="app-bar__brand">
-              <Truck size={24} />
-              <h1 className="app-bar__title">RMP Conductor</h1>
+              <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="app-bar__logo" />
             </div>
             <div className="app-bar__actions">
               <div className="app-bar__status">
@@ -1288,8 +1287,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
         <div className="app-bar">
           <div className="app-bar__header">
             <div className="app-bar__brand">
-              <Truck size={24} />
-              <h1 className="app-bar__title">RMP Conductor</h1>
+              <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="app-bar__logo" />
             </div>
             <div className="app-bar__actions">
               <button className="app-bar__logout" onClick={handleLogout}>
@@ -1334,7 +1332,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
       {isInstallable && (
         <div className="install-banner">
           <div className="install-content">
-            <span>📱 Instala RMP Conductor en tu dispositivo</span>
+            <span>📱 Instala RMP en tu dispositivo</span>
             <button className="install-btn" onClick={installPWA}>
               <Download size={16} /> Instalar App
             </button>
@@ -1345,8 +1343,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
       <div className="app-bar">
         <div className="app-bar__header">
           <div className="app-bar__brand">
-            <Truck size={24} />
-            <h1 className="app-bar__title">RMP Conductor</h1>
+            <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="app-bar__logo" />
           </div>
           <div className="app-bar__actions">
             {routeStarted && (
