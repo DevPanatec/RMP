@@ -1101,7 +1101,8 @@ const MapLibreComponent = ({
       </Map>
       )}
 
-      {/* Map controls panel */}
+      {/* Map controls panel - hidden for conductor (they use nav button instead) */}
+      {userType !== 'conductor' && (
       <div className={`map-controls-panel ${isMaximized ? 'minimized' : ''}`}>
         {/* Loading indicator */}
         {routesLoading && (
@@ -1162,9 +1163,10 @@ const MapLibreComponent = ({
           </button>
         )}
       </div>
+      )}
 
-      {/* Map Legend */}
-      {!isMaximized && (
+      {/* Map Legend - hidden for conductor */}
+      {!isMaximized && userType !== 'conductor' && (
         <div className="map-legend">
           <div className="legend-item">
             <span className="legend-dot legend-moving"></span>

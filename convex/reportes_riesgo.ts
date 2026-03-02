@@ -110,7 +110,7 @@ export const add = mutation({
     return await ctx.db.insert("reportes_riesgo", {
       ...args,
       fecha_reporte: new Date().toISOString(),
-      estado: "abierto",
+      estado: "reportado",
     });
   },
 });
