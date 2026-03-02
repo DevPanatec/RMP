@@ -1474,7 +1474,13 @@ const ConductorDashboard = ({ user, onLogout }) => {
               <div className="map-container-large">
                 <MapLibreComponent
                   camiones={camonesArray}
-                  rutas={assignedRoute ? [assignedRoute] : []}
+                  rutas={assignedRoute ? [{
+                    ...assignedRoute,
+                    paradas: getParadasArray(assignedRoute.paradas).map((p, i) => ({
+                      ...p,
+                      completada: completedStops.includes(i)
+                    }))
+                  }] : []}
                   userType={user.tipo}
                   showRealTime={true}
                   selectedTruck={userTruck._id || userTruck.id}
