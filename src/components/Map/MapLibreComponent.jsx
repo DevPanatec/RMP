@@ -859,7 +859,7 @@ const MapLibreComponent = ({
             <RouteLine
               id="selected-route-glow"
               coordinates={selectedRouteCoords}
-              color="#10b981"
+              color={userType === 'conductor' ? '#0078D4' : '#10b981'}
               opacity={0.3}
               width={16}
             />
@@ -867,7 +867,7 @@ const MapLibreComponent = ({
             <RouteLine
               id="selected-route-main"
               coordinates={selectedRouteCoords}
-              color="#10b981"
+              color={userType === 'conductor' ? '#0078D4' : '#10b981'}
               opacity={0.95}
               width={7}
             />
@@ -875,7 +875,7 @@ const MapLibreComponent = ({
             <RouteLine
               id="selected-route-highlight"
               coordinates={selectedRouteCoords}
-              color="#34d399"
+              color={userType === 'conductor' ? '#60a5fa' : '#34d399'}
               opacity={0.9}
               width={3}
             />

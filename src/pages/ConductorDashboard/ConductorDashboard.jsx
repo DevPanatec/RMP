@@ -220,6 +220,12 @@ const ConductorDashboard = ({ user, onLogout }) => {
     assignedRoute?.nombre
   ]);
 
+  // Memoizar ruta asignada como array para pasarla al mapa (muestra paradas y línea de ruta)
+  const rutasArray = useMemo(() => {
+    if (!assignedRoute) return [];
+    return [assignedRoute];
+  }, [assignedRoute?._id, assignedRoute?.id, assignedRoute?.paradas]);
+
   // Actualizar GPS actual desde el vehículo del conductor
   useEffect(() => {
     if (userTruck && (userTruck.gps_latitud || userTruck.lat) && (userTruck.gps_longitud || userTruck.lng)) {
@@ -1474,13 +1480,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
               <div className="map-container-large">
                 <MapLibreComponent
                   camiones={camonesArray}
-                  rutas={assignedRoute ? [{
-                    ...assignedRoute,
-                    paradas: getParadasArray(assignedRoute.paradas).map((p, i) => ({
-                      ...p,
-                      completada: completedStops.includes(i)
-                    }))
-                  }] : []}
+                  rutas={rutasArray}
                   userType={user.tipo}
                   showRealTime={true}
                   selectedTruck={userTruck._id || userTruck.id}
