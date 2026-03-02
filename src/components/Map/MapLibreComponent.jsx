@@ -12,11 +12,11 @@ import './MapLibreComponent.css';
 // PERFORMANCE OPTIMIZATIONS
 // ============================================
 
-// Stadia Maps - Free vector tiles (no API key required for localhost)
-// Using Stamen-style for faster loading
+// OpenFreeMap - Free vector tiles, no API key, no domain restrictions
+// Works on localhost AND production without any configuration
 const MAP_STYLES = {
-  light: 'https://tiles.stadiamaps.com/styles/alidade_smooth.json',
-  dark: 'https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json'
+  light: 'https://tiles.openfreemap.org/styles/positron',
+  dark: 'https://tiles.openfreemap.org/styles/dark'
 };
 
 // Preload map styles for instant theme switching
