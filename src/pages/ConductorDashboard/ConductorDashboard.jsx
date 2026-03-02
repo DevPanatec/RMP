@@ -1474,6 +1474,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
               <div className="map-container-large">
                 <MapLibreComponent
                   camiones={camonesArray}
+                  rutas={assignedRoute ? [assignedRoute] : []}
                   userType={user.tipo}
                   showRealTime={true}
                   selectedTruck={userTruck._id || userTruck.id}

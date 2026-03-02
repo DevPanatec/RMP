@@ -16,7 +16,7 @@ import './MapLibreComponent.css';
 // Works on localhost AND production without any configuration
 const MAP_STYLES = {
   light: 'https://tiles.openfreemap.org/styles/positron',
-  dark: 'https://tiles.openfreemap.org/styles/dark'
+  dark: 'https://tiles.openfreemap.org/styles/liberty'
 };
 
 // Preload map styles for instant theme switching
@@ -944,6 +944,27 @@ const MapLibreComponent = ({
               })}
             </div>
           );
+        })}
+
+        {/* Stop markers for conductor's assigned route */}
+        {userType === 'conductor' && rutas.length > 0 && rutas.map(ruta => {
+          const routeKey = ruta._id || ruta.id;
+          return (ruta.paradas || []).map((stop, idx) => {
+            const lat = stop.lat || stop.latitud;
+            const lng = stop.lng || stop.longitud;
+            if (!lat || !lng) return null;
+
+            const isCompleted = stop.completada || stop.completed;
+
+            return (
+              <StopMarker
+                key={`conductor-stop-${routeKey}-${idx}`}
+                stop={{ ...stop, lat, lng }}
+                index={idx}
+                isCompleted={isCompleted}
+              />
+            );
+          });
         })}
 
         {/* Stop markers for selected route */}
