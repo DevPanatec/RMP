@@ -50,7 +50,7 @@ const AppContent = () => {
       <div className="loading-container">
         <div className="loading-spinner">
           <div className="rmp-logo">
-            <img src="/Favicon.png" alt="FMP Logo" style={{ width: '120px', height: '120px', marginBottom: '20px' }} />
+            <img src="/icons/modules/Logo principal.png" alt="" style={{ width: '120px', height: 'auto', marginBottom: '20px' }} />
             <p>Cargando...</p>
           </div>
         </div>
