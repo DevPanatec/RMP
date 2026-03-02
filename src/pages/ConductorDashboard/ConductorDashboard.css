@@ -1999,8 +1999,8 @@
   }
 
   .map-container-large {
-    min-height: 200px !important;
-    height: 30vh !important;
+    min-height: 250px !important;
+    height: 250px !important;
     max-height: 280px !important;
     border-radius: var(--radius-md) !important;
   }
@@ -2049,9 +2049,9 @@
   }
 
   .map-container-large {
-    height: 25vh !important;
-    min-height: 180px !important;
-    max-height: 220px !important;
+    height: 220px !important;
+    min-height: 200px !important;
+    max-height: 250px !important;
   }
 
   .kpi-grid {

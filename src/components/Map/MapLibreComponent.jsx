@@ -505,10 +505,17 @@ const MapLibreComponent = ({
     const container = containerRef.current;
     if (!container) return;
 
+    let resolved = false;
+    const markReady = () => {
+      if (resolved) return;
+      resolved = true;
+      setIsContainerReady(true);
+    };
+
     const checkDimensions = () => {
       const { width, height } = container.getBoundingClientRect();
       if (width > 0 && height > 0) {
-        setIsContainerReady(true);
+        markReady();
       }
     };
 
@@ -516,22 +523,29 @@ const MapLibreComponent = ({
     checkDimensions();
 
     // Also use ResizeObserver for dynamic changes
-    let alreadyReady = false;
     const resizeObserver = new ResizeObserver((entries) => {
-      if (alreadyReady) return;
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
         if (width > 0 && height > 0) {
-          alreadyReady = true;
-          setIsContainerReady(true);
+          markReady();
         }
       }
     });
 
     resizeObserver.observe(container);
 
+    // Fallback: force ready after 1.5s even if container has 0 dimensions
+    // This prevents infinite spinner on mobile where vh units resolve late
+    const fallbackTimer = setTimeout(() => {
+      if (!resolved) {
+        console.warn('⚠️ Map container dimensions not detected, forcing render');
+        markReady();
+      }
+    }, 1500);
+
     return () => {
       resizeObserver.disconnect();
+      clearTimeout(fallbackTimer);
     };
   }, []);
 
