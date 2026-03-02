@@ -1417,38 +1417,11 @@ const ConductorDashboard = ({ user, onLogout }) => {
             {/* Botón para iniciar ruta */}
             {!routeStarted && (
               <div className="start-route-container">
-                <div className="start-route-card">
-                  <div className="start-route-header">
-                    <div className="start-route-icon-circle">
-                      <Map size={40} />
-                    </div>
-                    <h2>¿Listo para comenzar tu ruta?</h2>
-                  </div>
-
-                  <div className="route-details-grid">
-                    <div className="detail-item">
-                      <div className="detail-icon"><MapPin size={20} /></div>
-                      <div className="detail-content">
-                        <span className="detail-label">Ruta</span>
-                        <strong>{assignedRoute.nombre || assignedRoute.name}</strong>
-                      </div>
-                    </div>
-
-                    <div className="detail-item">
-                      <div className="detail-icon"><Truck size={20} /></div>
-                      <div className="detail-content">
-                        <span className="detail-label">Vehículo</span>
-                        <strong>{userTruck.placa}</strong>
-                      </div>
-                    </div>
-
-                    <div className="detail-item">
-                      <div className="detail-icon"><Package size={20} /></div>
-                      <div className="detail-content">
-                        <span className="detail-label">Paradas</span>
-                        <strong>{getParadasArray(assignedRoute.paradas).length}</strong>
-                      </div>
-                    </div>
+                <div className="start-route-card start-route-card--compact">
+                  <div className="route-details-row">
+                    <div className="detail-chip"><MapPin size={14} /> {assignedRoute.nombre || assignedRoute.name}</div>
+                    <div className="detail-chip"><Truck size={14} /> {userTruck.placa}</div>
+                    <div className="detail-chip"><Package size={14} /> {getParadasArray(assignedRoute.paradas).length} paradas</div>
                   </div>
 
                   <button
@@ -1463,14 +1436,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
                     <CheckCircle size={20} />
                     <span>{todayAssignment?.estado === 'completada' ? 'Ruta Completada' : 'Iniciar Ruta'}</span>
                   </button>
-
-                  <p className="start-route-hint">
-                    <Clock size={14} />
-                    {todayAssignment?.estado === 'completada'
-                      ? 'Esta ruta ya fue completada anteriormente'
-                      : 'El cronómetro comenzará cuando inicies la ruta'
-                    }
-                  </p>
                 </div>
               </div>
             )}

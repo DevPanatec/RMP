@@ -1000,6 +1000,42 @@
   transform: translateY(-4px);
 }
 
+/* Compact version for better map visibility */
+.start-route-card--compact {
+  padding: var(--space-16);
+  max-width: 100%;
+}
+
+.start-route-card--compact .route-details-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  margin-bottom: var(--space-12);
+}
+
+.start-route-card--compact .detail-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-4) var(--space-12);
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.start-route-card--compact .detail-chip svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.start-route-card--compact .btn-start-route {
+  margin-bottom: 0;
+}
+
 .start-route-header {
   text-align: center;
   margin-bottom: 20px;
