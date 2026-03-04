@@ -167,14 +167,86 @@ const createCircleGeoJSON = (center, radiusMeters, points = 32) => {
 };
 
 /**
+ * Hook: Smooth GPS position interpolation (Uber-style)
+ * Animates lat/lng/rotation from old to new over ~1.5s
+ */
+const useAnimatedPosition = (targetLat, targetLng, targetRotation, duration = 1500) => {
+  const animRef = useRef(null);
+  const prevRef = useRef({ lat: targetLat, lng: targetLng, rotation: targetRotation });
+  const [pos, setPos] = useState({ lat: targetLat, lng: targetLng, rotation: targetRotation });
+
+  useEffect(() => {
+    // Skip if no real change (same position)
+    if (targetLat === prevRef.current.lat && targetLng === prevRef.current.lng && targetRotation === prevRef.current.rotation) {
+      return;
+    }
+
+    const startLat = prevRef.current.lat;
+    const startLng = prevRef.current.lng;
+    const startRot = prevRef.current.rotation;
+
+    // Normalize rotation difference to shortest path (-180 to 180)
+    let rotDiff = targetRotation - startRot;
+    if (rotDiff > 180) rotDiff -= 360;
+    if (rotDiff < -180) rotDiff += 360;
+
+    const startTime = performance.now();
+
+    // Cancel any running animation
+    if (animRef.current) cancelAnimationFrame(animRef.current);
+
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      // Ease-out cubic for smooth deceleration
+      const ease = 1 - Math.pow(1 - t, 3);
+
+      const lat = startLat + (targetLat - startLat) * ease;
+      const lng = startLng + (targetLng - startLng) * ease;
+      const rotation = startRot + rotDiff * ease;
+
+      setPos({ lat, lng, rotation });
+
+      if (t < 1) {
+        animRef.current = requestAnimationFrame(animate);
+      } else {
+        prevRef.current = { lat: targetLat, lng: targetLng, rotation: targetRotation };
+        animRef.current = null;
+      }
+    };
+
+    animRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, [targetLat, targetLng, targetRotation, duration]);
+
+  // Update prevRef on unmount-free initial render
+  useEffect(() => {
+    if (prevRef.current.lat === undefined) {
+      prevRef.current = { lat: targetLat, lng: targetLng, rotation: targetRotation };
+      setPos({ lat: targetLat, lng: targetLng, rotation: targetRotation });
+    }
+  }, []);
+
+  return pos;
+};
+
+/**
  * Vehicle Marker Component - Custom car icon with rotation
  * Memoized to prevent unnecessary re-renders
  */
 const VehicleMarker = memo(({ vehicle, isSelected, onClick, onHover }) => {
   const movementStatus = getVehicleMovementStatus(vehicle);
   const statusColor = movementColors[movementStatus];
-  const rotation = vehicle.direccion || vehicle.gps_rumbo || 0;
+  const rawRotation = vehicle.direccion || vehicle.gps_rumbo || 0;
   const isMoving = movementStatus === 'moving';
+
+  // Smooth GPS interpolation
+  const { lat: animLat, lng: animLng, rotation } = useAnimatedPosition(
+    vehicle.lat, vehicle.lng, rawRotation
+  );
 
   // Memoize click handler
   const handleClick = useCallback((e) => {
@@ -188,8 +260,8 @@ const VehicleMarker = memo(({ vehicle, isSelected, onClick, onHover }) => {
 
   return (
     <Marker
-      longitude={vehicle.lng}
-      latitude={vehicle.lat}
+      longitude={animLng}
+      latitude={animLat}
       anchor="center"
       rotation={rotation}
       onClick={handleClick}
@@ -277,11 +349,13 @@ const VehicleMarker = memo(({ vehicle, isSelected, onClick, onHover }) => {
 /**
  * Stop Marker Component - Memoized
  */
-const StopMarker = memo(({ stop, index, isCompleted, onClick }) => {
+const StopMarker = memo(({ stop, index, isCompleted, isSkipped, onClick }) => {
   const handleClick = useCallback((e) => {
     e.originalEvent.stopPropagation();
     if (onClick) onClick(stop, index);
   }, [onClick, stop, index]);
+
+  const statusClass = isSkipped ? 'skipped' : isCompleted ? 'completed' : 'pending';
 
   return (
     <Marker
@@ -290,7 +364,7 @@ const StopMarker = memo(({ stop, index, isCompleted, onClick }) => {
       anchor="bottom"
       onClick={handleClick}
     >
-      <div className={`maplibre-stop-marker ${isCompleted ? 'completed' : 'pending'}`}>
+      <div className={`maplibre-stop-marker ${statusClass}`}>
         <div className="stop-pin">
           <div className="stop-number">{index + 1}</div>
         </div>
@@ -548,12 +622,28 @@ const MapLibreComponent = ({
     };
   }, []);
 
+  // Resize map when container dimensions change (e.g. fullscreen mode)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !isContainerReady) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      const map = mapRef.current?.getMap?.();
+      if (map) {
+        requestAnimationFrame(() => map.resize());
+      }
+    });
+
+    resizeObserver.observe(container);
+    return () => resizeObserver.disconnect();
+  }, [isContainerReady]);
+
   // Save theme to localStorage
   useEffect(() => {
     localStorage.setItem('mapTheme', mapTheme);
   }, [mapTheme]);
 
-  // Calculate routes with Mapbox Directions API
+  // Calculate routes with Mapbox Directions API (debounced for live navigation)
   useEffect(() => {
     if (!rutas || rutas.length === 0 || !showMapboxRoute) {
       setRoadRoutes(prev => Object.keys(prev).length === 0 ? prev : {});
@@ -561,38 +651,43 @@ const MapLibreComponent = ({
       return;
     }
 
-    setRoutesLoading(true);
+    // Debounce: wait 800ms before calling API (avoids spam during live GPS updates)
+    const debounceTimer = setTimeout(() => {
+      setRoutesLoading(true);
 
-    const fetchAllRoutes = async () => {
-      const newRoutes = {};
+      const fetchAllRoutes = async () => {
+        const newRoutes = {};
 
-      for (const ruta of rutas) {
-        const paradas = (ruta.paradas || []).filter(p =>
-          (p.lat || p.latitud) && (p.lng || p.longitud)
-        );
+        for (const ruta of rutas) {
+          const paradas = (ruta.paradas || []).filter(p =>
+            (p.lat || p.latitud) && (p.lng || p.longitud)
+          );
 
-        if (paradas.length >= 2) {
-          try {
-            const routeCoords = await calcularRutaCompleta(paradas);
-            if (routeCoords && routeCoords.length > 0) {
-              newRoutes[ruta._id || ruta.id] = routeCoords;
+          if (paradas.length >= 2) {
+            try {
+              const routeCoords = await calcularRutaCompleta(paradas);
+              if (routeCoords && routeCoords.length > 0) {
+                newRoutes[ruta._id || ruta.id] = routeCoords;
+              }
+            } catch (error) {
+              console.error(`Error calculando ruta ${ruta.nombre || ruta._id}:`, error);
+              // Fallback to direct line
+              newRoutes[ruta._id || ruta.id] = paradas.map(p => [
+                p.lng || p.longitud,
+                p.lat || p.latitud
+              ]);
             }
-          } catch (error) {
-            console.error(`Error calculando ruta ${ruta.nombre || ruta._id}:`, error);
-            // Fallback to direct line
-            newRoutes[ruta._id || ruta.id] = paradas.map(p => [
-              p.lng || p.longitud,
-              p.lat || p.latitud
-            ]);
           }
         }
-      }
 
-      setRoadRoutes(newRoutes);
-      setRoutesLoading(false);
-    };
+        setRoadRoutes(newRoutes);
+        setRoutesLoading(false);
+      };
 
-    fetchAllRoutes();
+      fetchAllRoutes();
+    }, 800);
+
+    return () => clearTimeout(debounceTimer);
   }, [rutas, showMapboxRoute]);
 
   // Handle vehicle selection
@@ -737,11 +832,21 @@ const MapLibreComponent = ({
     const conductorName = truck.conductor || truck.conductor_nombre;
     if (!conductorName) return null;
     const currentRoute = getSelectedTruckRoute();
-    if (!currentRoute) return null;
+
+    // Try matching by conductor + ruta_id first, then by conductor + estado en_progreso
+    const byRoute = currentRoute ? allRouteProgress.find(rp =>
+      rp.conductor_nombre === conductorName &&
+      rp.estado === 'en_progreso' &&
+      (rp.ruta_id === currentRoute._id || rp.ruta_id === currentRoute.id)
+    ) : null;
+
+    if (byRoute) return byRoute;
+
+    // Fallback: find any active progress for this conductor
     return allRouteProgress.find(rp =>
       rp.conductor_nombre === conductorName &&
-      (rp.ruta_id === currentRoute._id || rp.ruta_id === currentRoute.id)
-    );
+      rp.estado === 'en_progreso'
+    ) || null;
   }, [getSelectedTruck, getSelectedTruckRoute, allRouteProgress]);
 
   return (
@@ -812,9 +917,7 @@ const MapLibreComponent = ({
         onClick={handleMapClick}
         cursor={geofenceMode ? 'crosshair' : 'grab'}
       >
-        {/* Navigation controls */}
-        <NavigationControl position="bottom-right" showCompass={false} />
-        <ScaleControl position="bottom-left" />
+        {/* Scale control removed for cleaner UI */}
 
         {/* Geofences */}
         {geofences.map(geo => (
@@ -927,7 +1030,9 @@ const MapLibreComponent = ({
               />
 
               {/* Stop markers for historic routes */}
-              {(ruta.paradas || []).map((stop, idx) => {
+              {(ruta._paradasOriginales || ruta.paradas || [])
+                .filter(stop => !stop._isGpsOrigin)
+                .map((stop, idx) => {
                 const lat = stop.lat || stop.latitud;
                 const lng = stop.lng || stop.longitud;
                 if (!lat || !lng) return null;
@@ -945,13 +1050,16 @@ const MapLibreComponent = ({
           );
         })}
 
-        {/* Stop markers for selected route */}
-        {selectedRoute && (selectedRoute.paradas || []).map((stop, idx) => {
+        {/* Stop markers for selected route (use original paradas if available for live nav) */}
+        {selectedRoute && (selectedRoute._paradasOriginales || selectedRoute.paradas || [])
+          .filter(stop => !stop._isGpsOrigin)
+          .map((stop, idx) => {
           const lat = stop.lat || stop.latitud;
           const lng = stop.lng || stop.longitud;
           if (!lat || !lng) return null;
 
-          const isCompleted = stop.completada || stop.completed;
+          const isCompleted = (stop.completada || stop.completed) && stop.completada !== false;
+          const isSkipped = stop.completada === false && stop.motivo_no_completada;
 
           return (
             <StopMarker
@@ -959,6 +1067,7 @@ const MapLibreComponent = ({
               stop={{ ...stop, lat, lng }}
               index={idx}
               isCompleted={isCompleted}
+              isSkipped={isSkipped}
             />
           );
         })}
@@ -1313,6 +1422,21 @@ const MapLibreComponent = ({
         const progress = getRouteProgress();
         const completedStopsData = progress?.paradas_completadas || [];
 
+        console.log('🔍 ADMIN SIDEBAR DEBUG:', {
+          truckPlaca: truck.placa,
+          conductorName: truck.conductor || truck.conductor_nombre,
+          currentRouteId: currentRoute?._id || currentRoute?.id,
+          progressFound: !!progress,
+          progressId: progress?._id,
+          completedStopsCount: completedStopsData.length,
+          completedStopsData: completedStopsData.map(s => ({
+            index: s.index,
+            completada: s.completada,
+            motivo: s.motivo_no_completada
+          })),
+          allProgressCount: allRouteProgress.length
+        });
+
         // Format status display
         const displayEstado = truck.estado === 'en_ruta' ? 'En ruta' :
                              truck.estado === 'disponible' ? 'Disponible' :
@@ -1504,7 +1628,12 @@ const MapLibreComponent = ({
                       <div className="info-row-v2">
                         <span className="info-label">Progreso</span>
                         <span className="info-value" style={{ fontWeight: 600 }}>
-                          {completedStopsData.length} de {(currentRoute.paradas || []).length} paradas
+                          {completedStopsData.filter(s => s.completada !== false).length} de {(currentRoute.paradas || []).length} paradas
+                          {completedStopsData.some(s => s.completada === false) && (
+                            <span style={{ color: 'var(--color-warning)', marginLeft: 6, fontSize: 12 }}>
+                              ({completedStopsData.filter(s => s.completada === false).length} omitida{completedStopsData.filter(s => s.completada === false).length > 1 ? 's' : ''})
+                            </span>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -1516,19 +1645,25 @@ const MapLibreComponent = ({
                         <div className="stops-list-items">
                           {(currentRoute.paradas || []).slice(0, 8).map((parada, idx) => {
                             const completedStop = completedStopsData.find(cs => cs.index === idx);
-                            const isCompleted = !!completedStop;
+                            const isCompleted = completedStop && completedStop.completada !== false;
+                            const isSkipped = completedStop && completedStop.completada === false;
 
                             return (
-                              <div key={idx} className={`stop-list-item ${isCompleted ? 'completed' : 'pending'}`}>
+                              <div key={idx} className={`stop-list-item ${isSkipped ? 'skipped' : isCompleted ? 'completed' : 'pending'}`}>
                                 <div className="stop-number-badge">{idx + 1}</div>
                                 <div className="stop-info">
                                   <div className="stop-name">{parada.nombre || parada.direccion}</div>
                                   {isCompleted && completedStop.timestamp && (
                                     <div className="stop-time">{completedStop.timestamp}</div>
                                   )}
+                                  {isSkipped && (
+                                    <div className="stop-skip-reason">
+                                      <AlertTriangle size={12} /> {completedStop.motivo_no_completada || 'No completada'}
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="stop-status-icon">
-                                  {isCompleted ? <CheckCircle size={16} /> : <Clock size={16} />}
+                                  {isSkipped ? <AlertTriangle size={16} /> : isCompleted ? <CheckCircle size={16} /> : <Clock size={16} />}
                                 </div>
                               </div>
                             );

@@ -129,7 +129,25 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
   // Bottom sheet states
   const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
-  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1024);
+
+  // Auto-hide header on mobile
+  const [showMobileHeader, setShowMobileHeader] = useState(true);
+  const headerTimeoutRef = useRef(null);
+
+  const triggerShowHeader = () => {
+    setShowMobileHeader(true);
+    if (headerTimeoutRef.current) clearTimeout(headerTimeoutRef.current);
+    headerTimeoutRef.current = setTimeout(() => setShowMobileHeader(false), 3000);
+  };
+
+  // Hide header after 3s on mount (mobile)
+  useEffect(() => {
+    if (isMobileView) {
+      headerTimeoutRef.current = setTimeout(() => setShowMobileHeader(false), 3000);
+    }
+    return () => { if (headerTimeoutRef.current) clearTimeout(headerTimeoutRef.current); };
+  }, [isMobileView]);
 
   // FORCE SCROLL TO TOP on mount
   useEffect(() => {
@@ -141,7 +159,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
   // Listener para resize (detectar mobile/desktop)
   useEffect(() => {
     const handleResize = () => {
-      setIsMobileView(window.innerWidth < 768);
+      setIsMobileView(window.innerWidth < 1024);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -220,11 +238,76 @@ const ConductorDashboard = ({ user, onLogout }) => {
     assignedRoute?.nombre
   ]);
 
-  // Memoizar ruta asignada como array para pasarla al mapa (muestra paradas y línea de ruta)
+  // GPS position used for last route recalculation (to detect significant movement)
+  const lastRouteCalcGPS = useRef({ lat: null, lng: null });
+
+  // Helper: Haversine distance in meters between two GPS points
+  const gpsDistance = (lat1, lng1, lat2, lng2) => {
+    if (!lat1 || !lng1 || !lat2 || !lng2) return Infinity;
+    const R = 6371000;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  // Quantized GPS for route recalculation (changes only when driver moves >150m)
+  const [routeGPS, setRouteGPS] = useState({ lat: null, lng: null });
+
+  useEffect(() => {
+    if (!currentGPS.lat || !currentGPS.lng) return;
+    const dist = gpsDistance(
+      lastRouteCalcGPS.current.lat, lastRouteCalcGPS.current.lng,
+      currentGPS.lat, currentGPS.lng
+    );
+    // Recalculate route when moved >150m from last calculation point
+    if (dist > 150 || !lastRouteCalcGPS.current.lat) {
+      lastRouteCalcGPS.current = { lat: currentGPS.lat, lng: currentGPS.lng };
+      setRouteGPS({ lat: currentGPS.lat, lng: currentGPS.lng });
+    }
+  }, [currentGPS.lat, currentGPS.lng]);
+
+  // Dynamic route: from current GPS to pending stops only (live navigation)
   const rutasArray = useMemo(() => {
     if (!assignedRoute) return [];
-    return [assignedRoute];
-  }, [assignedRoute?._id, assignedRoute?.id, assignedRoute?.paradas]);
+
+    // When route not started OR no GPS: show full static route
+    if (!routeStarted || !routeGPS.lat || !routeGPS.lng) {
+      return [assignedRoute];
+    }
+
+    // Build dynamic route: GPS origin -> pending stops only
+    const allParadas = getParadasArray(assignedRoute.paradas);
+    const completedIndexes = completedStops.map(s => s.index);
+    const pendingParadas = allParadas.filter((_, i) => !completedIndexes.includes(i));
+
+    if (pendingParadas.length === 0) return [assignedRoute];
+
+    // Prepend current GPS position as navigation origin
+    const gpsOrigin = {
+      lat: routeGPS.lat,
+      latitud: routeGPS.lat,
+      lng: routeGPS.lng,
+      longitud: routeGPS.lng,
+      nombre: 'Tu ubicación',
+      direccion: 'Tu ubicación',
+      _isGpsOrigin: true
+    };
+
+    return [{
+      ...assignedRoute,
+      // Override paradas with GPS origin + pending stops for route line calculation
+      paradas: [gpsOrigin, ...pendingParadas],
+      // Keep original paradas in a separate field for stop markers
+      _paradasOriginales: allParadas
+    }];
+  }, [
+    assignedRoute?._id, assignedRoute?.id, assignedRoute?.paradas,
+    routeStarted, routeGPS.lat, routeGPS.lng,
+    completedStops.length
+  ]);
 
   // Actualizar GPS actual desde el vehículo del conductor
   useEffect(() => {
@@ -517,6 +600,43 @@ const ConductorDashboard = ({ user, onLogout }) => {
     return Math.round((completedStops.length / paradas.length) * 100);
   };
 
+  // Determinar si la ruta de hoy ya fue completada
+  const isRouteCompleted = todayAssignment?.estado === 'completada' && !routeStarted;
+
+  // Calcular próximas rutas (otros días de la semana)
+  const upcomingAssignments = useMemo(() => {
+    if (!isRouteCompleted) return [];
+    const dayOrder = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
+    const todayIndex = dayOrder.indexOf(todayDayName);
+
+    // Buscar asignaciones que incluyan días después de hoy
+    const upcoming = [];
+    conductorAssignments.forEach(assignment => {
+      if (!assignment.dias_semana) return;
+      const futureDays = assignment.dias_semana.filter(d => {
+        const dIndex = dayOrder.indexOf(d);
+        return dIndex > todayIndex;
+      });
+      if (futureDays.length > 0) {
+        const route = routes.find(r => (r._id || r.id) === assignment.ruta_id);
+        const vehicle = vehicles.find(v => (v._id || v.id) === assignment.vehiculo_id);
+        upcoming.push({
+          ...assignment,
+          nextDay: futureDays.sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b))[0],
+          routeName: route?.nombre || route?.name || 'Ruta sin nombre',
+          vehiclePlaca: vehicle?.placa || 'N/A',
+          paradasCount: getParadasArray(route?.paradas).length
+        });
+      }
+    });
+
+    return upcoming.sort((a, b) => {
+      const aIdx = dayOrder.indexOf(a.nextDay);
+      const bIdx = dayOrder.indexOf(b.nextDay);
+      return aIdx - bIdx;
+    });
+  }, [isRouteCompleted, conductorAssignments, todayDayName, routes, vehicles]);
+
   const handleLogout = () => {
     // Limpiar localStorage antes de cerrar sesión
     localStorage.removeItem('conductorRouteState');
@@ -652,18 +772,20 @@ const ConductorDashboard = ({ user, onLogout }) => {
     const paradasCompletadas = todasLasParadas.filter(p => p.completada);
     const paradasNoCompletadas = todasLasParadas.filter(p => !p.completada);
 
-    // Obtener reportes de riesgo creados durante esta ruta
+    // Obtener reportes de riesgo creados durante esta ruta POR ESTE CONDUCTOR
+    const conductorName = (user.nombre || user.nombre_completo || '').trim().toLowerCase();
     const routeRiskReports = reports.filter(report => {
-      const reportDate = new Date(report.fechaCreacion);
+      const reportDate = new Date(report.fechaCreacion || report.fecha_reporte);
       const routeStart = new Date(routeStartTime);
-      return reportDate >= routeStart;
+      const reportConductor = (report.conductor || report.conductor_nombre || '').trim().toLowerCase();
+      return reportDate >= routeStart && reportConductor === conductorName;
     });
 
     const reportData = {
       ruta_id: assignedRoute._id || assignedRoute.id,
       asignacion_id: todayAssignment?._id || todayAssignment?.id,
-      ruta_nombre: assignedRoute.nombre || `Ruta ${assignedRoute._id || assignedRoute.id}`, // FIXED: snake_case
-      conductor_nombre: user.nombre || user.nombre_completo, // FIXED: snake_case
+      ruta_nombre: assignedRoute.nombre || `Ruta ${assignedRoute._id || assignedRoute.id}`,
+      conductor_nombre: user.nombre || user.nombre_completo,
       conductor_id: user._id || user.id || undefined,
       vehiculo_placa: userTruck?.placa || 'N/A', // FIXED: snake_case
       vehiculo_id: userTruck?._id || userTruck?.id || undefined,
@@ -789,11 +911,13 @@ const ConductorDashboard = ({ user, onLogout }) => {
   };
 
   const handleTerminarRutaAnticipadamente = async () => {
-    // Obtener reportes de riesgo creados durante esta ruta
+    // Obtener reportes de riesgo creados durante esta ruta POR ESTE CONDUCTOR
+    const conductorName2 = (user.nombre || user.nombre_completo || '').trim().toLowerCase();
     const routeRiskReports = reports.filter(report => {
       const reportDate = new Date(report.fechaCreacion || report.fecha_reporte);
       const routeStart = new Date(routeStartTime);
-      return reportDate >= routeStart;
+      const reportConductor = (report.conductor || report.conductor_nombre || '').trim().toLowerCase();
+      return reportDate >= routeStart && reportConductor === conductorName2;
     });
 
     // Usar el último reporte de riesgo como motivo si existe
@@ -1326,7 +1450,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
   const progressPercentage = getProgressPercentage();
 
   return (
-    <div className="dashboard-container conductor-dashboard">
+    <div className={`dashboard-container conductor-dashboard${isMobileView && activeTab === 'ruta' ? ' conductor-dashboard--map-fullscreen' : ''}`}>
       {/* Banner de estado offline */}
       {showOfflineBanner && (
         <div className="offline-banner">
@@ -1414,34 +1538,62 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
         {activeTab === 'ruta' && (
           <>
-            {/* Botón para iniciar ruta */}
-            {!routeStarted && (
+            {/* Desktop: Botón para iniciar ruta o estado completada */}
+            {!isMobileView && !routeStarted && (
               <div className="start-route-container">
-                <div className="start-route-card start-route-card--compact">
-                  <div className="route-details-row">
-                    <div className="detail-chip"><MapPin size={14} /> {assignedRoute.nombre || assignedRoute.name}</div>
-                    <div className="detail-chip"><Truck size={14} /> {userTruck.placa}</div>
-                    <div className="detail-chip"><Package size={14} /> {getParadasArray(assignedRoute.paradas).length} paradas</div>
+                {isRouteCompleted ? (
+                  <div className="route-completed-card">
+                    <div className="route-completed-card__header">
+                      <CheckCircle size={24} />
+                      <div>
+                        <h3>Ruta Completada</h3>
+                        <p>{assignedRoute.nombre || assignedRoute.name} finalizada exitosamente</p>
+                      </div>
+                    </div>
+                    {upcomingAssignments.length > 0 ? (
+                      <div className="route-completed-card__upcoming">
+                        <h4><Calendar size={16} /> Próximas Rutas</h4>
+                        {upcomingAssignments.map((a, i) => (
+                          <div key={i} className="upcoming-route-item">
+                            <div className="upcoming-route-item__day">
+                              {a.nextDay.charAt(0).toUpperCase() + a.nextDay.slice(1)}
+                            </div>
+                            <div className="upcoming-route-item__details">
+                              <span><MapPin size={13} /> {a.routeName}</span>
+                              <span><Truck size={13} /> {a.vehiclePlaca}</span>
+                              <span><Package size={13} /> {a.paradasCount} paradas</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="route-completed-card__empty">
+                        <Calendar size={20} />
+                        <span>No tienes más rutas asignadas esta semana</span>
+                      </div>
+                    )}
                   </div>
-
-                  <button
-                    className="btn-start-route"
-                    onClick={handleStartRoute}
-                    disabled={todayAssignment?.estado === 'completada'}
-                    style={{
-                      opacity: todayAssignment?.estado === 'completada' ? 0.5 : 1,
-                      cursor: todayAssignment?.estado === 'completada' ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    <CheckCircle size={20} />
-                    <span>{todayAssignment?.estado === 'completada' ? 'Ruta Completada' : 'Iniciar Ruta'}</span>
-                  </button>
-                </div>
+                ) : (
+                  <div className="start-route-card start-route-card--compact">
+                    <div className="route-details-row">
+                      <div className="detail-chip"><MapPin size={14} /> {assignedRoute.nombre || assignedRoute.name}</div>
+                      <div className="detail-chip"><Truck size={14} /> {userTruck.placa}</div>
+                      <div className="detail-chip"><Package size={14} /> {getParadasArray(assignedRoute.paradas).length} paradas</div>
+                    </div>
+                    <button
+                      className="btn-start-route"
+                      onClick={handleStartRoute}
+                    >
+                      <CheckCircle size={20} />
+                      <span>Iniciar Ruta</span>
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Mapa del conductor (PRIMERO - siempre visible) */}
-            <div className="conductor-map-section">
+            {/* Mapa del conductor */}
+            <div className="conductor-map-section" onTouchStart={isMobileView ? triggerShowHeader : undefined} onClick={isMobileView ? triggerShowHeader : undefined}>
               <div className="map-container-large">
                 <MapLibreComponent
                   camiones={camonesArray}
@@ -1450,6 +1602,94 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   showRealTime={true}
                   selectedTruck={userTruck._id || userTruck.id}
                 />
+
+                {/* Mobile: Header flotante sobre el mapa (auto-hide) */}
+                {isMobileView && (
+                  <div className={`map-overlay-header ${showMobileHeader ? '' : 'map-overlay-header--hidden'}`}>
+                    <div className="map-overlay-header__brand">
+                      <img src="/icons/modules/Logo principal.png" alt="RMP" className="map-overlay-header__logo" />
+                    </div>
+                    <div className="map-overlay-header__actions">
+                      {routeStarted && (
+                        <div className="map-overlay-header__timer">
+                          <Clock size={14} />
+                          <span>{formatTime(timeOnRoute)}</span>
+                        </div>
+                      )}
+                      <button
+                        className={`map-overlay-header__tab ${activeTab === 'reportes' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('reportes')}
+                      >
+                        <ClipboardList size={16} />
+                      </button>
+                      <button className="map-overlay-header__logout" onClick={handleLogout}>
+                        <LogOut size={16} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Mobile: KPI chips flotantes (cuando ruta iniciada) */}
+                {isMobileView && routeStarted && (
+                  <div className="map-overlay-kpis">
+                    <div className="map-overlay-kpi-chip">
+                      <Truck size={14} />
+                      <span>{userTruck?.placa || 'N/A'}</span>
+                    </div>
+                    <div className="map-overlay-kpi-chip">
+                      <Package size={14} />
+                      <span>{completedStops.length}/{getParadasArray(assignedRoute.paradas).length}</span>
+                    </div>
+                    <div className="map-overlay-kpi-chip">
+                      <Clock size={14} />
+                      <span>{formatTime(timeOnRoute)}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Mobile: Botones de acción flotantes (cuando ruta iniciada) */}
+                {isMobileView && routeStarted && (
+                  <div className="map-overlay-actions">
+                    <button
+                      className="map-overlay-action-fab map-overlay-action-fab--warning"
+                      onClick={() => setShowRiskModal(true)}
+                      title="Reportar riesgo"
+                    >
+                      <AlertTriangle size={20} />
+                    </button>
+                    <button
+                      className="map-overlay-action-fab map-overlay-action-fab--danger"
+                      onClick={() => setShowTerminateModal(true)}
+                      title="Terminar ruta"
+                    >
+                      <X size={20} />
+                    </button>
+                    <button
+                      className="map-overlay-action-fab map-overlay-action-fab--success"
+                      onClick={handleFinalizarRuta}
+                      title="Finalizar ruta"
+                    >
+                      <CheckCircle size={20} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Mobile: Botón "Iniciar Ruta" flotante */}
+                {isMobileView && !routeStarted && !isRouteCompleted && (
+                  <div className="map-overlay-start">
+                    <div className="map-overlay-start__info">
+                      <span className="map-overlay-start__chip"><MapPin size={14} /> {assignedRoute.nombre || assignedRoute.name}</span>
+                      <span className="map-overlay-start__chip"><Package size={14} /> {getParadasArray(assignedRoute.paradas).length} paradas</span>
+                    </div>
+                    <button
+                      className="map-overlay-start__btn"
+                      onClick={handleStartRoute}
+                    >
+                      <CheckCircle size={22} />
+                      <span>Iniciar Ruta</span>
+                    </button>
+                  </div>
+                )}
 
                 {/* Botón de navegación externa (Waze / Google Maps) */}
                 {assignedRoute && getParadasArray(assignedRoute.paradas).length > 0 && (
@@ -1541,8 +1781,8 @@ const ConductorDashboard = ({ user, onLogout }) => {
               </div>
             </div>
 
-            {/* KPIs del conductor (SEGUNDO - debajo del mapa, solo visible cuando la ruta está iniciada) */}
-            {routeStarted && (
+            {/* Desktop: KPIs del conductor (debajo del mapa) */}
+            {!isMobileView && routeStarted && (
             <div className="kpi-grid">
               <div className="kpi-card">
                 <div className="kpi-icon"><Truck size={20} /></div>
@@ -1568,7 +1808,68 @@ const ConductorDashboard = ({ user, onLogout }) => {
             </div>
             )}
 
-            {/* TERCERO - Bottom Sheet (mobile) o RouteTimeline (desktop) */}
+            {/* Mobile: Bottom sheet de ruta completada con próximas rutas */}
+            {isRouteCompleted && isMobileView && (
+              <div className={`completed-bottom-sheet ${isDrawerExpanded ? 'completed-bottom-sheet--expanded' : 'completed-bottom-sheet--collapsed'}`}>
+                <div
+                  className="completed-bottom-sheet__header"
+                  onClick={() => setIsDrawerExpanded(!isDrawerExpanded)}
+                >
+                  <div className="bottom-sheet-handle-bar" />
+                  <div className="completed-bottom-sheet__summary">
+                    <div className="completed-bottom-sheet__status">
+                      <CheckCircle size={20} />
+                      <span>Ruta Completada</span>
+                    </div>
+                    <button className="bottom-sheet-toggle-btn">
+                      {isDrawerExpanded
+                        ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 15 12 9 18 15"/></svg>
+                        : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                      }
+                    </button>
+                  </div>
+                </div>
+                <div className="completed-bottom-sheet__content">
+                  <div className="completed-bottom-sheet__done-banner">
+                    <CheckCircle size={28} />
+                    <div>
+                      <strong>{assignedRoute.nombre || assignedRoute.name}</strong>
+                      <span>Finalizada exitosamente</span>
+                    </div>
+                  </div>
+
+                  {upcomingAssignments.length > 0 ? (
+                    <div className="completed-bottom-sheet__section">
+                      <div className="completed-bottom-sheet__section-title">
+                        <Calendar size={15} />
+                        <span>Próximas Rutas</span>
+                      </div>
+                      {upcomingAssignments.map((a, i) => (
+                        <div key={i} className="completed-upcoming-item">
+                          <div className="completed-upcoming-item__day">
+                            {a.nextDay.charAt(0).toUpperCase() + a.nextDay.slice(1)}
+                          </div>
+                          <div className="completed-upcoming-item__info">
+                            <span className="completed-upcoming-item__route"><MapPin size={13} /> {a.routeName}</span>
+                            <div className="completed-upcoming-item__meta">
+                              <span><Truck size={12} /> {a.vehiclePlaca}</span>
+                              <span><Package size={12} /> {a.paradasCount} paradas</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="completed-bottom-sheet__empty">
+                      <Calendar size={24} />
+                      <span>No tienes más rutas asignadas esta semana</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Sheet (mobile) o RouteTimeline (desktop) */}
             {routeStarted && (
               isMobileView ? (
                 <BottomSheet
@@ -1683,7 +1984,102 @@ const ConductorDashboard = ({ user, onLogout }) => {
         )}
 
         {/* Modal de reporte de riesgo */}
-        {showRiskModal && (
+        {showRiskModal && (isMobileView ? (
+          /* MOBILE: Bottom sheet */
+          <div className="sheet-backdrop" onClick={() => setShowRiskModal(false)}>
+            <div className="sheet sheet--risk" onClick={e => e.stopPropagation()}>
+              <div className="sheet__handle" />
+              <div className="sheet__header">
+                <div className="sheet__badge sheet__badge--warning">
+                  <AlertTriangle size={14} />
+                  <span>Reportar Riesgo</span>
+                </div>
+                <button className="sheet__close" onClick={() => setShowRiskModal(false)}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="sheet__body">
+                <div className="sheet__section-label">Tipo de Riesgo</div>
+                <div className="sheet__radio-row">
+                  <button
+                    className={`sheet__radio-btn ${riskReport.tipo === 'interno' ? 'sheet__radio-btn--active' : ''}`}
+                    onClick={() => setRiskReport(prev => ({...prev, tipo: 'interno'}))}
+                  >
+                    <Wrench size={16} />
+                    <span>Interno</span>
+                  </button>
+                  <button
+                    className={`sheet__radio-btn ${riskReport.tipo === 'externo' ? 'sheet__radio-btn--active' : ''}`}
+                    onClick={() => setRiskReport(prev => ({...prev, tipo: 'externo'}))}
+                  >
+                    <AlertOctagon size={16} />
+                    <span>Externo</span>
+                  </button>
+                </div>
+
+                <div className="sheet__section-label">Categoría</div>
+                <select
+                  className="sheet__select"
+                  value={riskReport.categoria}
+                  onChange={e => setRiskReport(prev => ({...prev, categoria: e.target.value}))}
+                >
+                  <option value="">Seleccionar...</option>
+                  {riskReport.tipo === 'interno' ? (
+                    <>
+                      <option value="Mecánico">Problemas mecánicos</option>
+                      <option value="Combustible">Combustible</option>
+                      <option value="Equipo de seguridad">Equipo de seguridad</option>
+                      <option value="Mantenimiento">Mantenimiento requerido</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Bloqueo de vía">Bloqueo de vía</option>
+                      <option value="Seguridad ciudadana">Seguridad ciudadana</option>
+                      <option value="Condiciones climáticas">Condiciones climáticas</option>
+                      <option value="Protesta/manifestación">Protesta o manifestación</option>
+                      <option value="Accidente de tránsito">Accidente de tránsito</option>
+                    </>
+                  )}
+                </select>
+
+                <div className="sheet__section-label">Título</div>
+                <input
+                  className="sheet__input"
+                  type="text"
+                  placeholder="Resumen breve del riesgo"
+                  value={riskReport.titulo}
+                  onChange={e => setRiskReport(prev => ({...prev, titulo: e.target.value}))}
+                />
+
+                <div className="sheet__section-label">Descripción</div>
+                <textarea
+                  className="sheet__textarea"
+                  placeholder="Describe el riesgo..."
+                  rows={3}
+                  value={riskReport.descripcion}
+                  onChange={e => setRiskReport(prev => ({...prev, descripcion: e.target.value}))}
+                />
+
+                <div className="sheet__location">
+                  <MapPin size={14} />
+                  <span>GPS: {(userTruck?.gps_latitud || userTruck?.lat || 0).toFixed(4)}, {(userTruck?.gps_longitud || userTruck?.lng || 0).toFixed(4)}</span>
+                </div>
+              </div>
+
+              <div className="sheet__actions">
+                <button className="sheet__btn sheet__btn--primary sheet__btn--warning" onClick={handleSubmitRiskReport}>
+                  <AlertTriangle size={16} />
+                  Enviar Reporte
+                </button>
+                <button className="sheet__btn sheet__btn--ghost" onClick={() => { setShowRiskModal(false); setSkipStopData(null); }}>
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* DESKTOP: Modal clásico */
           <div className="modal-overlay" onClick={() => setShowRiskModal(false)}>
             <div className="modal-content risk-modal" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
@@ -1782,7 +2178,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   className="btn btn--secondary"
                   onClick={() => {
                     setShowRiskModal(false);
-                    setSkipStopData(null); // 🆕 Limpiar skipStopData si cancela
+                    setSkipStopData(null);
                   }}
                 >
                   Cancelar
@@ -1797,18 +2193,94 @@ const ConductorDashboard = ({ user, onLogout }) => {
               </div>
             </div>
           </div>
-        )}
+        ))}
 
         {/* Modal de terminación anticipada */}
         {showTerminateModal && (() => {
-          // Detectar reportes de riesgo recientes
+          const cn = (user.nombre || user.nombre_completo || '').trim().toLowerCase();
           const routeRiskReports = reports.filter(report => {
             const reportDate = new Date(report.fechaCreacion || report.fecha_reporte);
             const routeStart = new Date(routeStartTime);
-            return reportDate >= routeStart;
+            const rc = (report.conductor || report.conductor_nombre || '').trim().toLowerCase();
+            return reportDate >= routeStart && rc === cn;
           });
           const latestRisk = routeRiskReports.length > 0 ? routeRiskReports[routeRiskReports.length - 1] : null;
 
+          if (isMobileView) {
+            /* MOBILE: Bottom sheet */
+            return (
+              <div className="sheet-backdrop" onClick={() => setShowTerminateModal(false)}>
+                <div className="sheet sheet--terminate" onClick={e => e.stopPropagation()}>
+                  <div className="sheet__handle" />
+                  <div className="sheet__header">
+                    <div className="sheet__badge sheet__badge--danger">
+                      <X size={14} />
+                      <span>Terminar Ruta</span>
+                    </div>
+                    <button className="sheet__close" onClick={() => setShowTerminateModal(false)}>
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="sheet__body">
+                    <div className="sheet__alert sheet__alert--warning">
+                      <AlertTriangle size={18} />
+                      <span>Se terminará la ruta y se generará un reporte parcial.</span>
+                    </div>
+
+                    <div className="sheet__progress-chips">
+                      <div className="sheet__chip">
+                        <MapPin size={14} />
+                        <span>{completedStops.length}/{getParadasArray(assignedRoute.paradas).length} paradas</span>
+                      </div>
+                      <div className="sheet__chip">
+                        <Clock size={14} />
+                        <span>{formatTime(timeOnRoute)}</span>
+                      </div>
+                    </div>
+
+                    {latestRisk ? (
+                      <div className="sheet__risk-card">
+                        <div className="sheet__section-label">Riesgo detectado</div>
+                        <strong>{latestRisk.titulo}</strong>
+                        <label className="sheet__checkbox">
+                          <input
+                            type="checkbox"
+                            checked={useRiskAsReason}
+                            onChange={e => setUseRiskAsReason(e.target.checked)}
+                          />
+                          <span>Usar como motivo</span>
+                        </label>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="sheet__section-label">Motivo</div>
+                        <textarea
+                          className="sheet__textarea"
+                          placeholder="Describe el motivo..."
+                          rows={3}
+                          value={terminateReason}
+                          onChange={e => setTerminateReason(e.target.value)}
+                        />
+                      </>
+                    )}
+                  </div>
+
+                  <div className="sheet__actions">
+                    <button className="sheet__btn sheet__btn--primary sheet__btn--danger" onClick={handleTerminarRutaAnticipadamente}>
+                      <X size={16} />
+                      Confirmar Terminación
+                    </button>
+                    <button className="sheet__btn sheet__btn--ghost" onClick={() => { setShowTerminateModal(false); setTerminateReason(''); }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          /* DESKTOP: Modal clásico */
           return (
             <div className="modal-overlay" onClick={() => setShowTerminateModal(false)}>
               <div className="modal-content terminate-modal" onClick={e => e.stopPropagation()}>
@@ -1879,26 +2351,23 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   </div>
                 </div>
 
-              <div className="modal-footer">
-                <button
-                  className="btn btn--secondary"
-                  onClick={() => {
-                    setShowTerminateModal(false);
-                    setTerminateReason('');
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="btn btn--danger"
-                  onClick={handleTerminarRutaAnticipadamente}
-                >
-                  <X size={16} />
-                  Confirmar Terminación
-                </button>
+                <div className="modal-footer">
+                  <button
+                    className="btn btn--secondary"
+                    onClick={() => { setShowTerminateModal(false); setTerminateReason(''); }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="btn btn--danger"
+                    onClick={handleTerminarRutaAnticipadamente}
+                  >
+                    <X size={16} />
+                    Confirmar Terminación
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
           );
         })()}
 
@@ -1927,7 +2396,29 @@ const ConductorDashboard = ({ user, onLogout }) => {
         />
 
         {/* Modal de éxito/error */}
-        {showSuccessModal && (
+        {showSuccessModal && (isMobileView ? (
+          <div className="sheet-backdrop" onClick={() => setShowSuccessModal(null)}>
+            <div className="sheet sheet--success" onClick={e => e.stopPropagation()}>
+              <div className="sheet__handle" />
+              <div className="sheet__status-icon-wrap">
+                <div className={`sheet__status-icon ${showSuccessModal.type === 'error' ? 'sheet__status-icon--error' : ''}`}>
+                  {showSuccessModal.type === 'error' ? <AlertTriangle size={32} /> : <CheckCircle size={32} />}
+                </div>
+              </div>
+              <div className="sheet__status-title">
+                {showSuccessModal.type === 'error' ? 'Error' : '¡Éxito!'}
+              </div>
+              <div className="sheet__status-msg">
+                {showSuccessModal.message || 'Operación completada exitosamente'}
+              </div>
+              <div className="sheet__actions">
+                <button className="sheet__btn sheet__btn--primary" onClick={() => setShowSuccessModal(null)}>
+                  Aceptar
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
           <div className="modal-overlay" onClick={() => setShowSuccessModal(null)}>
             <div className="success-modal-content" onClick={(e) => e.stopPropagation()}>
               <div className={`success-icon-wrapper ${showSuccessModal.type === 'error' ? 'error' : ''}`}>
@@ -1947,7 +2438,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
               </button>
             </div>
           </div>
-        )}
+        ))}
       </main>
     </div>
   );

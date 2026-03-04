@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ChevronUp, ChevronDown, CheckCircle, Navigation, Radio, Package, Clock } from 'lucide-react';
+import { ChevronUp, ChevronDown, CheckCircle, Navigation, Radio, Package, Clock, AlertTriangle } from 'lucide-react';
 import './BottomSheet.css';
 
 const BottomSheet = ({
@@ -21,9 +21,11 @@ const BottomSheet = ({
   // Estados: 'collapsed' | 'expanded'
   const [sheetState, setSheetState] = useState(isExpanded ? 'expanded' : 'collapsed');
 
-  // Gestos táctiles (solo mobile)
+  // Gestos táctiles (solo mobile) - solo en el header, no en botones
   const handleTouchStart = (e) => {
     if (!isMobile) return;
+    // No iniciar drag si el usuario toca un botón o elemento interactivo
+    if (e.target.closest('button, a, input, select, textarea, [role="button"]')) return;
     setStartY(e.touches[0].clientY);
     setIsDragging(true);
   };
@@ -74,12 +76,14 @@ const BottomSheet = ({
 
   // Helper functions (reutilizar de RouteTimeline)
   const getStopStatus = (stop, currentStopIndex) => {
+    if (stop.completada === false && stop.motivo_no_completada) return 'skipped';
     if (stop.completada) return 'completed';
     if (stop.index === currentStopIndex) return 'current';
     return 'pending';
   };
 
   const getStopIcon = (status) => {
+    if (status === 'skipped') return <AlertTriangle size={18} />;
     if (status === 'completed') return <CheckCircle size={18} />;
     if (status === 'current') return <Navigation size={18} />;
     return <Radio size={18} />;
@@ -133,6 +137,12 @@ const BottomSheet = ({
                   <div className="stop-name">
                     {stop.direccion || stop.nombre || `Parada ${stop.orden}`}
                   </div>
+                  {status === 'skipped' && (
+                    <div className="stop-category stop-category--skipped">
+                      <AlertTriangle size={12} />
+                      <span>{stop.motivo_no_completada || 'No completada'}</span>
+                    </div>
+                  )}
                   {stop.completada && stop.category && (
                     <div className="stop-category">
                       <Package size={12} />

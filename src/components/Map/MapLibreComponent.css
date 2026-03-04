@@ -1269,6 +1269,36 @@
   color: var(--color-success);
 }
 
+/* Skipped/failed stop styles */
+.truck-modal-content-v2 .stop-list-item.skipped {
+  background: var(--color-error-light);
+  border-left: 3px solid var(--color-error);
+}
+
+.truck-modal-content-v2 .stop-list-item.skipped .stop-number-badge {
+  background: var(--color-error);
+}
+
+.truck-modal-content-v2 .stop-list-item.skipped .stop-status-icon {
+  color: var(--color-error);
+}
+
+.truck-modal-content-v2 .stop-skip-reason {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-error);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+/* Skipped stop marker on map */
+.maplibre-stop-marker.skipped .stop-pin {
+  background: var(--color-error);
+  border-color: var(--color-error);
+}
+
 .truck-modal-content-v2 .stops-more {
   padding: var(--space-8) var(--space-12);
   font-size: var(--font-size-xs);

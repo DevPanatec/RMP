@@ -154,6 +154,21 @@
   opacity: 0.7;
 }
 
+.stop-item--skipped {
+  background: var(--color-error-light);
+  border-color: var(--color-error);
+}
+
+.stop-item--skipped .stop-icon-container {
+  background: var(--color-error);
+  color: white;
+}
+
+.stop-category--skipped {
+  color: var(--color-error) !important;
+  font-weight: 500;
+}
+
 /* Icono de parada */
 .stop-icon-container {
   width: 32px;
@@ -219,6 +234,9 @@
   cursor: pointer;
   display: flex;
   align-items: center;
+  touch-action: manipulation;
+  position: relative;
+  z-index: 5;
   gap: 6px;
   transition: all var(--duration-fast) var(--ease-out);
   flex-shrink: 0;
@@ -283,7 +301,7 @@
 }
 
 /* Responsive - Desktop */
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .bottom-sheet {
     margin: 0 24px 24px 24px;
     border-radius: var(--radius-md);
@@ -308,7 +326,7 @@
 }
 
 /* Mobile optimizations */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .bottom-sheet {
     margin: 0 8px 8px 8px;
   }
@@ -361,5 +379,33 @@
 
   .stop-name {
     font-size: 13px;
+  }
+}
+
+/* ============================================
+   BOTTOM SHEET - FULLSCREEN MAP OVERLAY MODE
+   ============================================ */
+@media (max-width: 1024px) {
+  .conductor-dashboard--map-fullscreen .bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    max-height: 60vh;
+    border: none;
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+
+  .conductor-dashboard--map-fullscreen .bottom-sheet--collapsed {
+    height: 70px;
+  }
+
+  .conductor-dashboard--map-fullscreen .bottom-sheet--expanded {
+    height: auto;
+    max-height: 60vh;
   }
 }

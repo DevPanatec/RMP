@@ -2,10 +2,18 @@ import { useState, useEffect } from 'react';
 import { FileText, Trash2, RefreshCw, Truck, Package, MapPin, ClipboardList, AlertTriangle, X, CheckCircle } from '../Icons';
 import './WeightModal.css';
 
+const CATEGORIES = [
+  { key: 'baja', label: 'Baja', desc: 'Livianos', color: '#6b9656' },
+  { key: 'intermedia', label: 'Media', desc: 'Mixtos', color: '#9b8456' },
+  { key: 'alta', label: 'Alta', desc: 'Pesados', color: '#0078D4' },
+  { key: 'muy alta', label: 'Muy Alta', desc: 'Gran vol.', color: '#a85a52' },
+];
+
 const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop }) => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
     if (isOpen) {
@@ -15,25 +23,11 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop }) => {
     }
   }, [isOpen]);
 
-  const handleSubmit = async () => {
-    setError('');
-
-    // Validaciones
-    if (!selectedCategory) {
-      setError('Por favor selecciona una categoría de carga');
-      return;
-    }
-
-    const finalCategory = selectedCategory;
-
-    setLoading(true);
-
-    // Simular procesamiento
-    setTimeout(() => {
-      onConfirm(finalCategory);
-      setLoading(false);
-    }, 1000);
-  };
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleCategorySelect = async (category) => {
     setSelectedCategory(category);
@@ -57,18 +51,84 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop }) => {
     return descriptions[type] || '';
   };
 
-  const getCategoryIcon = (type) => {
+  const getCategoryIcon = (type, size = 32) => {
     const icons = {
-      'baja': <FileText size={32} />,
-      'intermedia': <Trash2 size={32} />,
-      'alta': <RefreshCw size={32} />,
-      'muy alta': <Truck size={32} />
+      'baja': <FileText size={size} />,
+      'intermedia': <Trash2 size={size} />,
+      'alta': <RefreshCw size={size} />,
+      'muy alta': <Truck size={size} />
     };
-    return icons[type] || <Package size={32} />;
+    return icons[type] || <Package size={size} />;
   };
 
   if (!isOpen) return null;
 
+  // ==========================================
+  // MOBILE: Bottom sheet compacto
+  // ==========================================
+  if (isMobile) {
+    return (
+      <div className="weight-sheet-backdrop" onClick={onClose}>
+        <div className="weight-sheet" onClick={(e) => e.stopPropagation()}>
+          {/* Handle bar */}
+          <div className="weight-sheet__handle" />
+
+          {/* Header compacto */}
+          <div className="weight-sheet__header">
+            <div className="weight-sheet__stop-badge">
+              <MapPin size={14} />
+              <span>{currentStop}</span>
+            </div>
+            <button className="weight-sheet__close" onClick={onClose}>
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Título */}
+          <div className="weight-sheet__title">Categoría de carga</div>
+
+          {/* Categorías en fila horizontal */}
+          <div className="weight-sheet__categories">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.key}
+                className={`weight-sheet__cat ${selectedCategory === cat.key ? 'weight-sheet__cat--selected' : ''}`}
+                data-category={cat.key}
+                onClick={() => handleCategorySelect(cat.key)}
+                disabled={loading}
+              >
+                <div className="weight-sheet__cat-icon">
+                  {getCategoryIcon(cat.key, 24)}
+                </div>
+                <span className="weight-sheet__cat-label">{cat.label}</span>
+                <span className="weight-sheet__cat-desc">{cat.desc}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Loading feedback */}
+          {loading && (
+            <div className="weight-sheet__loading">
+              <CheckCircle size={18} />
+              <span>Registrando...</span>
+            </div>
+          )}
+
+          {/* Skip */}
+          {onSkip && !loading && (
+            <button className="weight-sheet__skip" onClick={onSkip}>
+              <AlertTriangle size={14} />
+              <span>No puedo completar esta parada</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // DESKTOP: Modal clásico (sin cambios)
+  // ==========================================
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -158,4 +218,4 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop }) => {
   );
 };
 
-export default WeightModal; 
+export default WeightModal;

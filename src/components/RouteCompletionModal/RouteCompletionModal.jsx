@@ -1,10 +1,19 @@
-import { useState } from 'react';
-import { CheckCircle, Clock, MapPin, AlertTriangle, FileText, Download, Package, Trash2, RefreshCw, Truck } from '../Icons';
+import { useState, useEffect } from 'react';
+import { CheckCircle, Clock, MapPin, AlertTriangle, FileText, Download, Package, Trash2, RefreshCw, Truck, X } from '../Icons';
+import { generateSingleRouteReportPDF } from '../../utils/reportPdfGenerator';
 import './RouteCompletionModal.css';
 
 const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCancel }) => {
   const [observaciones, setObservaciones] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   if (!isOpen || !routeData) return null;
 
@@ -47,64 +56,153 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
     }
   };
 
-  const downloadReport = () => {
-    const completedStops = routeData.paradas_completadas || routeData.paradas.filter(p => p.completada !== false);
-    const incompleteStops = routeData.paradas_no_completadas || [];
-
-    let content = `=== REPORTE DE RUTA COMPLETADA ===\n\n`;
-    content += `Ruta: ${routeData.ruta_nombre}\n`;
-    content += `Conductor: ${routeData.conductor_nombre}\n`;
-    content += `Vehículo: ${routeData.vehiculo_placa || 'N/A'}\n`;
-    content += `Fecha: ${new Date(routeData.fechaInicio).toLocaleDateString('es-ES')}\n`;
-    content += `Hora de inicio: ${new Date(routeData.fechaInicio).toLocaleTimeString('es-ES')}\n`;
-    content += `Hora de finalización: ${new Date(routeData.fechaCompletacion).toLocaleTimeString('es-ES')}\n`;
-    content += `Tiempo total: ${formatTime(routeData.tiempoTotal)}\n`;
-    if (routeData.porcentaje_completado) {
-      content += `Porcentaje completado: ${routeData.porcentaje_completado}%\n`;
+  const downloadReport = async () => {
+    setDownloadingPdf(true);
+    try {
+      await generateSingleRouteReportPDF(routeData, riskReports, observaciones);
+    } catch (err) {
+      console.error('❌ Error generando PDF:', err);
+    } finally {
+      setDownloadingPdf(false);
     }
-    content += `\n`;
-
-    content += `=== PARADAS COMPLETADAS (${completedStops.length}) ===\n`;
-    completedStops.forEach((parada, index) => {
-      content += `\n${parada.orden || index + 1}. ${parada.direccion}\n`;
-      content += `   Hora: ${parada.timestamp_llegada || parada.timestamp}\n`;
-      content += `   Nivel de basura: ${parada.categoria_carga}\n`;
-    });
-
-    if (incompleteStops.length > 0) {
-      content += `\n\n=== ⚠️ PARADAS NO COMPLETADAS (${incompleteStops.length}) ===\n`;
-      incompleteStops.forEach((parada, index) => {
-        content += `\n${parada.orden}. ${parada.direccion}\n`;
-        content += `   Motivo: ${parada.motivo_no_completada}\n`;
-      });
-    }
-
-    if (riskReports && riskReports.length > 0) {
-      content += `\n\n=== REPORTES DE RIESGO (${riskReports.length}) ===\n`;
-      riskReports.forEach((report, index) => {
-        content += `\n${index + 1}. ${report.titulo}\n`;
-        content += `   Tipo: ${report.tipo}\n`;
-        content += `   Prioridad: ${report.prioridad}\n`;
-        content += `   Descripción: ${report.descripcion}\n`;
-      });
-    }
-
-    if (observaciones) {
-      content += `\n\n=== OBSERVACIONES ===\n${observaciones}\n`;
-    }
-
-    content += `\n\n=== FIN DEL REPORTE ===\n`;
-    content += `Generado el: ${new Date().toLocaleString('es-ES')}\n`;
-
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `reporte-ruta-${routeData.ruta_nombre}-${new Date().toISOString().split('T')[0]}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
+  const completedStops = routeData.paradas_completadas || routeData.paradas.filter(p => p.completada !== false);
+  const incompleteStops = routeData.paradas_no_completadas || [];
+
+  // ==========================================
+  // MOBILE: Full-screen bottom sheet
+  // ==========================================
+  if (isMobile) {
+    return (
+      <div className="sheet-backdrop sheet-backdrop--completion" onClick={onCancel}>
+        <div className="completion-sheet" onClick={e => e.stopPropagation()}>
+          <div className="sheet__handle" />
+
+          {/* Compact header */}
+          <div className="completion-sheet__header">
+            <div className="completion-sheet__icon">
+              <CheckCircle size={28} />
+            </div>
+            <div>
+              <div className="completion-sheet__title">¡Ruta Completada!</div>
+              <div className="completion-sheet__subtitle">{routeData.ruta_nombre}</div>
+            </div>
+            <button className="sheet__close" onClick={onCancel}>
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Stats row */}
+          <div className="completion-sheet__stats">
+            <div className="completion-sheet__stat">
+              <MapPin size={14} />
+              <span>{completedStops.length} paradas</span>
+            </div>
+            <div className="completion-sheet__stat">
+              <Clock size={14} />
+              <span>{formatTime(routeData.tiempoTotal)}</span>
+            </div>
+            {routeData.porcentaje_completado && routeData.porcentaje_completado < 100 && (
+              <div className="completion-sheet__stat completion-sheet__stat--warn">
+                <span>{routeData.porcentaje_completado}%</span>
+              </div>
+            )}
+          </div>
+
+          {/* Scrollable body */}
+          <div className="completion-sheet__body">
+            {/* Stops list */}
+            <div className="completion-sheet__section-label">Paradas completadas</div>
+            {completedStops.map((parada, index) => (
+              <div key={index} className="completion-sheet__stop">
+                <div className="completion-sheet__stop-num">{parada.orden || index + 1}</div>
+                <div className="completion-sheet__stop-info">
+                  <div className="completion-sheet__stop-addr">{parada.direccion}</div>
+                  <div className="completion-sheet__stop-meta">
+                    <span>{parada.timestamp_llegada || parada.timestamp}</span>
+                    {parada.categoria_carga && (
+                      <span className="completion-sheet__cat" style={{ color: getCategoryColor(parada.categoria_carga) }}>
+                        {getCategoryIcon(parada.categoria_carga)} {parada.categoria_carga}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Incomplete stops */}
+            {incompleteStops.length > 0 && (
+              <>
+                <div className="completion-sheet__section-label completion-sheet__section-label--warn">
+                  <AlertTriangle size={14} /> No completadas ({incompleteStops.length})
+                </div>
+                {incompleteStops.map((parada, index) => (
+                  <div key={index} className="completion-sheet__stop completion-sheet__stop--incomplete">
+                    <div className="completion-sheet__stop-num completion-sheet__stop-num--incomplete">{parada.orden}</div>
+                    <div className="completion-sheet__stop-info">
+                      <div className="completion-sheet__stop-addr">{parada.direccion}</div>
+                      <div className="completion-sheet__stop-meta" style={{ color: 'var(--color-error)' }}>
+                        {parada.motivo_no_completada}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {/* Risk reports */}
+            {riskReports && riskReports.length > 0 && (
+              <>
+                <div className="completion-sheet__section-label completion-sheet__section-label--warn">
+                  <AlertTriangle size={14} /> Riesgos ({riskReports.length})
+                </div>
+                {riskReports.map((report, index) => (
+                  <div key={index} className="completion-sheet__risk">
+                    <strong>{report.titulo}</strong>
+                    <span className="completion-sheet__risk-type">{report.tipo} · {report.prioridad}</span>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {/* Observaciones */}
+            <div className="completion-sheet__section-label">Observaciones (opcional)</div>
+            <textarea
+              className="sheet__textarea"
+              placeholder="Agrega observaciones..."
+              rows={2}
+              value={observaciones}
+              onChange={(e) => setObservaciones(e.target.value)}
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="sheet__actions">
+            <button
+              className="sheet__btn sheet__btn--primary"
+              onClick={handleConfirm}
+              disabled={loading}
+            >
+              {loading ? 'Guardando...' : <><CheckCircle size={16} /> Confirmar y Finalizar</>}
+            </button>
+            <div className="completion-sheet__bottom-row">
+              <button className="sheet__btn sheet__btn--ghost" onClick={downloadReport} disabled={loading || downloadingPdf}>
+                <Download size={14} /> {downloadingPdf ? 'Generando...' : 'Descargar PDF'}
+              </button>
+              <button className="sheet__btn sheet__btn--ghost" onClick={onCancel} disabled={loading}>
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // DESKTOP: Modal clásico (sin cambios)
+  // ==========================================
   return (
     <div className="completion-modal-overlay" onClick={onCancel}>
       <div className="completion-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -166,7 +264,7 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
           <div className="completion-section">
             <div className="completion-section-header">
               <MapPin size={20} />
-              <h3>Paradas Completadas ({routeData.paradas_completadas?.length || routeData.paradas.length})</h3>
+              <h3>Paradas Completadas ({completedStops.length})</h3>
               {routeData.porcentaje_completado && routeData.porcentaje_completado < 100 && (
                 <span className="completion-percentage" style={{
                   marginLeft: '10px',
@@ -182,7 +280,7 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
               )}
             </div>
             <div className="completion-stops-list">
-              {(routeData.paradas_completadas || routeData.paradas.filter(p => p.completada !== false)).map((parada, index) => (
+              {completedStops.map((parada, index) => (
                 <div key={index} className="completion-stop-item">
                   <div className="completion-stop-number">{parada.orden || index + 1}</div>
                   <div className="completion-stop-content">
@@ -208,19 +306,19 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
             </div>
           </div>
 
-          {/* Paradas NO Completadas (si existen) */}
-          {routeData.paradas_no_completadas && routeData.paradas_no_completadas.length > 0 && (
+          {/* Paradas NO Completadas */}
+          {incompleteStops.length > 0 && (
             <div className="completion-section completion-section--incomplete">
               <div className="completion-section-header">
                 <AlertTriangle size={20} />
-                <h3>Paradas No Completadas ({routeData.paradas_no_completadas.length})</h3>
+                <h3>Paradas No Completadas ({incompleteStops.length})</h3>
               </div>
               <div className="completion-alert-box">
                 <AlertTriangle size={18} />
                 <p>Las siguientes paradas no pudieron ser completadas. Verifica que hayas creado reportes de riesgo para cada una.</p>
               </div>
               <div className="completion-stops-list">
-                {routeData.paradas_no_completadas.map((parada, index) => (
+                {incompleteStops.map((parada, index) => (
                   <div key={index} className="completion-stop-item completion-stop-item--incomplete">
                     <div className="completion-stop-number completion-stop-number--incomplete">{parada.orden}</div>
                     <div className="completion-stop-content">
@@ -287,10 +385,10 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
           <button
             className="completion-btn completion-btn--download"
             onClick={downloadReport}
-            disabled={loading}
+            disabled={loading || downloadingPdf}
           >
             <Download size={18} />
-            Descargar
+            {downloadingPdf ? 'Generando PDF...' : 'Descargar PDF'}
           </button>
           <div className="completion-actions-group">
             <button

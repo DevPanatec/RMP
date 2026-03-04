@@ -1810,6 +1810,172 @@ export const generateCombinedPDF = (data, dateRange, selectedServices) => {
   return generateCombinedPDFComplete(data, dateRange, selectedServices);
 };
 
+/**
+ * Genera PDF de un SOLO reporte de ruta (usado al completar/terminar ruta)
+ * Mismo formato profesional que generateRecoleccionPDFComplete pero para 1 reporte
+ */
+export const generateSingleRouteReportPDF = async (report, riskReports = [], observaciones = '') => {
+  const certLogos = await loadCertificationLogos('recoleccion');
+  const content = [];
+
+  // Header
+  const isTerminada = report.terminacion_anticipada || report.porcentaje_completado < 100;
+  content.push(...createReportHeader(
+    report.ruta_nombre || 'Ruta de Recoleccion',
+    isTerminada ? 'Terminacion Anticipada' : 'Ruta Completada',
+    isTerminada ? COLORS.warning : COLORS.recoleccion,
+    'RECOLECCION'
+  ));
+
+  // Stats grid
+  const totalParadas = report.ruta_paradas?.length || report.paradas?.length || 0;
+  const completadas = report.paradas_completadas?.length || 0;
+  content.push(...createStatsGrid([
+    { label: 'Conductor', value: report.conductor_nombre || '-' },
+    { label: 'Vehiculo', value: report.vehiculo_placa || '-' },
+    { label: 'Tiempo Total', value: formatSeconds(report.tiempoTotal || report.tiempo_total_segundos || 0) },
+    { label: 'Fecha', value: formatDateShort(report.fechaCompletacion || report.fecha_completacion) },
+    { label: 'Paradas', value: `${completadas}/${totalParadas}`, color: completadas === totalParadas ? COLORS.success : COLORS.warning },
+    { label: 'Tipo', value: report.tipo_ruta || 'Recoleccion' }
+  ]));
+
+  // Map
+  const extraerCoordenadas = (p) => {
+    let lat = null, lng = null;
+    if (p.lat && p.lng) { lat = p.lat; lng = p.lng; }
+    else if (p.latitud && p.longitud) { lat = p.latitud; lng = p.longitud; }
+    else if (p.gps_completada?.lat && p.gps_completada?.lng) { lat = p.gps_completada.lat; lng = p.gps_completada.lng; }
+    return { lat, lng, nombre: p.direccion || p.nombre || p.parada_nombre || 'Parada' };
+  };
+
+  const paradasParaMapa = (report.ruta_paradas || report.paradas_completadas || report.paradas || [])
+    .map(extraerCoordenadas)
+    .filter(p => p.lat && p.lng);
+
+  content.push({
+    text: 'MAPA DE RUTA',
+    fontSize: 13, bold: true, color: COLORS.text, margin: [0, 8, 0, 4]
+  });
+
+  if (paradasParaMapa.length > 0) {
+    const mapUrl = getStaticMapWithRoute(paradasParaMapa);
+    if (mapUrl) {
+      const mapBase64 = await imageUrlToBase64(mapUrl);
+      if (mapBase64) {
+        content.push({ image: mapBase64, width: 515, height: 172, margin: [0, 0, 0, 4] });
+      }
+    }
+  } else {
+    content.push({
+      table: { widths: ['*'], body: [[{ text: 'Mapa no disponible', fontSize: 11, color: COLORS.textTertiary, alignment: 'center', margin: [0, 20, 0, 20] }]] },
+      layout: { hLineWidth: () => 1, vLineWidth: () => 1, hLineColor: () => COLORS.border, vLineColor: () => COLORS.border },
+      margin: [0, 0, 0, 6]
+    });
+  }
+
+  // Stops table
+  const allParadas = report.paradas_completadas || report.paradas || [];
+  const noCompletadas = report.paradas_no_completadas || [];
+
+  if (allParadas.length > 0 || noCompletadas.length > 0) {
+    const combinedParadas = [...allParadas, ...noCompletadas];
+    content.push({
+      text: `PARADAS (${combinedParadas.length})`,
+      fontSize: 13, bold: true, color: COLORS.text, margin: [0, 6, 0, 4]
+    });
+
+    const paradasBody = [
+      [
+        { text: '#', fontSize: 10, bold: true, fillColor: COLORS.surfaceSecondary, alignment: 'center' },
+        { text: 'DIRECCION', fontSize: 10, bold: true, fillColor: COLORS.surfaceSecondary },
+        { text: 'CARGA', fontSize: 10, bold: true, fillColor: COLORS.surfaceSecondary, alignment: 'center' },
+        { text: 'ESTADO', fontSize: 10, bold: true, fillColor: COLORS.surfaceSecondary, alignment: 'center' }
+      ]
+    ];
+
+    allParadas.forEach((p, idx) => {
+      paradasBody.push([
+        { text: `${p.orden || idx + 1}`, fontSize: 9, alignment: 'center', bold: true },
+        { text: p.direccion || p.nombre || `Parada ${idx + 1}`, fontSize: 9 },
+        { text: p.categoria_carga || '-', fontSize: 9, alignment: 'center' },
+        { text: 'Completada', fontSize: 9, color: COLORS.success, bold: true, alignment: 'center' }
+      ]);
+    });
+
+    noCompletadas.forEach((p) => {
+      paradasBody.push([
+        { text: `${p.orden || '-'}`, fontSize: 9, alignment: 'center', bold: true },
+        { text: p.direccion || p.nombre || 'Parada', fontSize: 9 },
+        { text: '-', fontSize: 9, alignment: 'center' },
+        { text: 'No completada', fontSize: 9, color: COLORS.error, bold: true, alignment: 'center' }
+      ]);
+    });
+
+    content.push({
+      table: { headerRows: 1, widths: [30, '*', 70, 85], body: paradasBody },
+      layout: {
+        hLineWidth: () => 0.5, vLineWidth: () => 0.5,
+        hLineColor: () => COLORS.border, vLineColor: () => COLORS.border,
+        paddingLeft: () => 4, paddingRight: () => 4, paddingTop: () => 2, paddingBottom: () => 2
+      },
+      margin: [0, 0, 0, 6]
+    });
+  }
+
+  // Risk reports section
+  if (riskReports.length > 0) {
+    content.push({
+      text: `REPORTES DE RIESGO (${riskReports.length})`,
+      fontSize: 13, bold: true, color: COLORS.warning, margin: [0, 8, 0, 4]
+    });
+
+    riskReports.forEach((risk) => {
+      content.push({
+        table: {
+          widths: ['*'],
+          body: [[{
+            stack: [
+              { text: risk.titulo || 'Sin titulo', fontSize: 11, bold: true, color: COLORS.text },
+              { text: `${risk.tipo || '-'} | Prioridad: ${risk.prioridad || '-'}`, fontSize: 9, color: COLORS.textSecondary, margin: [0, 2, 0, 2] },
+              ...(risk.descripcion ? [{ text: risk.descripcion, fontSize: 9, color: COLORS.textSecondary }] : [])
+            ],
+            margin: [8, 6, 8, 6]
+          }]]
+        },
+        layout: {
+          hLineWidth: () => 1, vLineWidth: () => 1,
+          hLineColor: () => COLORS.warning, vLineColor: () => COLORS.warning
+        },
+        margin: [0, 0, 0, 4]
+      });
+    });
+  }
+
+  // Observations
+  const finalObs = observaciones || report.observaciones || '';
+  content.push(...createObservacionesSection(finalObs));
+
+  // Build PDF
+  const fechaStr = new Date().toISOString().split('T')[0];
+  const docDefinition = {
+    header: createCertificationHeader(certLogos),
+    content,
+    footer: (currentPage, pageCount) => ({
+      columns: [
+        { text: 'RMP - Reporte de Ruta', fontSize: 8, color: COLORS.textSecondary },
+        { text: report.ruta_nombre || '', fontSize: 8, color: COLORS.textSecondary, alignment: 'center' },
+        { text: `Pagina ${currentPage} de ${pageCount}`, fontSize: 8, color: COLORS.textSecondary, alignment: 'right' }
+      ],
+      margin: [40, 10, 40, 0]
+    }),
+    styles: defaultStyles,
+    pageMargins: [40, 70, 40, 50]
+  };
+
+  pdfMake.createPdf(docDefinition).download(`Reporte_Ruta_${(report.ruta_nombre || 'ruta').replace(/\s+/g, '_')}_${fechaStr}.pdf`);
+  return { success: true };
+};
+
 export default {
   generateLimpiezaPDFComplete,
   generateFumigacionPDFComplete,
@@ -1820,5 +1986,6 @@ export default {
   generateFumigacionPDF,
   generateLimpiezaPDF,
   generateMantenimientoPDF,
-  generateCombinedPDF
+  generateCombinedPDF,
+  generateSingleRouteReportPDF
 };

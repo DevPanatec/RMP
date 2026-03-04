@@ -4952,6 +4952,29 @@ img[src*="mapbox"],
   opacity: 0.6;
 }
 
+.stop-list-item.skipped {
+  border-left: 3px solid var(--color-error);
+  background: linear-gradient(to right, rgba(209, 52, 56, 0.05), transparent);
+}
+
+.stop-list-item.skipped .stop-number-badge {
+  background: var(--color-error);
+}
+
+.stop-list-item.skipped .stop-status-icon {
+  color: var(--color-error);
+}
+
+.stop-skip-reason {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-error);
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
 /* Scrollbar para lista de paradas */
 .stops-list-items::-webkit-scrollbar {
   width: 6px;

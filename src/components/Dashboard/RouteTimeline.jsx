@@ -1,4 +1,4 @@
-import { Map, Edit, XCircle, BarChart3, Truck, Clock, Users, CheckCircle, Radio, Navigation, MapPin, Package } from '../Icons';
+import { Map, Edit, XCircle, BarChart3, Truck, Clock, Users, CheckCircle, Radio, Navigation, MapPin, Package, AlertTriangle } from '../Icons';
 import './RouteTimeline.css';
 
 export const RouteTimeline = ({
@@ -32,6 +32,7 @@ export const RouteTimeline = ({
   };
 
   const getStopStatus = (stop, currentStopIndex) => {
+    if (stop.completada === false && stop.motivo_no_completada) return 'skipped';
     if (stop.completada) return 'completed';
     if (stop.index === currentStopIndex) return 'current';
     return 'pending';
@@ -39,6 +40,7 @@ export const RouteTimeline = ({
 
   const getStopIcon = (status) => {
     switch (status) {
+      case 'skipped': return <AlertTriangle size={18} />;
       case 'completed': return <CheckCircle size={18} />;
       case 'current': return <Navigation size={18} />;
       case 'pending': return <Radio size={18} />;
@@ -115,6 +117,12 @@ export const RouteTimeline = ({
                   {status === 'current' && !stop.completada && (
                     <div className="stop-current-indicator">
                       <Navigation size={14} /> Parada Actual
+                    </div>
+                  )}
+                  {status === 'skipped' && (
+                    <div className="stop-skipped-info">
+                      <AlertTriangle size={14} />
+                      <span>{stop.motivo_no_completada || 'No completada'}</span>
                     </div>
                   )}
                   {stop.completada && stop.category && (

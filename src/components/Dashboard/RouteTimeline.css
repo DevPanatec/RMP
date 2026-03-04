@@ -233,6 +233,26 @@
   color: var(--color-text-tertiary);
 }
 
+.stop-item--skipped .stop-dot {
+  background: var(--color-error);
+  border-color: var(--color-error);
+  color: white;
+}
+
+.stop-item--skipped .stop-line {
+  background: var(--color-error);
+}
+
+.stop-skipped-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-error);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
 .stop-content {
   flex: 1;
   min-width: 0;
