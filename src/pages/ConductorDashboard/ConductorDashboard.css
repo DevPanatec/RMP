@@ -2931,6 +2931,7 @@
     min-height: 100vh !important;
     max-height: none !important;
     border-radius: 0 !important;
+    overflow: visible !important;
   }
 
   /* Force MapLibre wrapper and canvas to fill viewport */
