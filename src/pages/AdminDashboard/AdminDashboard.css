@@ -2406,6 +2406,353 @@
   to { transform: rotate(360deg); }
 }
 
+/* ============================================
+   MONITORING LAYOUT - Map-centric Redesign
+   ============================================ */
+
+/* Container height fix: prevent scrolling when monitoring tab is active */
+.dashboard-container:has(.monitoring-layout) {
+  height: 100vh;
+  min-height: 100vh;
+}
+
+.main-content:has(.monitoring-layout) {
+  overflow: hidden !important;
+  padding: 0 !important;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Floating FAB group on map (recenter + maximize) */
+.monitoring-map-fabs {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.monitoring-fab {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-full);
+  color: white;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: all var(--duration-fast) var(--ease-out);
+  padding: 0;
+}
+
+.monitoring-fab:hover {
+  background: var(--color-primary-hover);
+  transform: scale(1.05);
+}
+
+.monitoring-fab:active {
+  transform: scale(0.92);
+}
+
+/* ---- Desktop Layout (>=1025px): Side Panel + Map ---- */
+@media (min-width: 1025px) {
+  .monitoring-layout {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .monitoring-side-panel {
+    width: 400px;
+    min-width: 400px;
+    overflow-y: auto;
+    border-right: 1px solid var(--color-border);
+    background: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Compact 2x2 KPI grid inside side panel */
+  .monitoring-side-panel .hero-stats {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    border-bottom: 1px solid var(--color-border);
+    margin: 0;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: var(--space-8);
+    padding: var(--space-12);
+  }
+
+  .monitoring-side-panel .hero-stat-card {
+    padding: var(--space-8) var(--space-12);
+  }
+
+  .monitoring-side-panel .hero-stat-card .stat-value {
+    font-size: var(--font-size-xl);
+  }
+
+  .monitoring-side-panel .hero-stat-card .stat-label {
+    font-size: var(--font-size-xs);
+  }
+
+  /* Activity and Alerts sections inside panel */
+  .monitoring-side-panel .realtime-activity,
+  .monitoring-side-panel .risk-alerts {
+    flex: 1;
+    min-height: 200px;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: none;
+    margin: 0;
+    overflow-y: auto;
+  }
+
+  .monitoring-side-panel .risk-alerts {
+    border-bottom: none;
+  }
+
+  /* Map area fills remaining space */
+  .monitoring-map-area {
+    flex: 1;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .monitoring-map-area .map-section {
+    height: 100%;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    margin: 0;
+  }
+
+  .monitoring-map-area .map-section::before {
+    display: none;
+  }
+
+  .monitoring-map-area .map-container-modern {
+    height: 100% !important;
+    min-height: 100%;
+    max-height: none;
+    border-radius: 0;
+    border: none;
+  }
+
+  /* Hide map controls panel inside monitoring layout */
+  .monitoring-map-area .map-controls-panel {
+    display: none;
+  }
+
+  /* Hide mobile-only elements on desktop */
+  .monitoring-kpi-overlay,
+  .monitoring-bottom-sheet {
+    display: none;
+  }
+}
+
+/* ---- Mobile/Tablet Layout (<1025px): Fullscreen Map + Overlays ---- */
+@media (max-width: 1024px) {
+  .monitoring-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Hide side panel on mobile */
+  .monitoring-side-panel {
+    display: none;
+  }
+
+  /* Map fills the viewport */
+  .monitoring-map-area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .monitoring-map-area .map-section {
+    height: 100%;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    margin: 0;
+  }
+
+  .monitoring-map-area .map-section::before {
+    display: none;
+  }
+
+  .monitoring-map-area .map-container-modern {
+    height: 100% !important;
+    min-height: 100%;
+    max-height: none;
+    border-radius: 0;
+    border: none;
+  }
+
+  /* Hide map controls panel inside monitoring layout */
+  .monitoring-map-area .map-controls-panel {
+    display: none;
+  }
+
+  /* Floating KPI chips over map */
+  .monitoring-kpi-overlay {
+    position: absolute;
+    top: 60px;
+    left: 12px;
+    right: 12px;
+    z-index: 10;
+    display: flex;
+    gap: var(--space-8);
+  }
+
+  .monitoring-kpi-chip {
+    flex: 1;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.92);
+    border-radius: var(--radius-md);
+    padding: var(--space-8);
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .kpi-chip__value {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    line-height: 1;
+  }
+
+  .kpi-chip__label {
+    font-size: 10px;
+    color: var(--color-text-secondary);
+    font-weight: var(--font-weight-medium);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Bottom sheet */
+  .monitoring-bottom-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    background: var(--color-surface);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    transition: height 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+    overflow: hidden;
+  }
+
+  .monitoring-bottom-sheet.collapsed {
+    height: 60px;
+  }
+
+  .monitoring-bottom-sheet.expanded {
+    height: 50vh;
+  }
+
+  .monitoring-sheet__handle {
+    cursor: pointer;
+    padding: var(--space-8) var(--space-16);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-8);
+    flex-shrink: 0;
+  }
+
+  .handle-bar {
+    width: 36px;
+    height: 4px;
+    background: var(--color-border-strong, #ccc);
+    border-radius: var(--radius-full);
+  }
+
+  .monitoring-sheet__tabs {
+    display: flex;
+    gap: var(--space-4);
+    width: 100%;
+  }
+
+  .sheet-tab {
+    flex: 1;
+    padding: var(--space-4) var(--space-8);
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease-out);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+  }
+
+  .sheet-tab.active {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+  }
+
+  .sheet-tab__badge {
+    background: var(--color-error);
+    color: white;
+    font-size: 10px;
+    font-weight: var(--font-weight-semibold);
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    line-height: 1.4;
+  }
+
+  .sheet-tab.active .sheet-tab__badge {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .monitoring-sheet__content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 var(--space-12) var(--space-12);
+  }
+
+  /* Reused components inside sheet get simplified styling */
+  .monitoring-sheet__content .realtime-activity,
+  .monitoring-sheet__content .risk-alerts {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    min-height: 0;
+    max-height: none;
+    margin: 0;
+  }
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

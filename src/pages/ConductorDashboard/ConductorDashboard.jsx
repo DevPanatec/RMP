@@ -14,7 +14,7 @@ import {
   Truck, LogOut, Download, Map, Clock, AlertTriangle,
   ClipboardList, Package, TrendingUp, FileText, MapPin,
   CheckCircle, Calendar, Loader, Wrench, AlertOctagon, X,
-  Activity, Navigation
+  Activity, Navigation, Target
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
 import { RouteTimeline } from '../../components/Dashboard';
@@ -1538,56 +1538,189 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
         {activeTab === 'ruta' && (
           <>
-            {/* Desktop: Botón para iniciar ruta o estado completada */}
-            {!isMobileView && !routeStarted && (
-              <div className="start-route-container">
-                {isRouteCompleted ? (
-                  <div className="route-completed-card">
-                    <div className="route-completed-card__header">
-                      <CheckCircle size={24} />
-                      <div>
-                        <h3>Ruta Completada</h3>
-                        <p>{assignedRoute.nombre || assignedRoute.name} finalizada exitosamente</p>
-                      </div>
-                    </div>
-                    {upcomingAssignments.length > 0 ? (
-                      <div className="route-completed-card__upcoming">
-                        <h4><Calendar size={16} /> Próximas Rutas</h4>
-                        {upcomingAssignments.map((a, i) => (
-                          <div key={i} className="upcoming-route-item">
-                            <div className="upcoming-route-item__day">
-                              {a.nextDay.charAt(0).toUpperCase() + a.nextDay.slice(1)}
-                            </div>
-                            <div className="upcoming-route-item__details">
-                              <span><MapPin size={13} /> {a.routeName}</span>
-                              <span><Truck size={13} /> {a.vehiclePlaca}</span>
-                              <span><Package size={13} /> {a.paradasCount} paradas</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="route-completed-card__empty">
-                        <Calendar size={20} />
-                        <span>No tienes más rutas asignadas esta semana</span>
-                      </div>
-                    )}
+            {/* Desktop: Side panel with route info, KPIs, stops */}
+            {!isMobileView && (
+              <div className="conductor-desktop-panel">
+                {/* Route info header */}
+                <div className="desktop-panel__route-info">
+                  <h2 className="desktop-panel__route-name">
+                    <MapPin size={18} />
+                    {assignedRoute.nombre || assignedRoute.name}
+                  </h2>
+                  <div className="desktop-panel__route-chips">
+                    <span className="desktop-panel__chip"><Truck size={14} /> {userTruck.placa}</span>
+                    <span className="desktop-panel__chip"><Package size={14} /> {getParadasArray(assignedRoute.paradas).length} paradas</span>
                   </div>
-                ) : (
-                  <div className="start-route-card start-route-card--compact">
-                    <div className="route-details-row">
-                      <div className="detail-chip"><MapPin size={14} /> {assignedRoute.nombre || assignedRoute.name}</div>
-                      <div className="detail-chip"><Truck size={14} /> {userTruck.placa}</div>
-                      <div className="detail-chip"><Package size={14} /> {getParadasArray(assignedRoute.paradas).length} paradas</div>
-                    </div>
-                    <button
-                      className="btn-start-route"
-                      onClick={handleStartRoute}
-                    >
+
+                  {/* Start route button or completed state */}
+                  {!routeStarted && !isRouteCompleted && (
+                    <button className="btn-start-route" onClick={handleStartRoute}>
                       <CheckCircle size={20} />
                       <span>Iniciar Ruta</span>
                     </button>
+                  )}
+
+                  {isRouteCompleted && (
+                    <div className="route-completed-card">
+                      <div className="route-completed-card__header">
+                        <CheckCircle size={24} />
+                        <div>
+                          <h3>Ruta Completada</h3>
+                          <p>{assignedRoute.nombre || assignedRoute.name} finalizada exitosamente</p>
+                        </div>
+                      </div>
+                      {upcomingAssignments.length > 0 ? (
+                        <div className="route-completed-card__upcoming">
+                          <h4><Calendar size={16} /> Próximas Rutas</h4>
+                          {upcomingAssignments.map((a, i) => (
+                            <div key={i} className="upcoming-route-item">
+                              <div className="upcoming-route-item__day">
+                                {a.nextDay.charAt(0).toUpperCase() + a.nextDay.slice(1)}
+                              </div>
+                              <div className="upcoming-route-item__details">
+                                <span><MapPin size={13} /> {a.routeName}</span>
+                                <span><Truck size={13} /> {a.vehiclePlaca}</span>
+                                <span><Package size={13} /> {a.paradasCount} paradas</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="route-completed-card__empty">
+                          <Calendar size={20} />
+                          <span>No tienes más rutas asignadas esta semana</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Stops preview when route NOT started (fill empty space) */}
+                {!routeStarted && !isRouteCompleted && (
+                  <div className="desktop-panel__stops">
+                    <div className="desktop-panel__stops-header">
+                      <MapPin size={14} />
+                      <span>Paradas de la Ruta</span>
+                    </div>
+                    {getParadasArray(assignedRoute.paradas).map((parada, index) => (
+                      <div key={index} className="desktop-stop-item">
+                        <div className="desktop-stop-item__icon desktop-stop-item__icon--pending">
+                          {index + 1}
+                        </div>
+                        <div className="desktop-stop-item__info">
+                          <div className="desktop-stop-item__name">
+                            {parada.direccion || parada.nombre || `Parada ${index + 1}`}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                )}
+
+                {/* KPIs when route started */}
+                {routeStarted && (
+                  <div className="desktop-panel__kpis">
+                    <div className="kpi-card">
+                      <div className="kpi-icon"><Truck size={16} /></div>
+                      <div className="kpi-content">
+                        <div className="kpi-value">{userTruck?.placa || 'N/A'}</div>
+                        <div className="kpi-label">Camión</div>
+                      </div>
+                    </div>
+                    <div className="kpi-card">
+                      <div className="kpi-icon"><Package size={16} /></div>
+                      <div className="kpi-content">
+                        <div className="kpi-value">{completedStops.length}/{getParadasArray(assignedRoute.paradas).length}</div>
+                        <div className="kpi-label">Paradas</div>
+                      </div>
+                    </div>
+                    <div className="kpi-card">
+                      <div className="kpi-icon"><Clock size={16} /></div>
+                      <div className="kpi-content">
+                        <div className="kpi-value">{formatTime(timeOnRoute)}</div>
+                        <div className="kpi-label">Tiempo</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Stops list when route started */}
+                {routeStarted && (
+                  <>
+                    <div className="desktop-panel__stops">
+                      <div className="desktop-panel__stops-header">
+                        <MapPin size={14} />
+                        <span>Paradas de la Ruta</span>
+                      </div>
+                      {getParadasArray(assignedRoute.paradas).map((parada, index) => {
+                        const completedStop = completedStops.find(stop => stop.index === index);
+                        const isCompleted = !!completedStop;
+                        const isSkipped = completedStop && completedStop.completada === false;
+                        const isCurrent = !isCompleted && index === currentStop;
+                        const isPending = !isCompleted && index !== currentStop;
+
+                        let itemClass = 'desktop-stop-item';
+                        let iconClass = 'desktop-stop-item__icon';
+                        if (isSkipped) {
+                          itemClass += ' desktop-stop-item--skipped';
+                          iconClass += ' desktop-stop-item__icon--skipped';
+                        } else if (isCompleted) {
+                          itemClass += ' desktop-stop-item--completed';
+                          iconClass += ' desktop-stop-item__icon--completed';
+                        } else if (isCurrent) {
+                          itemClass += ' desktop-stop-item--current';
+                          iconClass += ' desktop-stop-item__icon--current';
+                        } else {
+                          iconClass += ' desktop-stop-item__icon--pending';
+                        }
+
+                        return (
+                          <div key={index} className={itemClass}>
+                            <div className={iconClass}>
+                              {isSkipped ? '⚠' : isCompleted ? <CheckCircle size={14} /> : (index + 1)}
+                            </div>
+                            <div className="desktop-stop-item__info">
+                              <div className="desktop-stop-item__name">
+                                {parada.direccion || parada.nombre || `Parada ${index + 1}`}
+                              </div>
+                              {isCompleted && !isSkipped && (
+                                <div className="desktop-stop-item__meta">
+                                  {completedStop.category} · {completedStop.timestamp}
+                                </div>
+                              )}
+                              {isSkipped && (
+                                <div className="desktop-stop-item__meta">
+                                  No completada · {completedStop.timestamp}
+                                </div>
+                              )}
+                            </div>
+                            {isCurrent && (
+                              <button
+                                className="desktop-stop-item__action"
+                                onClick={() => handleCompleteStop(index)}
+                              >
+                                Completar
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="desktop-panel__progress">
+                      <div className="desktop-panel__progress-header">
+                        <span>Progreso</span>
+                        <span className="desktop-panel__progress-value">{progressPercentage}%</span>
+                      </div>
+                      <div className="desktop-panel__progress-bar">
+                        <div
+                          className="desktop-panel__progress-fill"
+                          style={{ width: `${progressPercentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -1647,33 +1780,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   </div>
                 )}
 
-                {/* Mobile: Botones de acción flotantes (cuando ruta iniciada) */}
-                {isMobileView && routeStarted && (
-                  <div className="map-overlay-actions">
-                    <button
-                      className="map-overlay-action-fab map-overlay-action-fab--warning"
-                      onClick={() => setShowRiskModal(true)}
-                      title="Reportar riesgo"
-                    >
-                      <AlertTriangle size={20} />
-                    </button>
-                    <button
-                      className="map-overlay-action-fab map-overlay-action-fab--danger"
-                      onClick={() => setShowTerminateModal(true)}
-                      title="Terminar ruta"
-                    >
-                      <X size={20} />
-                    </button>
-                    <button
-                      className="map-overlay-action-fab map-overlay-action-fab--success"
-                      onClick={handleFinalizarRuta}
-                      title="Finalizar ruta"
-                    >
-                      <CheckCircle size={20} />
-                    </button>
-                  </div>
-                )}
-
                 {/* Mobile: Botón "Iniciar Ruta" flotante */}
                 {isMobileView && !routeStarted && !isRouteCompleted && (
                   <div className="map-overlay-start">
@@ -1689,6 +1795,34 @@ const ConductorDashboard = ({ user, onLogout }) => {
                       <span>Iniciar Ruta</span>
                     </button>
                   </div>
+                )}
+
+                {/* Botón flotante: centrar en mi ubicación */}
+                {isMobileView && (
+                  <button
+                    className="recenter-fab"
+                    onClick={() => {
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                          window.dispatchEvent(new CustomEvent('recenterMap', {
+                            detail: { lat: pos.coords.latitude, lng: pos.coords.longitude, zoom: 15 }
+                          }));
+                        },
+                        () => {
+                          // Fallback: center on assigned vehicle if geolocation fails
+                          if (userTruck?.gps_latitud && userTruck?.gps_longitud) {
+                            window.dispatchEvent(new CustomEvent('recenterMap', {
+                              detail: { lat: userTruck.gps_latitud, lng: userTruck.gps_longitud, zoom: 15 }
+                            }));
+                          }
+                        },
+                        { enableHighAccuracy: true, timeout: 5000 }
+                      );
+                    }}
+                    title="Centrar en mi ubicación"
+                  >
+                    <Target size={20} />
+                  </button>
                 )}
 
                 {/* Botón de navegación externa (Waze / Google Maps) */}
@@ -1890,6 +2024,8 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   onCompleteStop={handleCompleteStop}
                   progressPercentage={progressPercentage}
                   isMobile={true}
+                  onTerminateRoute={() => setShowTerminateModal(true)}
+                  onCompleteRoute={handleFinalizarRuta}
                 />
               ) : (
                 <div className="route-timeline-section">

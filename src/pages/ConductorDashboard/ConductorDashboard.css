@@ -857,6 +857,32 @@
   transform: scale(0.95);
 }
 
+/* Recenter on my location FAB */
+.recenter-fab {
+  position: absolute;
+  bottom: 70px;
+  right: 16px;
+  z-index: 10;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+  transition: background var(--duration-fast) var(--ease-out),
+              transform var(--duration-fast) var(--ease-out);
+}
+
+.recenter-fab:active {
+  transform: scale(0.92);
+  background: var(--color-primary-hover);
+}
+
 .nav-app-backdrop {
   position: fixed;
   inset: 0;
@@ -959,6 +985,13 @@
   }
 
   .nav-app-fab {
+    width: 40px;
+    height: 40px;
+  }
+
+  .recenter-fab {
+    bottom: 62px;
+    right: 12px;
     width: 40px;
     height: 40px;
   }
@@ -2395,15 +2428,329 @@
   }
 }
 
-/* Desktop: mantener layout normal - Conductor only */
+/* ============================================
+   DESKTOP SPLIT-PANEL LAYOUT (>=1025px)
+   ============================================ */
 @media (min-width: 1025px) {
-  .conductor-dashboard .route-timeline-section {
-    padding: 0 24px 24px 24px !important;
-  }
-
   /* En desktop mostrar sidebar - Conductor only */
   .conductor-dashboard .sidebar {
     display: flex !important;
+  }
+
+  /* Main content becomes horizontal flex (side panel + map) */
+  .conductor-dashboard .main-content {
+    display: flex !important;
+    flex-direction: row !important;
+    flex: 1 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Dashboard container must fill viewport as column */
+  .conductor-dashboard.dashboard-container {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+  }
+
+  /* App bar must not shrink */
+  .conductor-dashboard .app-bar {
+    flex-shrink: 0 !important;
+  }
+
+  /* Side panel - left column */
+  .conductor-desktop-panel {
+    width: 380px;
+    min-width: 380px;
+    height: 100%;
+    overflow-y: auto;
+    border-right: 1px solid var(--color-border);
+    background: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .conductor-desktop-panel::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .conductor-desktop-panel::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .conductor-desktop-panel::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+    border-radius: 3px;
+  }
+
+  /* Route info header inside panel */
+  .desktop-panel__route-info {
+    padding: var(--space-20);
+    border-bottom: 1px solid var(--color-divider);
+    flex-shrink: 0;
+  }
+
+  .desktop-panel__route-name {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+    margin: 0 0 var(--space-12) 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+  }
+
+  .desktop-panel__route-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-8);
+    margin-bottom: var(--space-16);
+  }
+
+  .desktop-panel__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: var(--space-4) var(--space-12);
+    background: var(--color-surface-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-full);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text);
+  }
+
+  .desktop-panel__chip svg {
+    color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  /* Start route button inside panel */
+  .desktop-panel__route-info .btn-start-route {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+  }
+
+  /* Route completed card inside panel */
+  .desktop-panel__route-info .route-completed-card {
+    border: none;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  /* KPI grid inside panel */
+  .conductor-desktop-panel .desktop-panel__kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-8);
+    padding: var(--space-12) var(--space-16);
+    border-bottom: 1px solid var(--color-divider);
+    flex-shrink: 0;
+  }
+
+  .desktop-panel__kpis .kpi-card {
+    padding: var(--space-8) var(--space-4);
+    margin: 0;
+  }
+
+  /* Stops list section - scrollable */
+  .desktop-panel__stops {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-16);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+
+  .desktop-panel__stops::-webkit-scrollbar {
+    width: 5px;
+  }
+
+  .desktop-panel__stops::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .desktop-panel__stops::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+  }
+
+  .desktop-panel__stops-header {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--space-4);
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+  }
+
+  /* Individual stop item in side panel */
+  .desktop-stop-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    padding: var(--space-12);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    transition: all var(--duration-fast) var(--ease-out);
+  }
+
+  .desktop-stop-item:hover {
+    border-color: var(--color-border-strong);
+    box-shadow: var(--shadow-xs);
+  }
+
+  .desktop-stop-item--completed {
+    background: var(--color-success-light);
+    border-color: var(--color-success);
+  }
+
+  .desktop-stop-item--current {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px var(--color-focus-ring);
+  }
+
+  .desktop-stop-item--skipped {
+    background: var(--color-warning-light);
+    border-color: var(--color-warning);
+    opacity: 0.8;
+  }
+
+  .desktop-stop-item__icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    color: white;
+  }
+
+  .desktop-stop-item__icon--completed {
+    background: var(--color-success);
+  }
+
+  .desktop-stop-item__icon--current {
+    background: var(--color-primary);
+  }
+
+  .desktop-stop-item__icon--pending {
+    background: var(--color-border-strong);
+  }
+
+  .desktop-stop-item__icon--skipped {
+    background: var(--color-warning);
+  }
+
+  .desktop-stop-item__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .desktop-stop-item__name {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .desktop-stop-item__meta {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    margin-top: 2px;
+  }
+
+  .desktop-stop-item__action {
+    padding: var(--space-4) var(--space-12);
+    background: var(--color-primary);
+    border: none;
+    border-radius: var(--radius-base);
+    color: white;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: background var(--duration-fast) var(--ease-out);
+    flex-shrink: 0;
+  }
+
+  .desktop-stop-item__action:hover {
+    background: var(--color-primary-hover);
+  }
+
+  /* Progress bar inside panel */
+  .desktop-panel__progress {
+    padding: var(--space-12) var(--space-16);
+    border-top: 1px solid var(--color-divider);
+    flex-shrink: 0;
+  }
+
+  .desktop-panel__progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-8);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+  }
+
+  .desktop-panel__progress-value {
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text);
+  }
+
+  .desktop-panel__progress-bar {
+    height: 6px;
+    background: var(--color-secondary);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+  }
+
+  .desktop-panel__progress-fill {
+    height: 100%;
+    background: var(--color-primary);
+    border-radius: var(--radius-full);
+    transition: width var(--duration-normal) var(--ease-out);
+  }
+
+  /* Map section fills remaining space on desktop */
+  .conductor-map-section {
+    flex: 1 !important;
+    padding: 0 !important;
+    height: 100% !important;
+    min-width: 0;
+  }
+
+  .map-container-large {
+    height: 100% !important;
+    min-height: 100% !important;
+    border-radius: 0 !important;
+  }
+
+  /* Hide old desktop elements that are now in side panel */
+  .conductor-dashboard .start-route-container {
+    display: none !important;
+  }
+
+  .conductor-dashboard .kpi-grid:not(.desktop-panel__kpis) {
+    display: none !important;
+  }
+
+  .conductor-dashboard .route-timeline-section {
+    display: none !important;
   }
 }
 
@@ -3201,6 +3548,11 @@
 
   .conductor-dashboard--map-fullscreen .nav-app-menu {
     z-index: 11;
+  }
+
+  .conductor-dashboard--map-fullscreen .recenter-fab {
+    bottom: 140px !important;
+    right: 12px !important;
   }
 }
 

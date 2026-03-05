@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ChevronUp, ChevronDown, CheckCircle, Navigation, Radio, Package, Clock, AlertTriangle } from 'lucide-react';
+import { ChevronUp, ChevronDown, CheckCircle, Navigation, Radio, Package, Clock, AlertTriangle, X } from 'lucide-react';
 import './BottomSheet.css';
 
 const BottomSheet = ({
@@ -10,7 +10,9 @@ const BottomSheet = ({
   currentStop = 0,
   onCompleteStop,
   progressPercentage = 0,
-  isMobile = false
+  isMobile = false,
+  onTerminateRoute,
+  onCompleteRoute
 }) => {
   const [startY, setStartY] = useState(0);
   const [currentY, setCurrentY] = useState(0);
@@ -171,19 +173,29 @@ const BottomSheet = ({
           })}
         </div>
 
-        {/* Progress bar (en el footer del drawer expandido) */}
-        <div className="bottom-sheet-progress">
-          <div className="progress-label">
-            <span>Progreso Total</span>
-            <span>{Math.round(progressPercentage)}%</span>
+        {/* Route action buttons */}
+        {isMobile && (onCompleteRoute || onTerminateRoute) && (
+          <div className="bottom-sheet-actions">
+            {onCompleteRoute && (
+              <button
+                className="bottom-sheet-action-btn bottom-sheet-action-btn--success"
+                onClick={onCompleteRoute}
+              >
+                <CheckCircle size={18} />
+                <span>Finalizar Ruta</span>
+              </button>
+            )}
+            {onTerminateRoute && (
+              <button
+                className="bottom-sheet-action-btn bottom-sheet-action-btn--danger"
+                onClick={onTerminateRoute}
+              >
+                <X size={18} />
+                <span>Cancelar Ruta</span>
+              </button>
+            )}
           </div>
-          <div className="progress-bar-container">
-            <div
-              className="progress-bar-fill"
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

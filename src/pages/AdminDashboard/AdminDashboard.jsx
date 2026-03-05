@@ -20,6 +20,7 @@ import { useCleaning } from '../../context/CleaningContext';
 import { useAuth } from '../../context/AuthContext';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { useGeofenceAlerts } from '../../hooks/useGeofenceAlerts';
+import { useMonitoringNotifications } from '../../hooks/useMonitoringNotifications';
 import { useAction, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { DEMO_VEHICLES, DEMO_ROUTES, DEMO_PERSONNEL, DEMO_ALERTS, DEMO_RECENT_ACTIVITY, mergeDemoData } from '../../utils/demoData';
@@ -37,6 +38,9 @@ import './AdminDashboard.css';
 const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [activeSubTab, setActiveSubTab] = useState('');
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1025);
+  const [monitoringSheetExpanded, setMonitoringSheetExpanded] = useState(false);
+  const [monitoringSheetTab, setMonitoringSheetTab] = useState('activity');
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [selectedLocationId, setSelectedLocationId] = useState(null);
   const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
@@ -59,6 +63,13 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
     apellido: '',
     cargo: ''
   });
+
+  // Responsive breakpoint listener
+  useEffect(() => {
+    const handleResize = () => setIsMobileView(window.innerWidth < 1025);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Profile creation states
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -220,6 +231,9 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
       totalKgHoy: displayVehicles.reduce((total, vehicle) => total + (vehicle.capacidad_carga || 0), 0)
     };
   }, [displayVehicles]);
+
+  // Monitoring notifications (sounds + animation IDs)
+  const { newEventIds, newAlertIds } = useMonitoringNotifications(recentActivity, displayAlerts);
 
   const handleTabChange = (newTab, defaultSubTab = '') => {
     setActiveTab(newTab);
@@ -450,13 +464,6 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
 
         const heroStatsData = [
           {
-            id: 'vehicles',
-            icon: <Truck strokeWidth={1.5} size={24} />,
-            value: vehicleCount,
-            label: 'Total Vehículos',
-            sparklineData: generateSparklineData(vehicleCount, 0.1)
-          },
-          {
             id: 'active',
             icon: <TrendingUp strokeWidth={1.5} size={24} />,
             value: activeCount,
@@ -469,81 +476,130 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             value: personnelCount,
             label: 'Personal',
             sparklineData: generateSparklineData(personnelCount, 0.05)
-          },
-          {
-            id: 'routes',
-            icon: <MapPin strokeWidth={1.5} size={24} />,
-            value: activeRoutesCount,
-            label: 'Rutas Activas',
-            sparklineData: generateSparklineData(activeRoutesCount, 0.2)
           }
         ];
 
         return (
-          <div className="dashboard-content">
-            <HeroStats stats={heroStatsData} />
-
-            <div className="map-section">
-              <div className="map-header">
-                <h3><Satellite strokeWidth={2} size={20} /> Monitoreo GPS</h3>
-                <button
-                  className="maximize-btn"
-                  onClick={() => setIsMapMaximized(true)}
-                  title="Maximizar mapa"
-                >
-                  <Maximize2 size={18} />
-                </button>
-              </div>
-              <div
-                className="map-container-modern"
-                ref={(el) => {
-                  if (el) {
-                    const observer = new IntersectionObserver(
-                      (entries) => {
-                        entries.forEach((entry) => {
-                          if (entry.isIntersecting) {
-                            entry.target.classList.add('scroll-reveal');
-                            observer.unobserve(entry.target);
-                          }
-                        });
-                      },
-                      { threshold: 0.2 }
-                    );
-                    observer.observe(el);
-                  }
-                }}
-              >
-                <MapLibreComponent
-                  key="map-main"
-                  camiones={normalizedCamiones}
-                  rutas={displayRoutes || []}
-                  personnel={displayPersonnel || []}
-                  lugares={lugares || []}
-                  geofences={geofences}
-                  allRouteProgress={allRouteProgress}
-                  userType={user.tipo}
-                  showRealTime={true}
-                  selectedTruck={selectedTruck}
-                  onViewLocationReports={handleViewLocationReports}
+          <div className="monitoring-layout">
+            {/* Desktop: Side panel with KPIs, Activity, Alerts */}
+            {!isMobileView && (
+              <div className="monitoring-side-panel">
+                <HeroStats stats={heroStatsData} />
+                <RealtimeActivity
+                  vehicles={normalizedCamiones}
+                  routes={displayRoutes}
+                  personnel={displayPersonnel}
+                  recentActivity={recentActivity}
+                  newEventIds={newEventIds}
+                />
+                <RiskAlerts
+                  alerts={displayAlerts}
+                  onViewDetails={(alert) => {
+                    setActiveTab('riesgos');
+                  }}
+                  newAlertIds={newAlertIds}
                 />
               </div>
+            )}
+
+            {/* Map area - full height */}
+            <div className="monitoring-map-area">
+              <div className="map-section">
+                <div className="monitoring-map-fabs">
+                  <button
+                    className="monitoring-fab"
+                    onClick={() => {
+                      const v = normalizedCamiones.find(c => c.gps_latitud && c.gps_longitud);
+                      const lat = v?.gps_latitud || 8.983333;
+                      const lng = v?.gps_longitud || -79.516670;
+                      window.dispatchEvent(new CustomEvent('recenterMap', { detail: { lat, lng, zoom: 13 } }));
+                    }}
+                    title="Centrar mapa"
+                  >
+                    <MapPin size={16} />
+                  </button>
+                  <button
+                    className="monitoring-fab"
+                    onClick={() => setIsMapMaximized(true)}
+                    title="Maximizar mapa"
+                  >
+                    <Maximize2 size={16} />
+                  </button>
+                </div>
+                <div className="map-container-modern">
+                  <MapLibreComponent
+                    key="map-main"
+                    camiones={normalizedCamiones}
+                    rutas={displayRoutes || []}
+                    personnel={displayPersonnel || []}
+                    lugares={lugares || []}
+                    geofences={geofences}
+                    allRouteProgress={allRouteProgress}
+                    userType={user.tipo}
+                    showRealTime={true}
+                    selectedTruck={selectedTruck}
+                    onViewLocationReports={handleViewLocationReports}
+                  />
+                </div>
+              </div>
+
+              {/* Mobile: Floating KPI chips over map */}
+              {isMobileView && (
+                <div className="monitoring-kpi-overlay">
+                  {heroStatsData.map((stat) => (
+                    <div key={stat.id} className="monitoring-kpi-chip">
+                      <span className="kpi-chip__value">{stat.value}</span>
+                      <span className="kpi-chip__label">{stat.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="dashboard-grid-2col">
-              <RealtimeActivity
-                vehicles={normalizedCamiones}
-                routes={displayRoutes}
-                personnel={displayPersonnel}
-                recentActivity={recentActivity}
-              />
-
-              <RiskAlerts
-                alerts={displayAlerts}
-                onViewDetails={(alert) => {
-                  setActiveTab('riesgos');
-                }}
-              />
-            </div>
+            {/* Mobile: Bottom sheet with tabbed Activity/Alerts */}
+            {isMobileView && (
+              <div className={`monitoring-bottom-sheet ${monitoringSheetExpanded ? 'expanded' : 'collapsed'}`}>
+                <div
+                  className="monitoring-sheet__handle"
+                  onClick={() => setMonitoringSheetExpanded(!monitoringSheetExpanded)}
+                >
+                  <div className="handle-bar" />
+                  <div className="monitoring-sheet__tabs">
+                    <button
+                      className={`sheet-tab ${monitoringSheetTab === 'activity' ? 'active' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); setMonitoringSheetTab('activity'); setMonitoringSheetExpanded(true); }}
+                    >
+                      Actividades
+                    </button>
+                    <button
+                      className={`sheet-tab ${monitoringSheetTab === 'alerts' ? 'active' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); setMonitoringSheetTab('alerts'); setMonitoringSheetExpanded(true); }}
+                    >
+                      Alertas {displayAlerts.length > 0 && <span className="sheet-tab__badge">{displayAlerts.length}</span>}
+                    </button>
+                  </div>
+                </div>
+                <div className="monitoring-sheet__content">
+                  {monitoringSheetTab === 'activity' ? (
+                    <RealtimeActivity
+                      vehicles={normalizedCamiones}
+                      routes={displayRoutes}
+                      personnel={displayPersonnel}
+                      recentActivity={recentActivity}
+                      newEventIds={newEventIds}
+                    />
+                  ) : (
+                    <RiskAlerts
+                      alerts={displayAlerts}
+                      onViewDetails={(alert) => {
+                        setActiveTab('riesgos');
+                      }}
+                      newAlertIds={newAlertIds}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         );
       case 'operaciones':
@@ -731,6 +787,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                     routes={displayRoutes}
                     personnel={displayPersonnel}
                     recentActivity={recentActivity}
+                    newEventIds={newEventIds}
                   />
                 </div>
 
@@ -741,6 +798,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                       setIsMapMaximized(false);
                       setActiveTab('riesgos');
                     }}
+                    newAlertIds={newAlertIds}
                   />
                 </div>
               </div>

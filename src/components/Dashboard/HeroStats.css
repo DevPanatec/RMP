@@ -230,3 +230,26 @@
     font-size: 9px;
   }
 }
+
+/* ============================================
+   VALUE CHANGE FLASH ANIMATION
+   ============================================ */
+
+.stat-value--changed {
+  animation: valueFlash 2s ease-out;
+}
+
+@keyframes valueFlash {
+  0% {
+    color: var(--color-primary);
+    transform: scale(1.18);
+  }
+  30% {
+    color: var(--color-success);
+    transform: scale(1.05);
+  }
+  100% {
+    color: inherit;
+    transform: scale(1);
+  }
+}

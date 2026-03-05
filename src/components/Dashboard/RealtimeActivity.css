@@ -362,3 +362,42 @@
     padding: 2px var(--space-4);
   }
 }
+
+/* ============================================
+   NEW EVENT HIGHLIGHT ANIMATION
+   ============================================ */
+
+.activity-item--new {
+  animation: activitySlideIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.activity-item--new .activity-icon {
+  animation: iconPulse 2.5s ease-in-out;
+}
+
+.activity-item--new .activity-content {
+  animation: contentHighlight 3s ease-out;
+}
+
+@keyframes activitySlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes iconPulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  20% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0.2); }
+  50% { box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1); }
+  100% { box-shadow: none; }
+}
+
+@keyframes contentHighlight {
+  0% { background: rgba(16, 185, 129, 0.12); border-radius: var(--radius-base); }
+  100% { background: transparent; }
+}

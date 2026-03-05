@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Truck, MapPin, Clock, CheckCircle, Radio, Navigation, Wrench } from '../Icons';
 import './RealtimeActivity.css';
 
-const RealtimeActivity = ({ vehicles = [], routes = [], personnel = [], recentActivity = [] }) => {
+const RealtimeActivity = ({ vehicles = [], routes = [], personnel = [], recentActivity = [], newEventIds }) => {
   const [activities, setActivities] = useState([]);
 
   useEffect(() => {
@@ -57,6 +57,7 @@ const RealtimeActivity = ({ vehicles = [], routes = [], personnel = [], recentAc
             key={activity.id || index}
             activity={activity}
             delay={index * 50}
+            isNew={newEventIds?.has(activity.id)}
           />
         ))}
       </div>
@@ -112,7 +113,7 @@ const generateActivitiesFromRealData = (vehicles, routes, personnel) => {
   return activities;
 };
 
-const ActivityItem = ({ activity, delay }) => {
+const ActivityItem = ({ activity, delay, isNew }) => {
   const getActivityConfig = (tipo) => {
     switch (tipo) {
       case 'parada_completada':
@@ -174,7 +175,7 @@ const ActivityItem = ({ activity, delay }) => {
   const config = getActivityConfig(activity.tipo);
 
   return (
-    <div className="activity-item">
+    <div className={`activity-item ${isNew ? 'activity-item--new' : ''}`}>
       <div className="activity-timeline">
         <div className="activity-icon">
           {config.icon}

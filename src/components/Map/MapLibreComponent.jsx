@@ -638,6 +638,18 @@ const MapLibreComponent = ({
     return () => resizeObserver.disconnect();
   }, [isContainerReady]);
 
+  // Listen for recenter map events (e.g. from conductor "center on me" button)
+  useEffect(() => {
+    const handleRecenter = (e) => {
+      const map = mapRef.current?.getMap?.();
+      if (!map || !e.detail) return;
+      const { lat, lng, zoom } = e.detail;
+      map.flyTo({ center: [lng, lat], zoom: zoom || 15, duration: 800 });
+    };
+    window.addEventListener('recenterMap', handleRecenter);
+    return () => window.removeEventListener('recenterMap', handleRecenter);
+  }, []);
+
   // Save theme to localStorage
   useEffect(() => {
     localStorage.setItem('mapTheme', mapTheme);

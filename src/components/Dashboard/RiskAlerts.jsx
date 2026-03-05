@@ -1,7 +1,7 @@
 import { AlertTriangle, Truck, MapPin, Clock, Eye, CheckCircle } from '../Icons';
 import './RiskAlerts.css';
 
-const RiskAlerts = ({ alerts = [], onViewDetails }) => {
+const RiskAlerts = ({ alerts = [], onViewDetails, newAlertIds }) => {
   const sortedAlerts = [...alerts]
     .filter(alert => alert.estado !== 'resuelto' && alert.estado !== 'resolved')
     .sort((a, b) => {
@@ -47,11 +47,12 @@ const RiskAlerts = ({ alerts = [], onViewDetails }) => {
 
       <div className="alerts-grid">
         {sortedAlerts.map((alert, index) => (
-          <AlertCard 
-            key={alert.id} 
-            alert={alert} 
+          <AlertCard
+            key={alert.id}
+            alert={alert}
             onViewDetails={onViewDetails}
             delay={index * 100}
+            isNew={newAlertIds?.has(alert._id || alert.id)}
           />
         ))}
       </div>
@@ -59,7 +60,7 @@ const RiskAlerts = ({ alerts = [], onViewDetails }) => {
   );
 };
 
-const AlertCard = ({ alert, onViewDetails, delay }) => {
+const AlertCard = ({ alert, onViewDetails, delay, isNew }) => {
   const getPriorityClass = (prioridad) => {
     const priority = prioridad?.toLowerCase();
     if (priority === 'alta' || priority === 'high') return 'high';
@@ -85,7 +86,7 @@ const AlertCard = ({ alert, onViewDetails, delay }) => {
   };
 
   return (
-    <div className={`alert-risk-card priority-${priorityClass}`}>
+    <div className={`alert-risk-card priority-${priorityClass}${isNew ? ' alert-risk-card--new' : ''}`}>
       <div className="alert-risk-header">
         <div className={`priority-badge priority-${priorityClass}`}>
           <span>{priorityLabel}</span>

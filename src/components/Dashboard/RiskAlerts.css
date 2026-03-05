@@ -342,3 +342,38 @@
     padding: var(--space-8) var(--space-12);
   }
 }
+
+/* ============================================
+   NEW ALERT HIGHLIGHT ANIMATION
+   ============================================ */
+
+.alert-risk-card--new {
+  animation: alertPulse 0.6s ease-out;
+  border-left: 3px solid var(--color-error);
+}
+
+.alert-risk-card--new .priority-badge {
+  animation: badgeFlash 1.5s ease-in-out;
+}
+
+@keyframes alertPulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  40% {
+    box-shadow: 0 0 0 4px rgba(209, 52, 56, 0.18);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: none;
+  }
+}
+
+@keyframes badgeFlash {
+  0%, 100% { opacity: 1; }
+  25% { opacity: 0.5; }
+  50% { opacity: 1; }
+  75% { opacity: 0.5; }
+}

@@ -15,7 +15,9 @@ const HeroStats = ({ stats = [] }) => {
 const StatCard = ({ stat, delay }) => {
   const [count, setCount] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+  const [valueChanged, setValueChanged] = useState(false);
   const cardRef = useRef(null);
+  const prevValueRef = useRef(stat.value);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -60,6 +62,16 @@ const StatCard = ({ stat, delay }) => {
     return () => clearInterval(timer);
   }, [isVisible, stat.value]);
 
+  // Detect value changes after initial render
+  useEffect(() => {
+    if (prevValueRef.current !== stat.value && isVisible) {
+      setValueChanged(true);
+      const timeout = setTimeout(() => setValueChanged(false), 2000);
+      prevValueRef.current = stat.value;
+      return () => clearTimeout(timeout);
+    }
+  }, [stat.value, isVisible]);
+
   return (
     <div
       ref={cardRef}
@@ -74,7 +86,7 @@ const StatCard = ({ stat, delay }) => {
         <div className="stat-label">{stat.label}</div>
       </div>
       <div className="stat-content">
-        <div className="stat-value">
+        <div className={`stat-value${valueChanged ? ' stat-value--changed' : ''}`}>
           {count}
           {stat.suffix || ''}
         </div>
