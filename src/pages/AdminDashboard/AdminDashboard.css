@@ -2413,12 +2413,22 @@
 /* Container height fix: prevent scrolling when monitoring tab is active */
 .dashboard-container:has(.monitoring-layout) {
   height: 100vh;
+  height: 100dvh;
   min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
 }
 
 .main-content:has(.monitoring-layout) {
   overflow: hidden !important;
   padding: 0 !important;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content:has(.monitoring-layout) > .monitoring-layout {
   flex: 1;
   min-height: 0;
 }
@@ -2587,6 +2597,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-height: 0;
     overflow: hidden;
     position: relative;
   }
@@ -2599,17 +2610,22 @@
   /* Map fills the viewport */
   .monitoring-map-area {
     flex: 1;
+    min-height: 0;
     position: relative;
     overflow: hidden;
+    height: 100%;
   }
 
   .monitoring-map-area .map-section {
     height: 100%;
+    min-height: 0;
     border: none;
     padding: 0;
     border-radius: 0;
     box-shadow: none;
     margin: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .monitoring-map-area .map-section::before {
@@ -2617,8 +2633,9 @@
   }
 
   .monitoring-map-area .map-container-modern {
+    flex: 1;
     height: 100% !important;
-    min-height: 100%;
+    min-height: 0;
     max-height: none;
     border-radius: 0;
     border: none;
@@ -2686,14 +2703,16 @@
     flex-direction: column;
     transition: height 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
     overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom, 0);
   }
 
   .monitoring-bottom-sheet.collapsed {
-    height: 60px;
+    height: 56px;
   }
 
   .monitoring-bottom-sheet.expanded {
-    height: 50vh;
+    height: 60vh;
+    height: 60dvh;
   }
 
   .monitoring-sheet__handle {
