@@ -2519,6 +2519,27 @@
     border-bottom: none;
   }
 
+  /* Narrow panel: stack activity content vertically so description is not squeezed */
+  .monitoring-side-panel .activity-content {
+    flex-direction: column;
+    gap: var(--space-6);
+  }
+
+  .monitoring-side-panel .activity-time {
+    align-items: flex-start;
+    margin-top: 0;
+  }
+
+  .monitoring-side-panel .activity-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+
+  .monitoring-side-panel .activity-meta {
+    flex-wrap: wrap;
+  }
+
   /* Map area fills remaining space */
   .monitoring-map-area {
     flex: 1;

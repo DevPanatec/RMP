@@ -468,9 +468,10 @@ const ScheduleComponent = () => {
       ayudantes: routeFormData.ayudantes,
       observaciones: routeFormData.observaciones,
       estado: 'programada',
-      hora_inicio: selectedRoute?.hora_inicio || null,
-      hora_fin: selectedRoute?.hora_fin || null
     };
+
+    if (selectedRoute?.hora_inicio) assignmentData.hora_inicio = selectedRoute.hora_inicio;
+    if (selectedRoute?.hora_fin) assignmentData.hora_fin = selectedRoute.hora_fin;
 
     // conductor_id es opcional, solo se envía si existe
     // (no se envía si el conductor solo está en empleados, no en perfiles_usuarios)

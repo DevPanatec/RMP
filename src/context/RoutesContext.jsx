@@ -16,11 +16,11 @@ export const RoutesProvider = ({ children }) => {
 
   const addRoute = async (routeData) => {
     try {
-      await addRouteMutation(routeData);
-      return { success: true };
+      const id = await addRouteMutation(routeData);
+      return id;
     } catch (error) {
       console.error('Error adding route:', error);
-      return { success: false, error: error.message };
+      throw error;
     }
   };
 
@@ -30,7 +30,7 @@ export const RoutesProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Error updating route:', error);
-      return { success: false, error: error.message };
+      throw error;
     }
   };
 

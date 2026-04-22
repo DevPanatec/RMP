@@ -992,11 +992,15 @@
   flex-wrap: wrap;
 }
 
-.day-checkbox {
+.form-group .day-checkbox {
   display: flex;
   align-items: center;
   gap: var(--space-6);
   padding: var(--space-8) var(--space-12);
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  margin-bottom: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   cursor: pointer;
@@ -1024,6 +1028,25 @@
   font-size: 13px;
   color: var(--color-text-secondary);
   user-select: none;
+  white-space: nowrap;
+}
+
+.day-checkbox--all {
+  background: var(--color-surface-secondary);
+  border-style: dashed;
+  font-weight: 600;
+}
+
+.day-checkbox--all span {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.label-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+  margin-left: 6px;
 }
 
 /* Error highlighting for days checkboxes */

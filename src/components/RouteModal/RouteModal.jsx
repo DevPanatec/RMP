@@ -166,14 +166,6 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
       newErrors.paradas_coords = 'Todas las paradas deben tener coordenadas';
     }
 
-    if (!formData.hora_inicio) {
-      newErrors.hora_inicio = 'La hora de inicio es obligatoria';
-    }
-
-    if (!formData.hora_fin) {
-      newErrors.hora_fin = 'La hora de fin es obligatoria';
-    }
-
     if (formData.hora_inicio && formData.hora_fin && formData.hora_inicio >= formData.hora_fin) {
       newErrors.hora_fin = 'La hora de fin debe ser posterior a la hora de inicio';
     }
@@ -268,9 +260,10 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
       tiempo_estimado: parseInt(formData.tiempo_estimado) || 60,
       estado: formData.estado,
       dias_operacion: formData.dias_operacion || [],
-      hora_inicio: formData.hora_inicio || null,
-      hora_fin: formData.hora_fin || null
     };
+
+    if (formData.hora_inicio) routeData.hora_inicio = formData.hora_inicio;
+    if (formData.hora_fin) routeData.hora_fin = formData.hora_fin;
 
     console.log('✅ DEBUG RouteModal - Datos a enviar:', routeData);
     console.log('✅ DEBUG RouteModal - Llamando onSave() con routeData');
@@ -332,8 +325,6 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
 
   const getValidationStatus = () => {
     if (!formData.nombre?.trim()) return { icon: AlertTriangle, text: 'El nombre es obligatorio', type: 'error' };
-    if (!formData.hora_inicio) return { icon: AlertTriangle, text: 'Falta hora de inicio', type: 'error' };
-    if (!formData.hora_fin) return { icon: AlertTriangle, text: 'Falta hora de fin', type: 'error' };
     if (formData.hora_inicio && formData.hora_fin && formData.hora_inicio >= formData.hora_fin) return { icon: AlertTriangle, text: 'Hora de fin debe ser posterior', type: 'error' };
     if (!formData.dias_operacion || formData.dias_operacion.length === 0) return { icon: AlertTriangle, text: 'Selecciona al menos un día', type: 'error' };
     if (formData.paradas.length < 2) return { icon: AlertTriangle, text: 'Agrega al menos 2 paradas', type: 'warning' };
@@ -515,7 +506,7 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
 
                   <div className="form-row">
                     <div className="form-group">
-                      <label>Hora de Inicio *</label>
+                      <label>Hora de Inicio <span className="label-hint">(opcional)</span></label>
                       <input
                         type="time"
                         value={formData.hora_inicio}
@@ -526,7 +517,7 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
                     </div>
 
                     <div className="form-group">
-                      <label>Hora de Fin *</label>
+                      <label>Hora de Fin <span className="label-hint">(opcional)</span></label>
                       <input
                         type="time"
                         value={formData.hora_fin}
@@ -540,39 +531,52 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
                   <div className={`form-group ${errors.dias_operacion ? 'has-error' : ''}`}>
                     <label>Días de Operación *</label>
                     <div className={`days-checkboxes ${errors.dias_operacion ? 'error-highlight' : ''}`}>
-                      {[
-                        { label: 'Lunes', value: 'lunes' },
-                        { label: 'Martes', value: 'martes' },
-                        { label: 'Miércoles', value: 'miercoles' },
-                        { label: 'Jueves', value: 'jueves' },
-                        { label: 'Viernes', value: 'viernes' },
-                        { label: 'Sábado', value: 'sabado' },
-                        { label: 'Domingo', value: 'domingo' }
-                      ].map(day => {
-                        const isChecked = formData.dias_operacion?.includes(day.value) || false;
+                      {(() => {
+                        const allDays = [
+                          { label: 'Lunes', value: 'lunes' },
+                          { label: 'Martes', value: 'martes' },
+                          { label: 'Miércoles', value: 'miercoles' },
+                          { label: 'Jueves', value: 'jueves' },
+                          { label: 'Viernes', value: 'viernes' },
+                          { label: 'Sábado', value: 'sabado' },
+                          { label: 'Domingo', value: 'domingo' }
+                        ];
+                        const allValues = allDays.map(d => d.value);
+                        const allChecked = formData.dias_operacion?.length === allValues.length;
 
                         return (
-                          <label key={day.value} className="day-checkbox">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={e => {
-                                console.log(`🔍 DEBUG RouteModal - Checkbox ${day.label} cambiado a:`, e.target.checked);
-                                console.log(`🔍 DEBUG RouteModal - dias_operacion ANTES:`, formData.dias_operacion);
-
-                                const newDias = e.target.checked
-                                  ? [...(formData.dias_operacion || []), day.value]
-                                  : (formData.dias_operacion || []).filter(d => d !== day.value);
-
-                                console.log(`🔍 DEBUG RouteModal - dias_operacion DESPUÉS:`, newDias);
-
-                                handleChange('dias_operacion', newDias);
-                              }}
-                            />
-                            <span>{day.label.slice(0, 3)}</span>
-                          </label>
+                          <>
+                            <label className="day-checkbox day-checkbox--all">
+                              <input
+                                type="checkbox"
+                                checked={allChecked}
+                                onChange={e => {
+                                  handleChange('dias_operacion', e.target.checked ? allValues : []);
+                                }}
+                              />
+                              <span>Todos los días</span>
+                            </label>
+                            {allDays.map(day => {
+                              const isChecked = formData.dias_operacion?.includes(day.value) || false;
+                              return (
+                                <label key={day.value} className="day-checkbox">
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={e => {
+                                      const newDias = e.target.checked
+                                        ? [...(formData.dias_operacion || []), day.value]
+                                        : (formData.dias_operacion || []).filter(d => d !== day.value);
+                                      handleChange('dias_operacion', newDias);
+                                    }}
+                                  />
+                                  <span>{day.label}</span>
+                                </label>
+                              );
+                            })}
+                          </>
                         );
-                      })}
+                      })()}
                     </div>
                     {errors.dias_operacion && (
                       <span className="error-text">
