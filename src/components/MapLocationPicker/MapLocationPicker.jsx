@@ -6,8 +6,8 @@ import { mapGooglePlaceToLocation } from '../../utils/googlePlacesMapper';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapLocationPicker.css';
 
-// Stadia Maps style URL (free, no token required for development)
-const MAP_STYLE = 'https://tiles.stadiamaps.com/styles/alidade_smooth.json';
+// OpenFreeMap Positron — same tiles used by the dashboard map (no key required).
+const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
 const MapLocationPicker = ({
   onLocationSelect,
