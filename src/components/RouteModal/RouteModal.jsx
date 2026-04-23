@@ -10,8 +10,8 @@ import {
 } from '../Icons';
 import './RouteModal.css';
 
-// Stadia Maps style URL (free, no token required for development)
-const MAP_STYLE = 'https://tiles.stadiamaps.com/styles/alidade_smooth.json';
+// OpenFreeMap Positron — same tiles as dashboard MapLibreComponent (no key needed).
+const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 
 const TABS = {
   INFO: 'info',

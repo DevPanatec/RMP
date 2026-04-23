@@ -1264,9 +1264,10 @@
   }
 
   .route-modal-header-v2 {
-    padding: 20px 20px 16px 20px;
-    min-height: 120px;
-    gap: 12px;
+    padding: var(--space-12) var(--space-16);
+    min-height: auto;
+    gap: var(--space-8);
+    padding-top: max(var(--space-12), env(safe-area-inset-top));
   }
 
   .modal-header-content h4 {
@@ -1297,15 +1298,17 @@
   }
 
   .route-modal-tabs {
-    padding: 10px 20px 0 20px;
-    gap: 4px;
-    min-height: 50px;
-    max-height: 50px;
+    padding: var(--space-8) var(--space-16) 0 var(--space-16);
+    gap: var(--space-4);
+    min-height: 48px;
+    max-height: 48px;
   }
 
   .tab-button {
-    padding: 8px 12px;
-    font-size: 13px;
+    padding: var(--space-8) var(--space-12);
+    font-size: var(--font-size-sm);
+    min-height: 44px;
+    min-width: 44px;
   }
 
   .tab-label {
@@ -1331,13 +1334,13 @@
 
   .info-map-section {
     order: 1;
-    min-height: 250px;
-    max-height: 300px;
+    min-height: 240px;
+    max-height: 40dvh;
   }
 
   .map-preview-container {
     min-height: 200px;
-    max-height: 250px;
+    max-height: 36dvh;
   }
 
   .form-section,
@@ -1359,11 +1362,23 @@
   }
 
   .route-modal-footer {
-    flex-direction: column;
-    gap: 10px;
-    padding: 14px 20px;
+    flex-direction: column-reverse;
+    gap: var(--space-8);
+    padding: var(--space-12) var(--space-16) max(var(--space-12), env(safe-area-inset-bottom)) var(--space-16);
     min-height: auto;
     max-height: none;
+  }
+
+  .route-modal-footer .footer-actions {
+    width: 100%;
+    display: flex;
+    gap: var(--space-8);
+  }
+
+  .route-modal-footer .footer-actions .btn {
+    flex: 1;
+    min-height: 44px;
+    justify-content: center;
   }
 
   .footer-info {
@@ -1442,47 +1457,65 @@
   }
 
   .route-modal-tabs {
-    padding: 8px 16px 0 16px;
+    padding: var(--space-8) var(--space-12) 0 var(--space-12);
   }
 
   .route-modal-body {
-    padding: 12px 16px;
+    padding: var(--space-12);
   }
 
   .route-modal-header,
   .route-modal-footer {
-    padding: 12px 16px;
+    padding: var(--space-12);
   }
 
   .form-section,
   .config-section {
-    padding: 14px;
+    padding: var(--space-12);
   }
 
   .route-input,
   .route-textarea,
   .route-select {
-    font-size: 14px;
-    padding: 10px 12px;
+    font-size: 16px; /* prevent iOS zoom-on-focus */
+    padding: var(--space-10) var(--space-12);
+    min-height: 44px;
+  }
+
+  .route-textarea {
+    min-height: 72px;
   }
 
   .footer-actions .btn {
-    padding: 10px 16px;
-    font-size: 13px;
+    padding: var(--space-10) var(--space-16);
+    font-size: var(--font-size-sm);
+    min-height: 44px;
   }
 
   .color-presets {
-    gap: 6px;
+    gap: var(--space-4);
   }
 
   .color-preset {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
   }
 
   .stat-chip {
-    font-size: 11px;
-    padding: 3px 8px;
+    font-size: var(--font-size-xs);
+    padding: 3px var(--space-8);
+  }
+
+  .stat-pill-v2 {
+    padding: var(--space-4) var(--space-8);
+  }
+
+  .modal-header-content h4 {
+    font-size: var(--font-size-lg);
+  }
+
+  .modal-header-content p {
+    font-size: var(--font-size-xs);
   }
 }
 

@@ -88,8 +88,9 @@
 
 /* Map Container */
 .map-container {
-  flex: 1;
-  min-height: 400px;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 400px;
   border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--color-border);
@@ -449,13 +450,47 @@
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+  .map-container {
+    height: 320px;
+  }
+}
+
 @media (max-width: 768px) {
   .map-location-picker {
-    padding: 16px;
+    padding: var(--space-12);
+    gap: var(--space-12);
   }
 
   .map-container {
-    min-height: 300px;
+    height: 45dvh;
+    min-height: 260px;
+  }
+
+  .search-input {
+    min-height: 44px;
+    font-size: var(--font-size-base);
+  }
+
+  .search-actions {
+    flex-wrap: wrap;
+    gap: var(--space-8);
+  }
+
+  .search-actions button {
+    min-height: 40px;
+    flex: 1 1 auto;
+  }
+
+  .suggestions-dropdown {
+    max-height: 45dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .suggestion-item {
+    min-height: 48px;
+    padding: var(--space-10) var(--space-12);
   }
 
   .picker-actions {
@@ -464,18 +499,44 @@
 
   .picker-actions button {
     width: 100%;
+    min-height: 44px;
   }
 
   .coordinates-display {
     flex-direction: column;
-    gap: 8px;
+    align-items: flex-start;
+    gap: var(--space-8);
   }
 
   .coordinate-inputs {
     flex-direction: column;
+    gap: var(--space-8);
   }
 
-  .search-actions {
-    flex-wrap: wrap;
+  .coord-input {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .map-location-picker {
+    padding: var(--space-8);
+  }
+
+  .map-container {
+    height: 40dvh;
+    min-height: 220px;
+  }
+
+  .search-actions button {
+    font-size: var(--font-size-xs);
+  }
+
+  .search-actions button span {
+    display: none;
+  }
+
+  .coordinate-input-section {
+    padding: var(--space-8);
   }
 }

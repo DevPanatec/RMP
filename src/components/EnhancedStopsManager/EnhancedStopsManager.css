@@ -15,7 +15,13 @@
   grid-template-columns: 1.5fr 1fr;
   gap: var(--space-20);
   height: 100%;
-  min-height: 600px;
+  min-height: 0;
+}
+
+@media (min-width: 1025px) {
+  .stops-grid-layout {
+    min-height: 600px;
+  }
 }
 
 /* ============================================
@@ -387,21 +393,30 @@
   }
 
   .map-column {
-    min-height: 400px;
+    min-height: 340px;
   }
 
   .stops-column {
-    min-height: 300px;
+    min-height: 240px;
   }
 
   .summary-stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 768px) {
   .stops-grid-layout {
     min-height: auto;
+    gap: var(--space-12);
+  }
+
+  .map-column {
+    min-height: 50dvh;
+  }
+
+  .stops-column {
+    min-height: 0;
   }
 
   .map-header,
@@ -424,6 +439,12 @@
     padding-top: var(--space-8);
     border-top: 1px solid var(--color-border);
     margin-top: var(--space-8);
+    gap: var(--space-8);
+  }
+
+  .stop-actions button {
+    min-width: 44px;
+    min-height: 44px;
   }
 
   .stat-item {
@@ -436,5 +457,30 @@
 
   .stat-label {
     font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stops-grid-layout {
+    gap: var(--space-8);
+  }
+
+  .map-column {
+    min-height: 45dvh;
+  }
+
+  .summary-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+  }
+
+  .map-header,
+  .stops-list-header {
+    padding: var(--space-8) var(--space-12);
+  }
+
+  .map-header h3,
+  .stops-list-header h3 {
+    font-size: var(--font-size-base);
   }
 }
