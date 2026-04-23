@@ -27,6 +27,25 @@
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--color-border);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+}
+
+@media (max-width: 1024px) {
+  .dashboard-container.monitoring--map-fullscreen .app-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  .dashboard-container.monitoring--map-fullscreen .app-bar.app-bar--hidden {
+    opacity: 0;
+    transform: translateY(-100%);
+    pointer-events: none;
+  }
+  .dashboard-container.monitoring--map-fullscreen .main-content {
+    padding-top: 0 !important;
+  }
 }
 
 .app-bar__header {
@@ -1912,7 +1931,8 @@
   }
 
   .map-container-modern {
-    height: 720px;
+    height: 60dvh;
+    min-height: 400px;
   }
 }
 
@@ -2411,7 +2431,8 @@
    ============================================ */
 
 /* Container height fix: prevent scrolling when monitoring tab is active */
-.dashboard-container:has(.monitoring-layout) {
+.dashboard-container:has(.monitoring-layout),
+.dashboard-container.monitoring-active {
   height: 100vh;
   height: 100dvh;
   min-height: 100vh;
@@ -2419,7 +2440,8 @@
   overflow: hidden;
 }
 
-.main-content:has(.monitoring-layout) {
+.main-content:has(.monitoring-layout),
+.dashboard-container.monitoring-active > .main-content {
   overflow: hidden !important;
   padding: 0 !important;
   flex: 1;
@@ -2428,7 +2450,8 @@
   flex-direction: column;
 }
 
-.main-content:has(.monitoring-layout) > .monitoring-layout {
+.main-content:has(.monitoring-layout) > .monitoring-layout,
+.dashboard-container.monitoring-active .monitoring-layout {
   flex: 1;
   min-height: 0;
 }
@@ -2646,34 +2669,38 @@
     display: none;
   }
 
-  /* Floating KPI chips over map */
+  /* Floating KPI chips over map - constrained to leave room for right-side FABs */
   .monitoring-kpi-overlay {
     position: absolute;
-    top: 60px;
-    left: 12px;
-    right: 12px;
+    top: calc(env(safe-area-inset-top, 0) + var(--space-8));
+    left: var(--space-8);
+    right: calc(var(--space-8) + 48px);
     z-index: 10;
     display: flex;
-    gap: var(--space-8);
+    gap: var(--space-4);
+    pointer-events: none;
   }
 
   .monitoring-kpi-chip {
+    pointer-events: auto;
     flex: 1;
+    min-width: 0;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     background: rgba(255, 255, 255, 0.92);
     border-radius: var(--radius-md);
-    padding: var(--space-8);
+    padding: 3px var(--space-8);
     text-align: center;
     box-shadow: var(--shadow-sm);
     border: 1px solid rgba(255, 255, 255, 0.6);
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
   }
 
   .kpi-chip__value {
-    font-size: var(--font-size-lg);
+    font-size: var(--font-size-sm);
     font-weight: var(--font-weight-semibold);
     color: var(--color-text);
     line-height: 1;
@@ -2686,6 +2713,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1;
   }
 
   /* Bottom sheet */
@@ -2694,7 +2722,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 20;
+    z-index: 25;
     background: var(--color-surface);
     border-top-left-radius: 16px;
     border-top-right-radius: 16px;
@@ -2707,12 +2735,11 @@
   }
 
   .monitoring-bottom-sheet.collapsed {
-    height: 56px;
+    height: 64px;
   }
 
   .monitoring-bottom-sheet.expanded {
-    height: 60vh;
-    height: 60dvh;
+    height: min(60dvh, calc(100dvh - 140px));
   }
 
   .monitoring-sheet__handle {
@@ -2723,6 +2750,7 @@
     align-items: center;
     gap: var(--space-8);
     flex-shrink: 0;
+    min-height: 44px;
   }
 
   .handle-bar {
@@ -2740,7 +2768,8 @@
 
   .sheet-tab {
     flex: 1;
-    padding: var(--space-4) var(--space-8);
+    padding: var(--space-8) var(--space-12);
+    min-height: 44px;
     background: transparent;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-base);
@@ -2801,5 +2830,338 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ============================================
+   MONITORING MODE - CLASS-BASED FALLBACK
+   Mirrors :has(.monitoring-layout) rules for
+   browsers without :has() support + guarantees
+   map fills viewport on mobile.
+   ============================================ */
+
+.dashboard-container.monitoring-active {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.monitoring-active .main-content {
+  overflow: hidden !important;
+  padding: 0 !important;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.monitoring-active .main-content > .monitoring-layout {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Force map container to fill on mobile (override 720px rule)
+   Use display:flex + flex:1 chain with explicit min-height:0 at every level */
+@media (max-width: 1024px) {
+  .monitoring-active {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow: hidden !important;
+  }
+
+  .monitoring-active .app-bar {
+    flex: 0 0 auto !important;
+  }
+
+  .monitoring-active .main-content {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .monitoring-active .main-content > .monitoring-layout {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    position: relative !important;
+    overflow: hidden !important;
+  }
+
+  .monitoring-active .monitoring-map-area {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .monitoring-active .monitoring-map-area .map-section {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .monitoring-active .monitoring-map-area .map-container-modern {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    width: 100% !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* Map library internal wrapper also needs to fill */
+  .monitoring-active .monitoring-map-area .map-container-modern > div,
+  .monitoring-active .monitoring-map-area .maplibre-component-wrapper,
+  .monitoring-active .monitoring-map-area .maplibregl-map,
+  .monitoring-active .monitoring-map-area .maplibregl-canvas-container,
+  .monitoring-active .monitoring-map-area .maplibregl-canvas,
+  .monitoring-active .monitoring-map-area .leaflet-container {
+    height: 100% !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+  }
+}
+
+/* ============================================
+   MOBILE POLISH - ADMIN DASHBOARD
+   Mirror conductor responsive patterns
+   ============================================ */
+
+@media (max-width: 480px) {
+  /* App bar compact on small phones */
+  .app-bar__header {
+    padding: var(--space-8) var(--space-12);
+    gap: var(--space-8);
+  }
+
+  .app-bar__brand {
+    gap: var(--space-8);
+  }
+
+  .app-bar__logo {
+    height: 28px;
+  }
+
+  .app-bar__actions {
+    gap: var(--space-4);
+  }
+
+  .app-bar__status {
+    padding: var(--space-4) var(--space-8);
+    font-size: 10px;
+    gap: var(--space-4);
+  }
+
+  .app-bar__status svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .app-bar__logout {
+    padding: var(--space-8);
+    min-width: 36px;
+    min-height: 36px;
+    justify-content: center;
+  }
+
+  .app-bar__logout span {
+    display: none;
+  }
+
+  /* Main content tighter padding on phones */
+  .main-content {
+    padding: var(--space-12);
+  }
+
+  /* Dashboard grids single column */
+  .dashboard-grid,
+  .dashboard-grid-2col,
+  .vehicle-grid,
+  .routes-grid,
+  .vehicle-grid-modern,
+  .routes-grid-modern {
+    grid-template-columns: 1fr !important;
+    gap: var(--space-12);
+  }
+
+  /* Operations tabs: 2-col grid on small phones, prevent forced 1-col */
+  .operations-tabs {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-8);
+  }
+
+  .ops-tab {
+    padding: var(--space-12) var(--space-8);
+    gap: var(--space-4);
+    min-height: 72px;
+  }
+
+  .ops-tab svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .ops-tab span {
+    font-size: 11px;
+    text-align: center;
+  }
+
+  /* Modals: near full screen */
+  .modal-overlay-v2 {
+    padding: 8px;
+  }
+
+  .modal-content-v2 {
+    max-height: calc(100dvh - 16px);
+    border-radius: var(--radius-base);
+  }
+
+  .modal-header-v2,
+  .modal-form-v2 {
+    padding: var(--space-16);
+  }
+
+  .modal-header-v2 h2 {
+    font-size: var(--font-size-md);
+  }
+
+  .form-row-v2 {
+    grid-template-columns: 1fr;
+    gap: var(--space-12);
+    margin-bottom: var(--space-12);
+  }
+
+  .modal-actions-v2 {
+    flex-direction: column-reverse;
+    gap: var(--space-8);
+    margin-top: var(--space-16);
+    padding-top: var(--space-16);
+  }
+
+  .btn-secondary-v2,
+  .btn-primary-v2 {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  /* Maximized map overlay edges-to-edges */
+  .map-maximized-overlay {
+    padding: 0;
+  }
+
+  .map-maximized-container {
+    max-width: 100vw;
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  /* Floating FAB smaller on tiny screens */
+  .monitoring-fab {
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Bottom sheet safer on small devices */
+  .monitoring-bottom-sheet.expanded {
+    height: 65dvh;
+  }
+
+  .monitoring-bottom-sheet.collapsed {
+    height: 52px;
+  }
+}
+
+/* Tables horizontal scroll on mobile */
+@media (max-width: 768px) {
+  .main-content table,
+  .main-content .personnel-table,
+  .main-content .data-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  /* Ops headers stack, padding tight */
+  .ops-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-12);
+    padding: var(--space-12);
+  }
+
+  .ops-header-stats {
+    flex-wrap: wrap;
+  }
+
+  .stat-pill {
+    flex: 1 1 calc(50% - var(--space-8));
+    min-width: 0;
+  }
+
+  /* Section headers smaller */
+  .section-title h3 {
+    font-size: var(--font-size-lg);
+  }
+
+  /* Main content padding */
+  .main-content {
+    padding: var(--space-12) var(--space-16);
+  }
+
+  /* Prevent horizontal overflow from wide children */
+  .dashboard-container {
+    overflow-x: hidden;
+  }
+
+  /* Monitoring overlays tighter on small phones */
+  .monitoring-kpi-overlay {
+    right: calc(var(--space-8) + 44px);
+    gap: 2px;
+  }
+
+  .monitoring-kpi-chip {
+    padding: 2px var(--space-4);
+    gap: 2px;
+  }
+
+  .kpi-chip__value {
+    font-size: var(--font-size-xs);
+  }
+
+  .kpi-chip__label {
+    font-size: 9px;
+  }
+
+  .sheet-tab {
+    font-size: var(--font-size-xs);
   }
 }

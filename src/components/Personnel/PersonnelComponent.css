@@ -751,6 +751,31 @@
   }
 }
 
+@media (max-width: 480px) {
+  .personnel-header-v2 {
+    padding: 12px;
+    gap: 8px;
+  }
+  .personnel-header-text h2 {
+    font-size: 20px;
+  }
+  .personnel-stat-pill {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+  .personnel-card {
+    padding: 12px;
+  }
+  .personnel-card-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .personnel-card-actions button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
 /* ============================================
    PROFILE CREATION BUTTON
    ============================================ */

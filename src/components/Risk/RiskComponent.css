@@ -748,5 +748,31 @@
 
   .modal-footer .btn {
     width: 100%;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .risk-header {
+    padding: 12px;
+    gap: 8px;
+  }
+  .risk-header h2 {
+    font-size: 20px;
+  }
+  .risk-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .risk-card {
+    padding: 12px;
+  }
+  .risk-card-actions button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .risk-filters {
+    flex-direction: column;
+    gap: 8px;
   }
 }

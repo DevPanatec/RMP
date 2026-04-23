@@ -741,9 +741,11 @@
   }
 
   .fumigation-detail-modal {
+    width: 100%;
     max-width: 100%;
-    max-height: 95vh;
-    border-radius: 16px 16px 0 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
   }
 
   .fumigation-detail__header {

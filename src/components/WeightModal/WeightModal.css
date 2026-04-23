@@ -476,8 +476,8 @@
   to { transform: rotate(360deg); }
 }
 
-/* Responsive - Desktop small */
-@media (max-width: 640px) and (min-width: 769px) {
+/* Responsive - tablet/small desktop */
+@media (max-width: 768px) {
   .weight-grid {
     grid-template-columns: 1fr;
   }

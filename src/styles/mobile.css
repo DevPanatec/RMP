@@ -1,0 +1,363 @@
+/* ============================================
+   GLOBAL MOBILE RESPONSIVE RULES
+   Applied after component styles. Overrides baseline
+   for phone/tablet. Aligned with Fluent tokens.
+   ============================================ */
+
+/* ========================================
+   ROOT: No horizontal scroll on mobile
+   ======================================== */
+@media (max-width: 1024px) {
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  #root {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+}
+
+/* ========================================
+   MODALES: Near-fullscreen <=480px
+   Affects all modal variants across app
+   ======================================== */
+@media (max-width: 480px) {
+  .modal-overlay,
+  .modal-overlay-v2,
+  .modal-backdrop,
+  .cleaning-modal-overlay,
+  .fumigation-modal-overlay,
+  .route-modal-overlay,
+  .weight-modal-overlay,
+  .schedule-modal-overlay,
+  .gps-playback-modal-overlay,
+  .report-modal-overlay,
+  .photos-modal-overlay,
+  .item-detail-modal-overlay,
+  .maintenance-task-modal-overlay,
+  .route-completion-overlay,
+  .location-modal-overlay,
+  .location-reports-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .modal-content,
+  .modal-content-v2,
+  .modal-container,
+  .cleaning-modal,
+  .fumigation-modal,
+  .route-modal,
+  .weight-modal,
+  .schedule-modal,
+  .gps-playback-modal,
+  .report-modal,
+  .photos-modal,
+  .item-detail-modal,
+  .maintenance-task-modal,
+  .route-completion-modal,
+  .location-map-modal,
+  .location-reports-modal {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    min-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Modal body scrollable, header/footer fixed */
+  .modal-body,
+  .modal-content > .modal-form,
+  .modal-content-v2 > .modal-form-v2 {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    min-height: 0 !important;
+  }
+
+  /* Modal actions stack full width */
+  .modal-actions,
+  .modal-actions-v2,
+  .modal-footer,
+  .form-actions {
+    flex-direction: column-reverse !important;
+    gap: 8px !important;
+    padding: 12px !important;
+  }
+
+  .modal-actions > button,
+  .modal-actions-v2 > button,
+  .modal-footer > button,
+  .form-actions > button {
+    width: 100% !important;
+    min-height: 44px !important;
+    justify-content: center !important;
+  }
+
+  /* Form rows stack */
+  .form-row,
+  .form-row-v2,
+  .form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+}
+
+/* ========================================
+   TABLAS: Scroll horizontal <=768px
+   ======================================== */
+@media (max-width: 768px) {
+  .data-table-wrapper,
+  .table-wrapper,
+  .personnel-table-wrapper,
+  .fleet-table-wrapper,
+  .inventory-table-wrapper,
+  .reports-table-wrapper {
+    display: block !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  /* Tables without explicit wrapper: make them scrollable */
+  .admin-content table:not(.no-scroll),
+  .component-container table:not(.no-scroll) {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+}
+
+/* ========================================
+   TOUCH TARGETS: >=44px <=768px
+   ======================================== */
+@media (max-width: 768px) {
+  button:not(.icon-btn-sm):not(.tag-close):not(.close-small),
+  a.btn,
+  .btn,
+  .button,
+  [role="button"] {
+    min-height: 44px;
+  }
+
+  /* Icon-only buttons */
+  .icon-btn,
+  .btn-icon,
+  .close-btn,
+  .edit-btn,
+  .delete-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Inputs easier to tap */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px; /* prevent iOS zoom */
+  }
+}
+
+/* ========================================
+   GRID LADDER: Component grids collapse
+   ======================================== */
+@media (max-width: 1024px) {
+  .grid-3,
+  .grid-4,
+  .cards-grid-3,
+  .cards-grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-2,
+  .grid-3,
+  .grid-4,
+  .cards-grid,
+  .cards-grid-2,
+  .cards-grid-3,
+  .cards-grid-4,
+  .stats-grid,
+  .kpi-grid,
+  .filters-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid-2,
+  .grid-3,
+  .grid-4,
+  .cards-grid,
+  .cards-grid-2,
+  .cards-grid-3,
+  .cards-grid-4,
+  .stats-grid,
+  .filters-grid,
+  .vehicle-grid,
+  .routes-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* KPI stays 2-col on phones (compact info density) */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ========================================
+   FILTERS: Stack vertical <=768px
+   ======================================== */
+@media (max-width: 768px) {
+  .filters-bar,
+  .ops-filters,
+  .ops-filters-modern,
+  .search-filters,
+  .toolbar-filters {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+
+  .filter-group,
+  .search-input-wrapper {
+    width: 100% !important;
+  }
+
+  .filter-chip,
+  .filter-btn {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* ========================================
+   HEADERS: Stack <=768px
+   ======================================== */
+@media (max-width: 768px) {
+  .component-header,
+  .page-header,
+  .section-header,
+  .ops-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 12px !important;
+  }
+
+  .component-header > h1,
+  .component-header > h2,
+  .page-header > h1,
+  .section-header > h2 {
+    font-size: 20px !important;
+  }
+
+  .header-actions,
+  .component-header-actions {
+    width: 100% !important;
+    flex-wrap: wrap !important;
+  }
+
+  .header-actions > button {
+    flex: 1 1 auto;
+  }
+}
+
+/* ========================================
+   TABS: Horizontal scroll <=768px
+   ======================================== */
+@media (max-width: 768px) {
+  .tabs-container,
+  .sub-tabs,
+  .sub-nav,
+  .inner-tabs {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+    scrollbar-width: none;
+  }
+
+  .tabs-container::-webkit-scrollbar,
+  .sub-tabs::-webkit-scrollbar,
+  .sub-nav::-webkit-scrollbar,
+  .inner-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab,
+  .sub-tab {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+/* ========================================
+   CONTAINERS: Tight padding <=480px
+   ======================================== */
+@media (max-width: 480px) {
+  .admin-content,
+  .component-container,
+  .page-container,
+  .section-container,
+  .card-container {
+    padding: 8px !important;
+  }
+
+  .card,
+  .panel,
+  .widget {
+    padding: 12px !important;
+    border-radius: 6px !important;
+  }
+}
+
+/* ========================================
+   TEXT: Readable sizes <=480px
+   ======================================== */
+@media (max-width: 480px) {
+  h1 { font-size: 22px !important; }
+  h2 { font-size: 19px !important; }
+  h3 { font-size: 17px !important; }
+  h4 { font-size: 15px !important; }
+
+  .section-title h3 { font-size: 18px !important; }
+  .widget-title { font-size: 15px !important; }
+}
+
+/* ========================================
+   IMAGES / MEDIA: Max width
+   ======================================== */
+@media (max-width: 768px) {
+  img, video, canvas, svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Map canvases keep their height */
+  .maplibregl-canvas,
+  .leaflet-container canvas {
+    max-width: none;
+    width: 100% !important;
+  }
+}
+
+/* ========================================
+   SAFE AREA: iOS notch
+   ======================================== */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .app-bar,
+  .top-nav,
+  .bottom-sheet {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+}

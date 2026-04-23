@@ -14,9 +14,10 @@
 }
 
 .costos-v2 {
-  padding: 24px;
+  padding: var(--space-24);
   background: var(--color-surface-secondary);
   min-height: 100vh;
+  min-height: 100dvh;
   animation: fadeInUp 0.5s ease-out;
 }
 
@@ -161,6 +162,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
+  min-height: 40px;
   border: none;
   background: transparent;
   border-radius: var(--radius-base);
@@ -331,35 +333,78 @@
 }
 
 /* Responsive V2 Header */
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
+  .costos-v2 {
+    padding: var(--space-20);
+  }
+
   .costos-header-v2 {
-    padding: 20px;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .costos-header-stats {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .costos-stat-pill {
-    flex: 1;
-    min-width: 70px;
-    padding: 8px 12px;
-  }
-
-  .costos-stat-pill .stat-number {
-    font-size: 16px;
+    padding: var(--space-20) var(--space-24);
   }
 
   .costos-header-text h2 {
-    font-size: 22px;
+    font-size: var(--font-size-lg);
+  }
+}
+
+@media (max-width: 768px) {
+  .costos-v2 {
+    padding: var(--space-16);
+    overflow-x: hidden;
+  }
+
+  .costos-header-v2 {
+    padding: var(--space-16);
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-16);
+    margin-bottom: var(--space-16);
+    border-radius: 12px;
+  }
+
+  .costos-header-info {
+    gap: var(--space-12);
   }
 
   .costos-header-icon {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
+  }
+
+  .costos-header-text h2 {
+    font-size: var(--font-size-md);
+  }
+
+  .costos-header-text p {
+    font-size: var(--font-size-xs);
+  }
+
+  .costos-header-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-8);
+    width: 100%;
+  }
+
+  .costos-stat-pill {
+    min-width: 0;
+    padding: var(--space-8);
+    border-radius: 10px;
+  }
+
+  .costos-stat-pill:hover {
+    transform: none;
+  }
+
+  .costos-stat-pill .stat-number {
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    text-align: center;
+    word-break: break-word;
+  }
+
+  .costos-stat-pill .stat-label {
+    font-size: 10px;
   }
 
   .period-selector-v2 {
@@ -369,15 +414,48 @@
   .period-selector-v2 button {
     flex: 1;
     text-align: center;
+    min-height: 40px;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .costos-v2 {
+    padding: var(--space-12);
+  }
+
+  .costos-header-v2 {
+    padding: var(--space-12);
+  }
+
+  .costos-header-text h2 {
+    font-size: var(--font-size-base);
+  }
+
+  .costos-header-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .costos-stat-pill {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: var(--space-8) var(--space-12);
+  }
+
+  .costos-stat-pill .stat-number {
+    font-size: var(--font-size-sm);
+    text-align: right;
+    margin-bottom: 0;
   }
 }
 
 /* ===== END V2 HEADER STYLES ===== */
 
 .costos-container {
-  padding: 24px;
+  padding: var(--space-24);
   background: var(--color-surface-secondary);
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .costos-header {
@@ -817,31 +895,287 @@
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+  .kpi-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-12);
+  }
+
+  .breakdown-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .costos-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+    gap: var(--space-12);
   }
 
+  .costos-header h2 {
+    font-size: var(--font-size-lg);
+  }
+
+  /* Tab selector: horizontal scroll */
+  .costos-tab-selector {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+
+  .costos-tab-selector::-webkit-scrollbar {
+    display: none;
+  }
+
+  .costos-tab-btn {
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 10px var(--space-12);
+    white-space: nowrap;
+  }
+
+  /* KPI grid 2 cols on tablet, stack on small */
+  .kpi-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-12);
+    margin-bottom: var(--space-16);
+  }
+
+  .kpi-card {
+    padding: var(--space-12);
+    gap: var(--space-8);
+    border-radius: 12px;
+  }
+
+  .kpi-card:hover {
+    transform: none;
+  }
+
+  .kpi-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .kpi-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .kpi-label {
+    font-size: 11px;
+    margin-bottom: var(--space-4);
+  }
+
+  .kpi-value {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--space-4);
+  }
+
+  .kpi-change {
+    font-size: 12px;
+  }
+
+  /* Distribution */
+  .costos-distribution-card {
+    padding: var(--space-16);
+    border-radius: 12px;
+  }
+
+  .distribution-legend {
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+
+  .distribution-legend-item {
+    flex-wrap: wrap;
+  }
+
+  /* Breakdown */
+  .breakdown-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-12);
+  }
+
+  .breakdown-card {
+    padding: var(--space-12);
+    border-radius: 12px;
+  }
+
+  .breakdown-card:hover {
+    transform: none;
+  }
+
+  .breakdown-amount {
+    font-size: 22px;
+    margin-bottom: var(--space-8);
+  }
+
+  .breakdown-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Chart */
+  .costos-chart-container {
+    padding: var(--space-16);
+    min-height: 300px;
+    border-radius: 12px;
+  }
+
+  .cost-chart {
+    min-height: 260px;
+  }
+
+  /* Tendencia header */
+  .tendencia-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-12);
+  }
+
+  .period-selector {
+    width: 100%;
+  }
+
+  .period-selector button {
+    flex: 1;
+    min-height: 40px;
+  }
+
+  /* Tables with horizontal scroll */
+  .evolution-table-container,
+  .top-items-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: var(--space-12);
+    border-radius: 12px;
+  }
+
+  .evolution-table th,
+  .evolution-table td,
+  .top-items-table th,
+  .top-items-table td {
+    padding: 10px var(--space-12);
+    font-size: var(--font-size-sm);
+  }
+
+  .top-items-table tbody tr:hover,
+  .evolution-table tbody tr:hover {
+    background: var(--color-surface-secondary);
+  }
+
+  /* Headings */
+  .breakdown-section h3,
+  .tendencia-section h3,
+  .top-items-section h3,
+  .costos-distribution-section h3,
+  .evolution-section h3 {
+    font-size: var(--font-size-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .costos-header h2 {
+    font-size: var(--font-size-md);
+  }
+
+  /* Single col KPIs */
   .kpi-summary-grid {
     grid-template-columns: 1fr;
   }
 
-  .breakdown-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .evolution-table-container,
-  .top-items-table-container {
-    overflow-x: scroll;
-  }
-
   .kpi-card {
-    padding: 20px;
+    flex-direction: row;
+    align-items: center;
+    padding: var(--space-12);
+  }
+
+  .kpi-content {
+    min-width: 0;
   }
 
   .kpi-value {
-    font-size: 28px;
+    font-size: var(--font-size-md);
+    word-break: break-word;
+  }
+
+  .kpi-label {
+    font-size: 10px;
+  }
+
+  /* Chart smaller */
+  .costos-chart-container {
+    min-height: 240px;
+    padding: var(--space-12);
+  }
+
+  .cost-chart {
+    min-height: 200px;
+  }
+
+  /* Period selector v2 wraps */
+  .period-selector-v2 button {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  /* Distribution bar shorter */
+  .distribution-bar {
+    height: 24px;
+  }
+
+  .distribution-legend-item {
+    font-size: 12px;
+    gap: var(--space-4);
+  }
+
+  .distribution-value {
+    font-size: 12px;
+  }
+
+  /* Breakdown */
+  .breakdown-amount {
+    font-size: var(--font-size-md);
+  }
+
+  .breakdown-percentage {
+    font-size: var(--font-size-sm);
+  }
+
+  .breakdown-category {
+    font-size: 12px;
+  }
+
+  /* Legacy header */
+  .costos-header {
+    padding: var(--space-12);
+  }
+
+  .costos-header h2 {
+    font-size: var(--font-size-base);
+  }
+
+  /* Tipo badge smaller */
+  .tipo-badge {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  /* Empty states smaller padding */
+  .empty-chart,
+  .empty-top-items {
+    padding: var(--space-24) var(--space-12);
+  }
+
+  .filters-bar {
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+
+  .filters-bar > * {
+    width: 100%;
   }
 }

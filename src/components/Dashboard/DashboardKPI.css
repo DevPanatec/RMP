@@ -81,3 +81,28 @@
 .dashboard-kpi__trend--neutral {
   color: var(--color-text-secondary);
 }
+
+@media (max-width: 768px) {
+  .dashboard-kpi {
+    padding: 12px;
+  }
+  .dashboard-kpi__value {
+    font-size: 24px;
+  }
+  .dashboard-kpi__label {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-kpi {
+    padding: 8px;
+  }
+  .dashboard-kpi__value {
+    font-size: 18px;
+  }
+  .dashboard-kpi__icon {
+    width: 28px;
+    height: 28px;
+  }
+}

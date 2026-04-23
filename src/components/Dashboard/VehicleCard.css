@@ -180,3 +180,37 @@
 .vehicle-action-btn:active {
   opacity: 0.8;
 }
+
+@media (max-width: 768px) {
+  .vehicle-card {
+    padding: 12px;
+  }
+  .vehicle-card__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .vehicle-card__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .vehicle-action-btn {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .vehicle-card {
+    padding: 10px;
+  }
+  .vehicle-card__title {
+    font-size: 15px;
+  }
+  .vehicle-card__actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .vehicle-action-btn {
+    flex: 1 1 auto;
+    min-width: 44px;
+  }
+}

@@ -1,5 +1,46 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
+
+// Sync auto-generated geofences for a route's paradas.
+// Deletes previous auto-generated geofences for this ruta, then inserts one per parada.
+// Pass paradas=null to just delete (used on rutas.remove).
+async function syncParadaGeofences(
+  ctx: MutationCtx,
+  rutaId: Id<"rutas">,
+  paradas: any[] | null,
+) {
+  const existing = await ctx.db
+    .query("geofences")
+    .withIndex("by_ruta", (q) => q.eq("ruta_id", rutaId))
+    .collect();
+  for (const g of existing) {
+    if (g.auto_generada) await ctx.db.delete(g._id);
+  }
+  if (!paradas) return;
+
+  for (let i = 0; i < paradas.length; i++) {
+    const p = paradas[i] ?? {};
+    const lat = typeof p.latitud === "number" ? p.latitud : typeof p.lat === "number" ? p.lat : null;
+    const lng = typeof p.longitud === "number" ? p.longitud : typeof p.lng === "number" ? p.lng : null;
+    if (lat === null || lng === null) continue;
+
+    await ctx.db.insert("geofences", {
+      nombre: `Parada ${i + 1}: ${p.nombre || p.direccion || "Sin nombre"}`,
+      descripcion: "Auto-generada por ruta",
+      latitud: lat,
+      longitud: lng,
+      radio: 50,
+      color: "#0078D4",
+      tipo: "entrada",
+      activo: true,
+      created_at: Date.now(),
+      ruta_id: rutaId,
+      parada_index: i,
+      auto_generada: true,
+    });
+  }
+}
 
 // List all rutas
 export const list = query({
@@ -57,10 +98,12 @@ export const add = mutation({
     estado: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("rutas", {
+    const newId = await ctx.db.insert("rutas", {
       ...args,
       estado: args.estado || "programada",
     });
+    await syncParadaGeofences(ctx, newId, args.paradas);
+    return newId;
   },
 });
 
@@ -84,7 +127,11 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
-    return await ctx.db.patch(id, updates);
+    await ctx.db.patch(id, updates);
+    if (args.paradas !== undefined) {
+      await syncParadaGeofences(ctx, id, args.paradas);
+    }
+    return id;
   },
 });
 
@@ -103,6 +150,7 @@ export const updateEstado = mutation({
 export const remove = mutation({
   args: { id: v.id("rutas") },
   handler: async (ctx, args) => {
+    await syncParadaGeofences(ctx, args.id, null);
     return await ctx.db.delete(args.id);
   },
 });

@@ -571,7 +571,8 @@
 @media (max-width: 768px) {
   .location-modal-new {
     width: 100%;
-    height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
     border-radius: 0;
     max-width: none;
   }

@@ -493,3 +493,23 @@
     gap: 10px;
   }
 }
+
+@media (max-width: 480px) {
+  .routes-header-v2 {
+    padding: 12px;
+    gap: 12px;
+  }
+  .routes-header-text h2 {
+    font-size: 20px;
+  }
+  .route-card-v2 {
+    padding: 12px;
+  }
+  .route-stops-list {
+    max-height: 200px;
+  }
+  .route-actions button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

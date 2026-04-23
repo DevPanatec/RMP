@@ -534,8 +534,10 @@
 
 @media (max-width: 1024px) {
   .completion-modal-content {
+    width: 100%;
     max-width: 100%;
-    max-height: 100vh;
+    height: 100dvh;
+    max-height: 100dvh;
     border-radius: 0;
   }
 

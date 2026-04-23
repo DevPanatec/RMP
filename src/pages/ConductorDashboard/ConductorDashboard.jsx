@@ -441,6 +441,38 @@ const ConductorDashboard = ({ user, onLogout }) => {
     return () => clearInterval(timer);
   }, [routeStarted]);
 
+  // Auto-arrival: detect when driver enters parada geofence radius and trigger WeightModal
+  const ARRIVAL_RADIUS_M = 50;
+  const arrivalTriggeredRef = useRef(new Set());
+
+  useEffect(() => {
+    arrivalTriggeredRef.current.clear();
+  }, [assignedRoute?._id, assignedRoute?.id, routeStarted]);
+
+  useEffect(() => {
+    if (!routeStarted || !assignedRoute || isModalOpen) return;
+    if (currentGPS.lat == null || currentGPS.lng == null) return;
+
+    const paradas = getParadasArray(assignedRoute.paradas);
+    if (paradas.length === 0) return;
+
+    const completedIdxs = new Set(completedStops.map(s => s.index));
+    const nextIdx = paradas.findIndex((_, i) => !completedIdxs.has(i));
+    if (nextIdx < 0) return;
+    if (arrivalTriggeredRef.current.has(nextIdx)) return;
+
+    const parada = paradas[nextIdx];
+    const pLat = typeof parada.latitud === 'number' ? parada.latitud : parada.lat;
+    const pLng = typeof parada.longitud === 'number' ? parada.longitud : parada.lng;
+    if (typeof pLat !== 'number' || typeof pLng !== 'number') return;
+
+    const distance = gpsDistance(currentGPS.lat, currentGPS.lng, pLat, pLng);
+    if (distance <= ARRIVAL_RADIUS_M) {
+      arrivalTriggeredRef.current.add(nextIdx);
+      handleCompleteStop(nextIdx);
+    }
+  }, [currentGPS.lat, currentGPS.lng, routeStarted, completedStops.length, assignedRoute?._id, assignedRoute?.id, isModalOpen]);
+
   const handleCompleteStop = async (stopIndex) => {
     const paradas = getParadasArray(assignedRoute.paradas);
     const parada = paradas[stopIndex];

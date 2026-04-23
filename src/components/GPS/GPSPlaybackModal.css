@@ -7,7 +7,7 @@
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
-  height: 100vh !important;
+  height: 100dvh !important;
   background: rgba(0, 0, 0, 0.95) !important;
   z-index: 2147483647 !important; /* Máximo z-index posible */
   isolation: isolate; /* Crear nuevo stacking context */
@@ -23,7 +23,7 @@
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
-  height: 100vh !important;
+  height: 100dvh !important;
   display: flex !important;
   flex-direction: column !important;
   background: #0f0f0f !important;

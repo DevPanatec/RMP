@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './styles/index.css'
+import './styles/mobile.css'
 
 // Desregistrar Service Workers en desarrollo para evitar cache stale
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {

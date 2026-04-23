@@ -699,3 +699,27 @@
     justify-content: center;
   }
 }
+
+@media (max-width: 480px) {
+  .fleet-header-v2 {
+    padding: 12px;
+    gap: 12px;
+  }
+  .fleet-header-text h2 {
+    font-size: 20px;
+  }
+  .fleet-stat-pill {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+  .fleet-card-v2 {
+    padding: 12px;
+  }
+  .fleet-grid-v2 {
+    gap: 8px;
+  }
+  .vehicle-actions button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

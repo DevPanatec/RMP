@@ -850,7 +850,7 @@
   background: rgba(0, 0, 0, 0.3);
   display: flex;
   justify-content: flex-end;
-  z-index: 1000;
+  z-index: 2147483000;
 }
 
 .truck-modal-v2 {
@@ -862,6 +862,64 @@
   display: flex;
   flex-direction: column;
   animation: slideInRight 0.25s ease-out;
+}
+
+.truck-modal-content-v2 {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.truck-modal-header-v2 {
+  flex-shrink: 0;
+}
+
+@media (max-width: 1024px) {
+  .truck-modal-overlay {
+    justify-content: stretch;
+  }
+  .truck-modal-v2 {
+    max-width: 100%;
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    animation: slideInUp 0.25s ease-out;
+  }
+  .truck-modal-header-v2 {
+    padding-top: calc(env(safe-area-inset-top, 0) + var(--space-16));
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  .truck-modal-header-v2 .modal-close-btn-v2 {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .truck-modal-content-v2 {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+}
+
+@media (max-width: 480px) {
+  .truck-modal-v2 .stats-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-8);
+  }
+  .truck-modal-v2 .vehicle-placa {
+    font-size: var(--font-size-lg);
+  }
+  .truck-modal-v2 .btn-history-v2,
+  .truck-modal-v2 .btn-copy-coords {
+    min-height: 44px;
+  }
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 @keyframes slideInRight {
@@ -1161,6 +1219,23 @@
   font-size: var(--font-size-sm);
 }
 
+.truck-modal-content-v2 .no-assignment-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-16);
+  background: var(--color-surface-secondary);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+.truck-modal-content-v2 .no-assignment-message p {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
 /* Info Rows */
 .truck-modal-content-v2 .info-rows {
   display: flex;
@@ -1342,11 +1417,64 @@
     height: 32px;
   }
 
+  .maplibregl-popup {
+    max-width: calc(100vw - 24px) !important;
+  }
+
   .maplibregl-popup-content {
-    min-width: 200px;
+    min-width: 0 !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: 60dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .popup-content {
     padding: var(--space-8);
+  }
+
+  .popup-content .popup-header h4 {
+    font-size: 14px;
+  }
+
+  .popup-content .popup-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .popup-content .popup-stats .stat {
+    font-size: 12px;
+  }
+
+  .popup-content .btn-view-details {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .maplibregl-popup {
+    max-width: calc(100vw - 16px) !important;
+    left: 8px !important;
+    right: 8px !important;
+  }
+
+  .maplibregl-popup-content {
+    max-width: 100% !important;
+    max-height: 55dvh;
+    border-radius: 12px !important;
+  }
+
+  .maplibregl-popup-close-button {
+    width: 32px;
+    height: 32px;
+    font-size: 22px;
+  }
+
+  .popup-content .popup-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
 }

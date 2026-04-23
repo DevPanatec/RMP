@@ -89,11 +89,11 @@
 }
 
 .calendar-stat-pill {
-  background: var(--color-white-alpha-15);
+  background: rgba(255, 255, 255, 0.10);
   backdrop-filter: blur(10px);
-  border: 1px solid var(--color-white-alpha-25);
-  border-radius: 14px;
-  padding: 10px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -102,52 +102,39 @@
 }
 
 .calendar-stat-pill:hover {
-  background: rgba(255, 255, 255, 0.22);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
 }
 
 .calendar-stat-pill .stat-number {
   font-size: 22px;
   font-weight: 700;
-  color: white;
+  color: #ffffff;
   line-height: 1;
   margin-bottom: 4px;
 }
 
 .calendar-stat-pill .stat-label {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.95);
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
 }
 
-/* Stat pill variants */
-.calendar-stat-pill.success {
-  background: var(--color-success-light);
-  border-color: var(--color-success-border);
-}
-
-.calendar-stat-pill.success .stat-number {
-  color: var(--color-success);
-}
-
-.calendar-stat-pill.info {
-  background: var(--color-info-light);
-  border-color: var(--color-info-border);
-}
-
-.calendar-stat-pill.info .stat-number {
-  color: var(--color-info);
-}
-
+/* Variants: unified — only subtle left-border accent, text stays white */
+.calendar-stat-pill.success,
+.calendar-stat-pill.info,
 .calendar-stat-pill.warning {
-  background: var(--color-warning-light);
-  border-color: var(--color-warning-border);
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.18);
 }
 
+.calendar-stat-pill.success .stat-number,
+.calendar-stat-pill.info .stat-number,
 .calendar-stat-pill.warning .stat-number {
-  color: var(--color-warning);
+  color: #ffffff;
 }
 
 /* Responsive V2 Header */
@@ -162,16 +149,31 @@
   .calendar-header-stats {
     width: 100%;
     justify-content: flex-start;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
   }
 
   .calendar-stat-pill {
-    flex: 1;
-    min-width: 60px;
-    padding: 8px 12px;
+    flex: 0 1 auto;
+    min-width: 0;
+    padding: 8px 4px;
+    overflow: hidden;
   }
 
   .calendar-stat-pill .stat-number {
     font-size: 18px;
+  }
+
+  .calendar-stat-pill .stat-label {
+    font-size: 9px;
+    letter-spacing: 0;
+    line-height: 1.1;
+    text-align: center;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    max-width: 100%;
   }
 
   .calendar-header-text h2 {
@@ -1014,5 +1016,60 @@
     width: 18px;
     height: 18px;
     font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendar-container {
+    padding: 8px;
+  }
+  .calendar-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px;
+  }
+  .calendar-header h2 {
+    font-size: 18px;
+  }
+  .calendar-header-v2 {
+    padding: 14px;
+    margin: 8px;
+    gap: 12px;
+  }
+  .calendar-header-text h2 {
+    font-size: 18px;
+  }
+  .calendar-header-text p {
+    font-size: 12px;
+  }
+  .calendar-stat-pill {
+    padding: 6px 2px;
+  }
+  .calendar-stat-pill .stat-number {
+    font-size: 16px;
+  }
+  .calendar-stat-pill .stat-label {
+    font-size: 8px;
+  }
+  .calendar-month-day {
+    min-height: 44px;
+    padding: 2px;
+  }
+  .month-day-number {
+    font-size: 10px;
+  }
+  .activity-icon-sm {
+    width: 14px;
+    height: 14px;
+    font-size: 9px;
+  }
+  .view-toggle {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .view-toggle button {
+    flex: 1 1 auto;
+    min-height: 44px;
   }
 }

@@ -109,3 +109,20 @@
   font-size: var(--font-size-sm);
   line-height: var(--line-height-normal);
 }
+
+@media (max-width: 480px) {
+  .alert-card-new {
+    padding: 10px;
+    gap: 8px;
+  }
+  .alert-card-new__icon {
+    width: 32px;
+    height: 32px;
+  }
+  .alert-card-new__title {
+    font-size: 13px;
+  }
+  .alert-card-new__message {
+    font-size: 12px;
+  }
+}

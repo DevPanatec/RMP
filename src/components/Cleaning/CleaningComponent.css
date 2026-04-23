@@ -133,6 +133,34 @@
   .cleaning-subtab {
     flex: 1;
     justify-content: center;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cleaning-container {
+    padding: 8px;
+  }
+  .cleaning-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px;
+  }
+  .cleaning-header__title {
+    font-size: 18px;
+  }
+  .cleaning-subtabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+  .cleaning-subtabs::-webkit-scrollbar {
+    display: none;
+  }
+  .cleaning-subtab {
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 }
 

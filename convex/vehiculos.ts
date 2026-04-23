@@ -29,20 +29,64 @@ export const listMinimal = query({
 });
 
 // List vehicles with assignment data (conductor, ruta)
-// Optimized for map view with JOIN done in backend
+// Optimized for map view with JOIN done in backend.
+// Picks best assignment per vehicle with priority:
+//   1. estado === 'en_progreso'  (currently running — live)
+//   2. estado === 'programada'   recurring via dias_semana matching today
+//   3. estado === 'programada'   nearest future fecha_asignacion (>= today)
+//   No fallback to past dates — past programadas are ignored.
 export const listWithAssignments = query({
   handler: async (ctx) => {
     const vehicles = await ctx.db.query("vehiculos").collect();
 
-    // Get active assignments (programada or en_progreso)
     const allAssignments = await ctx.db.query("asignaciones_rutas").collect();
-    const activeAssignments = allAssignments.filter(
+    const relevant = allAssignments.filter(
       a => a.estado === 'en_progreso' || a.estado === 'programada'
     );
 
-    // JOIN vehicles with assignments
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const dayNames = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+    const todayDayName = dayNames[now.getDay()];
+
+    // Is this assignment literally live TODAY? (tight check — reject orphans)
+    // fecha_inicio must be today, so yesterday's en_progreso that never closed is rejected.
+    const startedToday = (a: typeof relevant[number]) =>
+      !!(a.fecha_inicio && a.fecha_inicio.startsWith(today));
+
+    // Is programada valid for today (recurring dias_semana today OR one-off today)?
+    const programadaToday = (a: typeof relevant[number]) => {
+      if (Array.isArray(a.dias_semana) && a.dias_semana.includes(todayDayName)) return true;
+      if (a.fecha_asignacion === today) return true;
+      return false;
+    };
+
+    const pickBest = (vehiculoId: typeof vehicles[number]["_id"]) => {
+      const forVehicle = relevant.filter(a => a.vehiculo_id === vehiculoId);
+      if (forVehicle.length === 0) return null;
+
+      // 1. en_progreso — only if route started TODAY
+      const live = forVehicle.find(a => a.estado === 'en_progreso' && startedToday(a));
+      if (live) return live;
+
+      const programadas = forVehicle.filter(a => a.estado === 'programada');
+      if (programadas.length === 0) return null;
+
+      // 2. Programada valid today (recurring or one-off today)
+      const todayProg = programadas.find(programadaToday);
+      if (todayProg) return todayProg;
+
+      // 3. Next future one-off programada
+      const future = programadas
+        .filter(a => (a.fecha_asignacion || '') > today)
+        .sort((a, b) => (a.fecha_asignacion || '').localeCompare(b.fecha_asignacion || ''));
+      if (future.length > 0) return future[0];
+
+      return null;
+    };
+
     return vehicles.map((v) => {
-      const assignment = activeAssignments.find(a => a.vehiculo_id === v._id);
+      const assignment = pickBest(v._id);
 
       return {
         _id: v._id,
@@ -51,7 +95,6 @@ export const listWithAssignments = query({
         estado: v.estado,
         tipo_servicio: v.tipo_servicio,
         tipo_vehiculo: v.tipo_vehiculo,
-        // GPS data
         gps_latitud: v.gps_latitud,
         gps_longitud: v.gps_longitud,
         gps_velocidad: v.gps_velocidad,
@@ -59,10 +102,12 @@ export const listWithAssignments = query({
         gps_ultima_actualizacion: v.gps_ultima_actualizacion,
         gps_conectado: v.gps_conectado,
         gps_en_linea: v.gps_en_linea,
-        // Assignment data (null if no active assignment)
         conductor_nombre: assignment?.conductor_nombre,
         ruta_id: assignment?.ruta_id,
         asignacion_id: assignment?._id,
+        asignacion_estado: assignment?.estado,
+        asignacion_fecha: assignment?.fecha_asignacion,
+        asignacion_hora_inicio: assignment?.hora_inicio,
       };
     });
   },

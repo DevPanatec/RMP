@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import MapLibreComponent from '../../components/Map/MapLibreComponent';
 import PersonnelComponent from '../../components/Personnel/PersonnelComponent';
 import InventoryComponent from '../../components/Inventory/InventoryComponent';
@@ -29,7 +29,7 @@ import {
   BarChart3, Users, Map, LogOut, TrendingUp, CheckCircle,
   MapPin, Radio, Activity, Zap, Bell, Wrench, Leaf, Navigation, Clock, Save, Calendar,
   Satellite, Briefcase, Sparkles, Plus, X, Maximize2, Minimize2, DollarSign,
-  UserPlus, Shield, Lock, Mail, Phone
+  UserPlus, Shield, Lock, Mail, Phone, Target
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
 import { DashboardKPI, AlertCard, PersonnelTable, VehicleCard, HeroStats, RealtimeActivity, RiskAlerts } from '../../components/Dashboard';
@@ -41,6 +41,8 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1025);
   const [monitoringSheetExpanded, setMonitoringSheetExpanded] = useState(false);
   const [monitoringSheetTab, setMonitoringSheetTab] = useState('activity');
+  const [showMobileHeader, setShowMobileHeader] = useState(true);
+  const headerTimeoutRef = useRef(null);
   const [selectedTruck, setSelectedTruck] = useState(null);
   const [selectedLocationId, setSelectedLocationId] = useState(null);
   const [showAddVehicleModal, setShowAddVehicleModal] = useState(false);
@@ -70,6 +72,28 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const triggerShowHeader = () => {
+    setShowMobileHeader(true);
+    if (headerTimeoutRef.current) clearTimeout(headerTimeoutRef.current);
+    headerTimeoutRef.current = setTimeout(() => setShowMobileHeader(false), 3000);
+  };
+
+  useEffect(() => {
+    if (headerTimeoutRef.current) {
+      clearTimeout(headerTimeoutRef.current);
+      headerTimeoutRef.current = null;
+    }
+    if (isMobileView && activeTab === 'dashboard') {
+      setShowMobileHeader(true);
+      headerTimeoutRef.current = setTimeout(() => setShowMobileHeader(false), 3000);
+    } else {
+      setShowMobileHeader(true);
+    }
+    return () => {
+      if (headerTimeoutRef.current) clearTimeout(headerTimeoutRef.current);
+    };
+  }, [isMobileView, activeTab]);
 
   // Profile creation states
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -503,7 +527,11 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             )}
 
             {/* Map area - full height */}
-            <div className="monitoring-map-area">
+            <div
+              className="monitoring-map-area"
+              onTouchStart={isMobileView ? triggerShowHeader : undefined}
+              onClick={isMobileView ? triggerShowHeader : undefined}
+            >
               <div className="map-section">
                 <div className="monitoring-map-fabs">
                   <button
@@ -525,6 +553,13 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                   >
                     <Maximize2 size={16} />
                   </button>
+                  <button
+                    className="monitoring-fab"
+                    onClick={() => window.dispatchEvent(new CustomEvent('toggleGeofenceMode'))}
+                    title="Crear zona de alerta (geofence)"
+                  >
+                    <Target size={16} />
+                  </button>
                 </div>
                 <div className="map-container-modern">
                   <MapLibreComponent
@@ -543,17 +578,6 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                 </div>
               </div>
 
-              {/* Mobile: Floating KPI chips over map */}
-              {isMobileView && (
-                <div className="monitoring-kpi-overlay">
-                  {heroStatsData.map((stat) => (
-                    <div key={stat.id} className="monitoring-kpi-chip">
-                      <span className="kpi-chip__value">{stat.value}</span>
-                      <span className="kpi-chip__label">{stat.label}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Mobile: Bottom sheet with tabbed Activity/Alerts */}
@@ -657,9 +681,9 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
 
   
   return (
-    <div className="dashboard-container">
+    <div className={`dashboard-container${activeTab === 'dashboard' ? ' monitoring-active' : ''}${isMobileView && activeTab === 'dashboard' ? ' monitoring--map-fullscreen' : ''}`}>
       {/* Top App Bar - Header con logo y acciones */}
-      <div className="app-bar">
+      <div className={`app-bar${isMobileView && activeTab === 'dashboard' && !showMobileHeader ? ' app-bar--hidden' : ''}`}>
         <div className="app-bar__header">
           <div className="app-bar__brand">
             <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="app-bar__logo" />

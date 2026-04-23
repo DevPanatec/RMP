@@ -499,8 +499,13 @@ export default defineSchema({
     tipo: v.optional(v.string()), // "entrada", "salida", "ambos"
     activo: v.boolean(),
     created_at: v.number(),
+    // Linked to a specific route stop (auto-generated on rutas.add/update)
+    ruta_id: v.optional(v.id("rutas")),
+    parada_index: v.optional(v.number()),
+    auto_generada: v.optional(v.boolean()),
   })
-    .index("by_activo", ["activo"]),
+    .index("by_activo", ["activo"])
+    .index("by_ruta", ["ruta_id"]),
 
   // 20. Alertas de Geofence
   geofence_alerts: defineTable({

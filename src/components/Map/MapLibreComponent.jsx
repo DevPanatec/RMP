@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef, useMemo, useCallback, memo } from 'react';
+import { createPortal } from 'react-dom';
 import Map, { Marker, Source, Layer, Popup, NavigationControl, ScaleControl } from 'react-map-gl/maplibre';
 import maplibregl from 'maplibre-gl';
 import { useAction, useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import { Satellite, Map as MapIcon, MapPin, X, Truck, Navigation, CheckCircle, Clock, Play, Battery, Signal, RefreshCw, Target, Trash2, Gauge, Copy, Radio, Recycle, Spray, Sun, Moon, Route } from '../Icons';
+import { Satellite, Map as MapIcon, MapPin, X, Truck, Navigation, CheckCircle, Clock, Play, Battery, Signal, RefreshCw, Target, Trash2, Gauge, Copy, Radio, Recycle, Spray, Sun, Moon, Route, Calendar, AlertTriangle } from '../Icons';
 import GPSPlaybackModal from '../GPS/GPSPlaybackModal';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapLibreComponent.css';
@@ -650,6 +651,13 @@ const MapLibreComponent = ({
     return () => window.removeEventListener('recenterMap', handleRecenter);
   }, []);
 
+  // Listen for external toggle of geofence-creation mode (FAB from AdminDashboard)
+  useEffect(() => {
+    const handleToggle = () => setGeofenceMode(prev => !prev);
+    window.addEventListener('toggleGeofenceMode', handleToggle);
+    return () => window.removeEventListener('toggleGeofenceMode', handleToggle);
+  }, []);
+
   // Save theme to localStorage
   useEffect(() => {
     localStorage.setItem('mapTheme', mapTheme);
@@ -967,8 +975,11 @@ const MapLibreComponent = ({
           </Source>
         )}
 
-        {/* Route lines for selected vehicle */}
-        {showTrails && selectedRouteCoords && selectedRouteCoords.length > 1 && (
+        {/* Route lines for selected vehicle — only when route is LIVE (en_progreso).
+            Conductor always sees their own live route. Admin/enterprise only draws
+            when assignment is actually running (no clutter for programadas). */}
+        {showTrails && selectedRouteCoords && selectedRouteCoords.length > 1 &&
+         (userType === 'conductor' || selectedVehicle?.asignacion_estado === 'en_progreso') && (
           <>
             {/* Glow effect */}
             <RouteLine
@@ -1062,8 +1073,9 @@ const MapLibreComponent = ({
           );
         })}
 
-        {/* Stop markers for selected route (use original paradas if available for live nav) */}
-        {selectedRoute && (selectedRoute._paradasOriginales || selectedRoute.paradas || [])
+        {/* Stop markers for selected route — same gating as route line */}
+        {selectedRoute && (userType === 'conductor' || selectedVehicle?.asignacion_estado === 'en_progreso') &&
+          (selectedRoute._paradasOriginales || selectedRoute.paradas || [])
           .filter(stop => !stop._isGpsOrigin)
           .map((stop, idx) => {
           const lat = stop.lat || stop.latitud;
@@ -1459,7 +1471,7 @@ const MapLibreComponent = ({
                            truck.estado === 'disponible' ? '#3b82f6' :
                            truck.estado === 'en_mantenimiento' ? '#f59e0b' : '#6b7280';
 
-        return (
+        return createPortal(
           <div className="truck-modal-overlay" onClick={closeTruckModal}>
             <div className="truck-modal-v2" onClick={(e) => e.stopPropagation()}>
               {/* Header */}
@@ -1623,73 +1635,145 @@ const MapLibreComponent = ({
                   </div>
                 </div>
 
-                {/* Route Status Section */}
-                {currentRoute && (
-                  <div className="info-section">
-                    <div className="section-title">
-                      <Navigation size={16} />
-                      <span>Estado de Ruta</span>
-                    </div>
+                {/* Route Status Section - depends on assignment estado */}
+                {(() => {
+                  const asigEstado = truck.asignacion_estado;
+                  const asigFecha = truck.asignacion_fecha;
+                  const asigHora = truck.asignacion_hora_inicio;
 
-                    <div className="info-rows">
-                      <div className="info-row-v2">
-                        <span className="info-label">Ruta</span>
-                        <span className="info-value">{currentRoute.nombre}</span>
-                      </div>
-
-                      <div className="info-row-v2">
-                        <span className="info-label">Progreso</span>
-                        <span className="info-value" style={{ fontWeight: 600 }}>
-                          {completedStopsData.filter(s => s.completada !== false).length} de {(currentRoute.paradas || []).length} paradas
-                          {completedStopsData.some(s => s.completada === false) && (
-                            <span style={{ color: 'var(--color-warning)', marginLeft: 6, fontSize: 12 }}>
-                              ({completedStopsData.filter(s => s.completada === false).length} omitida{completedStopsData.filter(s => s.completada === false).length > 1 ? 's' : ''})
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Stops List */}
-                    {(currentRoute.paradas || []).length > 0 && (
-                      <div className="route-stops-list">
-                        <div className="stops-list-header"><span>Paradas</span></div>
-                        <div className="stops-list-items">
-                          {(currentRoute.paradas || []).slice(0, 8).map((parada, idx) => {
-                            const completedStop = completedStopsData.find(cs => cs.index === idx);
-                            const isCompleted = completedStop && completedStop.completada !== false;
-                            const isSkipped = completedStop && completedStop.completada === false;
-
-                            return (
-                              <div key={idx} className={`stop-list-item ${isSkipped ? 'skipped' : isCompleted ? 'completed' : 'pending'}`}>
-                                <div className="stop-number-badge">{idx + 1}</div>
-                                <div className="stop-info">
-                                  <div className="stop-name">{parada.nombre || parada.direccion}</div>
-                                  {isCompleted && completedStop.timestamp && (
-                                    <div className="stop-time">{completedStop.timestamp}</div>
-                                  )}
-                                  {isSkipped && (
-                                    <div className="stop-skip-reason">
-                                      <AlertTriangle size={12} /> {completedStop.motivo_no_completada || 'No completada'}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="stop-status-icon">
-                                  {isSkipped ? <AlertTriangle size={16} /> : isCompleted ? <CheckCircle size={16} /> : <Clock size={16} />}
-                                </div>
-                              </div>
-                            );
-                          })}
-                          {(currentRoute.paradas || []).length > 8 && (
-                            <div className="stops-more">
-                              +{(currentRoute.paradas || []).length - 8} paradas más
-                            </div>
-                          )}
+                  if (!currentRoute) {
+                    return (
+                      <div className="info-section">
+                        <div className="section-title">
+                          <Navigation size={16} />
+                          <span>Ruta</span>
+                        </div>
+                        <div className="no-assignment-message">
+                          <Calendar size={24} />
+                          <p>Sin asignación</p>
                         </div>
                       </div>
-                    )}
-                  </div>
-                )}
+                    );
+                  }
+
+                  // En vivo — ruta en curso con progreso real
+                  if (asigEstado === 'en_progreso') {
+                    const paradas = currentRoute.paradas || [];
+                    const completedCount = completedStopsData.filter(s => s.completada !== false).length;
+                    const skippedCount = completedStopsData.filter(s => s.completada === false).length;
+
+                    return (
+                      <div className="info-section">
+                        <div className="section-title">
+                          <Navigation size={16} />
+                          <span>Ruta en curso</span>
+                          <span className="status-pill status-pill--online" style={{ marginLeft: 'auto' }}>
+                            <span className="pill-dot"></span>En vivo
+                          </span>
+                        </div>
+
+                        <div className="info-rows">
+                          <div className="info-row-v2">
+                            <span className="info-label">Ruta</span>
+                            <span className="info-value">{currentRoute.nombre}</span>
+                          </div>
+
+                          <div className="info-row-v2">
+                            <span className="info-label">Progreso</span>
+                            <span className="info-value" style={{ fontWeight: 600 }}>
+                              {completedCount} de {paradas.length} paradas
+                              {skippedCount > 0 && (
+                                <span style={{ color: 'var(--color-warning)', marginLeft: 6, fontSize: 12 }}>
+                                  ({skippedCount} omitida{skippedCount > 1 ? 's' : ''})
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        </div>
+
+                        {paradas.length > 0 && (
+                          <div className="route-stops-list">
+                            <div className="stops-list-header"><span>Paradas</span></div>
+                            <div className="stops-list-items">
+                              {paradas.slice(0, 8).map((parada, idx) => {
+                                const completedStop = completedStopsData.find(cs => cs.index === idx);
+                                const isCompleted = completedStop && completedStop.completada !== false;
+                                const isSkipped = completedStop && completedStop.completada === false;
+
+                                return (
+                                  <div key={idx} className={`stop-list-item ${isSkipped ? 'skipped' : isCompleted ? 'completed' : 'pending'}`}>
+                                    <div className="stop-number-badge">{idx + 1}</div>
+                                    <div className="stop-info">
+                                      <div className="stop-name">{parada.nombre || parada.direccion}</div>
+                                      {isCompleted && completedStop.timestamp && (
+                                        <div className="stop-time">{completedStop.timestamp}</div>
+                                      )}
+                                      {isSkipped && (
+                                        <div className="stop-skip-reason">
+                                          <AlertTriangle size={12} /> {completedStop.motivo_no_completada || 'No completada'}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="stop-status-icon">
+                                      {isSkipped ? <AlertTriangle size={16} /> : isCompleted ? <CheckCircle size={16} /> : <Clock size={16} />}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                              {paradas.length > 8 && (
+                                <div className="stops-more">
+                                  +{paradas.length - 8} paradas más
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // Programada — próxima ruta (sin progreso, solo info)
+                  const paradasCount = (currentRoute.paradas || []).length;
+                  const fechaLabel = asigFecha ? (() => {
+                    const [y, m, d] = asigFecha.split('-');
+                    return d && m && y ? `${d}/${m}/${y}` : asigFecha;
+                  })() : null;
+
+                  return (
+                    <div className="info-section">
+                      <div className="section-title">
+                        <Calendar size={16} />
+                        <span>Próxima ruta</span>
+                      </div>
+
+                      <div className="info-rows">
+                        <div className="info-row-v2">
+                          <span className="info-label">Ruta</span>
+                          <span className="info-value">{currentRoute.nombre}</span>
+                        </div>
+
+                        {fechaLabel && (
+                          <div className="info-row-v2">
+                            <span className="info-label">Fecha</span>
+                            <span className="info-value">{fechaLabel}</span>
+                          </div>
+                        )}
+
+                        {asigHora && (
+                          <div className="info-row-v2">
+                            <span className="info-label">Hora inicio</span>
+                            <span className="info-value">{asigHora}</span>
+                          </div>
+                        )}
+
+                        <div className="info-row-v2">
+                          <span className="info-label">Paradas</span>
+                          <span className="info-value">{paradasCount}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Vehicle Info Section */}
                 {(truck.marca || truck.modelo || truck.tipo || truck.anio) && (
@@ -1723,7 +1807,8 @@ const MapLibreComponent = ({
                 )}
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         );
       })()}
     </div>
