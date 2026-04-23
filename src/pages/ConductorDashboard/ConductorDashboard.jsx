@@ -442,7 +442,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
   }, [routeStarted]);
 
   // Auto-arrival: detect when driver enters parada geofence radius and trigger WeightModal
-  const ARRIVAL_RADIUS_M = 50;
+  const ARRIVAL_RADIUS_M = 100;
   const arrivalTriggeredRef = useRef(new Set());
 
   useEffect(() => {

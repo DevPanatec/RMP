@@ -30,7 +30,7 @@ async function syncParadaGeofences(
       descripcion: "Auto-generada por ruta",
       latitud: lat,
       longitud: lng,
-      radio: 50,
+      radio: 100,
       color: "#0078D4",
       tipo: "entrada",
       activo: true,
