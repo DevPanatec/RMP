@@ -1,14 +1,22 @@
-import { AlertTriangle, Truck, MapPin, Clock, Eye, CheckCircle } from '../Icons';
+import { AlertTriangle, Truck, MapPin, Clock, Eye, CheckCircle, ChevronRight } from '../Icons';
 import './RiskAlerts.css';
 
-const RiskAlerts = ({ alerts = [], onViewDetails, newAlertIds }) => {
-  const sortedAlerts = [...alerts]
+const PREVIEW_LIMIT = 4;
+
+const RiskAlerts = ({ alerts = [], onViewDetails, onViewAll, newAlertIds }) => {
+  const activeAlerts = [...alerts]
     .filter(alert => alert.estado !== 'resuelto' && alert.estado !== 'resolved')
     .sort((a, b) => {
       const priorityOrder = { alta: 3, high: 3, media: 2, medium: 2, baja: 1, low: 1 };
-      return (priorityOrder[b.prioridad] || 0) - (priorityOrder[a.prioridad] || 0);
-    })
-    .slice(0, 6);
+      const prioDiff = (priorityOrder[b.prioridad] || 0) - (priorityOrder[a.prioridad] || 0);
+      if (prioDiff !== 0) return prioDiff;
+      const ta = new Date(a.fecha_reporte || a.fechaCreacion || a._creationTime || 0).getTime();
+      const tb = new Date(b.fecha_reporte || b.fechaCreacion || b._creationTime || 0).getTime();
+      return tb - ta;
+    });
+
+  const sortedAlerts = activeAlerts.slice(0, PREVIEW_LIMIT);
+  const hiddenCount = activeAlerts.length - sortedAlerts.length;
 
   if (sortedAlerts.length === 0) {
     return (
@@ -29,7 +37,7 @@ const RiskAlerts = ({ alerts = [], onViewDetails, newAlertIds }) => {
     );
   }
 
-  const highPriorityCount = sortedAlerts.filter(a => 
+  const highPriorityCount = activeAlerts.filter(a =>
     a.prioridad === 'alta' || a.prioridad === 'high'
   ).length;
 
@@ -39,9 +47,9 @@ const RiskAlerts = ({ alerts = [], onViewDetails, newAlertIds }) => {
         <h3><AlertTriangle strokeWidth={1.5} size={22} /> Alertas y Riesgos</h3>
         <span className={`alerts-count ${highPriorityCount > 0 ? 'danger' : 'warning'}`}>
           <span className={`count-badge ${highPriorityCount > 0 ? 'danger' : 'warning'}`}>
-            {sortedAlerts.length}
+            {activeAlerts.length}
           </span>
-          {sortedAlerts.length === 1 ? 'Alerta activa' : 'Alertas activas'}
+          {activeAlerts.length === 1 ? 'Alerta activa' : 'Alertas activas'}
         </span>
       </div>
 
@@ -56,6 +64,13 @@ const RiskAlerts = ({ alerts = [], onViewDetails, newAlertIds }) => {
           />
         ))}
       </div>
+
+      {hiddenCount > 0 && onViewAll && (
+        <button type="button" className="panel-view-all" onClick={onViewAll}>
+          <span>Ver todas ({activeAlerts.length})</span>
+          <ChevronRight size={14} />
+        </button>
+      )}
     </div>
   );
 };
@@ -82,7 +97,15 @@ const AlertCard = ({ alert, onViewDetails, delay, isNew }) => {
     if (!timestamp) return 'Reciente';
     const date = new Date(timestamp);
     if (isNaN(date)) return 'Reciente';
-    return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const diffMs = Date.now() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    if (diffMins < 1) return 'Ahora';
+    if (diffMins < 60) return `Hace ${diffMins} min`;
+    if (diffHours < 24) return `Hace ${diffHours}h`;
+    if (diffDays < 7) return `Hace ${diffDays}d`;
+    return date.toLocaleDateString('es-PA', { day: '2-digit', month: 'short' });
   };
 
   return (
@@ -93,7 +116,7 @@ const AlertCard = ({ alert, onViewDetails, delay, isNew }) => {
         </div>
         <div className="alert-time">
           <Clock size={14} />
-          {formatTime(alert.fecha || alert.timestamp || alert.created_at)}
+          {formatTime(alert.fecha_reporte || alert.fechaCreacion || alert.fecha || alert.timestamp || alert.created_at || alert._creationTime)}
         </div>
       </div>
 

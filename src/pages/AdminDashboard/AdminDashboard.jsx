@@ -515,12 +515,14 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                   personnel={displayPersonnel}
                   recentActivity={recentActivity}
                   newEventIds={newEventIds}
+                  onViewAll={() => setActiveTab('reportes')}
                 />
                 <RiskAlerts
                   alerts={displayAlerts}
                   onViewDetails={(alert) => {
                     setActiveTab('riesgos');
                   }}
+                  onViewAll={() => setActiveTab('riesgos')}
                   newAlertIds={newAlertIds}
                 />
               </div>
@@ -611,6 +613,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                       personnel={displayPersonnel}
                       recentActivity={recentActivity}
                       newEventIds={newEventIds}
+                      onViewAll={() => setActiveTab('reportes')}
                     />
                   ) : (
                     <RiskAlerts
@@ -618,6 +621,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                       onViewDetails={(alert) => {
                         setActiveTab('riesgos');
                       }}
+                      onViewAll={() => setActiveTab('riesgos')}
                       newAlertIds={newAlertIds}
                     />
                   )}
@@ -812,6 +816,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                     personnel={displayPersonnel}
                     recentActivity={recentActivity}
                     newEventIds={newEventIds}
+                    onViewAll={() => { setIsMapMaximized(false); setActiveTab('reportes'); }}
                   />
                 </div>
 
@@ -822,6 +827,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                       setIsMapMaximized(false);
                       setActiveTab('riesgos');
                     }}
+                    onViewAll={() => { setIsMapMaximized(false); setActiveTab('riesgos'); }}
                     newAlertIds={newAlertIds}
                   />
                 </div>

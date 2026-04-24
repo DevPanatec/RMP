@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Truck, MapPin, Clock, CheckCircle, Radio, Navigation, Wrench } from '../Icons';
+import { Truck, MapPin, Clock, CheckCircle, Radio, Navigation, Wrench, ChevronRight } from '../Icons';
 import './RealtimeActivity.css';
 
-const RealtimeActivity = ({ vehicles = [], routes = [], personnel = [], recentActivity = [], newEventIds }) => {
+const PREVIEW_LIMIT = 6;
+
+const RealtimeActivity = ({ vehicles = [], routes = [], personnel = [], recentActivity = [], newEventIds, onViewAll }) => {
   const [activities, setActivities] = useState([]);
 
   useEffect(() => {
@@ -17,10 +19,12 @@ const RealtimeActivity = ({ vehicles = [], routes = [], personnel = [], recentAc
     setActivities(generatedActivities);
   }, [recentActivity, vehicles, routes, personnel]);
 
-  const sortedActivities = [...activities]
-    .filter(activity => activity.tipo !== 'alerta_creada') // Excluir alertas (se muestran en Riesgos)
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-    .slice(0, 15); // Mostrar últimas 15 actividades
+  const filteredActivities = [...activities]
+    .filter(activity => activity.tipo !== 'alerta_creada')
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  const sortedActivities = filteredActivities.slice(0, PREVIEW_LIMIT);
+  const hiddenCount = filteredActivities.length - sortedActivities.length;
 
   if (sortedActivities.length === 0) {
     return (
@@ -61,6 +65,13 @@ const RealtimeActivity = ({ vehicles = [], routes = [], personnel = [], recentAc
           />
         ))}
       </div>
+
+      {hiddenCount > 0 && onViewAll && (
+        <button type="button" className="panel-view-all" onClick={onViewAll}>
+          <span>Ver registro completo ({filteredActivities.length})</span>
+          <ChevronRight size={14} />
+        </button>
+      )}
     </div>
   );
 };
