@@ -12,7 +12,10 @@ import MaintenanceComponent from '../../components/Maintenance/MaintenanceCompon
 import CostosComponent from '../../components/Costos/CostosComponent';
 import GeofenceAlertPopup from '../../components/GeofenceAlert/GeofenceAlertPopup';
 import { ProjectSwitcher } from '../../components/Project';
+import { OrganizationSwitcher } from '../../components/Organization';
 import ProyectosComponent from '../../components/Proyectos';
+import OrganizacionesComponent from '../../components/Organizaciones';
+import { useOrganization } from '../../context/OrganizationContext';
 
 import { usePersonnel } from '../../context/PersonnelContext';
 import { useFleet } from '../../context/FleetContext';
@@ -97,6 +100,10 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
     };
   }, [isMobileView, activeTab]);
 
+  // Org context (super_admin can switch / admin locked)
+  const { currentOrgId, availableOrgs } = useOrganization();
+  const isSuperAdmin = userRole === 'super_admin' || user?.tipo === 'super_admin';
+
   // Profile creation states
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileForm, setProfileForm] = useState({
@@ -105,7 +112,8 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
     nombre_completo: '',
     tipo_usuario: 'conductor',
     telefono: '',
-    documento: ''
+    documento: '',
+    organizacion_id: ''
   });
   const [profileStatus, setProfileStatus] = useState({ type: '', message: '' });
   const [creatingProfile, setCreatingProfile] = useState(false);
@@ -312,6 +320,32 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
         return;
       }
 
+      // Determinar organizacion_id según rol del que crea
+      let orgIdToUse;
+      if (profileForm.tipo_usuario === 'super_admin') {
+        orgIdToUse = undefined;
+      } else if (isSuperAdmin) {
+        orgIdToUse = profileForm.organizacion_id || currentOrgId;
+        if (!orgIdToUse) {
+          setProfileStatus({
+            type: 'error',
+            message: 'Selecciona una organización para asignar al usuario',
+          });
+          setCreatingProfile(false);
+          return;
+        }
+      } else {
+        orgIdToUse = user?.organizacion_id;
+        if (!orgIdToUse) {
+          setProfileStatus({
+            type: 'error',
+            message: 'No tienes una organización asignada. Contacta al super_admin.',
+          });
+          setCreatingProfile(false);
+          return;
+        }
+      }
+
       // Create user via Clerk Backend API (works even when logged in)
       await createUserAction({
         email: profileForm.email,
@@ -319,7 +353,8 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
         nombre_completo: profileForm.nombre_completo,
         tipo_usuario: profileForm.tipo_usuario,
         telefono: profileForm.telefono || undefined,
-        documento: profileForm.documento || undefined
+        documento: profileForm.documento || undefined,
+        organizacion_id: orgIdToUse
       });
 
       setProfileStatus({
@@ -336,7 +371,8 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
           nombre_completo: '',
           tipo_usuario: 'conductor',
           telefono: '',
-          documento: ''
+          documento: '',
+          organizacion_id: ''
         });
         setProfileStatus({ type: '', message: '' });
       }, 2000);
@@ -682,7 +718,9 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
       case 'costos':
         return userRole === 'admin' ? <CostosComponent /> : null;
       case 'proyectos':
-        return userRole === 'admin' ? <ProyectosComponent /> : null;
+        return (userRole === 'admin' || isSuperAdmin) ? <ProyectosComponent /> : null;
+      case 'organizaciones':
+        return isSuperAdmin ? <OrganizacionesComponent /> : null;
       default:
         return null;
     }
@@ -698,6 +736,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="app-bar__logo" />
           </div>
           <div className="app-bar__actions">
+            <OrganizationSwitcher />
             <ProjectSwitcher />
             <div className="app-bar__status">
               <Activity size={16} />
@@ -763,13 +802,22 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
               <span>Costos</span>
             </button>
           )}
-          {userRole === 'admin' && (
+          {(userRole === 'admin' || isSuperAdmin) && (
             <button
               className={`top-nav__tab ${activeTab === 'proyectos' ? 'active' : ''}`}
               onClick={() => handleTabChange('proyectos')}
             >
               <Briefcase strokeWidth={1.5} size={18} />
               <span>Proyectos</span>
+            </button>
+          )}
+          {isSuperAdmin && (
+            <button
+              className={`top-nav__tab ${activeTab === 'organizaciones' ? 'active' : ''}`}
+              onClick={() => handleTabChange('organizaciones')}
+            >
+              <Shield strokeWidth={1.5} size={18} />
+              <span>Organizaciones</span>
             </button>
           )}
           <button
@@ -1120,8 +1168,27 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                   <option value="conductor">Conductor</option>
                   <option value="enterprise">Enterprise</option>
                   <option value="admin">Administrador</option>
+                  {isSuperAdmin && <option value="super_admin">Super Admin (global)</option>}
                 </select>
               </div>
+
+              {isSuperAdmin && profileForm.tipo_usuario !== 'super_admin' && (
+                <div className="form-group-v2">
+                  <label>Organización *</label>
+                  <select
+                    value={profileForm.organizacion_id || currentOrgId || ''}
+                    onChange={(e) => handleProfileInputChange('organizacion_id', e.target.value)}
+                    className="select-v2"
+                    required
+                    disabled={creatingProfile}
+                  >
+                    <option value="">Selecciona organización</option>
+                    {availableOrgs.map((o) => (
+                      <option key={o._id} value={o._id}>{o.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="form-row-v2">
                 <div className="form-group-v2">

@@ -26,7 +26,14 @@ export const getByEmail = query({
 
 // Get all profiles by tipo
 export const getByTipo = query({
-  args: { tipo: v.union(v.literal("admin"), v.literal("enterprise"), v.literal("conductor")) },
+  args: {
+    tipo: v.union(
+      v.literal("super_admin"),
+      v.literal("admin"),
+      v.literal("enterprise"),
+      v.literal("conductor"),
+    ),
+  },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("perfiles_usuarios")
@@ -49,13 +56,19 @@ export const listActive = query({
 // Create profile (for authenticated users)
 export const create = mutation({
   args: {
-    tipo_usuario: v.union(v.literal("admin"), v.literal("enterprise"), v.literal("conductor")),
+    tipo_usuario: v.union(
+      v.literal("super_admin"),
+      v.literal("admin"),
+      v.literal("enterprise"),
+      v.literal("conductor"),
+    ),
     nombre_completo: v.string(),
     email: v.string(),
     telefono: v.optional(v.string()),
     documento: v.optional(v.string()),
     foto_url: v.optional(v.string()),
     vehiculo_asignado_id: v.optional(v.id("vehiculos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
     proyecto_id: v.optional(v.id("proyectos")),
   },
   handler: async (ctx, args) => {
@@ -63,6 +76,10 @@ export const create = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Usuario no autenticado");
+    }
+
+    if (args.tipo_usuario !== "super_admin" && !args.organizacion_id) {
+      throw new Error("organizacion_id es requerido para admin/enterprise/conductor");
     }
 
     // Limpiar campos null (convertir a undefined para Convex)
@@ -80,6 +97,9 @@ export const create = mutation({
     if (args.foto_url) cleanedArgs.foto_url = args.foto_url;
     if (args.vehiculo_asignado_id) cleanedArgs.vehiculo_asignado_id = args.vehiculo_asignado_id;
     if (args.proyecto_id) cleanedArgs.proyecto_id = args.proyecto_id;
+    if (args.tipo_usuario !== "super_admin" && args.organizacion_id) {
+      cleanedArgs.organizacion_id = args.organizacion_id;
+    }
 
     return await ctx.db.insert("perfiles_usuarios", cleanedArgs);
   },
@@ -89,13 +109,19 @@ export const create = mutation({
 export const createByUserId = mutation({
   args: {
     userId: v.string(),
-    tipo_usuario: v.union(v.literal("admin"), v.literal("enterprise"), v.literal("conductor")),
+    tipo_usuario: v.union(
+      v.literal("super_admin"),
+      v.literal("admin"),
+      v.literal("enterprise"),
+      v.literal("conductor"),
+    ),
     nombre_completo: v.string(),
     email: v.string(),
     telefono: v.optional(v.string()),
     documento: v.optional(v.string()),
     foto_url: v.optional(v.string()),
     vehiculo_asignado_id: v.optional(v.id("vehiculos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
     proyecto_id: v.optional(v.id("proyectos")),
   },
   handler: async (ctx, args) => {
@@ -107,6 +133,10 @@ export const createByUserId = mutation({
 
     if (existingProfile) {
       return existingProfile._id;
+    }
+
+    if (args.tipo_usuario !== "super_admin" && !args.organizacion_id) {
+      throw new Error("organizacion_id es requerido para admin/enterprise/conductor");
     }
 
     const cleanedArgs: any = {
@@ -122,6 +152,9 @@ export const createByUserId = mutation({
     if (args.foto_url) cleanedArgs.foto_url = args.foto_url;
     if (args.vehiculo_asignado_id) cleanedArgs.vehiculo_asignado_id = args.vehiculo_asignado_id;
     if (args.proyecto_id) cleanedArgs.proyecto_id = args.proyecto_id;
+    if (args.tipo_usuario !== "super_admin" && args.organizacion_id) {
+      cleanedArgs.organizacion_id = args.organizacion_id;
+    }
 
     return await ctx.db.insert("perfiles_usuarios", cleanedArgs);
   },
@@ -160,6 +193,7 @@ export const update = mutation({
     foto_url: v.optional(v.string()),
     vehiculo_asignado_id: v.optional(v.id("vehiculos")),
     proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
@@ -229,9 +263,10 @@ export const getCurrentUser = query({
       return null;
     }
 
-    // Obtener detalles del vehículo y proyecto si existen
+    // Obtener detalles del vehículo, proyecto y organización si existen
     let vehiculo = null;
     let proyecto = null;
+    let organizacion = null;
 
     if (perfil.vehiculo_asignado_id) {
       vehiculo = await ctx.db.get(perfil.vehiculo_asignado_id);
@@ -239,6 +274,10 @@ export const getCurrentUser = query({
 
     if (perfil.proyecto_id) {
       proyecto = await ctx.db.get(perfil.proyecto_id);
+    }
+
+    if (perfil.organizacion_id) {
+      organizacion = await ctx.db.get(perfil.organizacion_id);
     }
 
     // Retornar con formato compatible con el código existente
@@ -258,6 +297,9 @@ export const getCurrentUser = query({
       camionAsignado: perfil.vehiculo_asignado_id,
       proyecto_id: perfil.proyecto_id,
       proyecto_nombre: proyecto?.nombre || null,
+      organizacion_id: perfil.organizacion_id,
+      organizacion_nombre: organizacion?.nombre || null,
+      organizacion_slug: organizacion?.slug || null,
       activo: perfil.activo,
     };
   },
@@ -270,9 +312,15 @@ export const createUserWithClerk = action({
     email: v.string(),
     password: v.string(),
     nombre_completo: v.string(),
-    tipo_usuario: v.union(v.literal("admin"), v.literal("enterprise"), v.literal("conductor")),
+    tipo_usuario: v.union(
+      v.literal("super_admin"),
+      v.literal("admin"),
+      v.literal("enterprise"),
+      v.literal("conductor"),
+    ),
     telefono: v.optional(v.string()),
     documento: v.optional(v.string()),
+    organizacion_id: v.optional(v.id("organizaciones")),
     proyecto_id: v.optional(v.id("proyectos")),
   },
   handler: async (ctx, args) => {
@@ -319,6 +367,7 @@ export const createUserWithClerk = action({
         email: args.email,
         telefono: args.telefono,
         documento: args.documento,
+        organizacion_id: args.organizacion_id,
         proyecto_id: args.proyecto_id,
       });
 

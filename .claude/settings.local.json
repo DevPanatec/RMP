@@ -68,7 +68,11 @@
       "Bash(node scripts/migrateCssColors.js:*)",
       "Bash(cd:*)",
       "mcp__plugin_engram_engram__mem_search",
-      "mcp__plugin_engram_engram__mem_save"
+      "mcp__plugin_engram_engram__mem_save",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(gh api *)",
+      "Bash(git config *)"
     ],
     "deny": [],
     "ask": [],

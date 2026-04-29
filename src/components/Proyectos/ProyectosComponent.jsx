@@ -5,6 +5,8 @@ import {
   Briefcase, Plus, Edit3, Trash2, Users as UsersIcon, X, Save,
   CheckCircle, AlertTriangle, UserPlus, Mail, Lock, Phone
 } from '../Icons';
+import { useAuth } from '../../context/AuthContext';
+import { useOrganization } from '../../context/OrganizationContext';
 import './ProyectosComponent.css';
 
 const initialProjectForm = {
@@ -24,7 +26,15 @@ const initialUserForm = {
 };
 
 const ProyectosComponent = () => {
-  const proyectos = useQuery(api.proyectos.list) ?? [];
+  const { user } = useAuth();
+  const { currentOrgId } = useOrganization();
+  const isSuperAdmin = user?.tipo === 'super_admin';
+  const orgIdForCreate = isSuperAdmin ? currentOrgId : (user?.organizacion_id ?? null);
+
+  const proyectos = useQuery(
+    api.proyectos.list,
+    currentOrgId ? { organizacion_id: currentOrgId } : {}
+  ) ?? [];
   const addProyecto = useMutation(api.proyectos.add);
   const updateProyecto = useMutation(api.proyectos.update);
   const removeProyecto = useMutation(api.proyectos.remove);
@@ -83,6 +93,10 @@ const ProyectosComponent = () => {
       flash('error', 'El nombre es requerido');
       return;
     }
+    if (!editingProject && isSuperAdmin && !orgIdForCreate) {
+      flash('error', 'Selecciona una organización en el header antes de crear');
+      return;
+    }
     setBusy(true);
     try {
       const payload = {
@@ -96,7 +110,10 @@ const ProyectosComponent = () => {
         await updateProyecto({ id: editingProject._id, ...payload });
         flash('ok', 'Proyecto actualizado');
       } else {
-        await addProyecto(payload);
+        await addProyecto({
+          ...payload,
+          ...(isSuperAdmin && orgIdForCreate ? { organizacion_id: orgIdForCreate } : {}),
+        });
         flash('ok', 'Proyecto creado');
       }
       setShowProjectModal(false);
@@ -152,6 +169,7 @@ const ProyectosComponent = () => {
         tipo_usuario: 'enterprise',
         telefono: userForm.telefono.trim() || undefined,
         documento: userForm.documento.trim() || undefined,
+        organizacion_id: userTargetProject.organizacion_id,
         proyecto_id: userTargetProject._id,
       });
       flash('ok', `Enterprise creado para "${userTargetProject.nombre}"`);

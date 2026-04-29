@@ -93,7 +93,9 @@ export {
   User,
   Tag,
   Sun,
-  Moon
+  Moon,
+  Globe,
+  Power
 } from 'lucide-react';
 
 // Alias para Spray

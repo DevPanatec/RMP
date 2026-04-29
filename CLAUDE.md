@@ -14,11 +14,25 @@ This system was created to meet government tender requirements for waste managem
 - Live demonstration capability
 - Multi-service management (waste, cleaning, fumigation, maintenance)
 
+### Multi-Tenancy: Organizaciones
+The system is **multi-tenant** at the Organization level. Hierarchy:
+```
+Organización (1) ──< (N) Proyecto (1) ──< (N) data (vehicles, routes, etc.)
+                                      └──< (N) usuarios (admin/enterprise/conductor)
+super_admin (sin organizacion_id) → ve todas las orgs
+```
+
+- Each `perfiles_usuarios` belongs to ONE Org (except `super_admin` which is global).
+- `proyectos.organizacion_id` is the parent — every project belongs to one Org.
+- Backend filters every query by `scope.organizacionId` first, then `proyecto_id`.
+- Email is globally unique (Clerk default): one email = one user, tied to one Org.
+
 ### User Roles
-The system supports **3 user types**, each with their own dashboard:
-1. **Admin** (`tipo: 'admin'`) - Full system access, manages all projects, vehicles, routes, personnel
-2. **Enterprise** (`tipo: 'enterprise'`) - Company-level view of assigned vehicles and routes
-3. **Conductor** (`tipo: 'conductor'`) - Driver view with assigned route and real-time tracking
+The system supports **4 user types**:
+1. **Super Admin** (`tipo: 'super_admin'`) - Global, no `organizacion_id`. Creates Orgs and switches between them via `OrganizationSwitcher`.
+2. **Admin** (`tipo: 'admin'`) - Tied to one Org. Full access within their Org's projects.
+3. **Enterprise** (`tipo: 'enterprise'`) - Tied to one Org + one Project. Read-only operational view.
+4. **Conductor** (`tipo: 'conductor'`) - Tied to one Org + one Project. Driver dashboard with assigned route.
 
 ## Commands
 

@@ -1,0 +1,54 @@
+/* ============================================
+   ORGANIZATION_SWITCHER - ENTERPRISE STYLE
+   ============================================ */
+
+.organization-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-12);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-base);
+  box-shadow: var(--shadow-xs);
+}
+
+.organization-switcher-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.organization-switcher-select {
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  min-width: 220px;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.organization-switcher-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.organization-switcher-select:hover {
+  border-color: var(--color-border-strong);
+}
+
+@media (max-width: 768px) {
+  .organization-switcher {
+    width: 100%;
+  }
+  .organization-switcher-select {
+    flex: 1;
+    min-width: 0;
+  }
+}

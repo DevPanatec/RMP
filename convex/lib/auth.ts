@@ -5,9 +5,11 @@ export type Ctx = QueryCtx | MutationCtx;
 
 export interface AuthScope {
   perfil: any | null;
+  isSuperAdmin: boolean;
   isAdmin: boolean;
   isEnterprise: boolean;
   isConductor: boolean;
+  organizacionId: Id<"organizaciones"> | null;
   proyectoId: Id<"proyectos"> | null;
 }
 
@@ -15,20 +17,38 @@ export interface AuthScope {
 export async function getAuthScope(ctx: Ctx): Promise<AuthScope> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
-    return { perfil: null, isAdmin: false, isEnterprise: false, isConductor: false, proyectoId: null };
+    return {
+      perfil: null,
+      isSuperAdmin: false,
+      isAdmin: false,
+      isEnterprise: false,
+      isConductor: false,
+      organizacionId: null,
+      proyectoId: null,
+    };
   }
   const perfil = await ctx.db
     .query("perfiles_usuarios")
     .withIndex("by_user", (q) => q.eq("userId", identity.tokenIdentifier))
     .first();
   if (!perfil) {
-    return { perfil: null, isAdmin: false, isEnterprise: false, isConductor: false, proyectoId: null };
+    return {
+      perfil: null,
+      isSuperAdmin: false,
+      isAdmin: false,
+      isEnterprise: false,
+      isConductor: false,
+      organizacionId: null,
+      proyectoId: null,
+    };
   }
   return {
     perfil,
+    isSuperAdmin: perfil.tipo_usuario === "super_admin",
     isAdmin: perfil.tipo_usuario === "admin",
     isEnterprise: perfil.tipo_usuario === "enterprise",
     isConductor: perfil.tipo_usuario === "conductor",
+    organizacionId: perfil.organizacion_id ?? null,
     proyectoId: perfil.proyecto_id ?? null,
   };
 }
@@ -40,17 +60,51 @@ export async function requireUser(ctx: Ctx): Promise<AuthScope & { perfil: NonNu
   return scope as any;
 }
 
+// Para queries: devuelve la organizacion_id que debe usar el filtro.
+// Super_admin → null si no pasa requestedOrgId (ve todo); o el requestedOrgId.
+// Admin/Enterprise/Conductor → su organizacion_id propia (puede ser null si legacy).
+// Si caller pasa requestedOrgId, valida acceso (super_admin libre; demás deben coincidir).
+export async function getScopedOrgId(
+  ctx: Ctx,
+  requestedOrgId?: Id<"organizaciones"> | null
+): Promise<Id<"organizaciones"> | null> {
+  const scope = await getAuthScope(ctx);
+  if (scope.isSuperAdmin) {
+    return requestedOrgId ?? null;
+  }
+  if (!scope.organizacionId) return null;
+  if (requestedOrgId && requestedOrgId !== scope.organizacionId) {
+    throw new Error("Acceso denegado a la organización solicitada");
+  }
+  return scope.organizacionId;
+}
+
 // Para queries: devuelve el proyecto_id que debe usar el filtro.
-// Admin → null (= sin filtro, ve todo).
+// Super_admin → libre, retorna requestedProjectId ?? null
+// Admin → null (= sin filtro de proyecto, ve todos los proyectos de su org).
 // Enterprise/Conductor → el proyecto_id de su perfil (puede ser null si legacy).
-// Si el caller pasa requestedProjectId, valida acceso (admin libre; enterprise debe coincidir).
+// Si caller pasa requestedProjectId, valida acceso:
+//   - super_admin libre
+//   - admin debe verificar que el proyecto pertenece a su org
+//   - enterprise/conductor debe coincidir con su proyecto_id propio
 export async function getScopedProjectId(
   ctx: Ctx,
   requestedProjectId?: Id<"proyectos"> | null
 ): Promise<Id<"proyectos"> | null> {
   const scope = await getAuthScope(ctx);
-  if (scope.isAdmin) {
+  if (scope.isSuperAdmin) {
     return requestedProjectId ?? null;
+  }
+  if (scope.isAdmin) {
+    if (requestedProjectId) {
+      const proyecto = await ctx.db.get(requestedProjectId);
+      if (!proyecto) throw new Error("Proyecto no encontrado");
+      if (scope.organizacionId && proyecto.organizacion_id !== scope.organizacionId) {
+        throw new Error("Acceso denegado al proyecto solicitado");
+      }
+      return requestedProjectId;
+    }
+    return null;
   }
   if (!scope.proyectoId) return null;
   if (requestedProjectId && requestedProjectId !== scope.proyectoId) {
@@ -60,20 +114,51 @@ export async function getScopedProjectId(
 }
 
 // Valida que el user pueda escribir/leer recursos del proyectoId dado.
-// Admin libre. Enterprise/Conductor deben coincidir.
+// Super_admin libre. Admin: proyecto debe pertenecer a su org. Enterprise/Conductor: deben coincidir.
 export async function requireProjectAccess(ctx: Ctx, proyectoId: Id<"proyectos">): Promise<void> {
   const scope = await getAuthScope(ctx);
-  if (scope.isAdmin) return;
+  if (scope.isSuperAdmin) return;
+  if (scope.isAdmin) {
+    if (!scope.organizacionId) throw new Error("Admin sin organización asignada");
+    const proyecto = await ctx.db.get(proyectoId);
+    if (!proyecto) throw new Error("Proyecto no encontrado");
+    if (proyecto.organizacion_id !== scope.organizacionId) {
+      throw new Error("Acceso denegado al proyecto");
+    }
+    return;
+  }
   if (!scope.proyectoId) throw new Error("Usuario sin proyecto asignado");
   if (scope.proyectoId !== proyectoId) throw new Error("Acceso denegado al proyecto");
 }
 
+// Valida que el user pueda escribir/leer recursos de la orgId dada.
+export async function requireOrgAccess(ctx: Ctx, orgId: Id<"organizaciones">): Promise<void> {
+  const scope = await getAuthScope(ctx);
+  if (scope.isSuperAdmin) return;
+  if (!scope.organizacionId) throw new Error("Usuario sin organización asignada");
+  if (scope.organizacionId !== orgId) throw new Error("Acceso denegado a la organización");
+}
+
+// Solo super_admin puede ejecutar acción.
+export async function requireSuperAdmin(ctx: Ctx): Promise<void> {
+  const scope = await getAuthScope(ctx);
+  if (!scope.isSuperAdmin) throw new Error("Acceso denegado: requiere super_admin");
+}
+
 // Helper para filtrar arrays in-memory por proyecto_id según scope.
-// Útil cuando una query ya hace .collect() y necesita filtrar después.
 export function filterByScope<T extends { proyecto_id?: Id<"proyectos"> | undefined }>(
   rows: T[],
   scopedProjectId: Id<"proyectos"> | null
 ): T[] {
   if (scopedProjectId === null) return rows;
   return rows.filter((r) => r.proyecto_id === scopedProjectId);
+}
+
+// Helper para filtrar arrays in-memory por organizacion_id según scope.
+export function filterByOrgScope<T extends { organizacion_id?: Id<"organizaciones"> | undefined }>(
+  rows: T[],
+  scopedOrgId: Id<"organizaciones"> | null
+): T[] {
+  if (scopedOrgId === null) return rows;
+  return rows.filter((r) => r.organizacion_id === scopedOrgId);
 }

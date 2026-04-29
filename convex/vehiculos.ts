@@ -3,15 +3,24 @@ import { v } from "convex/values";
 import { getScopedProjectId, getAuthScope } from "./lib/auth";
 
 // List all vehicles.
-// - Admin: ve todos (o filtra si pasa proyecto_id).
-// - Conductor: ve toda la flota (necesita su vehículo asignado siempre).
+// - Super_admin: ve todos (o filtra si pasa organizacion_id).
+// - Admin: ve todos los vehículos de su organización.
+// - Conductor: ve la flota de su organización.
 // - Enterprise: solo veh. con asignación en_progreso en su proyecto (live).
 export const list = query({
   args: { proyecto_id: v.optional(v.id("proyectos")) },
   handler: async (ctx, args) => {
     const scope = await getAuthScope(ctx);
-    if (scope.isAdmin || scope.isConductor) {
+    if (scope.isSuperAdmin) {
       return await ctx.db.query("vehiculos").collect();
+    }
+    if (scope.isAdmin || scope.isConductor) {
+      if (!scope.organizacionId) return [];
+      // Filtrar por organización (defensa en profundidad)
+      const all = await ctx.db.query("vehiculos").collect();
+      return all.filter(
+        (v) => !v.organizacion_id || v.organizacion_id === scope.organizacionId
+      );
     }
     // Enterprise
     const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);

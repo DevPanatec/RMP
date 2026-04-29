@@ -1,26 +1,53 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthScope } from "./lib/auth";
+import { getAuthScope, getScopedOrgId, requireOrgAccess } from "./lib/auth";
 
 export const list = query({
-  handler: async (ctx) => {
-    return await ctx.db.query("proyectos").collect();
+  args: { organizacion_id: v.optional(v.id("organizaciones")) },
+  handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    if (!scope.perfil) return [];
+    const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
+    if (scopedOrg === null) {
+      return await ctx.db.query("proyectos").collect();
+    }
+    return await ctx.db
+      .query("proyectos")
+      .withIndex("by_organizacion", (q) => q.eq("organizacion_id", scopedOrg))
+      .collect();
   },
 });
 
 // Devuelve los proyectos accesibles según el rol del user actual.
-// Admin → todos los proyectos activos.
+// Super_admin → si pasa organizacion_id, filtra; sino, todos los activos.
+// Admin → todos los proyectos activos de su organización.
 // Enterprise/Conductor → solo el proyecto asignado en su perfil (si existe).
 // Sin sesión → array vacío.
 export const listAccessible = query({
-  handler: async (ctx) => {
+  args: { organizacion_id: v.optional(v.id("organizaciones")) },
+  handler: async (ctx, args) => {
     const scope = await getAuthScope(ctx);
     if (!scope.perfil) return [];
-    if (scope.isAdmin) {
+    if (scope.isSuperAdmin) {
+      if (args.organizacion_id) {
+        const all = await ctx.db
+          .query("proyectos")
+          .withIndex("by_organizacion", (q) => q.eq("organizacion_id", args.organizacion_id!))
+          .collect();
+        return all.filter((p) => p.activo);
+      }
       return await ctx.db
         .query("proyectos")
         .withIndex("by_activo", (q) => q.eq("activo", true))
         .collect();
+    }
+    if (scope.isAdmin) {
+      if (!scope.organizacionId) return [];
+      const all = await ctx.db
+        .query("proyectos")
+        .withIndex("by_organizacion", (q) => q.eq("organizacion_id", scope.organizacionId!))
+        .collect();
+      return all.filter((p) => p.activo);
     }
     if (!scope.proyectoId) return [];
     const proyecto = await ctx.db.get(scope.proyectoId);
@@ -30,17 +57,33 @@ export const listAccessible = query({
 
 export const listActive = query({
   handler: async (ctx) => {
-    return await ctx.db
+    const scope = await getAuthScope(ctx);
+    if (scope.isSuperAdmin) {
+      return await ctx.db
+        .query("proyectos")
+        .withIndex("by_activo", (q) => q.eq("activo", true))
+        .collect();
+    }
+    if (!scope.organizacionId) return [];
+    const all = await ctx.db
       .query("proyectos")
-      .withIndex("by_activo", (q) => q.eq("activo", true))
+      .withIndex("by_organizacion", (q) => q.eq("organizacion_id", scope.organizacionId))
       .collect();
+    return all.filter((p) => p.activo);
   },
 });
 
 export const getById = query({
   args: { id: v.id("proyectos") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const proyecto = await ctx.db.get(args.id);
+    if (!proyecto) return null;
+    const scope = await getAuthScope(ctx);
+    if (scope.isSuperAdmin) return proyecto;
+    if (proyecto.organizacion_id && scope.organizacionId && proyecto.organizacion_id !== scope.organizacionId) {
+      throw new Error("Acceso denegado al proyecto");
+    }
+    return proyecto;
   },
 });
 
@@ -51,11 +94,28 @@ export const add = mutation({
     cliente: v.optional(v.string()),
     fecha_inicio: v.optional(v.string()),
     fecha_fin: v.optional(v.string()),
+    organizacion_id: v.optional(v.id("organizaciones")),
   },
   handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    if (!scope.perfil) throw new Error("No autenticado");
+
+    let orgId: any = args.organizacion_id;
+    if (scope.isSuperAdmin) {
+      if (!orgId) throw new Error("Super admin debe especificar organizacion_id");
+    } else if (scope.isAdmin) {
+      if (!scope.organizacionId) throw new Error("Admin sin organización asignada");
+      orgId = scope.organizacionId; // ignora override
+    } else {
+      throw new Error("Solo admin o super_admin puede crear proyectos");
+    }
+
+    await requireOrgAccess(ctx, orgId);
+    const { organizacion_id: _ignore, ...rest } = args;
     return await ctx.db.insert("proyectos", {
-      ...args,
+      ...rest,
       activo: true,
+      organizacion_id: orgId,
     });
   },
 });
@@ -71,6 +131,14 @@ export const update = mutation({
     activo: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const proyecto = await ctx.db.get(args.id);
+    if (!proyecto) throw new Error("Proyecto no encontrado");
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin) {
+      if (!scope.organizacionId || proyecto.organizacion_id !== scope.organizacionId) {
+        throw new Error("Acceso denegado al proyecto");
+      }
+    }
     const { id, ...updates } = args;
     return await ctx.db.patch(id, updates);
   },
@@ -79,6 +147,14 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("proyectos") },
   handler: async (ctx, args) => {
+    const proyecto = await ctx.db.get(args.id);
+    if (!proyecto) throw new Error("Proyecto no encontrado");
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin) {
+      if (!scope.organizacionId || proyecto.organizacion_id !== scope.organizacionId) {
+        throw new Error("Acceso denegado al proyecto");
+      }
+    }
     return await ctx.db.delete(args.id);
   },
 });

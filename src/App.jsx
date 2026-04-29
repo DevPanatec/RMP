@@ -7,6 +7,7 @@ import EnterpriseDashboard from './pages/EnterpriseDashboard/EnterpriseDashboard
 import ConductorDashboard from './pages/ConductorDashboard/ConductorDashboard';
 import SeedUsers from './utils/SeedUsers';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { OrganizationProvider } from './context/OrganizationContext';
 import { ProjectProvider } from './context/ProjectContext';
 import { RiskReportsProvider } from './context/RiskReportsContext';
 import { PersonnelProvider } from './context/PersonnelContext';
@@ -70,6 +71,8 @@ const AppContent = () => {
   // Mostrar dashboard según el tipo de usuario
   const renderDashboard = () => {
     switch (user.tipo) {
+      case 'super_admin':
+        return <AdminDashboard user={user} onLogout={handleLogout} userRole="super_admin" />;
       case 'admin':
         return <AdminDashboard user={user} onLogout={handleLogout} />;
       case 'enterprise':
@@ -90,29 +93,31 @@ const AppContent = () => {
   };
 
   return (
-    <ProjectProvider>
-      <RiskReportsProvider>
-        <PersonnelProvider>
-          <FleetProvider>
-            <RoutesProvider>
-              <ReportsProvider>
-                <InventoryProvider>
-                  <ScheduleProvider>
-                    <CleaningProvider>
-                      <FumigationProvider>
-                        <MaintenanceProvider>
-                          {renderDashboard()}
-                        </MaintenanceProvider>
-                      </FumigationProvider>
-                    </CleaningProvider>
-                  </ScheduleProvider>
-                </InventoryProvider>
-              </ReportsProvider>
-            </RoutesProvider>
-          </FleetProvider>
-        </PersonnelProvider>
-      </RiskReportsProvider>
-    </ProjectProvider>
+    <OrganizationProvider>
+      <ProjectProvider>
+        <RiskReportsProvider>
+          <PersonnelProvider>
+            <FleetProvider>
+              <RoutesProvider>
+                <ReportsProvider>
+                  <InventoryProvider>
+                    <ScheduleProvider>
+                      <CleaningProvider>
+                        <FumigationProvider>
+                          <MaintenanceProvider>
+                            {renderDashboard()}
+                          </MaintenanceProvider>
+                        </FumigationProvider>
+                      </CleaningProvider>
+                    </ScheduleProvider>
+                  </InventoryProvider>
+                </ReportsProvider>
+              </RoutesProvider>
+            </FleetProvider>
+          </PersonnelProvider>
+        </RiskReportsProvider>
+      </ProjectProvider>
+    </OrganizationProvider>
   );
 }
 

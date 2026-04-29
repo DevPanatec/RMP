@@ -2,19 +2,24 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from './AuthContext';
+import { useOrganization } from './OrganizationContext';
 
 const ProjectContext = createContext(null);
 
 export const ProjectProvider = ({ children }) => {
   const { user } = useAuth();
-  const isAdmin = user?.tipo === 'admin';
+  const { currentOrgId } = useOrganization();
+  const isAdmin = user?.tipo === 'admin' || user?.tipo === 'super_admin';
 
-  // Convex query: admin → todos los proyectos accesibles; enterprise → solo el suyo
-  const availableProjects = useQuery(api.proyectos.listAccessible) ?? [];
+  // Convex query: filtra por currentOrgId si super_admin tiene una org seleccionada
+  const availableProjects = useQuery(
+    api.proyectos.listAccessible,
+    currentOrgId ? { organizacion_id: currentOrgId } : {}
+  ) ?? [];
 
   // currentProject:
   // - Enterprise/Conductor: fijo en su proyecto del perfil
-  // - Admin: seleccionable (default null = "Todos")
+  // - Admin/super_admin: seleccionable (default null = "Todos")
   const [currentProjectId, setCurrentProjectIdState] = useState(null);
 
   // Sincronizar para enterprise/conductor: fija a su proyecto_id
@@ -24,6 +29,13 @@ export const ProjectProvider = ({ children }) => {
       setCurrentProjectIdState(user.proyecto_id);
     }
   }, [user, isAdmin]);
+
+  // Reset proyecto al cambiar de org (super_admin)
+  useEffect(() => {
+    if (isAdmin) {
+      setCurrentProjectIdState(null);
+    }
+  }, [currentOrgId, isAdmin]);
 
   const currentProject = useMemo(() => {
     if (!currentProjectId) return null;

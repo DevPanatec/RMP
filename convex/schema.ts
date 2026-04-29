@@ -2,22 +2,44 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // 0. Organizaciones (top-level multi-tenant)
+  organizaciones: defineTable({
+    nombre: v.string(),
+    slug: v.string(),
+    descripcion: v.optional(v.string()),
+    contacto_email: v.optional(v.string()),
+    contacto_telefono: v.optional(v.string()),
+    logo_url: v.optional(v.string()),
+    activo: v.boolean(),
+    fecha_creacion: v.string(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_activo", ["activo"]),
+
   // 1. Perfiles de Usuarios (Auth)
   perfiles_usuarios: defineTable({
     userId: v.string(), // ID del usuario autenticado
-    tipo_usuario: v.union(v.literal("admin"), v.literal("enterprise"), v.literal("conductor")),
+    tipo_usuario: v.union(
+      v.literal("super_admin"),
+      v.literal("admin"),
+      v.literal("enterprise"),
+      v.literal("conductor"),
+    ),
     nombre_completo: v.string(),
     email: v.string(),
     telefono: v.optional(v.string()),
     documento: v.optional(v.string()),
     foto_url: v.optional(v.string()),
     vehiculo_asignado_id: v.optional(v.id("vehiculos")),
+    organizacion_id: v.optional(v.id("organizaciones")), // null para super_admin
     proyecto_id: v.optional(v.id("proyectos")),
     activo: v.boolean(),
   })
     .index("by_user", ["userId"])
     .index("by_tipo", ["tipo_usuario"])
-    .index("by_email", ["email"]),
+    .index("by_email", ["email"])
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_org_tipo", ["organizacion_id", "tipo_usuario"]),
 
   // 2. Proyectos
   proyectos: defineTable({
@@ -27,7 +49,10 @@ export default defineSchema({
     fecha_inicio: v.optional(v.string()),
     fecha_fin: v.optional(v.string()),
     activo: v.boolean(),
-  }).index("by_activo", ["activo"]),
+    organizacion_id: v.optional(v.id("organizaciones")), // Required runtime; optional para legacy/migración
+  })
+    .index("by_activo", ["activo"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 3. Vehículos (Fleet)
   vehiculos: defineTable({
@@ -63,11 +88,13 @@ export default defineSchema({
     gps_senal: v.optional(v.number()), // Señal GSM
     gps_en_linea: v.optional(v.boolean()), // Online status
     proyecto_asignado_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_estado", ["estado"])
     .index("by_placa", ["placa"])
     .index("by_gps_imei", ["gps_imei"]) // Índice para búsqueda rápida por IMEI
-    .index("by_safetag_device", ["safetag_device_id"]), // Índice para búsqueda por SafeTag Device ID
+    .index("by_safetag_device", ["safetag_device_id"]) // Índice para búsqueda por SafeTag Device ID
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 4. Rutas
   rutas: defineTable({
@@ -85,10 +112,12 @@ export default defineSchema({
     tiempo_estimado: v.optional(v.number()), // Tiempo estimado en minutos
     combustible_estimado: v.optional(v.number()),
     observaciones: v.optional(v.string()),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_estado", ["estado"])
     .index("by_proyecto", ["proyecto_id"])
-    .index("by_proyecto_estado", ["proyecto_id", "estado"]),
+    .index("by_proyecto_estado", ["proyecto_id", "estado"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 5. Asignaciones de Rutas
   asignaciones_rutas: defineTable({
@@ -107,6 +136,7 @@ export default defineSchema({
     dias_semana: v.optional(v.array(v.string())),
     ayudantes: v.optional(v.array(v.any())),
     observaciones: v.optional(v.string()),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_vehiculo", ["vehiculo_id"])
     .index("by_ruta", ["ruta_id"])
@@ -130,6 +160,7 @@ export default defineSchema({
     tipo_ruta: v.string(),
     estado: v.string(), // "en_progreso", "completada"
     route_report_id: v.optional(v.id("route_reports")),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_conductor", ["conductor_nombre"])
     .index("by_estado", ["estado"])
@@ -155,10 +186,12 @@ export default defineSchema({
     terminacion_anticipada: v.optional(v.boolean()),
     motivo_terminacion: v.optional(v.string()),
     proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_conductor", ["conductor_nombre"])
     .index("by_fecha", ["fecha_completacion"])
-    .index("by_proyecto_fecha", ["proyecto_id", "fecha_completacion"]),
+    .index("by_proyecto_fecha", ["proyecto_id", "fecha_completacion"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 7b. Eventos de Rutas (Activity Log)
   route_events: defineTable({
@@ -179,12 +212,14 @@ export default defineSchema({
     detalles: v.optional(v.string()),
     timestamp: v.string(),
     proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_asignacion", ["asignacion_id"])
     .index("by_ruta", ["ruta_id"])
     .index("by_conductor", ["conductor_id"])
     .index("by_timestamp", ["timestamp"])
-    .index("by_proyecto", ["proyecto_id"]),
+    .index("by_proyecto", ["proyecto_id"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 8. Empleados
   empleados: defineTable({
@@ -227,10 +262,12 @@ export default defineSchema({
     parada_nombre: v.optional(v.string()), // Dirección/nombre de la parada
     parada_orden: v.optional(v.number()), // Orden de la parada en la ruta
     parada_index: v.optional(v.number()), // Índice de la parada (0-based)
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_fecha", ["fecha_reporte"])
     .index("by_severidad", ["nivel_severidad"])
-    .index("by_proyecto", ["proyecto_id"]),
+    .index("by_proyecto", ["proyecto_id"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 10. Inventario
   inventario: defineTable({
@@ -245,8 +282,10 @@ export default defineSchema({
     proveedor: v.optional(v.string()),
     // Legacy field - mantener para compatibilidad con datos antiguos
     cantidad_disponible: v.optional(v.number()),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
-    .index("by_tipo", ["tipo_articulo"]),
+    .index("by_tipo", ["tipo_articulo"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 10b. Inventario por Ubicación (distribuye items en múltiples lugares)
   inventario_ubicaciones: defineTable({
@@ -271,6 +310,7 @@ export default defineSchema({
     notas: v.optional(v.string()),
     fecha: v.number(), // timestamp
     proyecto_id: v.optional(v.id("proyectos")), // Required para tipo_movimiento ∈ {asignacion, consumo}; opcional para compra/ajuste
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_item", ["item_id"])
     .index("by_fecha", ["fecha"])
@@ -286,6 +326,7 @@ export default defineSchema({
     longitud: v.optional(v.number()),
     activo: v.boolean(),
     proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_activo", ["activo"])
     .index("by_proyecto", ["proyecto_id"]),
@@ -298,6 +339,7 @@ export default defineSchema({
     longitud: v.optional(v.number()),
     activo: v.boolean(),
     proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_activo", ["activo"])
     .index("by_proyecto", ["proyecto_id"]),
@@ -322,6 +364,7 @@ export default defineSchema({
     notas: v.optional(v.string()),
     created_by: v.optional(v.string()),
     proyecto_id: v.optional(v.id("proyectos")), // Derivado de salas.proyecto_id
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_fecha", ["fecha"])
     .index("by_estado", ["estado"])
@@ -354,6 +397,7 @@ export default defineSchema({
     mecanico: v.optional(v.string()),
     notas: v.optional(v.string()),
     proyecto_id: v.optional(v.id("proyectos")), // Manual al crear, opcional (vehiculo es shared)
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_vehiculo", ["vehiculo_id"])
     .index("by_estado", ["estado"])
@@ -370,6 +414,7 @@ export default defineSchema({
     fecha_generada: v.string(),
     leida: v.boolean(),
     proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_vehiculo", ["vehiculo_id"])
     .index("by_leida", ["leida"])
@@ -407,6 +452,7 @@ export default defineSchema({
     usuario_completo: v.string(),
     fecha_reporte: v.string(),
     proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_fecha", ["fecha_reporte"])
     .index("by_vehiculo", ["vehiculo_id"])
@@ -445,6 +491,7 @@ export default defineSchema({
     ),
     created_by: v.optional(v.string()),
     proyecto_id: v.optional(v.id("proyectos")), // Derivado de lugares.proyecto_id
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_fecha", ["fecha"])
     .index("by_estado", ["estado"])
@@ -488,6 +535,7 @@ export default defineSchema({
     usuario_completo: v.string(),
     fecha_completacion: v.string(),
     proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_fecha", ["fecha_completacion"])
     .index("by_lugar", ["lugar_id"])
@@ -514,6 +562,7 @@ export default defineSchema({
     usuario_completo: v.string(),
     fecha_completacion: v.string(),
     proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_fecha", ["fecha_completacion"])
     .index("by_sala", ["sala_id"])
