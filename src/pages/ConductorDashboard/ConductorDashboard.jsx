@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import WeightModal from '../../components/WeightModal/WeightModal';
 import RouteCompletionModal from '../../components/RouteCompletionModal/RouteCompletionModal';
@@ -71,6 +71,14 @@ const ConductorDashboard = ({ user, onLogout }) => {
   const startRouteProgress = useMutation(api.route_progress.start);
   const updateRouteProgress = useMutation(api.route_progress.update);
   const completeRouteProgress = useMutation(api.route_progress.complete);
+
+  // Backend source-of-truth: ¿el conductor tiene una ruta en_progreso ahora?
+  const activeProgress = useQuery(
+    api.route_progress.getActiveProgress,
+    user?.nombre || user?.nombre_completo
+      ? { conductor_nombre: user.nombre || user.nombre_completo }
+      : 'skip'
+  );
 
   // State for route progress ID
   const [routeProgressId, setRouteProgressId] = useState(null);
@@ -319,14 +327,63 @@ const ConductorDashboard = ({ user, onLogout }) => {
     }
   }, [userTruck]);
 
+  // FUENTE DE VERDAD: si el backend tiene un route_progress en_progreso del conductor,
+  // hidratar el state aunque localStorage esté vacío (caso típico: logout/login).
+  // IMPORTANTE: solo hidrata si el progress corresponde a la asignación de HOY.
+  // Si es huérfano (de una ruta vieja sin completar), se ignora — y opcionalmente lo cerramos.
+  useEffect(() => {
+    if (restorationAttempted) return;
+    if (activeProgress === undefined) return; // query aún cargando
+    if (!todayAssignment) return; // esperar a que tengamos la asignación de hoy
+
+    if (!activeProgress) {
+      // No hay progress activo, dejar al effect de localStorage
+      return;
+    }
+
+    const todayAsgId = todayAssignment._id || todayAssignment.id;
+    const progressAsgId = activeProgress.asignacion_id;
+
+    if (progressAsgId !== todayAsgId) {
+      // El progress en_progreso es huérfano (otra asignación). NO hidratar.
+      // Marcar como restaurado para no quedar en loop, y opcionalmente cerrar el huérfano.
+      console.warn(
+        '[ConductorDashboard] route_progress huérfano detectado. Ignorando.',
+        { progressAsgId, todayAsgId }
+      );
+      // Auto-cerrar el huérfano para que no aparezca en queries del enterprise.
+      completeRouteProgress({ id: activeProgress._id }).catch((err) => {
+        console.error('Error cerrando route_progress huérfano:', err);
+      });
+      setRestorationAttempted(true);
+      return;
+    }
+
+    setRouteStarted(true);
+    setRouteProgressId(activeProgress._id);
+    setCompletedStops(activeProgress.paradas_completadas || []);
+    const completedCount = (activeProgress.paradas_completadas || []).length;
+    setCurrentStop(completedCount);
+    if (activeProgress.fecha_inicio) {
+      const startMs = new Date(activeProgress.fecha_inicio).getTime();
+      setRouteStartTime(startMs);
+      setTimeOnRoute(Math.floor((Date.now() - startMs) / 1000));
+    }
+    setRestorationAttempted(true);
+  }, [activeProgress, restorationAttempted, todayAssignment, completeRouteProgress]);
+
   // Cargar estado de ruta desde localStorage - SOLO cuando todayAssignment esté disponible y solo UNA vez
   useEffect(() => {
     // Solo intentar restaurar si:
     // 1. No se ha intentado antes
     // 2. todayAssignment está disponible
+    // 3. La query del backend ya respondió (activeProgress !== undefined)
     if (restorationAttempted || !todayAssignment) {
       return;
     }
+    if (activeProgress === undefined) return; // esperar al backend antes de tocar localStorage
+    // Si el backend confirma ruta activa, ya se hidrató arriba — no leer localStorage.
+    if (activeProgress) return;
 
     const savedRouteState = localStorage.getItem('conductorRouteState');
 
@@ -353,7 +410,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
     // Marcar que ya se intentó restaurar (esto evita que se ejecute de nuevo)
     setRestorationAttempted(true);
-  }, [todayAssignment, today, restorationAttempted]);
+  }, [todayAssignment, today, restorationAttempted, activeProgress]);
 
   // Persistir estado de ruta en localStorage cuando cambia (SIN timeOnRoute para evitar guardar cada segundo)
   useEffect(() => {
@@ -1163,6 +1220,11 @@ const ConductorDashboard = ({ user, onLogout }) => {
         vehiculo_placa: userTruck?.placa || 'N/A'
       };
 
+      // Scope al proyecto del conductor para que la query lo retorne
+      if (user?.proyecto_id) {
+        reportData.proyecto_id = user.proyecto_id;
+      }
+
       // 🆕 Si viene de skipStopData, agregar datos de parada
       if (skipStopData) {
         reportData.parada_nombre = skipStopData.nombre;
@@ -1177,19 +1239,14 @@ const ConductorDashboard = ({ user, onLogout }) => {
         const lng = userTruck.gps_longitud || userTruck.lng;
 
         if (lat != null && lng != null) {
-          reportData.ubicacion = `Lat: ${lat}, Lng: ${lng}`;
           reportData.gps_latitud = lat;
           reportData.gps_longitud = lng;
-        } else {
-          reportData.ubicacion = 'GPS no disponible';
         }
 
         const vehiculoId = userTruck._id || userTruck.id;
         if (vehiculoId) {
           reportData.vehiculo_id = vehiculoId;
         }
-      } else {
-        reportData.ubicacion = 'No disponible';
       }
 
       const rutaId = assignedRoute?._id || assignedRoute?.id;

@@ -11,6 +11,8 @@ import CalendarComponent from '../../components/Calendar/CalendarComponent';
 import MaintenanceComponent from '../../components/Maintenance/MaintenanceComponent';
 import CostosComponent from '../../components/Costos/CostosComponent';
 import GeofenceAlertPopup from '../../components/GeofenceAlert/GeofenceAlertPopup';
+import { ProjectSwitcher } from '../../components/Project';
+import ProyectosComponent from '../../components/Proyectos';
 
 import { usePersonnel } from '../../context/PersonnelContext';
 import { useFleet } from '../../context/FleetContext';
@@ -32,7 +34,7 @@ import {
   UserPlus, Shield, Lock, Mail, Phone, Target
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
-import { DashboardKPI, AlertCard, PersonnelTable, VehicleCard, HeroStats, RealtimeActivity, RiskAlerts } from '../../components/Dashboard';
+import { DashboardKPI, AlertCard, PersonnelTable, VehicleCard, HeroStats, RealtimeActivity, RiskAlerts, UpcomingRoutes } from '../../components/Dashboard';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
@@ -509,6 +511,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             {!isMobileView && (
               <div className="monitoring-side-panel">
                 <HeroStats stats={heroStatsData} />
+                {userRole === 'enterprise' && <UpcomingRoutes limit={6} />}
                 <RealtimeActivity
                   vehicles={normalizedCamiones}
                   routes={displayRoutes}
@@ -678,6 +681,8 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
         return <ReportsComponent userType={user.tipo} preSelectedLocationId={selectedLocationId} onClearSelection={handleClearLocationSelection} />;
       case 'costos':
         return userRole === 'admin' ? <CostosComponent /> : null;
+      case 'proyectos':
+        return userRole === 'admin' ? <ProyectosComponent /> : null;
       default:
         return null;
     }
@@ -693,6 +698,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="app-bar__logo" />
           </div>
           <div className="app-bar__actions">
+            <ProjectSwitcher />
             <div className="app-bar__status">
               <Activity size={16} />
               <span>Sistema en Tiempo Real</span>
@@ -755,6 +761,15 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             >
               <DollarSign strokeWidth={1.5} size={18} />
               <span>Costos</span>
+            </button>
+          )}
+          {userRole === 'admin' && (
+            <button
+              className={`top-nav__tab ${activeTab === 'proyectos' ? 'active' : ''}`}
+              onClick={() => handleTabChange('proyectos')}
+            >
+              <Briefcase strokeWidth={1.5} size={18} />
+              <span>Proyectos</span>
             </button>
           )}
           <button

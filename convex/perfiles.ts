@@ -127,6 +127,29 @@ export const createByUserId = mutation({
   },
 });
 
+// Listar enterprises de un proyecto (admin only)
+export const listEnterprisesByProyecto = query({
+  args: { proyecto_id: v.id("proyectos") },
+  handler: async (ctx, args) => {
+    const all = await ctx.db
+      .query("perfiles_usuarios")
+      .withIndex("by_tipo", (q) => q.eq("tipo_usuario", "enterprise"))
+      .collect();
+    return all.filter((p) => p.proyecto_id === args.proyecto_id && p.activo !== false);
+  },
+});
+
+// Reasignar proyecto de un perfil (admin only)
+export const setProyecto = mutation({
+  args: {
+    perfil_id: v.id("perfiles_usuarios"),
+    proyecto_id: v.optional(v.id("proyectos")),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.patch(args.perfil_id, { proyecto_id: args.proyecto_id });
+  },
+});
+
 // Update profile
 export const update = mutation({
   args: {
@@ -250,6 +273,7 @@ export const createUserWithClerk = action({
     tipo_usuario: v.union(v.literal("admin"), v.literal("enterprise"), v.literal("conductor")),
     telefono: v.optional(v.string()),
     documento: v.optional(v.string()),
+    proyecto_id: v.optional(v.id("proyectos")),
   },
   handler: async (ctx, args) => {
     // Get Clerk Secret Key from environment variables
@@ -295,6 +319,7 @@ export const createUserWithClerk = action({
         email: args.email,
         telefono: args.telefono,
         documento: args.documento,
+        proyecto_id: args.proyecto_id,
       });
 
       // Step 3: Also create employee record (for Personnel section)

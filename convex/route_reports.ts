@@ -1,13 +1,18 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { getScopedProjectId } from "./lib/auth";
 
 export const list = query({
-  handler: async (ctx) => {
-    return await ctx.db
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    const all = await ctx.db
       .query("route_reports")
       .withIndex("by_fecha", (q) => q)
       .order("desc")
       .collect();
+    if (scoped === null) return all;
+    return all.filter((r) => r.proyecto_id === scoped);
   },
 });
 
@@ -56,6 +61,16 @@ export const add = mutation({
     motivo_terminacion: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("route_reports", args);
+    // Derivar proyecto_id desde la asignación o ruta
+    let proyecto_id;
+    if (args.asignacion_id) {
+      const a = await ctx.db.get(args.asignacion_id);
+      proyecto_id = a?.proyecto_id;
+    }
+    if (!proyecto_id && args.ruta_id) {
+      const r = await ctx.db.get(args.ruta_id);
+      proyecto_id = r?.proyecto_id;
+    }
+    return await ctx.db.insert("route_reports", { ...args, proyecto_id });
   },
 });

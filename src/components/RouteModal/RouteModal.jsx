@@ -6,8 +6,10 @@ import {
   Trash2, Calendar, Sparkles,
   Truck, CheckCircle, XCircle, AlertTriangle, Edit,
   Plus, X, FileText, MapPin, Settings, Map as MapIcon, Ruler,
-  Clock, Target, Lightbulb, Save, Bot, Pencil
+  Clock, Target, Lightbulb, Save, Bot, Pencil, Briefcase
 } from '../Icons';
+import { useProject } from '../../context/ProjectContext';
+import { useAuth } from '../../context/AuthContext';
 import './RouteModal.css';
 
 // OpenFreeMap Positron — same tiles as dashboard MapLibreComponent (no key needed).
@@ -47,12 +49,15 @@ const MAX_ROUTE_NAME_LENGTH = 100;
 const MAX_DESCRIPTION_LENGTH = 500;
 
 const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
+  const { availableProjects, currentProjectId, isAdmin } = useProject();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(TABS.INFO);
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
     tipo_servicio: 'recoleccion',
     estado: 'programada',
+    proyecto_id: '',
     paradas: [],
     distancia_total: 0,
     tiempo_estimado: 60,
@@ -89,6 +94,7 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
         descripcion: route.descripcion || route.description || '',
         tipo_servicio: route.tipo_servicio || 'recoleccion',
         estado: route.estado || 'programada',
+        proyecto_id: route.proyecto_id || '',
         paradas: paradas,
         distancia_total: route.distancia_total || route.distanciaTotal || 0,
         tiempo_estimado: route.tiempo_estimado || route.tiempoEstimado || 60,
@@ -98,11 +104,16 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
         hora_fin: route.hora_fin || ''
       });
     } else {
+      // Defaults: enterprise → su proyecto fijo; admin → el del switcher si lo eligió.
+      const defaultProyecto = !isAdmin
+        ? (user?.proyecto_id || '')
+        : (currentProjectId || '');
       setFormData({
         nombre: '',
         descripcion: '',
         tipo_servicio: 'recoleccion',
         estado: 'programada',
+        proyecto_id: defaultProyecto,
         paradas: [],
         distancia_total: 0,
         tiempo_estimado: 60,
@@ -156,6 +167,10 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
 
     if (!formData.nombre?.trim()) {
       newErrors.nombre = 'El nombre es obligatorio';
+    }
+
+    if (!formData.proyecto_id) {
+      newErrors.proyecto_id = 'Debes seleccionar un proyecto';
     }
 
     if (formData.paradas.length < 2) {
@@ -227,6 +242,7 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
     if (errors.nombre) tabErrors[TABS.INFO].push(errors.nombre);
     if (errors.descripcion) tabErrors[TABS.INFO].push(errors.descripcion);
     if (errors.tipo_servicio) tabErrors[TABS.INFO].push(errors.tipo_servicio);
+    if (errors.proyecto_id) tabErrors[TABS.INFO].push(errors.proyecto_id);
     if (errors.hora_inicio) tabErrors[TABS.INFO].push(errors.hora_inicio);
     if (errors.hora_fin) tabErrors[TABS.INFO].push(errors.hora_fin);
     if (errors.dias_operacion) tabErrors[TABS.INFO].push(errors.dias_operacion);
@@ -253,8 +269,9 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
 
     const routeData = {
       nombre: formData.nombre,
-      descripcion: formData.descripcion || '',
-      tipo_servicio: formData.tipo_servicio,
+      descripcion: '',
+      tipo_servicio: 'recoleccion',
+      proyecto_id: formData.proyecto_id,
       paradas: formData.paradas || [],
       distancia_total: parseFloat(formData.distancia_total) || 0,
       tiempo_estimado: parseInt(formData.tiempo_estimado) || 60,
@@ -465,39 +482,23 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
                     {errors.nombre && <span className="error-text">{errors.nombre}</span>}
                   </div>
 
-                  <div className="form-group">
-                    <label>
-                      Descripción
-                      <span style={{ fontSize: '11px', fontWeight: 'normal', color: 'var(--color-text-secondary)', marginLeft: '8px' }}>
-                        ({formData.descripcion.length}/{MAX_DESCRIPTION_LENGTH})
-                      </span>
-                    </label>
-                    <textarea
-                      value={formData.descripcion}
-                      onChange={e => handleChange('descripcion', e.target.value)}
-                      placeholder="Describe esta ruta..."
-                      className="route-textarea"
-                      rows="3"
-                      maxLength={MAX_DESCRIPTION_LENGTH}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Tipo de Servicio</label>
+                  <div className={`form-group ${errors.proyecto_id ? 'has-error' : ''}`}>
+                    <label><Briefcase size={14} /> Proyecto *</label>
                     <select
-                      value={formData.tipo_servicio}
-                      onChange={e => handleChange('tipo_servicio', e.target.value)}
-                      className="route-select"
+                      value={formData.proyecto_id}
+                      onChange={e => handleChange('proyecto_id', e.target.value)}
+                      className={`route-select ${errors.proyecto_id ? 'error' : ''}`}
+                      disabled={!isAdmin}
                     >
-                      {SERVICE_TYPES.map(type => {
-                        const Icon = type.icon;
-                        return (
-                          <option key={type.value} value={type.value}>
-                            {type.label}
-                          </option>
-                        );
-                      })}
+                      <option value="">Selecciona un proyecto…</option>
+                      {availableProjects.map(p => (
+                        <option key={p._id} value={p._id}>{p.nombre}</option>
+                      ))}
                     </select>
+                    {!isAdmin && (
+                      <span className="label-hint">El proyecto se asigna automáticamente según tu cuenta.</span>
+                    )}
+                    {errors.proyecto_id && <span className="error-text">{errors.proyecto_id}</span>}
                   </div>
                 </div>
 

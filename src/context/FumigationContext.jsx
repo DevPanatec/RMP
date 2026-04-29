@@ -1,13 +1,15 @@
 import { createContext, useContext } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useProject } from './ProjectContext';
 
 const FumigationContext = createContext();
 
 export const FumigationProvider = ({ children }) => {
+  const { currentProjectId } = useProject();
   // Queries
-  const lugaresData = useQuery(api.fumigaciones.listLugares);
-  const assignmentsData = useQuery(api.fumigaciones.list);
+  const lugaresData = useQuery(api.fumigaciones.listLugares, { proyecto_id: currentProjectId ?? undefined });
+  const assignmentsData = useQuery(api.fumigaciones.list, { proyecto_id: currentProjectId ?? undefined });
 
   // Mutations
   const addLugarMutation = useMutation(api.fumigaciones.addLugar);

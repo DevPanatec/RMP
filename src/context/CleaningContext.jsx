@@ -1,13 +1,15 @@
 import { createContext, useContext } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useProject } from './ProjectContext';
 
 const CleaningContext = createContext();
 
 export const CleaningProvider = ({ children }) => {
-  const salasData = useQuery(api.cleaning.listSalas);
+  const { currentProjectId } = useProject();
+  const salasData = useQuery(api.cleaning.listSalas, { proyecto_id: currentProjectId ?? undefined });
   const areasData = useQuery(api.cleaning.listAreas);
-  const assignmentsData = useQuery(api.cleaning.listAssignments);
+  const assignmentsData = useQuery(api.cleaning.listAssignments, { proyecto_id: currentProjectId ?? undefined });
 
   const addSalaMutation = useMutation(api.cleaning.addSala);
   const addAreaMutation = useMutation(api.cleaning.addArea);

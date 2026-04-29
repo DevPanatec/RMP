@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { getAuthScope } from "./lib/auth";
 
 /**
  * Calcular distancia entre dos puntos GPS usando fórmula Haversine
@@ -26,14 +27,31 @@ function haversineDistance(
 }
 
 /**
- * Query: Obtener todos los geofences activos
+ * Query: Obtener geofences activos.
+ * - Admin: todas.
+ * - Enterprise: solo las geofences ligadas a rutas de su proyecto.
+ *   Las geofences manuales (sin ruta_id) NO las ve, ya que no podemos atribuirlas a un proyecto.
+ * - Conductor: todas (necesita las paradas/zonas activas para su trabajo).
  */
 export const list = query({
   handler: async (ctx) => {
-    return await ctx.db
+    const scope = await getAuthScope(ctx);
+    const all = await ctx.db
       .query("geofences")
       .withIndex("by_activo", (q) => q.eq("activo", true))
       .collect();
+
+    if (!scope.isEnterprise) return all;
+    if (!scope.proyectoId) return [];
+
+    // Construir set de ruta_ids del proyecto del enterprise
+    const rutas = await ctx.db
+      .query("rutas")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scope.proyectoId!))
+      .collect();
+    const rutaIds = new Set(rutas.map((r) => r._id));
+
+    return all.filter((g) => g.ruta_id && rutaIds.has(g.ruta_id));
   },
 });
 

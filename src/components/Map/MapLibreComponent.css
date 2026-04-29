@@ -855,7 +855,7 @@
 
 .truck-modal-v2 {
   width: 100%;
-  max-width: 380px;
+  max-width: 520px;
   height: 100%;
   background: var(--color-surface);
   box-shadow: var(--shadow-xl);
@@ -935,8 +935,9 @@
 
 .truck-modal-header-v2 {
   padding: var(--space-16);
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  background: var(--color-text); /* Sólido Fluent charcoal — sin gradiente */
   color: white;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
 .truck-modal-header-v2 .header-top-row {
@@ -1022,6 +1023,11 @@
   background: rgba(107, 114, 128, 0.3);
 }
 
+.truck-modal-header-v2 .badge-movement--offline {
+  background: rgba(156, 163, 175, 0.4);
+  color: #d1d5db;
+}
+
 /* Modal Content */
 .truck-modal-content-v2 {
   flex: 1;
@@ -1030,6 +1036,11 @@
 }
 
 .truck-modal-content-v2 .info-section {
+  margin-bottom: var(--space-16);
+}
+
+/* Sección de paradas: la única que mantiene espacio prominente */
+.truck-modal-content-v2 .info-section:has(.route-stops-list) {
   margin-bottom: var(--space-20);
 }
 
@@ -1037,10 +1048,31 @@
   display: flex;
   align-items: center;
   gap: var(--space-8);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-8);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.truck-modal-content-v2 .section-title svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* La sección de PARADAS sí tiene título prominente */
+.truck-modal-content-v2 .info-section:has(.route-stops-list) .section-title {
+  font-size: var(--font-size-md);
+  text-transform: none;
+  letter-spacing: normal;
   color: var(--color-text);
   margin-bottom: var(--space-12);
+}
+
+.truck-modal-content-v2 .info-section:has(.route-stops-list) .section-title svg {
+  width: 18px !important;
+  height: 18px !important;
 }
 
 .truck-modal-content-v2 .status-pill {
@@ -1077,24 +1109,29 @@
   color: var(--color-text-secondary);
 }
 
-/* Stats Grid */
+/* Stats Grid - compacto */
 .truck-modal-content-v2 .stats-grid-3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-8);
-  margin-bottom: var(--space-12);
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
 }
 
 .truck-modal-content-v2 .stat-box {
   text-align: center;
-  padding: var(--space-12);
+  padding: var(--space-8) var(--space-4);
   background: var(--color-surface-secondary);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-base);
 }
 
 .truck-modal-content-v2 .stat-icon-small {
   color: var(--color-primary);
-  margin-bottom: var(--space-4);
+  margin-bottom: 2px;
+}
+
+.truck-modal-content-v2 .stat-icon-small svg {
+  width: 14px !important;
+  height: 14px !important;
 }
 
 .truck-modal-content-v2 .stat-data {
@@ -1105,37 +1142,39 @@
 }
 
 .truck-modal-content-v2 .stat-number {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text);
-}
-
-.truck-modal-content-v2 .stat-number-text {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
 }
 
-.truck-modal-content-v2 .stat-unit {
+.truck-modal-content-v2 .stat-number-text {
   font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+}
+
+.truck-modal-content-v2 .stat-unit {
+  font-size: 10px;
   color: var(--color-text-secondary);
 }
 
 .truck-modal-content-v2 .stat-label-small {
-  font-size: var(--font-size-xs);
+  font-size: 10px;
   color: var(--color-text-tertiary);
-  margin-top: var(--space-4);
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
-/* Coordinates Row */
+/* Coordinates Row - compacto */
 .truck-modal-content-v2 .coordinates-row {
   display: flex;
   align-items: center;
-  gap: var(--space-12);
-  padding: var(--space-12);
+  gap: var(--space-8);
+  padding: var(--space-8);
   background: var(--color-surface-secondary);
-  border-radius: var(--radius-md);
-  margin-bottom: var(--space-12);
+  border-radius: var(--radius-base);
+  margin-bottom: var(--space-8);
 }
 
 .truck-modal-content-v2 .coord-icon {
@@ -1236,30 +1275,43 @@
   font-size: var(--font-size-sm);
 }
 
-/* Info Rows */
+/* Info Rows - compactos */
 .truck-modal-content-v2 .info-rows {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: 2px;
 }
 
 .truck-modal-content-v2 .info-row-v2 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--space-8) var(--space-12);
+  padding: var(--space-4) var(--space-8);
   background: var(--color-surface-secondary);
-  border-radius: var(--radius-base);
+  border-radius: var(--radius-sm);
+  min-height: 28px;
 }
 
 .truck-modal-content-v2 .info-label {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
 }
 
 .truck-modal-content-v2 .info-value {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+}
+
+/* En la sección de paradas (Ruta), las info-rows arriba de la lista mantienen lectura cómoda */
+.truck-modal-content-v2 .info-section:has(.route-stops-list) .info-row-v2 {
+  padding: var(--space-8) var(--space-12);
+  min-height: 36px;
+}
+
+.truck-modal-content-v2 .info-section:has(.route-stops-list) .info-label,
+.truck-modal-content-v2 .info-section:has(.route-stops-list) .info-value {
+  font-size: var(--font-size-sm);
 }
 
 /* Route Stops List */
@@ -1268,6 +1320,8 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .truck-modal-content-v2 .stops-list-header {
@@ -1280,17 +1334,60 @@
   text-transform: uppercase;
 }
 
+/* Lista de paradas: PRIORIDAD. Scroll propio amplio. */
 .truck-modal-content-v2 .stops-list-items {
-  max-height: 250px;
-  overflow-y: auto;
+  display: block !important;
+  max-height: 70vh !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  gap: 0 !important;
+}
+
+@media (max-width: 1024px) {
+  .truck-modal-content-v2 .stops-list-items {
+    max-height: 72dvh !important;
+  }
 }
 
 .truck-modal-content-v2 .stop-list-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-12);
-  padding: var(--space-8) var(--space-12);
-  border-bottom: 1px solid var(--color-border);
+  display: grid !important;
+  grid-template-columns: 18px 1fr 14px !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 2px 6px !important;
+  border: none !important;
+  border-bottom: 1px solid var(--color-border) !important;
+  border-radius: 0 !important;
+  background: var(--color-surface) !important;
+  box-shadow: none !important;
+  min-height: 24px !important;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.truck-modal-content-v2 .stop-list-item:hover {
+  background: var(--color-hover-overlay) !important;
+  border-color: var(--color-border) !important;
+  box-shadow: none !important;
+}
+
+.truck-modal-content-v2 .stop-list-item.pending {
+  background: var(--color-surface) !important;
+  border-left: none !important;
+}
+
+.truck-modal-content-v2 .stop-list-item.completed {
+  background: var(--color-success-light) !important;
+  border-left: 3px solid var(--color-success) !important;
+}
+
+.truck-modal-content-v2 .stop-list-item.current {
+  background: var(--color-info-light) !important;
+  border-left: 3px solid var(--color-primary) !important;
+}
+
+.truck-modal-content-v2 .stop-list-item.skipped {
+  background: var(--color-error-light) !important;
+  border-left: 3px solid var(--color-error) !important;
 }
 
 .truck-modal-content-v2 .stop-list-item:last-child {
@@ -1302,16 +1399,24 @@
 }
 
 .truck-modal-content-v2 .stop-number-badge {
-  width: 24px;
-  height: 24px;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-text-tertiary);
-  color: white;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-secondary);
+  font-size: 9px;
+  font-weight: var(--font-weight-semibold);
   border-radius: 50%;
+}
+
+.truck-modal-content-v2 .stop-list-item.current .stop-number-badge {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+  box-shadow: 0 0 0 1.5px var(--color-info-light);
 }
 
 .truck-modal-content-v2 .stop-list-item.completed .stop-number-badge {
@@ -1324,16 +1429,53 @@
 }
 
 .truck-modal-content-v2 .stop-name {
-  font-size: var(--font-size-sm);
+  font-size: 12px;
+  font-weight: var(--font-weight-medium);
   color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.truck-modal-content-v2 .stop-address {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  margin-top: 0;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .truck-modal-content-v2 .stop-time {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--color-success);
+  margin-top: 0;
+  font-weight: var(--font-weight-medium);
+}
+
+.truck-modal-content-v2 .stop-time svg {
+  width: 9px !important;
+  height: 9px !important;
+}
+
+.truck-modal-content-v2 .stop-status-icon svg {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.truck-modal-content-v2 .stop-skip-reason {
+  font-size: 10px !important;
+  margin-top: 0 !important;
+}
+
+.truck-modal-content-v2 .stop-skip-reason svg {
+  width: 10px !important;
+  height: 10px !important;
 }
 
 .truck-modal-content-v2 .stop-status-icon {

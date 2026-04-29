@@ -73,7 +73,7 @@ export default defineSchema({
   rutas: defineTable({
     nombre: v.string(),
     descripcion: v.optional(v.string()),
-    proyecto_id: v.optional(v.id("proyectos")),
+    proyecto_id: v.optional(v.id("proyectos")), // Required en runtime; optional para data legacy hasta migración
     tipo_servicio: v.string(),
     paradas: v.array(v.any()), // Array de paradas (JSONB)
     fecha_programada: v.optional(v.string()),
@@ -87,7 +87,8 @@ export default defineSchema({
     observaciones: v.optional(v.string()),
   })
     .index("by_estado", ["estado"])
-    .index("by_proyecto", ["proyecto_id"]),
+    .index("by_proyecto", ["proyecto_id"])
+    .index("by_proyecto_estado", ["proyecto_id", "estado"]),
 
   // 5. Asignaciones de Rutas
   asignaciones_rutas: defineTable({
@@ -109,7 +110,10 @@ export default defineSchema({
   })
     .index("by_vehiculo", ["vehiculo_id"])
     .index("by_ruta", ["ruta_id"])
-    .index("by_estado", ["estado"]),
+    .index("by_estado", ["estado"])
+    .index("by_proyecto", ["proyecto_id"])
+    .index("by_vehiculo_estado", ["vehiculo_id", "estado"])
+    .index("by_vehiculo_fecha", ["vehiculo_id", "fecha_asignacion"]),
 
   // 6. Progreso de Rutas (Real-time tracking)
   route_progress: defineTable({
@@ -118,6 +122,7 @@ export default defineSchema({
     ruta_id: v.id("rutas"),
     vehiculo_id: v.id("vehiculos"),
     asignacion_id: v.id("asignaciones_rutas"),
+    proyecto_id: v.optional(v.id("proyectos")),
     fecha_inicio: v.string(),
     total_paradas: v.number(),
     paradas_completadas: v.optional(v.array(v.any())),
@@ -127,7 +132,8 @@ export default defineSchema({
     route_report_id: v.optional(v.id("route_reports")),
   })
     .index("by_conductor", ["conductor_nombre"])
-    .index("by_estado", ["estado"]),
+    .index("by_estado", ["estado"])
+    .index("by_proyecto", ["proyecto_id"]),
 
   // 7. Reportes de Rutas Completadas
   route_reports: defineTable({
@@ -148,9 +154,11 @@ export default defineSchema({
     ruta_paradas: v.optional(v.array(v.any())),
     terminacion_anticipada: v.optional(v.boolean()),
     motivo_terminacion: v.optional(v.string()),
+    proyecto_id: v.optional(v.id("proyectos")),
   })
     .index("by_conductor", ["conductor_nombre"])
-    .index("by_fecha", ["fecha_completacion"]),
+    .index("by_fecha", ["fecha_completacion"])
+    .index("by_proyecto_fecha", ["proyecto_id", "fecha_completacion"]),
 
   // 7b. Eventos de Rutas (Activity Log)
   route_events: defineTable({
@@ -170,11 +178,13 @@ export default defineSchema({
     gps_longitud: v.optional(v.number()),
     detalles: v.optional(v.string()),
     timestamp: v.string(),
+    proyecto_id: v.optional(v.id("proyectos")),
   })
     .index("by_asignacion", ["asignacion_id"])
     .index("by_ruta", ["ruta_id"])
     .index("by_conductor", ["conductor_id"])
-    .index("by_timestamp", ["timestamp"]),
+    .index("by_timestamp", ["timestamp"])
+    .index("by_proyecto", ["proyecto_id"]),
 
   // 8. Empleados
   empleados: defineTable({
@@ -197,8 +207,8 @@ export default defineSchema({
   reportes_riesgo: defineTable({
     titulo: v.string(),
     descripcion: v.string(),
-    tipo_riesgo: v.string(), // "seguridad", "operacional", "ambiental", "equipo"
-    nivel_severidad: v.string(), // "bajo", "medio", "alto", "crítico"
+    tipo_riesgo: v.string(), // mecanico, combustible, seguridad, mantenimiento, bloqueo_via, seguridad_ciudadana, climatico, manifestacion, accidente, operacional
+    nivel_severidad: v.string(), // bajo, medio, alto, critico
     ubicacion: v.optional(v.string()),
     gps_latitud: v.optional(v.number()),
     gps_longitud: v.optional(v.number()),
@@ -219,7 +229,8 @@ export default defineSchema({
     parada_index: v.optional(v.number()), // Índice de la parada (0-based)
   })
     .index("by_fecha", ["fecha_reporte"])
-    .index("by_severidad", ["nivel_severidad"]),
+    .index("by_severidad", ["nivel_severidad"])
+    .index("by_proyecto", ["proyecto_id"]),
 
   // 10. Inventario
   inventario: defineTable({
@@ -259,11 +270,13 @@ export default defineSchema({
     usuario_id: v.optional(v.id("perfiles_usuarios")),
     notas: v.optional(v.string()),
     fecha: v.number(), // timestamp
+    proyecto_id: v.optional(v.id("proyectos")), // Required para tipo_movimiento ∈ {asignacion, consumo}; opcional para compra/ajuste
   })
     .index("by_item", ["item_id"])
     .index("by_fecha", ["fecha"])
     .index("by_tipo", ["tipo_movimiento"])
-    .index("by_item_fecha", ["item_id", "fecha"]),
+    .index("by_item_fecha", ["item_id", "fecha"])
+    .index("by_proyecto_fecha", ["proyecto_id", "fecha"]),
 
   // 11. Lugares/Salas (Cleaning)
   salas: defineTable({
@@ -272,7 +285,10 @@ export default defineSchema({
     latitud: v.optional(v.number()), // Coordenadas GPS de la sala
     longitud: v.optional(v.number()),
     activo: v.boolean(),
-  }).index("by_activo", ["activo"]),
+    proyecto_id: v.optional(v.id("proyectos")),
+  })
+    .index("by_activo", ["activo"])
+    .index("by_proyecto", ["proyecto_id"]),
 
   // 11b. Lugares (Fumigación - espacios internos y externos)
   lugares: defineTable({
@@ -281,8 +297,10 @@ export default defineSchema({
     latitud: v.optional(v.number()), // Coordenadas GPS del lugar
     longitud: v.optional(v.number()),
     activo: v.boolean(),
+    proyecto_id: v.optional(v.id("proyectos")),
   })
-    .index("by_activo", ["activo"]),
+    .index("by_activo", ["activo"])
+    .index("by_proyecto", ["proyecto_id"]),
 
   // 12. Áreas (Cleaning)
   areas: defineTable({
@@ -303,10 +321,12 @@ export default defineSchema({
     estado: v.string(), // "pendiente", "en_progreso", "completado", "cancelado"
     notas: v.optional(v.string()),
     created_by: v.optional(v.string()),
+    proyecto_id: v.optional(v.id("proyectos")), // Derivado de salas.proyecto_id
   })
     .index("by_fecha", ["fecha"])
     .index("by_estado", ["estado"])
-    .index("by_sala", ["sala_id"]),
+    .index("by_sala", ["sala_id"])
+    .index("by_proyecto_fecha", ["proyecto_id", "fecha"]),
 
   // 14. Fotos de Limpieza
   cleaning_photos: defineTable({
@@ -333,10 +353,12 @@ export default defineSchema({
     costo: v.optional(v.number()),
     mecanico: v.optional(v.string()),
     notas: v.optional(v.string()),
+    proyecto_id: v.optional(v.id("proyectos")), // Manual al crear, opcional (vehiculo es shared)
   })
     .index("by_vehiculo", ["vehiculo_id"])
     .index("by_estado", ["estado"])
-    .index("by_fecha", ["fecha_programada"]),
+    .index("by_fecha", ["fecha_programada"])
+    .index("by_proyecto", ["proyecto_id"]),
 
   // 16. Alertas de Mantenimiento
   maintenance_alerts: defineTable({
@@ -347,9 +369,11 @@ export default defineSchema({
     severidad: v.string(), // "info", "warning", "error"
     fecha_generada: v.string(),
     leida: v.boolean(),
+    proyecto_id: v.optional(v.id("proyectos")),
   })
     .index("by_vehiculo", ["vehiculo_id"])
-    .index("by_leida", ["leida"]),
+    .index("by_leida", ["leida"])
+    .index("by_proyecto", ["proyecto_id"]),
 
   // 16b. Fotos de Mantenimiento
   maintenance_photos: defineTable({
@@ -382,10 +406,12 @@ export default defineSchema({
     observaciones: v.optional(v.string()),
     usuario_completo: v.string(),
     fecha_reporte: v.string(),
+    proyecto_id: v.optional(v.id("proyectos")),
   })
     .index("by_fecha", ["fecha_reporte"])
     .index("by_vehiculo", ["vehiculo_id"])
-    .index("by_tipo", ["tipo"]),
+    .index("by_tipo", ["tipo"])
+    .index("by_proyecto", ["proyecto_id"]),
 
   // 16d. Presets de Volumen para Mantenimiento
   maintenance_volume_presets: defineTable({
@@ -418,12 +444,14 @@ export default defineSchema({
       v.literal("reportada")
     ),
     created_by: v.optional(v.string()),
+    proyecto_id: v.optional(v.id("proyectos")), // Derivado de lugares.proyecto_id
   })
     .index("by_fecha", ["fecha"])
     .index("by_estado", ["estado"])
     .index("by_lugar", ["lugar_id"])
     .index("by_tipo", ["tipo_fumigacion"])
-    .index("by_fecha_lugar_tipo", ["fecha", "lugar_id", "tipo_fumigacion"]),
+    .index("by_fecha_lugar_tipo", ["fecha", "lugar_id", "tipo_fumigacion"])
+    .index("by_proyecto_fecha", ["proyecto_id", "fecha"]),
 
   // 18. Fotos de Fumigación
   fumigation_photos: defineTable({
@@ -459,10 +487,12 @@ export default defineSchema({
     fotos_ids: v.optional(v.array(v.id("fumigation_photos"))),
     usuario_completo: v.string(),
     fecha_completacion: v.string(),
+    proyecto_id: v.optional(v.id("proyectos")),
   })
     .index("by_fecha", ["fecha_completacion"])
     .index("by_lugar", ["lugar_id"])
-    .index("by_tipo", ["tipo_fumigacion"]),
+    .index("by_tipo", ["tipo_fumigacion"])
+    .index("by_proyecto_fecha", ["proyecto_id", "fecha_completacion"]),
 
   // 18c. Reportes de Limpieza Completados
   cleaning_reports: defineTable({
@@ -483,10 +513,12 @@ export default defineSchema({
     observaciones: v.optional(v.string()),
     usuario_completo: v.string(),
     fecha_completacion: v.string(),
+    proyecto_id: v.optional(v.id("proyectos")),
   })
     .index("by_fecha", ["fecha_completacion"])
     .index("by_sala", ["sala_id"])
-    .index("by_area", ["area_id"]),
+    .index("by_area", ["area_id"])
+    .index("by_proyecto_fecha", ["proyecto_id", "fecha_completacion"]),
 
   // 19. Geofences (Zonas de monitoreo)
   geofences: defineTable({

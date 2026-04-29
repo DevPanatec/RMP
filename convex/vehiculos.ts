@@ -1,10 +1,30 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { getScopedProjectId, getAuthScope } from "./lib/auth";
 
-// List all vehicles
+// List all vehicles.
+// - Admin: ve todos (o filtra si pasa proyecto_id).
+// - Conductor: ve toda la flota (necesita su vehículo asignado siempre).
+// - Enterprise: solo veh. con asignación en_progreso en su proyecto (live).
 export const list = query({
-  handler: async (ctx) => {
-    return await ctx.db.query("vehiculos").collect();
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    if (scope.isAdmin || scope.isConductor) {
+      return await ctx.db.query("vehiculos").collect();
+    }
+    // Enterprise
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    if (!scoped) return [];
+    const live = await ctx.db
+      .query("asignaciones_rutas")
+      .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped))
+      .filter((q) => q.eq(q.field("estado"), "en_progreso"))
+      .collect();
+    const vehiculoIds = new Set(live.map((a) => a.vehiculo_id));
+    if (vehiculoIds.size === 0) return [];
+    const all = await ctx.db.query("vehiculos").collect();
+    return all.filter((v) => vehiculoIds.has(v._id));
   },
 });
 
@@ -36,12 +56,82 @@ export const listMinimal = query({
 //   3. estado === 'programada'   nearest future fecha_asignacion (>= today)
 //   No fallback to past dates — past programadas are ignored.
 export const listWithAssignments = query({
-  handler: async (ctx) => {
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    const scoped = scope.isAdmin
+      ? (args.proyecto_id ?? null)
+      : await getScopedProjectId(ctx, args.proyecto_id ?? null);
+
+    // ENTERPRISE: visibilidad live derivada de route_progress (no de asignaciones).
+    // Esto cubre rutas recurrentes (cuya asignación queda en 'programada' aunque corra).
+    if (scope.isEnterprise) {
+      if (!scoped) return [];
+      // Tomar TODOS los progress en_progreso y filtrar por proyecto en memoria.
+      // Esto es defensivo: si route_progress.proyecto_id está vacío (datos legacy),
+      // se deriva de la ruta o de la asignación linkeada.
+      const allLive = await ctx.db
+        .query("route_progress")
+        .withIndex("by_estado", (q) => q.eq("estado", "en_progreso"))
+        .collect();
+      const matched = [];
+      for (const rp of allLive) {
+        let proyectoIdEffective = rp.proyecto_id;
+        if (!proyectoIdEffective && rp.asignacion_id) {
+          const a = await ctx.db.get(rp.asignacion_id);
+          proyectoIdEffective = a?.proyecto_id;
+        }
+        if (!proyectoIdEffective && rp.ruta_id) {
+          const r = await ctx.db.get(rp.ruta_id);
+          proyectoIdEffective = r?.proyecto_id;
+        }
+        if (proyectoIdEffective === scoped) matched.push(rp);
+      }
+      if (matched.length === 0) return [];
+      const allVehicles = await ctx.db.query("vehiculos").collect();
+      const vehById = new Map(allVehicles.map((v) => [v._id, v]));
+      const result = [];
+      for (const rp of matched) {
+        const v = vehById.get(rp.vehiculo_id);
+        if (!v) continue;
+        const a = rp.asignacion_id ? await ctx.db.get(rp.asignacion_id) : null;
+        result.push({
+          _id: v._id,
+          placa: v.placa,
+          nombre: v.nombre,
+          estado: v.estado,
+          tipo_servicio: v.tipo_servicio,
+          tipo_vehiculo: v.tipo_vehiculo,
+          gps_latitud: v.gps_latitud,
+          gps_longitud: v.gps_longitud,
+          gps_velocidad: v.gps_velocidad,
+          gps_rumbo: v.gps_rumbo,
+          gps_ultima_actualizacion: v.gps_ultima_actualizacion,
+          gps_conectado: v.gps_conectado,
+          gps_en_linea: v.gps_en_linea,
+          conductor_nombre: rp.conductor_nombre,
+          ruta_id: rp.ruta_id,
+          asignacion_id: rp.asignacion_id,
+          asignacion_estado: "en_progreso",
+          asignacion_fecha: a?.fecha_asignacion,
+          asignacion_hora_inicio: a?.hora_inicio,
+          proyecto_id: rp.proyecto_id,
+        });
+      }
+      return result;
+    }
+
     const vehicles = await ctx.db.query("vehiculos").collect();
 
     const allAssignments = await ctx.db.query("asignaciones_rutas").collect();
     const relevant = allAssignments.filter(
-      a => a.estado === 'en_progreso' || a.estado === 'programada'
+      (a) => {
+        if (a.estado !== "en_progreso" && a.estado !== "programada") return false;
+        // Enterprise/Conductor: solo asignaciones de su proyecto.
+        // Admin con picker: si scoped existe, filtra por ese proyecto; si null, todos.
+        if (scoped !== null && a.proyecto_id !== scoped) return false;
+        return true;
+      }
     );
 
     const now = new Date();
@@ -85,7 +175,7 @@ export const listWithAssignments = query({
       return null;
     };
 
-    return vehicles.map((v) => {
+    const enriched = vehicles.map((v) => {
       const assignment = pickBest(v._id);
 
       return {
@@ -108,8 +198,13 @@ export const listWithAssignments = query({
         asignacion_estado: assignment?.estado,
         asignacion_fecha: assignment?.fecha_asignacion,
         asignacion_hora_inicio: assignment?.hora_inicio,
+        proyecto_id: assignment?.proyecto_id,
       };
     });
+
+    // Admin: ve todo (o filtrado por proyecto si pasó el arg).
+    // Conductor: ve la flota (necesita su vehículo asignado siempre, no solo cuando la ruta arrancó).
+    return enriched;
   },
 });
 

@@ -7,6 +7,7 @@ import EnterpriseDashboard from './pages/EnterpriseDashboard/EnterpriseDashboard
 import ConductorDashboard from './pages/ConductorDashboard/ConductorDashboard';
 import SeedUsers from './utils/SeedUsers';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ProjectProvider } from './context/ProjectContext';
 import { RiskReportsProvider } from './context/RiskReportsContext';
 import { PersonnelProvider } from './context/PersonnelContext';
 import { FleetProvider } from './context/FleetContext';
@@ -89,27 +90,29 @@ const AppContent = () => {
   };
 
   return (
-    <RiskReportsProvider>
-      <PersonnelProvider>
-        <FleetProvider>
-          <RoutesProvider>
-            <ReportsProvider>
-              <InventoryProvider>
-                <ScheduleProvider>
-                  <CleaningProvider>
-                    <FumigationProvider>
-                      <MaintenanceProvider>
-                        {renderDashboard()}
-                      </MaintenanceProvider>
-                    </FumigationProvider>
-                  </CleaningProvider>
-                </ScheduleProvider>
-              </InventoryProvider>
-            </ReportsProvider>
-          </RoutesProvider>
-        </FleetProvider>
-      </PersonnelProvider>
-    </RiskReportsProvider>
+    <ProjectProvider>
+      <RiskReportsProvider>
+        <PersonnelProvider>
+          <FleetProvider>
+            <RoutesProvider>
+              <ReportsProvider>
+                <InventoryProvider>
+                  <ScheduleProvider>
+                    <CleaningProvider>
+                      <FumigationProvider>
+                        <MaintenanceProvider>
+                          {renderDashboard()}
+                        </MaintenanceProvider>
+                      </FumigationProvider>
+                    </CleaningProvider>
+                  </ScheduleProvider>
+                </InventoryProvider>
+              </ReportsProvider>
+            </RoutesProvider>
+          </FleetProvider>
+        </PersonnelProvider>
+      </RiskReportsProvider>
+    </ProjectProvider>
   );
 }
 

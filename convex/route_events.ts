@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { getScopedProjectId } from "./lib/auth";
 
 // Create route event
 export const add = mutation({
@@ -30,8 +31,18 @@ export const add = mutation({
     detalles: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    let proyecto_id;
+    if (args.asignacion_id) {
+      const a = await ctx.db.get(args.asignacion_id);
+      proyecto_id = a?.proyecto_id;
+    }
+    if (!proyecto_id && args.ruta_id) {
+      const r = await ctx.db.get(args.ruta_id);
+      proyecto_id = r?.proyecto_id;
+    }
     const eventData: any = {
       ...args,
+      proyecto_id,
       timestamp: new Date().toISOString(),
     };
 
@@ -63,11 +74,19 @@ export const getByRoute = query({
   },
 });
 
-// Get recent events (for activity feed)
+// Get recent events (for activity feed). Scoped por proyecto si user no es admin.
 export const getRecent = query({
-  args: { limit: v.optional(v.float64()) },
+  args: { limit: v.optional(v.float64()), proyecto_id: v.optional(v.id("proyectos")) },
   handler: async (ctx, args) => {
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
     const limit = args.limit || 50;
+    if (scoped) {
+      return await ctx.db
+        .query("route_events")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped))
+        .order("desc")
+        .take(limit);
+    }
     return await ctx.db
       .query("route_events")
       .order("desc")

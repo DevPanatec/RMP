@@ -1,9 +1,19 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { getScopedProjectId, requireProjectAccess } from "./lib/auth";
 
 // ========== LUGARES ==========
 export const listLugares = query({
-  handler: async (ctx) => {
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    if (scoped) {
+      return await ctx.db
+        .query("lugares")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped))
+        .filter((q) => q.eq(q.field("activo"), true))
+        .collect();
+    }
     return await ctx.db
       .query("lugares")
       .withIndex("by_activo", (q) => q.eq("activo", true))
@@ -15,8 +25,10 @@ export const addLugar = mutation({
   args: {
     nombre: v.string(),
     descripcion: v.optional(v.string()),
+    proyecto_id: v.id("proyectos"),
   },
   handler: async (ctx, args) => {
+    await requireProjectAccess(ctx, args.proyecto_id);
     return await ctx.db.insert("lugares", {
       ...args,
       activo: true,
@@ -56,8 +68,11 @@ export const deleteLugar = mutation({
 
 // ========== FUMIGATION ASSIGNMENTS ==========
 export const list = query({
-  handler: async (ctx) => {
-    const assignments = await ctx.db.query("fumigation_assignments").collect();
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    const allRaw = await ctx.db.query("fumigation_assignments").collect();
+    const assignments = scoped === null ? allRaw : allRaw.filter((a) => a.proyecto_id === scoped);
 
     // Join con lugares
     const assignmentsWithLugar = await Promise.all(
@@ -252,8 +267,13 @@ export const create = mutation({
     created_by: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const lugar = await ctx.db.get(args.lugar_id);
+    if (!lugar) throw new Error("Lugar no encontrado");
+    if (!lugar.proyecto_id) throw new Error("Lugar sin proyecto_id; ejecuta migración");
+    await requireProjectAccess(ctx, lugar.proyecto_id);
     return await ctx.db.insert("fumigation_assignments", {
       ...args,
+      proyecto_id: lugar.proyecto_id,
       estado: "programada",
     });
   },
@@ -367,12 +387,16 @@ export const deletePhoto = mutation({
 
 // ========== FUMIGATION REPORTS ==========
 export const listReports = query({
-  handler: async (ctx) => {
-    return await ctx.db
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    const all = await ctx.db
       .query("fumigation_reports")
       .withIndex("by_fecha", (q) => q)
       .order("desc")
       .collect();
+    if (scoped === null) return all;
+    return all.filter((r) => r.proyecto_id === scoped);
   },
 });
 
@@ -559,8 +583,13 @@ export const createReport = mutation({
 
     const { fotos_antes_ids, fotos_durante_ids, fotos_despues_ids, ...restArgs } = args;
 
+    // Derivar proyecto_id desde el lugar
+    const lugar = await ctx.db.get(args.lugar_id);
+    const proyecto_id = lugar?.proyecto_id;
+
     return await ctx.db.insert("fumigation_reports", {
       ...restArgs,
+      proyecto_id,
       fotos_antes_ids: fotosAntesIds,
       fotos_durante_ids: fotosDuranteIds,
       fotos_despues_ids: fotosDespuesIds,

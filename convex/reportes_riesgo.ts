@@ -1,23 +1,90 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { getAuthScope, getScopedProjectId } from "./lib/auth";
+
+// Internal: problemas del operador/vehiculo. Externo: entorno (afecta al cliente)
+const TIPOS_INTERNOS = new Set(["mecanico", "combustible", "seguridad", "mantenimiento"]);
+const isExterno = (tipo: string | undefined) => !tipo || !TIPOS_INTERNOS.has(tipo);
+
+const tipoRiesgoValidator = v.union(
+  v.literal("mecanico"),
+  v.literal("combustible"),
+  v.literal("seguridad"),
+  v.literal("mantenimiento"),
+  v.literal("bloqueo_via"),
+  v.literal("seguridad_ciudadana"),
+  v.literal("climatico"),
+  v.literal("manifestacion"),
+  v.literal("accidente"),
+  v.literal("operacional"),
+  v.literal("ambiental"),
+  v.literal("equipo"),
+);
+
+const nivelSeveridadValidator = v.union(
+  v.literal("bajo"),
+  v.literal("medio"),
+  v.literal("alto"),
+  v.literal("critico"),
+);
+
+const estadoValidator = v.union(
+  v.literal("reportado"),
+  v.literal("en_revision"),
+  v.literal("resuelto"),
+  v.literal("pendiente"),
+);
 
 export const list = query({
-  handler: async (ctx) => {
-    return await ctx.db
-      .query("reportes_riesgo")
-      .withIndex("by_fecha", (q) => q)
-      .order("desc")
-      .collect();
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    let rows;
+    if (scoped === null) {
+      rows = await ctx.db
+        .query("reportes_riesgo")
+        .withIndex("by_fecha", (q) => q)
+        .order("desc")
+        .collect();
+    } else {
+      rows = await ctx.db
+        .query("reportes_riesgo")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped))
+        .collect();
+      rows.sort((a, b) => (b.fecha_reporte || "").localeCompare(a.fecha_reporte || ""));
+    }
+    if (scope.isEnterprise) {
+      rows = rows.filter((r) => isExterno(r.tipo_riesgo));
+    }
+    return rows;
   },
 });
 
 export const listWithDetails = query({
-  handler: async (ctx) => {
-    const reportes = await ctx.db
-      .query("reportes_riesgo")
-      .withIndex("by_fecha", (q) => q)
-      .order("desc")
-      .collect();
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    let reportes;
+    if (scoped === null) {
+      reportes = await ctx.db
+        .query("reportes_riesgo")
+        .withIndex("by_fecha", (q) => q)
+        .order("desc")
+        .collect();
+    } else {
+      reportes = await ctx.db
+        .query("reportes_riesgo")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped))
+        .collect();
+      reportes.sort((a, b) => (b.fecha_reporte || "").localeCompare(a.fecha_reporte || ""));
+    }
+
+    // Enterprise solo ve riesgos externos (problemas del entorno que afectan el servicio)
+    if (scope.isEnterprise) {
+      reportes = reportes.filter((r) => isExterno(r.tipo_riesgo));
+    }
 
     // Hacer JOIN manual con empleados, vehiculos y rutas
     const reportesConDetalles = await Promise.all(
@@ -57,9 +124,7 @@ export const listWithDetails = query({
           rutaNombre,
           // Mapear campos para compatibilidad con RiskComponent
           id: reporte._id,
-          tipo: reporte.tipo_riesgo === 'mecanico' || reporte.tipo_riesgo === 'combustible' ||
-                reporte.tipo_riesgo === 'seguridad' || reporte.tipo_riesgo === 'mantenimiento'
-                ? 'interno' : 'externo',
+          tipo: isExterno(reporte.tipo_riesgo) ? 'externo' : 'interno',
           categoria: reporte.tipo_riesgo,
           prioridad: reporte.nivel_severidad === 'critico' ? 'critica' :
                      reporte.nivel_severidad === 'alto' ? 'alta' :
@@ -75,7 +140,7 @@ export const listWithDetails = query({
 });
 
 export const getBySeveridad = query({
-  args: { nivel_severidad: v.string() },
+  args: { nivel_severidad: nivelSeveridadValidator },
   handler: async (ctx, args) => {
     return await ctx.db
       .query("reportes_riesgo")
@@ -88,8 +153,8 @@ export const add = mutation({
   args: {
     titulo: v.string(),
     descripcion: v.string(),
-    tipo_riesgo: v.string(),
-    nivel_severidad: v.string(),
+    tipo_riesgo: tipoRiesgoValidator,
+    nivel_severidad: nivelSeveridadValidator,
     ubicacion: v.optional(v.string()),
     gps_latitud: v.optional(v.number()),
     gps_longitud: v.optional(v.number()),
@@ -120,8 +185,16 @@ export const update = mutation({
     id: v.id("reportes_riesgo"),
     titulo: v.optional(v.string()),
     descripcion: v.optional(v.string()),
-    estado: v.optional(v.string()),
-    nivel_severidad: v.optional(v.string()),
+    estado: v.optional(estadoValidator),
+    nivel_severidad: v.optional(nivelSeveridadValidator),
+    tipo_riesgo: v.optional(tipoRiesgoValidator),
+    ubicacion: v.optional(v.string()),
+    gps_latitud: v.optional(v.number()),
+    gps_longitud: v.optional(v.number()),
+    prioridad: v.optional(v.number()),
+    parada_nombre: v.optional(v.string()),
+    parada_orden: v.optional(v.number()),
+    parada_index: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;

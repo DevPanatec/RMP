@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { getScopedProjectId } from "./lib/auth";
 
 // Generar código único para items de inventario
 export const generateCodigo = query({
@@ -315,6 +316,7 @@ export const asignarDesdeAlmacen = mutation({
     lugar_id: v.id("lugares"),
     cantidad: v.number(),
     usuario_id: v.optional(v.id("perfiles_usuarios")),
+    proyecto_id: v.optional(v.id("proyectos")),
   },
   handler: async (ctx, args) => {
     // Verificar que haya suficiente stock sin asignar
@@ -361,6 +363,10 @@ export const asignarDesdeAlmacen = mutation({
       });
     }
 
+    // Derivar proyecto_id desde el lugar si no se pasó explícito
+    const lugar = await ctx.db.get(args.lugar_id);
+    const proyecto_id = args.proyecto_id ?? lugar?.proyecto_id;
+
     // Registrar movimiento de asignación
     const item = await ctx.db.get(args.item_id);
     await ctx.db.insert("inventario_movimientos", {
@@ -371,6 +377,7 @@ export const asignarDesdeAlmacen = mutation({
       costo_total: item?.precio_unitario ? args.cantidad * item.precio_unitario : undefined,
       lugar_destino_id: args.lugar_id,
       usuario_id: args.usuario_id,
+      proyecto_id,
       fecha: Date.now(),
       notas: "Asignación desde almacén principal",
     });
@@ -420,8 +427,10 @@ export const getMovimientosPorPeriodo = query({
     desde: v.optional(v.number()), // timestamp
     hasta: v.optional(v.number()), // timestamp
     tipo_movimiento: v.optional(v.string()),
+    proyecto_id: v.optional(v.id("proyectos")),
   },
   handler: async (ctx, args) => {
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
     let query = ctx.db.query("inventario_movimientos");
 
     // Filtrar por fecha si se proporciona
@@ -430,6 +439,13 @@ export const getMovimientosPorPeriodo = query({
     }
 
     let movimientos = await query.collect();
+
+    // Filtrar por proyecto (excepto compras que pueden ser globales)
+    if (scoped) {
+      movimientos = movimientos.filter(
+        (m) => m.proyecto_id === scoped || m.tipo_movimiento === "compra"
+      );
+    }
 
     // Filtrar por rango de fechas
     if (args.desde) {

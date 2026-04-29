@@ -1,6 +1,7 @@
 import { query, mutation, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { getScopedProjectId, requireProjectAccess } from "./lib/auth";
 
 // Sync auto-generated geofences for a route's paradas.
 // Deletes previous auto-generated geofences for this ruta, then inserts one per parada.
@@ -42,9 +43,17 @@ async function syncParadaGeofences(
   }
 }
 
-// List all rutas
+// List rutas. Admin: todas (o filtradas por proyecto_id arg). Enterprise: solo las suyas.
 export const list = query({
-  handler: async (ctx) => {
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    if (scoped) {
+      return await ctx.db
+        .query("rutas")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped))
+        .collect();
+    }
     return await ctx.db.query("rutas").collect();
   },
 });
@@ -98,6 +107,8 @@ export const add = mutation({
     estado: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    if (!args.proyecto_id) throw new Error("proyecto_id requerido al crear ruta");
+    await requireProjectAccess(ctx, args.proyecto_id);
     const newId = await ctx.db.insert("rutas", {
       ...args,
       estado: args.estado || "programada",
@@ -155,10 +166,14 @@ export const remove = mutation({
   },
 });
 
-// Get stats
+// Get stats (scoped por proyecto cuando aplica)
 export const getStats = query({
-  handler: async (ctx) => {
-    const rutas = await ctx.db.query("rutas").collect();
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    const rutas = scoped
+      ? await ctx.db.query("rutas").withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped)).collect()
+      : await ctx.db.query("rutas").collect();
 
     const pendientes = rutas.filter(r => r.estado === "pendiente").length;
     const en_progreso = rutas.filter(r => r.estado === "en_progreso").length;

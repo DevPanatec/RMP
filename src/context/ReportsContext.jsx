@@ -1,11 +1,13 @@
 import { createContext, useContext } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useProject } from './ProjectContext';
 
 const ReportsContext = createContext();
 
 export const ReportsProvider = ({ children }) => {
-  const reportsData = useQuery(api.route_reports.list);
+  const { currentProjectId } = useProject();
+  const reportsData = useQuery(api.route_reports.list, { proyecto_id: currentProjectId ?? undefined });
 
   const addReportMutation = useMutation(api.route_reports.add);
 

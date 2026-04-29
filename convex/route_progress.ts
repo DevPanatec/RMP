@@ -1,8 +1,36 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { getScopedProjectId } from "./lib/auth";
+
+// Cleanup admin-only: marca como 'completada' todos los route_progress 'en_progreso'.
+// Útil para limpiar leaks históricos. Llamar manual una vez:
+//   npx convex run route_progress:cleanupStaleInProgress
+export const cleanupStaleInProgress = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const stale = await ctx.db
+      .query("route_progress")
+      .withIndex("by_estado", (q) => q.eq("estado", "en_progreso"))
+      .collect();
+    let count = 0;
+    for (const sp of stale) {
+      await ctx.db.patch(sp._id, { estado: "completada" });
+      count++;
+    }
+    return { closed: count };
+  },
+});
 
 export const list = query({
-  handler: async (ctx) => {
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    if (scoped) {
+      return await ctx.db
+        .query("route_progress")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped))
+        .collect();
+    }
     return await ctx.db.query("route_progress").collect();
   },
 });
@@ -42,6 +70,18 @@ export const start = mutation({
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
+    // Cerrar progress en_progreso huérfanos del mismo conductor o del mismo vehículo.
+    // Evita leak de cientos de filas en_progreso cuando se inicia una nueva ruta sin completar la anterior.
+    const stale = await ctx.db
+      .query("route_progress")
+      .withIndex("by_estado", (q) => q.eq("estado", "en_progreso"))
+      .collect();
+    for (const sp of stale) {
+      if (sp.conductor_nombre === args.conductor_nombre || sp.vehiculo_id === args.vehiculo_id) {
+        await ctx.db.patch(sp._id, { estado: "completada" });
+      }
+    }
+
     // Sync assignment only for one-off (non-recurring) — recurring keeps `programada`
     const assignment = await ctx.db.get(args.asignacion_id);
     const isRecurring = Array.isArray(assignment?.dias_semana) && assignment.dias_semana.length > 0;
@@ -52,8 +92,20 @@ export const start = mutation({
       });
     }
 
+    // Derivar proyecto_id: asignación primero, luego ruta como fallback
+    let proyecto_id = assignment?.proyecto_id;
+    if (!proyecto_id) {
+      const ruta = await ctx.db.get(args.ruta_id);
+      proyecto_id = ruta?.proyecto_id;
+    }
+    // Backfill: si encontramos proyecto_id pero la asignación no lo tenía, parchearla
+    if (proyecto_id && assignment && !assignment.proyecto_id) {
+      await ctx.db.patch(args.asignacion_id, { proyecto_id });
+    }
+
     return await ctx.db.insert("route_progress", {
       ...args,
+      proyecto_id,
       fecha_inicio: now.toISOString(),
       estado: "en_progreso",
     });

@@ -1,9 +1,19 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { getScopedProjectId, requireProjectAccess } from "./lib/auth";
 
 // ========== SALAS ==========
 export const listSalas = query({
-  handler: async (ctx) => {
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    if (scoped) {
+      return await ctx.db
+        .query("salas")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped))
+        .filter((q) => q.eq(q.field("activo"), true))
+        .collect();
+    }
     return await ctx.db
       .query("salas")
       .withIndex("by_activo", (q) => q.eq("activo", true))
@@ -15,8 +25,10 @@ export const addSala = mutation({
   args: {
     nombre: v.string(),
     descripcion: v.optional(v.string()),
+    proyecto_id: v.id("proyectos"),
   },
   handler: async (ctx, args) => {
+    await requireProjectAccess(ctx, args.proyecto_id);
     return await ctx.db.insert("salas", {
       ...args,
       activo: true,
@@ -58,8 +70,12 @@ export const addArea = mutation({
 
 // ========== CLEANING ASSIGNMENTS ==========
 export const listAssignments = query({
-  handler: async (ctx) => {
-    return await ctx.db.query("cleaning_assignments").collect();
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    const all = await ctx.db.query("cleaning_assignments").collect();
+    if (scoped === null) return all;
+    return all.filter((a) => a.proyecto_id === scoped);
   },
 });
 
@@ -93,8 +109,13 @@ export const addAssignment = mutation({
     created_by: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const sala = await ctx.db.get(args.sala_id);
+    if (!sala) throw new Error("Sala no encontrada");
+    if (!sala.proyecto_id) throw new Error("Sala sin proyecto_id; ejecuta migración");
+    await requireProjectAccess(ctx, sala.proyecto_id);
     return await ctx.db.insert("cleaning_assignments", {
       ...args,
+      proyecto_id: sala.proyecto_id,
       estado: "pendiente",
     });
   },
@@ -146,12 +167,16 @@ export const addPhoto = mutation({
 
 // ========== CLEANING REPORTS ==========
 export const listReports = query({
-  handler: async (ctx) => {
-    return await ctx.db
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    const all = await ctx.db
       .query("cleaning_reports")
       .withIndex("by_fecha", (q) => q)
       .order("desc")
       .collect();
+    if (scoped === null) return all;
+    return all.filter((r) => r.proyecto_id === scoped);
   },
 });
 
@@ -291,6 +316,9 @@ export const createReport = mutation({
     fecha_completacion: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("cleaning_reports", args);
+    // Derivar proyecto_id desde la sala
+    const sala = await ctx.db.get(args.sala_id);
+    const proyecto_id = sala?.proyecto_id;
+    return await ctx.db.insert("cleaning_reports", { ...args, proyecto_id });
   },
 });

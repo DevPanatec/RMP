@@ -1,10 +1,20 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { getScopedProjectId, getAuthScope } from "./lib/auth";
 
 // ========== MAINTENANCE TASKS ==========
+// Admin: ve todas. Enterprise: ve las de su proyecto + las globales (proyecto_id null).
 export const listTasks = query({
-  handler: async (ctx) => {
-    return await ctx.db.query("maintenance_tasks").collect();
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    const all = await ctx.db.query("maintenance_tasks").collect();
+    if (scope.isAdmin) {
+      if (args.proyecto_id) return all.filter((t) => t.proyecto_id === args.proyecto_id);
+      return all;
+    }
+    if (!scope.proyectoId) return all.filter((t) => !t.proyecto_id);
+    return all.filter((t) => !t.proyecto_id || t.proyecto_id === scope.proyectoId);
   },
 });
 
@@ -40,6 +50,7 @@ export const addTask = mutation({
     mecanico: v.optional(v.string()),
     notas: v.optional(v.string()),
     estado: v.optional(v.string()),
+    proyecto_id: v.optional(v.id("proyectos")),
   },
   handler: async (ctx, args) => {
     const { estado, ...rest } = args;
@@ -64,6 +75,7 @@ export const updateTask = mutation({
     costo: v.optional(v.number()),
     mecanico: v.optional(v.string()),
     notas: v.optional(v.string()),
+    proyecto_id: v.optional(v.id("proyectos")),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
@@ -210,13 +222,22 @@ export const deletePhoto = mutation({
 });
 
 // ========== MAINTENANCE REPORTS ==========
+// Admin: ve todos. Enterprise: ve los de su proyecto + los globales.
 export const listReports = query({
-  handler: async (ctx) => {
-    return await ctx.db
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    const all = await ctx.db
       .query("maintenance_reports")
       .withIndex("by_fecha", (q) => q)
       .order("desc")
       .collect();
+    if (scope.isAdmin) {
+      if (args.proyecto_id) return all.filter((r) => r.proyecto_id === args.proyecto_id);
+      return all;
+    }
+    if (!scope.proyectoId) return all.filter((r) => !r.proyecto_id);
+    return all.filter((r) => !r.proyecto_id || r.proyecto_id === scope.proyectoId);
   },
 });
 

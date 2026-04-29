@@ -29,6 +29,14 @@ const RiskComponent = ({ userType = 'admin' }) => {
     }
   };
 
+  const formatUbicacion = (risk) => {
+    if (risk?.ubicacion) return risk.ubicacion;
+    if (risk?.gps_latitud != null && risk?.gps_longitud != null) {
+      return `Lat: ${Number(risk.gps_latitud).toFixed(5)}, Lng: ${Number(risk.gps_longitud).toFixed(5)}`;
+    }
+    return 'No disponible';
+  };
+
   const getPriorityIcon = (priority) => {
     switch(priority) {
       case 'critica': return <AlertTriangle size={14} />;
@@ -157,7 +165,7 @@ const RiskComponent = ({ userType = 'admin' }) => {
                         <MapPin size={14} />
                         <div className="info-content">
                           <span className="info-label">Ubicación</span>
-                          <span className="info-value">{risk.ubicacion}</span>
+                          <span className="info-value">{formatUbicacion(risk)}</span>
                         </div>
                       </div>
                       {risk.parada_nombre && (
@@ -272,7 +280,7 @@ const RiskComponent = ({ userType = 'admin' }) => {
                   </div>
                   <div className="detail-item">
                     <span className="detail-label"><MapPin size={14} /> Ubicación:</span>
-                    <span className="detail-value">{selectedReport.ubicacion}</span>
+                    <span className="detail-value">{formatUbicacion(selectedReport)}</span>
                   </div>
                   {selectedReport.parada_nombre && (
                     <div className="detail-item parada-detail-highlight">

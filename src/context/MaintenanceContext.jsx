@@ -1,11 +1,13 @@
 import { createContext, useContext } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useProject } from './ProjectContext';
 
 const MaintenanceContext = createContext();
 
 export const MaintenanceProvider = ({ children }) => {
-  const tasksData = useQuery(api.maintenance.listTasks);
+  const { currentProjectId } = useProject();
+  const tasksData = useQuery(api.maintenance.listTasks, { proyecto_id: currentProjectId ?? undefined });
   const alertsData = useQuery(api.maintenance.listAlerts);
 
   const addTaskMutation = useMutation(api.maintenance.addTask);

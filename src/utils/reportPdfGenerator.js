@@ -55,6 +55,14 @@ const COLORS = {
 // ============================================
 // HELPERS
 // ============================================
+const formatProjectLine = (proyecto) =>
+  proyecto?.nombre ? `Proyecto: ${proyecto.nombre}` : null;
+
+const projectFilenameSuffix = (proyecto) =>
+  proyecto?.nombre
+    ? `_${String(proyecto.nombre).replace(/[^a-zA-Z0-9]+/g, '-')}`
+    : '';
+
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return new Date();
   if (dateStr instanceof Date) return dateStr;
@@ -787,8 +795,10 @@ const buildIndexData = (data, selectedServices, dateRange) => {
 /**
  * Genera PDF de reportes de Recoleccion
  */
-export const generateRecoleccionPDFComplete = async (reports, dateRange, onProgress = null) => {
+export const generateRecoleccionPDFComplete = async (reports, dateRange, onProgress = null, proyecto = null) => {
   const { desde, hasta } = dateRange;
+  const proyectoLine = formatProjectLine(proyecto);
+  const fileSuffix = projectFilenameSuffix(proyecto);
 
   // Cargar logos de certificación + logo de recolección
   const certLogos = await loadCertificationLogos('recoleccion');
@@ -800,12 +810,13 @@ export const generateRecoleccionPDFComplete = async (reports, dateRange, onProgr
       header: createCertificationHeader(certLogos),
       content: [
         { text: 'REPORTES DE RECOLECCION', style: 'header', alignment: 'center' },
+        ...(proyectoLine ? [{ text: proyectoLine, alignment: 'center', margin: [0, 0, 0, 4] }] : []),
         { text: `Periodo: ${formatDate(desde)} - ${formatDate(hasta)}`, alignment: 'center', margin: [0, 0, 0, 20] },
         { text: 'No hay reportes en el periodo seleccionado', style: 'noData', margin: [0, 50, 0, 0] }
       ],
       styles: defaultStyles
     };
-    pdfMake.createPdf(docDefinition).download(`Recoleccion_${desde}_${hasta}.pdf`);
+    pdfMake.createPdf(docDefinition).download(`Recoleccion${fileSuffix}_${desde}_${hasta}.pdf`);
     return { success: true, count: 0 };
   }
 
@@ -997,7 +1008,7 @@ export const generateRecoleccionPDFComplete = async (reports, dateRange, onProgr
     content,
     footer: (currentPage, pageCount) => ({
       columns: [
-        { text: 'RMP - Reportes de Recoleccion', fontSize: 8, color: COLORS.textSecondary },
+        { text: `RMP - Reportes de Recoleccion${proyectoLine ? ` · ${proyecto.nombre}` : ''}`, fontSize: 8, color: COLORS.textSecondary },
         { text: `${formatDate(desde)} - ${formatDate(hasta)}`, fontSize: 8, color: COLORS.textSecondary, alignment: 'center' },
         { text: `Pagina ${currentPage} de ${pageCount}`, fontSize: 8, color: COLORS.textSecondary, alignment: 'right' }
       ],
@@ -1007,15 +1018,17 @@ export const generateRecoleccionPDFComplete = async (reports, dateRange, onProgr
     pageMargins: [40, 70, 40, 50] // Reducido para más espacio de contenido
   };
 
-  pdfMake.createPdf(docDefinition).download(`Recoleccion_${desde}_${hasta}.pdf`);
+  pdfMake.createPdf(docDefinition).download(`Recoleccion${fileSuffix}_${desde}_${hasta}.pdf`);
   return { success: true, count: filtered.length };
 };
 
 /**
  * Genera PDF de reportes de Limpieza
  */
-export const generateLimpiezaPDFComplete = async (reports, dateRange, onProgress = null) => {
+export const generateLimpiezaPDFComplete = async (reports, dateRange, onProgress = null, proyecto = null) => {
   const { desde, hasta } = dateRange;
+  const proyectoLine = formatProjectLine(proyecto);
+  const fileSuffix = projectFilenameSuffix(proyecto);
 
   // Cargar logos de certificación + logo de limpieza
   const certLogos = await loadCertificationLogos('limpieza');
@@ -1032,7 +1045,7 @@ export const generateLimpiezaPDFComplete = async (reports, dateRange, onProgress
       ],
       styles: defaultStyles
     };
-    pdfMake.createPdf(docDefinition).download(`Limpieza_${desde}_${hasta}.pdf`);
+    pdfMake.createPdf(docDefinition).download(`Limpieza${fileSuffix}_${desde}_${hasta}.pdf`);
     return { success: true, count: 0 };
   }
 
@@ -1094,15 +1107,17 @@ export const generateLimpiezaPDFComplete = async (reports, dateRange, onProgress
     pageMargins: [40, 70, 40, 50] // Reducido para más espacio de contenido
   };
 
-  pdfMake.createPdf(docDefinition).download(`Limpieza_${desde}_${hasta}.pdf`);
+  pdfMake.createPdf(docDefinition).download(`Limpieza${fileSuffix}_${desde}_${hasta}.pdf`);
   return { success: true, count: filtered.length };
 };
 
 /**
  * Genera PDF de reportes de Fumigacion
  */
-export const generateFumigacionPDFComplete = async (reports, dateRange, onProgress = null) => {
+export const generateFumigacionPDFComplete = async (reports, dateRange, onProgress = null, proyecto = null) => {
   const { desde, hasta } = dateRange;
+  const proyectoLine = formatProjectLine(proyecto);
+  const fileSuffix = projectFilenameSuffix(proyecto);
 
   // Cargar logos de certificación + logo de fumigación
   const certLogos = await loadCertificationLogos('fumigacion');
@@ -1119,7 +1134,7 @@ export const generateFumigacionPDFComplete = async (reports, dateRange, onProgre
       ],
       styles: defaultStyles
     };
-    pdfMake.createPdf(docDefinition).download(`Fumigacion_${desde}_${hasta}.pdf`);
+    pdfMake.createPdf(docDefinition).download(`Fumigacion${fileSuffix}_${desde}_${hasta}.pdf`);
     return { success: true, count: 0 };
   }
 
@@ -1200,14 +1215,16 @@ export const generateFumigacionPDFComplete = async (reports, dateRange, onProgre
     pageMargins: [40, 70, 40, 50] // Reducido para más espacio de contenido
   };
 
-  pdfMake.createPdf(docDefinition).download(`Fumigacion_${desde}_${hasta}.pdf`);
+  pdfMake.createPdf(docDefinition).download(`Fumigacion${fileSuffix}_${desde}_${hasta}.pdf`);
   return { success: true, count: filtered.length };
 };
 
 /**
  * Genera PDF de reportes de Mantenimiento
  */
-export const generateMantenimientoPDFComplete = async (reports, dateRange, onProgress = null) => {
+export const generateMantenimientoPDFComplete = async (reports, dateRange, onProgress = null, proyecto = null) => {
+  const proyectoLine = formatProjectLine(proyecto);
+  const fileSuffix = projectFilenameSuffix(proyecto);
   const { desde, hasta } = dateRange;
 
   // Cargar logos de certificación + logo de mantenimiento
@@ -1225,7 +1242,7 @@ export const generateMantenimientoPDFComplete = async (reports, dateRange, onPro
       ],
       styles: defaultStyles
     };
-    pdfMake.createPdf(docDefinition).download(`Mantenimiento_${desde}_${hasta}.pdf`);
+    pdfMake.createPdf(docDefinition).download(`Mantenimiento${fileSuffix}_${desde}_${hasta}.pdf`);
     return { success: true, count: 0 };
   }
 
@@ -1316,7 +1333,7 @@ export const generateMantenimientoPDFComplete = async (reports, dateRange, onPro
     pageMargins: [40, 70, 40, 50] // Reducido para más espacio de contenido
   };
 
-  pdfMake.createPdf(docDefinition).download(`Mantenimiento_${desde}_${hasta}.pdf`);
+  pdfMake.createPdf(docDefinition).download(`Mantenimiento${fileSuffix}_${desde}_${hasta}.pdf`);
   return { success: true, count: filtered.length };
 };
 

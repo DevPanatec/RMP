@@ -1,9 +1,30 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { getAuthScope } from "./lib/auth";
 
 export const list = query({
   handler: async (ctx) => {
     return await ctx.db.query("proyectos").collect();
+  },
+});
+
+// Devuelve los proyectos accesibles según el rol del user actual.
+// Admin → todos los proyectos activos.
+// Enterprise/Conductor → solo el proyecto asignado en su perfil (si existe).
+// Sin sesión → array vacío.
+export const listAccessible = query({
+  handler: async (ctx) => {
+    const scope = await getAuthScope(ctx);
+    if (!scope.perfil) return [];
+    if (scope.isAdmin) {
+      return await ctx.db
+        .query("proyectos")
+        .withIndex("by_activo", (q) => q.eq("activo", true))
+        .collect();
+    }
+    if (!scope.proyectoId) return [];
+    const proyecto = await ctx.db.get(scope.proyectoId);
+    return proyecto ? [proyecto] : [];
   },
 });
 

@@ -103,19 +103,26 @@ const formatTimeAgo = (timestamp) => {
 };
 
 /**
- * Vehicle movement status based on speed and last update:
- * - 'moving': Advancing (speed > 0)
- * - 'stopped': Stopped (no movement 1-3 minutes)
- * - 'parked': Parked (no movement > 3 minutes)
+ * Vehicle movement status — basado en último ping GPS Y velocidad.
+ * - 'offline': sin ping reciente (>10 min) o nunca → datos cacheados no son confiables
+ * - 'moving': ping reciente Y speed > 0
+ * - 'stopped': ping reciente, sin movimiento (1-3 min sin update)
+ * - 'parked': ping algo viejo (3-10 min)
  */
 const getVehicleMovementStatus = (vehicle) => {
   const now = Date.now();
   const lastUpdate = vehicle.gps_ultima_actualizacion || vehicle.ultimaActualizacion;
+  if (!lastUpdate) return 'offline';
   const lastUpdateTime = typeof lastUpdate === 'number' ? lastUpdate : new Date(lastUpdate).getTime();
+  if (Number.isNaN(lastUpdateTime)) return 'offline';
   const timeSinceUpdate = now - lastUpdateTime;
 
   const ONE_MINUTE = 60 * 1000;
   const THREE_MINUTES = 3 * 60 * 1000;
+  const TEN_MINUTES = 10 * 60 * 1000;
+
+  // Ping viejo → offline. Ignoramos velocidad cacheada (puede ser de hace días).
+  if (timeSinceUpdate > TEN_MINUTES) return 'offline';
 
   const speed = vehicle.gps_velocidad || vehicle.velocidad || 0;
 
@@ -129,7 +136,8 @@ const getVehicleMovementStatus = (vehicle) => {
 const movementColors = {
   moving: { primary: '#10b981', glow: 'rgba(16, 185, 129, 0.5)', label: 'En movimiento' },
   stopped: { primary: '#f59e0b', glow: 'rgba(245, 158, 11, 0.5)', label: 'Detenido' },
-  parked: { primary: '#6b7280', glow: 'rgba(107, 114, 128, 0.4)', label: 'Parqueado' }
+  parked: { primary: '#6b7280', glow: 'rgba(107, 114, 128, 0.4)', label: 'Parqueado' },
+  offline: { primary: '#9ca3af', glow: 'rgba(156, 163, 175, 0.3)', label: 'Sin señal' }
 };
 
 /**
@@ -1510,7 +1518,131 @@ const MapLibreComponent = ({
 
               {/* Scrollable Content */}
               <div className="truck-modal-content-v2">
-                {/* GPS Real-time Section */}
+                {/* === RUTA EN CURSO / PRÓXIMA — PRIORIDAD #1 === */}
+                {(() => {
+                  const asigEstado = truck.asignacion_estado;
+                  const asigFecha = truck.asignacion_fecha;
+                  const asigHora = truck.asignacion_hora_inicio;
+
+                  if (!currentRoute) {
+                    return (
+                      <div className="info-section">
+                        <div className="section-title">
+                          <Navigation size={16} />
+                          <span>Ruta</span>
+                        </div>
+                        <div className="no-assignment-message">
+                          <Calendar size={24} />
+                          <p>Sin asignación</p>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  const paradas = currentRoute.paradas || [];
+                  const completedCount = completedStopsData.filter(s => s.completada !== false).length;
+                  const skippedCount = completedStopsData.filter(s => s.completada === false).length;
+                  const isLive = asigEstado === 'en_progreso';
+                  const fechaLabel = asigFecha ? (() => {
+                    const [y, m, d] = asigFecha.split('-');
+                    return d && m && y ? `${d}/${m}/${y}` : asigFecha;
+                  })() : null;
+
+                  return (
+                    <div className="info-section">
+                      <div className="section-title">
+                        <Navigation size={16} />
+                        <span>{isLive ? 'Ruta en curso' : 'Próxima ruta'}</span>
+                        {isLive && (
+                          <span className="status-pill status-pill--online" style={{ marginLeft: 'auto' }}>
+                            <span className="pill-dot"></span>En vivo
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="info-rows">
+                        <div className="info-row-v2">
+                          <span className="info-label">Ruta</span>
+                          <span className="info-value">{currentRoute.nombre}</span>
+                        </div>
+                        {isLive ? (
+                          <div className="info-row-v2">
+                            <span className="info-label">Progreso</span>
+                            <span className="info-value" style={{ fontWeight: 600 }}>
+                              {completedCount} de {paradas.length} paradas
+                              {skippedCount > 0 && (
+                                <span style={{ color: 'var(--color-warning)', marginLeft: 6, fontSize: 12 }}>
+                                  ({skippedCount} omitida{skippedCount > 1 ? 's' : ''})
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        ) : (
+                          <>
+                            {fechaLabel && (
+                              <div className="info-row-v2">
+                                <span className="info-label">Fecha</span>
+                                <span className="info-value">{fechaLabel}</span>
+                              </div>
+                            )}
+                            {asigHora && (
+                              <div className="info-row-v2">
+                                <span className="info-label">Hora inicio</span>
+                                <span className="info-value">{asigHora}</span>
+                              </div>
+                            )}
+                            <div className="info-row-v2">
+                              <span className="info-label">Paradas</span>
+                              <span className="info-value">{paradas.length}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {paradas.length > 0 && (
+                        <div className="route-stops-list">
+                          <div className="stops-list-header"><span>Paradas</span></div>
+                          <div className="stops-list-items">
+                            {paradas.map((parada, idx) => {
+                              const completedStop = completedStopsData.find(cs => cs.index === idx);
+                              const isCompleted = completedStop && completedStop.completada !== false;
+                              const isSkipped = completedStop && completedStop.completada === false;
+                              const isCurrent = isLive && !isCompleted && !isSkipped && idx === completedCount + skippedCount;
+                              const cls = isSkipped ? 'skipped' : isCompleted ? 'completed' : isCurrent ? 'current' : 'pending';
+
+                              return (
+                                <div key={idx} className={`stop-list-item ${cls}`}>
+                                  <div className="stop-number-badge">{idx + 1}</div>
+                                  <div className="stop-info">
+                                    <div className="stop-name">{parada.nombre || parada.direccion || `Parada ${idx + 1}`}</div>
+                                    {parada.direccion && parada.nombre && parada.direccion !== parada.nombre && (
+                                      <div className="stop-address">{parada.direccion}</div>
+                                    )}
+                                    {isCompleted && completedStop.timestamp && (
+                                      <div className="stop-time">
+                                        <CheckCircle size={11} /> Completada {completedStop.timestamp}
+                                      </div>
+                                    )}
+                                    {isSkipped && (
+                                      <div className="stop-skip-reason">
+                                        <AlertTriangle size={12} /> {completedStop.motivo_no_completada || 'No completada'}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="stop-status-icon">
+                                    {isSkipped ? <AlertTriangle size={16} /> : isCompleted ? <CheckCircle size={16} /> : <Clock size={16} />}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* === GPS Real-time === */}
                 {hasGPS && (
                   <div className="info-section">
                     <div className="section-title">
@@ -1529,8 +1661,14 @@ const MapLibreComponent = ({
                       <div className="stat-box">
                         <div className="stat-icon-small"><Gauge size={18} /></div>
                         <div className="stat-data">
-                          <span className="stat-number">{truck.gps_velocidad ?? 0}</span>
-                          <span className="stat-unit">km/h</span>
+                          {typeof truck.gps_velocidad === 'number' ? (
+                            <>
+                              <span className="stat-number">{Math.round(truck.gps_velocidad)}</span>
+                              <span className="stat-unit">km/h</span>
+                            </>
+                          ) : (
+                            <span className="stat-number">—</span>
+                          )}
                         </div>
                         <span className="stat-label-small">Velocidad</span>
                       </div>
@@ -1538,8 +1676,14 @@ const MapLibreComponent = ({
                       <div className="stat-box">
                         <div className="stat-icon-small"><Signal size={18} /></div>
                         <div className="stat-data">
-                          <span className="stat-number">{truck.gps_senal ?? '—'}</span>
-                          <span className="stat-unit">%</span>
+                          {typeof truck.gps_senal === 'number' ? (
+                            <>
+                              <span className="stat-number">{truck.gps_senal}</span>
+                              <span className="stat-unit">%</span>
+                            </>
+                          ) : (
+                            <span className="stat-number">—</span>
+                          )}
                         </div>
                         <span className="stat-label-small">Señal</span>
                       </div>
@@ -1548,7 +1692,7 @@ const MapLibreComponent = ({
                         <div className="stat-icon-small"><Clock size={18} /></div>
                         <div className="stat-data">
                           <span className="stat-number-text">
-                            {formatTimeAgo(truck.gps_ultima_actualizacion)}
+                            {truck.gps_ultima_actualizacion ? formatTimeAgo(truck.gps_ultima_actualizacion) : '—'}
                           </span>
                         </div>
                         <span className="stat-label-small">Última señal</span>
@@ -1597,7 +1741,6 @@ const MapLibreComponent = ({
                   </div>
                 )}
 
-                {/* No GPS configured */}
                 {!hasGPS && (
                   <div className="info-section">
                     <div className="section-title">
@@ -1611,11 +1754,11 @@ const MapLibreComponent = ({
                   </div>
                 )}
 
-                {/* Operative Status Section */}
+                {/* === Estado operativo + info vehículo (combinada y compacta) === */}
                 <div className="info-section">
                   <div className="section-title">
                     <Truck size={16} />
-                    <span>Estado Operativo</span>
+                    <span>Información del Vehículo</span>
                   </div>
 
                   <div className="info-rows">
@@ -1625,186 +1768,32 @@ const MapLibreComponent = ({
                         {displayEstado}
                       </span>
                     </div>
-
                     {truck.conductor && (
                       <div className="info-row-v2">
                         <span className="info-label">Conductor</span>
                         <span className="info-value">{truck.conductor}</span>
                       </div>
                     )}
+                    {truck.marca && (
+                      <div className="info-row-v2">
+                        <span className="info-label">Marca</span>
+                        <span className="info-value">{truck.marca}</span>
+                      </div>
+                    )}
+                    {truck.modelo && (
+                      <div className="info-row-v2">
+                        <span className="info-label">Modelo</span>
+                        <span className="info-value">{truck.modelo}</span>
+                      </div>
+                    )}
+                    {truck.anio && (
+                      <div className="info-row-v2">
+                        <span className="info-label">Año</span>
+                        <span className="info-value">{truck.anio}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                {/* Route Status Section - depends on assignment estado */}
-                {(() => {
-                  const asigEstado = truck.asignacion_estado;
-                  const asigFecha = truck.asignacion_fecha;
-                  const asigHora = truck.asignacion_hora_inicio;
-
-                  if (!currentRoute) {
-                    return (
-                      <div className="info-section">
-                        <div className="section-title">
-                          <Navigation size={16} />
-                          <span>Ruta</span>
-                        </div>
-                        <div className="no-assignment-message">
-                          <Calendar size={24} />
-                          <p>Sin asignación</p>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // En vivo — ruta en curso con progreso real
-                  if (asigEstado === 'en_progreso') {
-                    const paradas = currentRoute.paradas || [];
-                    const completedCount = completedStopsData.filter(s => s.completada !== false).length;
-                    const skippedCount = completedStopsData.filter(s => s.completada === false).length;
-
-                    return (
-                      <div className="info-section">
-                        <div className="section-title">
-                          <Navigation size={16} />
-                          <span>Ruta en curso</span>
-                          <span className="status-pill status-pill--online" style={{ marginLeft: 'auto' }}>
-                            <span className="pill-dot"></span>En vivo
-                          </span>
-                        </div>
-
-                        <div className="info-rows">
-                          <div className="info-row-v2">
-                            <span className="info-label">Ruta</span>
-                            <span className="info-value">{currentRoute.nombre}</span>
-                          </div>
-
-                          <div className="info-row-v2">
-                            <span className="info-label">Progreso</span>
-                            <span className="info-value" style={{ fontWeight: 600 }}>
-                              {completedCount} de {paradas.length} paradas
-                              {skippedCount > 0 && (
-                                <span style={{ color: 'var(--color-warning)', marginLeft: 6, fontSize: 12 }}>
-                                  ({skippedCount} omitida{skippedCount > 1 ? 's' : ''})
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        </div>
-
-                        {paradas.length > 0 && (
-                          <div className="route-stops-list">
-                            <div className="stops-list-header"><span>Paradas</span></div>
-                            <div className="stops-list-items">
-                              {paradas.slice(0, 8).map((parada, idx) => {
-                                const completedStop = completedStopsData.find(cs => cs.index === idx);
-                                const isCompleted = completedStop && completedStop.completada !== false;
-                                const isSkipped = completedStop && completedStop.completada === false;
-
-                                return (
-                                  <div key={idx} className={`stop-list-item ${isSkipped ? 'skipped' : isCompleted ? 'completed' : 'pending'}`}>
-                                    <div className="stop-number-badge">{idx + 1}</div>
-                                    <div className="stop-info">
-                                      <div className="stop-name">{parada.nombre || parada.direccion}</div>
-                                      {isCompleted && completedStop.timestamp && (
-                                        <div className="stop-time">{completedStop.timestamp}</div>
-                                      )}
-                                      {isSkipped && (
-                                        <div className="stop-skip-reason">
-                                          <AlertTriangle size={12} /> {completedStop.motivo_no_completada || 'No completada'}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="stop-status-icon">
-                                      {isSkipped ? <AlertTriangle size={16} /> : isCompleted ? <CheckCircle size={16} /> : <Clock size={16} />}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                              {paradas.length > 8 && (
-                                <div className="stops-more">
-                                  +{paradas.length - 8} paradas más
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  // Programada — próxima ruta (sin progreso, solo info)
-                  const paradasCount = (currentRoute.paradas || []).length;
-                  const fechaLabel = asigFecha ? (() => {
-                    const [y, m, d] = asigFecha.split('-');
-                    return d && m && y ? `${d}/${m}/${y}` : asigFecha;
-                  })() : null;
-
-                  return (
-                    <div className="info-section">
-                      <div className="section-title">
-                        <Calendar size={16} />
-                        <span>Próxima ruta</span>
-                      </div>
-
-                      <div className="info-rows">
-                        <div className="info-row-v2">
-                          <span className="info-label">Ruta</span>
-                          <span className="info-value">{currentRoute.nombre}</span>
-                        </div>
-
-                        {fechaLabel && (
-                          <div className="info-row-v2">
-                            <span className="info-label">Fecha</span>
-                            <span className="info-value">{fechaLabel}</span>
-                          </div>
-                        )}
-
-                        {asigHora && (
-                          <div className="info-row-v2">
-                            <span className="info-label">Hora inicio</span>
-                            <span className="info-value">{asigHora}</span>
-                          </div>
-                        )}
-
-                        <div className="info-row-v2">
-                          <span className="info-label">Paradas</span>
-                          <span className="info-value">{paradasCount}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-
-                {/* Vehicle Info Section */}
-                {(truck.marca || truck.modelo || truck.tipo || truck.anio) && (
-                  <div className="info-section">
-                    <div className="section-title">
-                      <CheckCircle size={16} />
-                      <span>Información del Vehículo</span>
-                    </div>
-
-                    <div className="info-rows">
-                      {truck.marca && (
-                        <div className="info-row-v2">
-                          <span className="info-label">Marca</span>
-                          <span className="info-value">{truck.marca}</span>
-                        </div>
-                      )}
-                      {truck.modelo && (
-                        <div className="info-row-v2">
-                          <span className="info-label">Modelo</span>
-                          <span className="info-value">{truck.modelo}</span>
-                        </div>
-                      )}
-                      {truck.anio && (
-                        <div className="info-row-v2">
-                          <span className="info-label">Año</span>
-                          <span className="info-value">{truck.anio}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>,

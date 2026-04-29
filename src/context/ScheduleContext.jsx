@@ -1,15 +1,33 @@
 import { createContext, useContext } from 'react';
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import { useProject } from './ProjectContext';
 
 const ScheduleContext = createContext();
 
 export const ScheduleProvider = ({ children }) => {
-  const assignmentsData = useQuery(api.asignaciones.list);
+  const { currentProjectId } = useProject();
+  const convex = useConvex();
+  const assignmentsData = useQuery(api.asignaciones.list, { proyecto_id: currentProjectId ?? undefined });
 
   const addAssignmentMutation = useMutation(api.asignaciones.add);
   const updateAssignmentMutation = useMutation(api.asignaciones.update);
   const deleteAssignmentMutation = useMutation(api.asignaciones.remove);
+
+  // Verifica conflictos de horario antes de crear (no bloquea, solo informa).
+  // El caller debe mostrar warning al user y luego llamar addAssignment con confirmConflict=true.
+  const checkConflicts = async ({ vehiculo_id, fecha, hora_inicio, hora_fin, excluir_asignacion_id }) => {
+    if (!vehiculo_id || !fecha || !hora_inicio || !hora_fin) {
+      return { hayConflicto: false, conflictos: [] };
+    }
+    return await convex.query(api.asignaciones.checkScheduleConflicts, {
+      vehiculo_id,
+      fecha,
+      hora_inicio,
+      hora_fin,
+      excluir_asignacion_id,
+    });
+  };
 
   const assignments = assignmentsData || [];
   const loading = assignmentsData === undefined;
@@ -65,6 +83,7 @@ export const ScheduleProvider = ({ children }) => {
     addAssignment,
     updateAssignment,
     deleteAssignment,
+    checkConflicts,
     getDayNameFromDate,
     getStartOfWeekFromDate,
   };
