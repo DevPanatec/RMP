@@ -270,7 +270,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   const { newEventIds, newAlertIds } = useMonitoringNotifications(recentActivity, displayAlerts);
 
   const isViewer = userRole === 'viewer' || user?.tipo === 'viewer';
-  const VIEWER_ALLOWED_TABS = ['dashboard', 'operaciones'];
+  const VIEWER_ALLOWED_TABS = ['dashboard', 'operaciones', 'riesgos'];
 
   const handleTabChange = (newTab, defaultSubTab = '') => {
     if (isViewer && !VIEWER_ALLOWED_TABS.includes(newTab)) return;
@@ -511,8 +511,8 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
 
 
   const renderContent = () => {
-    // Viewer solo ve dashboard + operaciones. Defensa en profundidad.
-    if (isViewer && activeTab !== 'dashboard' && activeTab !== 'operaciones') {
+    // Viewer solo ve dashboard + operaciones + riesgos. Defensa en profundidad.
+    if (isViewer && !VIEWER_ALLOWED_TABS.includes(activeTab)) {
       return null;
     }
     switch (activeTab) {
@@ -794,14 +794,11 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             {isViewer && <Lock strokeWidth={2} size={12} />}
           </button>
           <button
-            className={`top-nav__tab ${activeTab === 'riesgos' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
+            className={`top-nav__tab ${activeTab === 'riesgos' ? 'active' : ''}`}
             onClick={() => handleTabChange('riesgos')}
-            disabled={isViewer}
-            title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
           >
             <AlertTriangle strokeWidth={1.5} size={18} />
             <span>Riesgos</span>
-            {isViewer && <Lock strokeWidth={2} size={12} />}
           </button>
           <button
             className={`top-nav__tab ${activeTab === 'inventario' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}

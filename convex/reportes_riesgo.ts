@@ -54,7 +54,7 @@ export const list = query({
         .collect();
       rows.sort((a, b) => (b.fecha_reporte || "").localeCompare(a.fecha_reporte || ""));
     }
-    if (scope.isEnterprise) {
+    if (scope.isEnterprise || scope.isViewer) {
       rows = rows.filter((r) => isExterno(r.tipo_riesgo));
     }
     return rows;
@@ -82,7 +82,7 @@ export const listWithDetails = query({
     }
 
     // Enterprise solo ve riesgos externos (problemas del entorno que afectan el servicio)
-    if (scope.isEnterprise) {
+    if (scope.isEnterprise || scope.isViewer) {
       reportes = reportes.filter((r) => isExterno(r.tipo_riesgo));
     }
 

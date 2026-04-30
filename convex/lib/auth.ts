@@ -9,6 +9,7 @@ export interface AuthScope {
   isAdmin: boolean;
   isEnterprise: boolean;
   isConductor: boolean;
+  isViewer: boolean;
   organizacionId: Id<"organizaciones"> | null;
   proyectoId: Id<"proyectos"> | null;
 }
@@ -23,6 +24,7 @@ export async function getAuthScope(ctx: Ctx): Promise<AuthScope> {
       isAdmin: false,
       isEnterprise: false,
       isConductor: false,
+      isViewer: false,
       organizacionId: null,
       proyectoId: null,
     };
@@ -38,6 +40,7 @@ export async function getAuthScope(ctx: Ctx): Promise<AuthScope> {
       isAdmin: false,
       isEnterprise: false,
       isConductor: false,
+      isViewer: false,
       organizacionId: null,
       proyectoId: null,
     };
@@ -48,6 +51,7 @@ export async function getAuthScope(ctx: Ctx): Promise<AuthScope> {
     isAdmin: perfil.tipo_usuario === "admin",
     isEnterprise: perfil.tipo_usuario === "enterprise",
     isConductor: perfil.tipo_usuario === "conductor",
+    isViewer: perfil.tipo_usuario === "viewer",
     organizacionId: perfil.organizacion_id ?? null,
     proyectoId: perfil.proyecto_id ?? null,
   };

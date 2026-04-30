@@ -76,6 +76,45 @@ export const runMigration = mutation({
   },
 });
 
+// Crea una org sin requerir auth. Usar via CLI/MCP solo en setup inicial.
+export const seedCreateOrg = mutation({
+  args: {
+    nombre: v.string(),
+    slug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("organizaciones")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first();
+    if (existing) return { existed: true, organizacion_id: existing._id };
+    const id = await ctx.db.insert("organizaciones", {
+      nombre: args.nombre,
+      slug: args.slug,
+      activo: true,
+      fecha_creacion: new Date().toISOString(),
+    });
+    return { existed: false, organizacion_id: id };
+  },
+});
+
+// Reasigna el organizacion_id de un perfil sin requerir auth.
+export const seedMoveUserToOrg = mutation({
+  args: {
+    email: v.string(),
+    organizacion_id: v.id("organizaciones"),
+  },
+  handler: async (ctx, args) => {
+    const perfil = await ctx.db
+      .query("perfiles_usuarios")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .first();
+    if (!perfil) throw new Error(`No existe perfil con email ${args.email}`);
+    await ctx.db.patch(perfil._id, { organizacion_id: args.organizacion_id });
+    return { success: true, perfil_id: perfil._id };
+  },
+});
+
 // Crea un super_admin sin organizacion_id.
 // Usar después de runMigration para tener un usuario que pueda crear más orgs vía UI.
 //
