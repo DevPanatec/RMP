@@ -91,6 +91,36 @@ const ScheduleComponent = () => {
     return `${sunday.getFullYear()}-${String(sunday.getMonth() + 1).padStart(2, '0')}-${String(sunday.getDate()).padStart(2, '0')}`;
   };
 
+  // Helper: convertir Monday-ISO (YYYY-MM-DD) a week value (YYYY-Www) para <input type="week">
+  const mondayToWeekValue = (mondayDateStr) => {
+    if (!mondayDateStr) return '';
+    const date = new Date(mondayDateStr + 'T12:00:00');
+    // ISO week number: Thursday-based
+    const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = target.getUTCDay() || 7;
+    target.setUTCDate(target.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+    const weekNum = Math.ceil(((target - yearStart) / 86400000 + 1) / 7);
+    return `${target.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+  };
+
+  // Helper: convertir week value (YYYY-Www) a Monday-ISO (YYYY-MM-DD)
+  const weekValueToMonday = (weekVal) => {
+    if (!weekVal) return '';
+    const [yearStr, weekStr] = weekVal.split('-W');
+    const year = parseInt(yearStr, 10);
+    const week = parseInt(weekStr, 10);
+    if (!year || !week) return '';
+    // Lunes ISO de la semana N: enero 4 siempre cae en semana 1 (ISO)
+    const jan4 = new Date(Date.UTC(year, 0, 4));
+    const jan4Day = jan4.getUTCDay() || 7;
+    const week1Monday = new Date(jan4);
+    week1Monday.setUTCDate(jan4.getUTCDate() - jan4Day + 1);
+    const monday = new Date(week1Monday);
+    monday.setUTCDate(week1Monday.getUTCDate() + (week - 1) * 7);
+    return `${monday.getUTCFullYear()}-${String(monday.getUTCMonth() + 1).padStart(2, '0')}-${String(monday.getUTCDate()).padStart(2, '0')}`;
+  };
+
   // Helper: formatear rango de semana
   const formatWeekRange = (dateString) => {
     const start = new Date(dateString + 'T12:00:00');
@@ -908,26 +938,25 @@ const ScheduleComponent = () => {
                   ) : null;
                 })()}
 
-                <div className="route-assign-row">
-                  <div className="form-group">
-                    <label>Semana de inicio *</label>
-                    <input
-                      type="date"
-                      value={routeFormData.fecha}
-                      onChange={(e) => handleRouteInputChange('fecha', e.target.value)}
-                      required
-                    />
-                    <small>{formatWeekRange(routeFormData.fecha)}</small>
-                  </div>
-                  <div className="form-group">
-                    <label>Días *</label>
-                    <WeekdayPicker
-                      selectedDays={routeFormData.dias_semana}
-                      onChange={(newDays) => handleRouteInputChange('dias_semana', newDays)}
-                      blockedDays={getBlockedDays()}
-                    />
-                  </div>
+                <div className="form-group">
+                  <label>Semana de inicio *</label>
+                  <input
+                    type="week"
+                    value={mondayToWeekValue(routeFormData.fecha)}
+                    onChange={(e) => {
+                      const monday = weekValueToMonday(e.target.value);
+                      if (monday) handleRouteInputChange('fecha', monday);
+                    }}
+                    required
+                  />
+                  <small>{formatWeekRange(routeFormData.fecha)}</small>
                 </div>
+
+                <WeekdayPicker
+                  selectedDays={routeFormData.dias_semana}
+                  onChange={(newDays) => handleRouteInputChange('dias_semana', newDays)}
+                  blockedDays={getBlockedDays()}
+                />
 
                 <details className="route-assign-extras">
                   <summary>Más opciones</summary>

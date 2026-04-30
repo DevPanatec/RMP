@@ -1776,320 +1776,93 @@
 
 /* ===== WEEKDAY PICKER (APPLE STYLE) ===== */
 
-.weekday-picker-container {
-  margin-top: 20px;
-  position: relative;
+/* ===== WEEKDAY PICKER INLINE (compacto) ===== */
+.weekday-picker-inline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
 .weekday-picker-label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-  letter-spacing: -0.01em;
-}
-
-.weekday-picker-trigger {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  background: rgba(142, 142, 147, 0.12);
-  border: 1px solid rgba(142, 142, 147, 0.2);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  font-size: 16px;
-  color: var(--color-text);
-}
-
-.weekday-picker-trigger:hover {
-  background: rgba(142, 142, 147, 0.18);
-  border-color: rgba(142, 142, 147, 0.3);
-}
-
-.weekday-picker-trigger.open {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-subtle);
-}
-
-.trigger-content {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 1;
-}
-
-.trigger-text {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--color-text);
-}
-
-.chevron {
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  color: var(--color-text-muted);
-}
-
-.chevron.rotated {
-  transform: rotate(180deg);
-}
-
-.weekday-picker-dropdown {
-  position: absolute;
-  top: calc(100% + 10px);
-  left: 0;
-  right: 0;
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(60px);
-  -webkit-backdrop-filter: blur(60px);
-  border: 1px solid rgba(142, 142, 147, 0.12);
-  border-radius: 18px;
-  box-shadow:
-    0 24px 48px -12px rgba(0, 0, 0, 0.12),
-    0 12px 24px -8px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(255, 255, 255, 0.1);
-  z-index: 1100;
-  overflow: hidden;
-  animation: dropdownSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  transform-origin: top center;
-}
-
-/* Dropdown moved to body (portaled) */
-.weekday-picker-dropdown.portaled {
-  position: fixed !important;
-  z-index: 10000 !important;
-}
-
-@keyframes dropdownSlideIn {
-  from {
-    opacity: 0;
-    transform: scale(0.96) translateY(-12px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.weekday-picker-header {
-  padding: 20px 24px 18px;
-  border-bottom: 1px solid rgba(142, 142, 147, 0.08);
-  background: linear-gradient(180deg, 
-    rgba(255, 255, 255, 0.8) 0%, 
-    rgba(255, 255, 255, 0.4) 100%);
-}
-
-.weekday-picker-header h4 {
-  margin: 0 0 6px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text);
-  letter-spacing: -0.01em;
-}
-
-.weekday-picker-header p {
-  margin: 0;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
-  line-height: 1.5;
 }
 
-.weekday-picker-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 10px;
-  padding: 20px 24px;
-}
-
-.weekday-picker-day {
+.weekday-picker-row {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  flex-wrap: wrap;
   gap: 6px;
-  padding: 14px 10px;
-  background: rgba(142, 142, 147, 0.06);
-  border: 2px solid transparent;
-  border-radius: 14px;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.weekday-pill {
   position: relative;
-  user-select: none;
-}
-
-.weekday-picker-day:hover {
-  background: rgba(142, 142, 147, 0.12);
-  border-color: rgba(142, 142, 147, 0.15);
-  transform: translateY(-3px);
-  box-shadow: 0 6px 16px -4px rgba(0, 0, 0, 0.1);
-}
-
-.weekday-picker-day.selected {
-  background: linear-gradient(135deg, 
-    var(--color-primary) 0%, 
-    var(--color-primary-hover) 100%);
-  border-color: transparent;
-  box-shadow: 
-    var(--shadow-md),
-    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
-  transform: translateY(-3px);
-}
-
-.day-letter {
-  font-size: 16px;
-  font-weight: 700;
+  flex: 1 1 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 8px 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
-  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out);
 }
 
-.weekday-picker-day.selected .day-letter {
+.weekday-pill:hover:not(:disabled) {
+  background: var(--color-hover-overlay);
+  border-color: var(--color-border-strong);
+}
+
+.weekday-pill.selected {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   color: white;
 }
 
-.day-full {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--color-text-muted);
+.weekday-pill.selected:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.weekday-pill.blocked,
+.weekday-pill:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: var(--color-surface-secondary);
+  border-color: var(--color-border);
+  color: var(--color-text-tertiary);
+}
+
+.weekday-pill-letter {
   line-height: 1;
 }
 
-.weekday-picker-day.selected .day-full {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.day-check {
+.weekday-pill-check {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 18px;
-  height: 18px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  animation: checkPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes checkPop {
-  0% {
-    opacity: 0;
-    transform: scale(0);
-  }
-  50% {
-    transform: scale(1.2);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* Días bloqueados */
-.weekday-picker-day.blocked {
-  background: rgba(142, 142, 147, 0.08);
-  border-color: rgba(255, 59, 48, 0.2);
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.weekday-picker-day.blocked:hover {
-  transform: none;
-  background: rgba(142, 142, 147, 0.08);
-  box-shadow: none;
-}
-
-.weekday-picker-day.blocked .day-letter {
-  color: var(--color-error);
-}
-
-.weekday-picker-day.blocked .day-full {
-  color: var(--color-error);
-  opacity: 0.7;
-}
-
-.day-blocked-label {
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--color-error);
-  background: rgba(255, 59, 48, 0.1);
-  padding: 2px 6px;
-  border-radius: 6px;
-  white-space: nowrap;
-  max-width: 90%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.weekday-picker-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 24px;
-  background: linear-gradient(180deg, 
-    rgba(255, 255, 255, 0.4) 0%, 
-    rgba(255, 255, 255, 0.8) 100%);
-  border-top: 1px solid rgba(142, 142, 147, 0.08);
-}
-
-.selected-count {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-}
-
-.weekday-picker-done {
-  padding: 10px 24px;
-  background: linear-gradient(135deg, 
-    var(--color-primary) 0%, 
-    var(--color-primary-hover) 100%);
-  border: none;
-  border-radius: 12px;
-  color: white;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 
-    var(--shadow-sm),
-    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
-}
-
-.weekday-picker-done:hover {
-  transform: translateY(-2px);
-  box-shadow: 
-    var(--shadow-md),
-    0 0 0 1px rgba(255, 255, 255, 0.15) inset;
-}
-
-.weekday-picker-done:active {
-  transform: translateY(0);
-}
-
-@media (max-width: 768px) {
-  .weekday-picker-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-  
-  .weekday-picker-day {
-    padding: 10px 6px;
-  }
-  
-  .day-letter {
-    font-size: 14px;
-  }
-  
-  .day-full {
-    font-size: 10px;
+@media (max-width: 480px) {
+  .weekday-pill {
+    flex: 1 1 36px;
+    min-width: 36px;
+    min-height: 38px;
+    font-size: var(--font-size-sm);
   }
 }
 
