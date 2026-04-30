@@ -613,11 +613,11 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                   <MapLibreComponent
                     key="map-main"
                     camiones={normalizedCamiones}
-                    rutas={displayRoutes || []}
-                    personnel={displayPersonnel || []}
-                    lugares={lugares || []}
-                    geofences={geofences}
-                    allRouteProgress={allRouteProgress}
+                    rutas={isViewer ? [] : (displayRoutes || [])}
+                    personnel={isViewer ? [] : (displayPersonnel || [])}
+                    lugares={isViewer ? [] : (lugares || [])}
+                    geofences={isViewer ? [] : geofences}
+                    allRouteProgress={isViewer ? [] : allRouteProgress}
                     userType={user.tipo}
                     showRealTime={true}
                     selectedTruck={selectedTruck}
@@ -882,11 +882,11 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                 <MapLibreComponent
                   key="map-maximized"
                   camiones={normalizedCamiones}
-                  rutas={displayRoutes || []}
-                  personnel={displayPersonnel || []}
-                  lugares={lugares || []}
-                  geofences={geofences}
-                  allRouteProgress={allRouteProgress}
+                  rutas={isViewer ? [] : (displayRoutes || [])}
+                  personnel={isViewer ? [] : (displayPersonnel || [])}
+                  lugares={isViewer ? [] : (lugares || [])}
+                  geofences={isViewer ? [] : geofences}
+                  allRouteProgress={isViewer ? [] : allRouteProgress}
                   userType={user.tipo}
                   showRealTime={true}
                   selectedTruck={selectedTruck}
