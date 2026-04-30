@@ -75,6 +75,8 @@ const AppContent = () => {
         return <AdminDashboard user={user} onLogout={handleLogout} userRole="super_admin" />;
       case 'admin':
         return <AdminDashboard user={user} onLogout={handleLogout} />;
+      case 'viewer':
+        return <AdminDashboard user={user} onLogout={handleLogout} userRole="viewer" />;
       case 'enterprise':
         return <EnterpriseDashboard user={user} onLogout={handleLogout} />;
       case 'conductor':

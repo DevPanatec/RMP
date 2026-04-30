@@ -269,7 +269,10 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   // Monitoring notifications (sounds + animation IDs)
   const { newEventIds, newAlertIds } = useMonitoringNotifications(recentActivity, displayAlerts);
 
+  const isViewer = userRole === 'viewer' || user?.tipo === 'viewer';
+
   const handleTabChange = (newTab, defaultSubTab = '') => {
+    if (isViewer && newTab !== 'dashboard') return;
     setActiveTab(newTab);
     setActiveSubTab(defaultSubTab);
   };
@@ -507,6 +510,10 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
 
 
   const renderContent = () => {
+    // Viewer solo ve dashboard. Defensa en profundidad además de tabs disabled.
+    if (isViewer && activeTab !== 'dashboard') {
+      return null;
+    }
     switch (activeTab) {
       case 'dashboard':
         // Generate sparkline data (last 14 data points for trend visualization)
@@ -759,39 +766,54 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             <span>Monitoreo</span>
           </button>
           <button
-            className={`top-nav__tab ${activeTab === 'operaciones' ? 'active' : ''}`}
+            className={`top-nav__tab ${activeTab === 'operaciones' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
             onClick={() => handleTabChange('operaciones', 'personal')}
+            disabled={isViewer}
+            title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
           >
             <Truck strokeWidth={1.5} size={18} />
             <span>Operaciones</span>
+            {isViewer && <Lock strokeWidth={2} size={12} />}
           </button>
           <button
-            className={`top-nav__tab ${activeTab === 'calendario' ? 'active' : ''}`}
+            className={`top-nav__tab ${activeTab === 'calendario' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
             onClick={() => handleTabChange('calendario')}
+            disabled={isViewer}
+            title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
           >
             <Calendar strokeWidth={1.5} size={18} />
             <span>Calendario</span>
+            {isViewer && <Lock strokeWidth={2} size={12} />}
           </button>
           <button
-            className={`top-nav__tab ${activeTab === 'mantenimiento' ? 'active' : ''}`}
+            className={`top-nav__tab ${activeTab === 'mantenimiento' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
             onClick={() => handleTabChange('mantenimiento')}
+            disabled={isViewer}
+            title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
           >
             <Wrench strokeWidth={1.5} size={18} />
             <span>Mantenimiento</span>
+            {isViewer && <Lock strokeWidth={2} size={12} />}
           </button>
           <button
-            className={`top-nav__tab ${activeTab === 'riesgos' ? 'active' : ''}`}
+            className={`top-nav__tab ${activeTab === 'riesgos' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
             onClick={() => handleTabChange('riesgos')}
+            disabled={isViewer}
+            title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
           >
             <AlertTriangle strokeWidth={1.5} size={18} />
             <span>Riesgos</span>
+            {isViewer && <Lock strokeWidth={2} size={12} />}
           </button>
           <button
-            className={`top-nav__tab ${activeTab === 'inventario' ? 'active' : ''}`}
+            className={`top-nav__tab ${activeTab === 'inventario' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
             onClick={() => handleTabChange('inventario')}
+            disabled={isViewer}
+            title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
           >
             <Package strokeWidth={1.5} size={18} />
             <span>Inventario</span>
+            {isViewer && <Lock strokeWidth={2} size={12} />}
           </button>
           {userRole === 'admin' && (
             <button
@@ -821,11 +843,14 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             </button>
           )}
           <button
-            className={`top-nav__tab ${activeTab === 'reportes' ? 'active' : ''}`}
+            className={`top-nav__tab ${activeTab === 'reportes' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
             onClick={() => handleTabChange('reportes')}
+            disabled={isViewer}
+            title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
           >
             <BarChart3 strokeWidth={1.5} size={18} />
             <span>Reportes</span>
+            {isViewer && <Lock strokeWidth={2} size={12} />}
           </button>
         </nav>
       </div>

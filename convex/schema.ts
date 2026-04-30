@@ -24,6 +24,7 @@ export default defineSchema({
       v.literal("admin"),
       v.literal("enterprise"),
       v.literal("conductor"),
+      v.literal("viewer"),
     ),
     nombre_completo: v.string(),
     email: v.string(),

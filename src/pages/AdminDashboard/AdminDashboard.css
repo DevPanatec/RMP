@@ -3165,3 +3165,20 @@
     font-size: var(--font-size-xs);
   }
 }
+
+/* Viewer: tabs bloqueadas */
+.top-nav__tab.tab-locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+
+.top-nav__tab.tab-locked:hover {
+  background: transparent;
+  color: inherit;
+}
+
+.top-nav__tab.tab-locked svg:last-child {
+  margin-left: 4px;
+  color: var(--color-text-tertiary, #9ca3af);
+}
