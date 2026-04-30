@@ -2,12 +2,17 @@ import { createContext, useContext } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useProject } from './ProjectContext';
+import { useOrganization } from './OrganizationContext';
 
 const RiskReportsContext = createContext();
 
 export const RiskReportsProvider = ({ children }) => {
   const { currentProjectId } = useProject();
-  const reportsData = useQuery(api.reportes_riesgo.listWithDetails, { proyecto_id: currentProjectId ?? undefined });
+  const { currentOrgId } = useOrganization();
+  const reportsData = useQuery(api.reportes_riesgo.listWithDetails, {
+    proyecto_id: currentProjectId ?? undefined,
+    organizacion_id: currentOrgId ?? undefined,
+  });
 
   const addReportMutation = useMutation(api.reportes_riesgo.add);
   const updateReportMutation = useMutation(api.reportes_riesgo.update);

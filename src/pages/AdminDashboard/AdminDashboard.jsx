@@ -119,11 +119,16 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   const [creatingProfile, setCreatingProfile] = useState(false);
 
   // Route events from Convex
-  const routeEvents = useQuery(api.route_events.getRecent, { limit: 50 }) || [];
+  const routeEvents = useQuery(api.route_events.getRecent, {
+    limit: 50,
+    organizacion_id: currentOrgId ?? undefined,
+  }) || [];
 
   // Geofences and route progress (pass as props to MapComponent)
   const geofences = useQuery(api.geofences.list) || [];
-  const allRouteProgress = useQuery(api.route_progress.list) || [];
+  const allRouteProgress = useQuery(api.route_progress.list, {
+    organizacion_id: currentOrgId ?? undefined,
+  }) || [];
 
   // Hooks de contextos reales
   const {

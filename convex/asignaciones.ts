@@ -1,17 +1,27 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId, requireProjectAccess } from "./lib/auth";
+import { getScopedProjectId, getScopedOrgId, requireProjectAccess } from "./lib/auth";
 
 export const list = query({
-  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  args: {
+    proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  },
   handler: async (ctx, args) => {
-    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
-    const assignments = scoped
-      ? await ctx.db
-          .query("asignaciones_rutas")
-          .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped))
-          .collect()
-      : await ctx.db.query("asignaciones_rutas").collect();
+    const scopedProject = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    let assignments;
+    if (scopedProject) {
+      assignments = await ctx.db
+        .query("asignaciones_rutas")
+        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scopedProject))
+        .collect();
+    } else {
+      const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
+      const all = await ctx.db.query("asignaciones_rutas").collect();
+      assignments = scopedOrg
+        ? all.filter((a) => !a.organizacion_id || a.organizacion_id === scopedOrg)
+        : all;
+    }
 
     // JOIN con rutas y vehículos
     const assignmentsWithDetails = await Promise.all(

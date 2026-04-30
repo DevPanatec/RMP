@@ -1,7 +1,7 @@
 import { query, mutation, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
-import { getScopedProjectId, requireProjectAccess } from "./lib/auth";
+import { getScopedProjectId, getScopedOrgId, requireProjectAccess } from "./lib/auth";
 
 // Sync auto-generated geofences for a route's paradas.
 // Deletes previous auto-generated geofences for this ruta, then inserts one per parada.
@@ -45,14 +45,22 @@ async function syncParadaGeofences(
 
 // List rutas. Admin: todas (o filtradas por proyecto_id arg). Enterprise: solo las suyas.
 export const list = query({
-  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  args: {
+    proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  },
   handler: async (ctx, args) => {
-    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
-    if (scoped) {
+    const scopedProject = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    if (scopedProject) {
       return await ctx.db
         .query("rutas")
-        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped))
+        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scopedProject))
         .collect();
+    }
+    const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
+    if (scopedOrg) {
+      const all = await ctx.db.query("rutas").collect();
+      return all.filter((r) => !r.organizacion_id || r.organizacion_id === scopedOrg);
     }
     return await ctx.db.query("rutas").collect();
   },

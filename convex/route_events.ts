@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId } from "./lib/auth";
+import { getScopedProjectId, getScopedOrgId } from "./lib/auth";
 
 // Create route event
 export const add = mutation({
@@ -74,18 +74,32 @@ export const getByRoute = query({
   },
 });
 
-// Get recent events (for activity feed). Scoped por proyecto si user no es admin.
+// Get recent events (for activity feed). Scoped por proyecto/org según user.
 export const getRecent = query({
-  args: { limit: v.optional(v.float64()), proyecto_id: v.optional(v.id("proyectos")) },
+  args: {
+    limit: v.optional(v.float64()),
+    proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  },
   handler: async (ctx, args) => {
-    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    const scopedProject = await getScopedProjectId(ctx, args.proyecto_id ?? null);
     const limit = args.limit || 50;
-    if (scoped) {
+    if (scopedProject) {
       return await ctx.db
         .query("route_events")
-        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped))
+        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scopedProject))
         .order("desc")
         .take(limit);
+    }
+    const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
+    if (scopedOrg) {
+      const all = await ctx.db
+        .query("route_events")
+        .order("desc")
+        .take(limit * 4);
+      return all
+        .filter((e) => !e.organizacion_id || e.organizacion_id === scopedOrg)
+        .slice(0, limit);
     }
     return await ctx.db
       .query("route_events")

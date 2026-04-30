@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId, getAuthScope } from "./lib/auth";
+import { getScopedProjectId, getScopedOrgId, getAuthScope } from "./lib/auth";
 
 // List all vehicles.
 // - Super_admin: ve todos (o filtra si pasa organizacion_id).
@@ -65,12 +65,16 @@ export const listMinimal = query({
 //   3. estado === 'programada'   nearest future fecha_asignacion (>= today)
 //   No fallback to past dates — past programadas are ignored.
 export const listWithAssignments = query({
-  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  args: {
+    proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  },
   handler: async (ctx, args) => {
     const scope = await getAuthScope(ctx);
     const scoped = scope.isAdmin
       ? (args.proyecto_id ?? null)
       : await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
 
     // ENTERPRISE: visibilidad live derivada de route_progress (no de asignaciones).
     // Esto cubre rutas recurrentes (cuya asignación queda en 'programada' aunque corra).
@@ -130,7 +134,10 @@ export const listWithAssignments = query({
       return result;
     }
 
-    const vehicles = await ctx.db.query("vehiculos").collect();
+    const allVehiclesRaw = await ctx.db.query("vehiculos").collect();
+    const vehicles = scopedOrg
+      ? allVehiclesRaw.filter((v) => !v.organizacion_id || v.organizacion_id === scopedOrg)
+      : allVehiclesRaw;
 
     const allAssignments = await ctx.db.query("asignaciones_rutas").collect();
     const relevant = allAssignments.filter(

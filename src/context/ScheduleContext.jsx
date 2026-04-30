@@ -2,13 +2,18 @@ import { createContext, useContext } from 'react';
 import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useProject } from './ProjectContext';
+import { useOrganization } from './OrganizationContext';
 
 const ScheduleContext = createContext();
 
 export const ScheduleProvider = ({ children }) => {
   const { currentProjectId } = useProject();
+  const { currentOrgId } = useOrganization();
   const convex = useConvex();
-  const assignmentsData = useQuery(api.asignaciones.list, { proyecto_id: currentProjectId ?? undefined });
+  const assignmentsData = useQuery(api.asignaciones.list, {
+    proyecto_id: currentProjectId ?? undefined,
+    organizacion_id: currentOrgId ?? undefined,
+  });
 
   const addAssignmentMutation = useMutation(api.asignaciones.add);
   const updateAssignmentMutation = useMutation(api.asignaciones.update);

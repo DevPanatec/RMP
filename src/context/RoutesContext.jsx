@@ -2,12 +2,17 @@ import { createContext, useContext } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useProject } from './ProjectContext';
+import { useOrganization } from './OrganizationContext';
 
 const RoutesContext = createContext();
 
 export const RoutesProvider = ({ children }) => {
   const { currentProjectId } = useProject();
-  const routesData = useQuery(api.rutas.list, { proyecto_id: currentProjectId ?? undefined });
+  const { currentOrgId } = useOrganization();
+  const routesData = useQuery(api.rutas.list, {
+    proyecto_id: currentProjectId ?? undefined,
+    organizacion_id: currentOrgId ?? undefined,
+  });
 
   const addRouteMutation = useMutation(api.rutas.add);
   const updateRouteMutation = useMutation(api.rutas.update);

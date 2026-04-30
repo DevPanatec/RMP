@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId } from "./lib/auth";
+import { getScopedProjectId, getScopedOrgId } from "./lib/auth";
 
 // Cleanup admin-only: marca como 'completada' todos los route_progress 'en_progreso'.
 // Útil para limpiar leaks históricos. Llamar manual una vez:
@@ -22,16 +22,22 @@ export const cleanupStaleInProgress = mutation({
 });
 
 export const list = query({
-  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  args: {
+    proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  },
   handler: async (ctx, args) => {
-    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
-    if (scoped) {
+    const scopedProject = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    if (scopedProject) {
       return await ctx.db
         .query("route_progress")
-        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped))
+        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scopedProject))
         .collect();
     }
-    return await ctx.db.query("route_progress").collect();
+    const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
+    const all = await ctx.db.query("route_progress").collect();
+    if (!scopedOrg) return all;
+    return all.filter((rp) => !rp.organizacion_id || rp.organizacion_id === scopedOrg);
   },
 });
 

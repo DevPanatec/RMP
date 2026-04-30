@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthScope, getScopedProjectId } from "./lib/auth";
+import { getAuthScope, getScopedProjectId, getScopedOrgId } from "./lib/auth";
 
 // Internal: problemas del operador/vehiculo. Externo: entorno (afecta al cliente)
 const TIPOS_INTERNOS = new Set(["mecanico", "combustible", "seguridad", "mantenimiento"]);
@@ -36,12 +36,16 @@ const estadoValidator = v.union(
 );
 
 export const list = query({
-  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  args: {
+    proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  },
   handler: async (ctx, args) => {
     const scope = await getAuthScope(ctx);
-    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    const scopedProject = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
     let rows;
-    if (scoped === null) {
+    if (scopedProject === null) {
       rows = await ctx.db
         .query("reportes_riesgo")
         .withIndex("by_fecha", (q) => q)
@@ -50,9 +54,12 @@ export const list = query({
     } else {
       rows = await ctx.db
         .query("reportes_riesgo")
-        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped))
+        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scopedProject))
         .collect();
       rows.sort((a, b) => (b.fecha_reporte || "").localeCompare(a.fecha_reporte || ""));
+    }
+    if (scopedProject === null && scopedOrg) {
+      rows = rows.filter((r) => !r.organizacion_id || r.organizacion_id === scopedOrg);
     }
     if (scope.isEnterprise || scope.isViewer) {
       rows = rows.filter((r) => isExterno(r.tipo_riesgo));
@@ -62,12 +69,16 @@ export const list = query({
 });
 
 export const listWithDetails = query({
-  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  args: {
+    proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  },
   handler: async (ctx, args) => {
     const scope = await getAuthScope(ctx);
-    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    const scopedProject = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
     let reportes;
-    if (scoped === null) {
+    if (scopedProject === null) {
       reportes = await ctx.db
         .query("reportes_riesgo")
         .withIndex("by_fecha", (q) => q)
@@ -76,12 +87,16 @@ export const listWithDetails = query({
     } else {
       reportes = await ctx.db
         .query("reportes_riesgo")
-        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped))
+        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scopedProject))
         .collect();
       reportes.sort((a, b) => (b.fecha_reporte || "").localeCompare(a.fecha_reporte || ""));
     }
 
-    // Enterprise solo ve riesgos externos (problemas del entorno que afectan el servicio)
+    if (scopedProject === null && scopedOrg) {
+      reportes = reportes.filter((r) => !r.organizacion_id || r.organizacion_id === scopedOrg);
+    }
+
+    // Enterprise/viewer solo ven riesgos externos
     if (scope.isEnterprise || scope.isViewer) {
       reportes = reportes.filter((r) => isExterno(r.tipo_riesgo));
     }

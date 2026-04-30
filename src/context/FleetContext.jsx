@@ -4,16 +4,21 @@ import { api } from "../../convex/_generated/api";
 import { useDemoMode } from '../hooks/useDemoMode';
 import { DEMO_VEHICLES } from '../utils/demoData';
 import { useProject } from './ProjectContext';
+import { useOrganization } from './OrganizationContext';
 
 const FleetContext = createContext();
 
 export const FleetProvider = ({ children }) => {
   const { isDemoMode } = useDemoMode();
   const { currentProjectId } = useProject();
+  const { currentOrgId } = useOrganization();
 
   // Convex Queries
   // Using listWithAssignments for optimized JOIN with assignments (conductor, ruta)
-  const vehiclesData = useQuery(api.vehiculos.listWithAssignments, { proyecto_id: currentProjectId ?? undefined });
+  const vehiclesData = useQuery(api.vehiculos.listWithAssignments, {
+    proyecto_id: currentProjectId ?? undefined,
+    organizacion_id: currentOrgId ?? undefined,
+  });
   const fleetStatsData = useQuery(api.vehiculos.getStats);
 
   // Convex Mutations
