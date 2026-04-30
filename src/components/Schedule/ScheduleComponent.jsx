@@ -28,7 +28,7 @@ const formatTime12h = (time24) => {
   return `${hour12}:${minutes} ${period}`;
 };
 
-const ScheduleComponent = () => {
+const ScheduleComponent = ({ viewerMode = false }) => {
   const {
     assignments: scheduleAssignments,
     loading: scheduleLoading,
@@ -690,14 +690,18 @@ const ScheduleComponent = () => {
             <Plus size={16} />
             Ruta
           </button>
-          <button className="btn-add-v2 secondary" onClick={handleOpenCleaningModal}>
-            <Plus size={16} />
-            Limpieza
-          </button>
-          <button className="btn-add-v2 secondary" onClick={handleOpenFumigationModal}>
-            <Plus size={16} />
-            Fumigación
-          </button>
+          {!viewerMode && (
+            <>
+              <button className="btn-add-v2 secondary" onClick={handleOpenCleaningModal}>
+                <Plus size={16} />
+                Limpieza
+              </button>
+              <button className="btn-add-v2 secondary" onClick={handleOpenFumigationModal}>
+                <Plus size={16} />
+                Fumigación
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -710,22 +714,26 @@ const ScheduleComponent = () => {
           Rutas
           <span className="tab-badge">{scheduleAssignments.length}</span>
         </button>
-        <button
-          className={`tab-unified ${activeTab === 'cleaning' ? 'active' : ''}`}
-          onClick={() => setActiveTab('cleaning')}
-        >
-          <Sparkles size={16} />
-          Limpieza
-          <span className="tab-badge">{cleaningAssignments.length}</span>
-        </button>
-        <button
-          className={`tab-unified ${activeTab === 'fumigation' ? 'active' : ''}`}
-          onClick={() => setActiveTab('fumigation')}
-        >
-          <Bug size={16} />
-          Fumigación
-          <span className="tab-badge">{fumigationAssignments.length}</span>
-        </button>
+        {!viewerMode && (
+          <>
+            <button
+              className={`tab-unified ${activeTab === 'cleaning' ? 'active' : ''}`}
+              onClick={() => setActiveTab('cleaning')}
+            >
+              <Sparkles size={16} />
+              Limpieza
+              <span className="tab-badge">{cleaningAssignments.length}</span>
+            </button>
+            <button
+              className={`tab-unified ${activeTab === 'fumigation' ? 'active' : ''}`}
+              onClick={() => setActiveTab('fumigation')}
+            >
+              <Bug size={16} />
+              Fumigación
+              <span className="tab-badge">{fumigationAssignments.length}</span>
+            </button>
+          </>
+        )}
       </div>
 
       {loading ? (

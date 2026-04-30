@@ -270,9 +270,10 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   const { newEventIds, newAlertIds } = useMonitoringNotifications(recentActivity, displayAlerts);
 
   const isViewer = userRole === 'viewer' || user?.tipo === 'viewer';
+  const VIEWER_ALLOWED_TABS = ['dashboard', 'operaciones'];
 
   const handleTabChange = (newTab, defaultSubTab = '') => {
-    if (isViewer && newTab !== 'dashboard') return;
+    if (isViewer && !VIEWER_ALLOWED_TABS.includes(newTab)) return;
     setActiveTab(newTab);
     setActiveSubTab(defaultSubTab);
   };
@@ -500,7 +501,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
       case 'programacion':
         return (
           <div className="operations-content-modern">
-            <ScheduleComponent />
+            <ScheduleComponent viewerMode={isViewer} />
           </div>
         );
       default:
@@ -510,8 +511,8 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
 
 
   const renderContent = () => {
-    // Viewer solo ve dashboard. Defensa en profundidad además de tabs disabled.
-    if (isViewer && activeTab !== 'dashboard') {
+    // Viewer solo ve dashboard + operaciones. Defensa en profundidad.
+    if (isViewer && activeTab !== 'dashboard' && activeTab !== 'operaciones') {
       return null;
     }
     switch (activeTab) {
@@ -766,14 +767,11 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             <span>Monitoreo</span>
           </button>
           <button
-            className={`top-nav__tab ${activeTab === 'operaciones' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
+            className={`top-nav__tab ${activeTab === 'operaciones' ? 'active' : ''}`}
             onClick={() => handleTabChange('operaciones', 'personal')}
-            disabled={isViewer}
-            title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
           >
             <Truck strokeWidth={1.5} size={18} />
             <span>Operaciones</span>
-            {isViewer && <Lock strokeWidth={2} size={12} />}
           </button>
           <button
             className={`top-nav__tab ${activeTab === 'calendario' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
