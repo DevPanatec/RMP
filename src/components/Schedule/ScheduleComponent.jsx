@@ -845,298 +845,117 @@ const ScheduleComponent = () => {
 
       {showModal && activeTab === 'routes' && (
         <div className="modal-overlay" onClick={handleCloseModal}>
-          <div className="modal-content modal-large" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <div className="header-content">
-                <div className="header-icon">
-                  {editingAssignment ? <Edit size={28} /> : <Plus size={28} />}
-                </div>
-                <div className="header-text">
-                  <h3 className="modal-title">
-                    {editingAssignment ? 'Editar Asignación de Ruta' : 'Nueva Asignación de Ruta'}
-                  </h3>
-                  <p className="modal-subtitle">
-                    {editingAssignment ? 'Actualice los detalles de la asignación' : 'Complete los detalles para crear la asignación'}
-                  </p>
-                </div>
-              </div>
-              <button className="modal-close" onClick={handleCloseModal}>
-                <X size={24} />
+          <div className="modal-content route-assign-modal" onClick={e => e.stopPropagation()}>
+            <div className="route-assign-header">
+              <h3>{editingAssignment ? 'Editar Asignación' : 'Nueva Asignación'}</h3>
+              <button className="modal-close" onClick={handleCloseModal} type="button">
+                <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleRouteSubmit}>
-              <div className="modal-body">
-                <div className="form-grid-2col">
-                  <div className="form-group-card">
-                    <div className="card-label">
-                      <Map size={18} />
-                      <span>Ruta & Vehículo</span>
-                    </div>
-
-                    <CustomSelect
-                      label="Ruta"
-                      required
-                      value={routeFormData.ruta_id}
-                      onChange={(value) => handleRouteInputChange('ruta_id', value)}
-                      options={activeRoutes
-                        .filter(route => route.tipo_servicio === 'recoleccion')
-                        .map(route => ({
-                          value: route._id || route.id,
-                          label: route.nombre
-                        }))}
-                      placeholder="Seleccionar ruta de recolección"
-                      searchable
-                    />
-
-                    {routeFormData.ruta_id && (() => {
-                      const selectedRoute = routes.find(r => String(r._id || r.id) === String(routeFormData.ruta_id));
-                      return selectedRoute && selectedRoute.hora_inicio && selectedRoute.hora_fin ? (
-                        <div style={{
-                          marginTop: '12px',
-                          padding: '12px 16px',
-                          background: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
-                          borderRadius: '10px',
-                          color: 'white',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          fontSize: '14px',
-                          fontWeight: '500'
-                        }}>
-                          <Clock size={18} />
-                          <span>Horario de la ruta: {formatTime12h(selectedRoute.hora_inicio)} - {formatTime12h(selectedRoute.hora_fin)}</span>
-                        </div>
-                      ) : null;
-                    })()}
-
-                    <CustomSelect
-                      label="Vehículo"
-                      required
-                      value={routeFormData.vehiculo_id}
-                      onChange={(value) => handleRouteInputChange('vehiculo_id', value)}
-                      options={compatibleVehicles.map(vehicle => ({
-                        value: vehicle._id || vehicle.id,
-                        label: `${vehicle.tipo_servicio === 'recoleccion' ? '🚛' : '🦟'} ${vehicle.placa} - ${vehicle.nombre || vehicle.marca}`
+            <form onSubmit={handleRouteSubmit} className="route-assign-form">
+              <div className="route-assign-body">
+                <div className="route-assign-row">
+                  <CustomSelect
+                    label="Ruta *"
+                    required
+                    value={routeFormData.ruta_id}
+                    onChange={(value) => handleRouteInputChange('ruta_id', value)}
+                    options={activeRoutes
+                      .filter(route => route.tipo_servicio === 'recoleccion')
+                      .map(route => ({
+                        value: route._id || route.id,
+                        label: route.nombre
                       }))}
-                      placeholder={routeFormData.ruta_id ? "Seleccionar vehículo compatible" : "Primero selecciona una ruta"}
-                      searchable
-                      disabled={!routeFormData.ruta_id}
-                    />
-                  </div>
-
-                  <div className="form-group-card">
-                    <div className="card-label">
-                      <Users size={18} />
-                      <span>Personal Asignado</span>
-                    </div>
-                    
-                    <CustomSelect
-                      label="Conductor"
-                      required
-                      value={routeFormData.conductor_nombre}
-                      onChange={(value) => {
-                        setRouteFormData({
-                          ...routeFormData,
-                          conductor_nombre: value
-                        });
-                      }}
-                      options={activePersonnel.filter(p => (p.cargo || p.puesto) === 'Conductor').map(person => ({
-                        value: `${person.nombre} ${person.apellido}`,
-                        label: `${person.nombre} ${person.apellido} - ${person.cargo || person.puesto}`
-                      }))}
-                      placeholder="Seleccionar conductor"
-                      searchable
-                    />
-
-                    <HelperManager
-                      helpers={routeFormData.ayudantes}
-                      onChange={(newHelpers) => handleRouteInputChange('ayudantes', newHelpers)}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group-card form-full-width">
-                  <div className="card-label">
-                    <Calendar size={18} />
-                    <span>Programación Recurrente</span>
-                  </div>
-
-                  {/* Banner informativo */}
-                  {showRulesBanner && (
-                    <div style={{
-                      padding: '14px 48px 14px 18px',
-                      background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                      border: '1.5px solid #6b9656',
-                      borderRadius: '10px',
-                      marginBottom: '16px',
-                      display: 'flex',
-                      gap: '12px',
-                      alignItems: 'flex-start',
-                      position: 'relative'
-                    }}>
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        flexShrink: 0
-                      }}>
-                        <Info size={18} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{
-                          fontWeight: '600',
-                          color: '#3D5229',
-                          marginBottom: '6px',
-                          fontSize: '13px'
-                        }}>
-                          Reglas de Asignación
-                        </div>
-                        <ul style={{
-                          margin: 0,
-                          paddingLeft: '18px',
-                          color: '#556B2F',
-                          fontSize: '12px',
-                          lineHeight: '1.6'
-                        }}>
-                          <li>Solo puedes asignar en los días permitidos por la ruta seleccionada</li>
-                          <li>El horario se toma automáticamente de la configuración de la ruta</li>
-                          <li>No se pueden duplicar asignaciones en la misma semana</li>
-                          <li>Puedes asignar la misma ruta en semanas diferentes</li>
-                        </ul>
-                      </div>
-                      <button
-                        onClick={() => setShowRulesBanner(false)}
-                        type="button"
-                        style={{
-                          position: 'absolute',
-                          top: '12px',
-                          right: '12px',
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#6b9656',
-                          cursor: 'pointer',
-                          padding: '4px',
-                          borderRadius: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'rgba(107, 150, 86, 0.1)';
-                          e.currentTarget.style.color = '#3D5229';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'transparent';
-                          e.currentTarget.style.color = '#6b9656';
-                        }}
-                      >
-                        <X size={18} />
-                      </button>
-                    </div>
-                  )}
-
-                  <div style={{
-                    marginBottom: '16px',
-                    padding: '16px',
-                    background: 'linear-gradient(135deg, #3D5229 0%, #556B2F 100%)',
-                    borderRadius: '12px',
-                    color: 'white'
-                  }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: '12px'
-                    }}>
-                      <div style={{ fontSize: '13px', opacity: 0.9 }}>
-                        Semana de inicio
-                      </div>
-                      <input
-                        type="date"
-                        value={routeFormData.fecha}
-                        onChange={(e) => handleRouteInputChange('fecha', e.target.value)}
-                        required
-                        style={{
-                          padding: '6px 10px',
-                          border: '1.5px solid rgba(255, 255, 255, 0.3)',
-                          borderRadius: '8px',
-                          fontSize: '13px',
-                          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                          background: 'rgba(255, 255, 255, 0.15)',
-                          color: 'white',
-                          backdropFilter: 'blur(10px)',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                      />
-                    </div>
-                    <div style={{
-                      fontSize: '18px',
-                      fontWeight: '600',
-                      letterSpacing: '-0.3px',
-                      lineHeight: '1.3'
-                    }}>
-                      {formatWeekRange(routeFormData.fecha)}
-                    </div>
-                    <div style={{
-                      fontSize: '12px',
-                      opacity: 0.8,
-                      marginTop: '8px',
-                      fontStyle: 'italic'
-                    }}>
-                      Selecciona los días de esta semana en que se realizará la ruta
-                    </div>
-                  </div>
-
-                  <WeekdayPicker
-                    selectedDays={routeFormData.dias_semana}
-                    onChange={(newDays) => handleRouteInputChange('dias_semana', newDays)}
-                    blockedDays={getBlockedDays()}
+                    placeholder="Seleccionar ruta"
+                    searchable
+                  />
+                  <CustomSelect
+                    label="Vehículo *"
+                    required
+                    value={routeFormData.vehiculo_id}
+                    onChange={(value) => handleRouteInputChange('vehiculo_id', value)}
+                    options={compatibleVehicles.map(vehicle => ({
+                      value: vehicle._id || vehicle.id,
+                      label: `${vehicle.placa} · ${vehicle.nombre || vehicle.marca || ''}`.trim()
+                    }))}
+                    placeholder={routeFormData.ruta_id ? "Seleccionar vehículo" : "Selecciona ruta primero"}
+                    searchable
+                    disabled={!routeFormData.ruta_id}
                   />
                 </div>
 
-                <div className="form-group-card form-full-width">
-                  <div className="card-label">
-                    <AlertTriangle size={18} />
-                    <span>Observaciones (Opcional)</span>
+                <CustomSelect
+                  label="Conductor *"
+                  required
+                  value={routeFormData.conductor_nombre}
+                  onChange={(value) => setRouteFormData({ ...routeFormData, conductor_nombre: value })}
+                  options={activePersonnel.filter(p => (p.cargo || p.puesto) === 'Conductor').map(person => ({
+                    value: `${person.nombre} ${person.apellido}`,
+                    label: `${person.nombre} ${person.apellido}`
+                  }))}
+                  placeholder="Seleccionar conductor"
+                  searchable
+                />
+
+                {routeFormData.ruta_id && (() => {
+                  const selectedRoute = routes.find(r => String(r._id || r.id) === String(routeFormData.ruta_id));
+                  return selectedRoute && selectedRoute.hora_inicio && selectedRoute.hora_fin ? (
+                    <div className="route-assign-hint">
+                      <Clock size={14} />
+                      <span>{formatTime12h(selectedRoute.hora_inicio)} – {formatTime12h(selectedRoute.hora_fin)}</span>
+                    </div>
+                  ) : null;
+                })()}
+
+                <div className="route-assign-row">
+                  <div className="form-group">
+                    <label>Semana de inicio *</label>
+                    <input
+                      type="date"
+                      value={routeFormData.fecha}
+                      onChange={(e) => handleRouteInputChange('fecha', e.target.value)}
+                      required
+                    />
+                    <small>{formatWeekRange(routeFormData.fecha)}</small>
                   </div>
                   <div className="form-group">
+                    <label>Días *</label>
+                    <WeekdayPicker
+                      selectedDays={routeFormData.dias_semana}
+                      onChange={(newDays) => handleRouteInputChange('dias_semana', newDays)}
+                      blockedDays={getBlockedDays()}
+                    />
+                  </div>
+                </div>
+
+                <details className="route-assign-extras">
+                  <summary>Más opciones</summary>
+                  <HelperManager
+                    helpers={routeFormData.ayudantes}
+                    onChange={(newHelpers) => handleRouteInputChange('ayudantes', newHelpers)}
+                  />
+                  <div className="form-group">
+                    <label>Observaciones</label>
                     <textarea
                       value={routeFormData.observaciones}
                       onChange={(e) => handleRouteInputChange('observaciones', e.target.value.slice(0, 500))}
-                      rows="3"
-                      placeholder="Notas adicionales..."
+                      rows="2"
+                      placeholder="Notas adicionales (opcional)"
                       maxLength={500}
-                      style={{ maxHeight: '150px', resize: 'vertical' }}
                     />
-                    <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '4px', textAlign: 'right' }}>
-                      {routeFormData.observaciones.length}/500 caracteres
-                    </div>
                   </div>
-                </div>
+                </details>
               </div>
 
-              <div className="modal-footer">
-                <div className="footer-actions">
-                  <button type="button" className="btn btn--outline" onClick={handleCloseModal}>
-                    <X size={16} />
-                    Cancelar
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="btn btn--primary"
-                  >
-                    <CheckCircle size={16} /> 
-                    {editingAssignment ? 'Actualizar' : 'Crear'} Asignación
-                  </button>
-                </div>
+              <div className="route-assign-footer">
+                <button type="button" className="btn btn--outline btn--sm" onClick={handleCloseModal}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn--primary btn--sm">
+                  <CheckCircle size={14} />
+                  {editingAssignment ? 'Actualizar' : 'Crear'}
+                </button>
               </div>
             </form>
           </div>
