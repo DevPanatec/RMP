@@ -359,7 +359,8 @@ export const createFromWebhook = mutation({
       gps_longitud,
       gps_velocidad: gps_velocidad || 0,
       gps_rumbo: gps_rumbo || 0,
-      ultima_actualizacion_gps: timestampMs,
+      gps_ultima_actualizacion: timestampMs,
+      gps_conectado: true,
     });
 
     console.log(

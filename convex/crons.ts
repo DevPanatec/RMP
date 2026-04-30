@@ -46,4 +46,17 @@ crons.daily(
   api.vehicleHistory.cleanOldHistory
 );
 
+/**
+ * Cron Job: Detectar vehículos desconectados (cada 60 segundos)
+ *
+ * Marca gps_conectado=false en vehículos que no han reportado en 5 minutos.
+ * Sin este job los vehículos quedan "online" para siempre aunque no envíen
+ * datos. Lógica en convex/gps.ts:updateConnectionStatus (TIMEOUT_MS=5min).
+ */
+crons.interval(
+  "update-gps-connection-status",
+  { seconds: 60 },
+  api.gps.updateConnectionStatus
+);
+
 export default crons;
