@@ -652,6 +652,40 @@ const ConductorDashboard = ({ user, onLogout }) => {
     setPendingStopIndex(null);
   };
 
+  // Handler del botón "Reportar Riesgo" en el header.
+  // Si hay parada actual, pregunta si el riesgo impide completarla → vincula skipStopData.
+  // Si no, abre el modal sin vinculación.
+  const handleReportRiskFromHeader = () => {
+    if (!routeStarted || !assignedRoute) {
+      setShowRiskModal(true);
+      return;
+    }
+    const paradas = getParadasArray(assignedRoute.paradas);
+    const idx = currentStop;
+    const parada = paradas[idx];
+    if (!parada) {
+      setShowRiskModal(true);
+      return;
+    }
+    const paradaName = parada.direccion || parada.nombre || `Parada ${idx + 1}`;
+    const linkToStop = window.confirm(
+      `¿Este riesgo te impide completar la parada actual?\n\n` +
+      `→ ${paradaName}\n\n` +
+      `ACEPTAR: la parada se marca como NO completada al enviar el reporte.\n` +
+      `CANCELAR: solo se crea el reporte, la parada queda pendiente.`
+    );
+    if (linkToStop) {
+      setSkipStopData({
+        index: idx,
+        nombre: paradaName,
+        orden: parada.orden || idx + 1,
+        lat: currentGPS.lat,
+        lng: currentGPS.lng,
+      });
+    }
+    setShowRiskModal(true);
+  };
+
   const handleSkipStop = () => {
     console.log('⏭️ handleSkipStop ejecutado - pendingStopIndex:', pendingStopIndex);
 
@@ -910,25 +944,37 @@ const ConductorDashboard = ({ user, onLogout }) => {
     if (!completionReportData) return;
 
     try {
+      // fecha_inicio y fecha_completacion deben ser ISO strings (schema valida v.string()).
+      // routeStartTime se almacena como timestamp (number) → convertir.
+      const fechaInicioISO = typeof completionReportData.fechaInicio === 'number'
+        ? new Date(completionReportData.fechaInicio).toISOString()
+        : completionReportData.fechaInicio;
+      const fechaCompletacionISO = typeof completionReportData.fechaCompletacion === 'number'
+        ? new Date(completionReportData.fechaCompletacion).toISOString()
+        : completionReportData.fechaCompletacion;
+
       const reportToSave = {
         ruta_id: completionReportData.ruta_id,
         asignacion_id: completionReportData.asignacion_id,
-        conductor_nombre: completionReportData.conductor_nombre, // FIXED: usar snake_case
+        conductor_nombre: completionReportData.conductor_nombre,
         conductor_id: completionReportData.conductor_id,
-        vehiculo_placa: completionReportData.vehiculo_placa, // FIXED: usar snake_case
+        vehiculo_placa: completionReportData.vehiculo_placa,
         vehiculo_id: completionReportData.vehiculo_id,
-        fecha_inicio: completionReportData.fechaInicio,
-        fecha_completacion: completionReportData.fechaCompletacion,
+        fecha_inicio: fechaInicioISO,
+        fecha_completacion: fechaCompletacionISO,
         tiempo_total_segundos: completionReportData.tiempoTotal,
         paradas_completadas: completionReportData.paradas,
         reportes_riesgo_ids: completionReportData.reportes_riesgo_ids,
         observaciones: observaciones,
         tipo_ruta: completionReportData.tipo_ruta,
-        ruta_nombre: completionReportData.ruta_nombre, // FIXED: usar snake_case
+        ruta_nombre: completionReportData.ruta_nombre,
         ruta_paradas: completionReportData.ruta_paradas
       };
 
-      await saveRouteCompletionReport(reportToSave);
+      const saveResult = await saveRouteCompletionReport(reportToSave);
+      if (saveResult && saveResult.success === false) {
+        throw new Error(saveResult.error || 'No se pudo guardar el reporte');
+      }
 
       // 🔄 Actualizar estado de la asignación a "completada"
       try {
@@ -1094,6 +1140,14 @@ const ConductorDashboard = ({ user, onLogout }) => {
       motivo_terminacion: finalReason
     };
 
+    // ISO strings requeridos por schema
+    const fechaInicioISO = typeof reportData.fechaInicio === 'number'
+      ? new Date(reportData.fechaInicio).toISOString()
+      : reportData.fechaInicio;
+    const fechaCompletacionISO = typeof reportData.fechaCompletacion === 'number'
+      ? new Date(reportData.fechaCompletacion).toISOString()
+      : reportData.fechaCompletacion;
+
     const reportToSave = {
       ruta_id: reportData.ruta_id,
       asignacion_id: reportData.asignacion_id,
@@ -1101,8 +1155,8 @@ const ConductorDashboard = ({ user, onLogout }) => {
       conductor_id: reportData.conductor_id,
       vehiculo_placa: reportData.vehiculo_placa,
       vehiculo_id: reportData.vehiculo_id,
-      fecha_inicio: reportData.fechaInicio,
-      fecha_completacion: reportData.fechaCompletacion,
+      fecha_inicio: fechaInicioISO,
+      fecha_completacion: fechaCompletacionISO,
       tiempo_total_segundos: reportData.tiempoTotal,
       paradas_completadas: reportData.paradas,
       reportes_riesgo_ids: reportData.reportes_riesgo_ids,
@@ -1115,7 +1169,10 @@ const ConductorDashboard = ({ user, onLogout }) => {
     };
 
     try {
-      await saveRouteCompletionReport(reportToSave);
+      const saveResult = await saveRouteCompletionReport(reportToSave);
+      if (saveResult && saveResult.success === false) {
+        throw new Error(saveResult.error || 'No se pudo guardar el reporte');
+      }
 
       // Actualizar estado de la asignación a "completada" (aunque sea anticipada)
       try {
@@ -1632,7 +1689,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                 </div>
                 <button
                   className="btn btn--warning btn--sm"
-                  onClick={() => setShowRiskModal(true)}
+                  onClick={handleReportRiskFromHeader}
                   title="Reportar un riesgo"
                 >
                   <AlertTriangle size={16} /> Reportar Riesgo

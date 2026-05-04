@@ -2554,6 +2554,31 @@
   .desktop-panel__kpis .kpi-card {
     padding: var(--space-8) var(--space-4);
     margin: 0;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .desktop-panel__kpis .kpi-content {
+    min-width: 0;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .desktop-panel__kpis .kpi-value {
+    font-size: 15px;
+    line-height: 1.15;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    white-space: normal;
+    text-align: center;
+    width: 100%;
+    padding: 0 2px;
+    box-sizing: border-box;
+  }
+
+  .desktop-panel__kpis .kpi-label {
+    font-size: 10px;
+    letter-spacing: 0.4px;
   }
 
   /* Stops list section - scrollable */
