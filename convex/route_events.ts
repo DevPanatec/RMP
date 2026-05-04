@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId, getScopedOrgId } from "./lib/auth";
+import { getAuthScope, getScopedProjectId, getScopedOrgId, isCrossOrgViewer } from "./lib/auth";
 
 // Create route event
 export const add = mutation({
@@ -26,6 +26,8 @@ export const add = mutation({
     parada_orden: v.optional(v.float64()),
     parada_index: v.optional(v.float64()),
     categoria_carga: v.optional(v.string()),
+    bolsas: v.optional(v.float64()),
+    foto_storage_id: v.optional(v.id("_storage")),
     gps_latitud: v.optional(v.float64()),
     gps_longitud: v.optional(v.float64()),
     detalles: v.optional(v.string()),
@@ -82,8 +84,18 @@ export const getRecent = query({
     organizacion_id: v.optional(v.id("organizaciones")),
   },
   handler: async (ctx, args) => {
-    const scopedProject = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    const scope = await getAuthScope(ctx);
     const limit = args.limit || 50;
+
+    // Cross-org viewer: ve eventos de TODAS las orgs
+    if (isCrossOrgViewer(scope.perfil?._id)) {
+      return await ctx.db
+        .query("route_events")
+        .order("desc")
+        .take(limit);
+    }
+
+    const scopedProject = await getScopedProjectId(ctx, args.proyecto_id ?? null);
     if (scopedProject) {
       return await ctx.db
         .query("route_events")

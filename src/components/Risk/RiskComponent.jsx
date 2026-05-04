@@ -3,8 +3,9 @@ import { useRiskReports } from '../../context/RiskReportsContext';
 import {
   AlertTriangle, ClipboardList, Wrench, AlertOctagon, Zap,
   Eye, CheckCircle, FolderOpen, FileText, Users, Truck,
-  MapPin, Calendar, BarChart3, X, Shield, Package
+  MapPin, Calendar, BarChart3, X, Shield, Package, Camera
 } from '../Icons';
+import { StorageImage } from '../UI';
 import './RiskComponent.css';
 
 const RiskComponent = ({ userType = 'admin' }) => {
@@ -259,6 +260,24 @@ const RiskComponent = ({ userType = 'admin' }) => {
                 <h5><FileText size={16} /> Descripción</h5>
                 <p>{selectedReport.descripcion}</p>
               </div>
+
+              {selectedReport.fotos_storage_ids && selectedReport.fotos_storage_ids.length > 0 && (
+                <div className="detail-section">
+                  <h5><Camera size={16} /> Fotos ({selectedReport.fotos_storage_ids.length})</h5>
+                  <div className="risk-detail-photos">
+                    {selectedReport.fotos_storage_ids.map((id, idx) => (
+                      <a
+                        key={idx}
+                        href="#"
+                        onClick={(e) => e.preventDefault()}
+                        className="risk-detail-photo"
+                      >
+                        <StorageImage storageId={id} alt={`Foto ${idx + 1}`} className="risk-detail-photo__img" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className="detail-section">
                 <h5><AlertTriangle size={16} /> Información del Reporte</h5>

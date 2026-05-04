@@ -1,5 +1,6 @@
-import { X, MapPin, Truck, Clock, UserCheck, Package, Calendar, FileText, AlertTriangle, Wrench, AlertOctagon } from '../Icons';
+import { X, MapPin, Truck, Clock, UserCheck, Package, Calendar, FileText, AlertTriangle, Wrench, AlertOctagon, Camera } from '../Icons';
 import { MapLibreComponent } from '../Map';
+import { StorageImage } from '../UI';
 import { useRiskReports } from '../../context/RiskReportsContext';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
@@ -61,23 +62,33 @@ const RouteReportDetailModal = ({ report, onClose }) => {
     .filter(p => p.lat && p.lng);
 
   // Preparar ruta para el mapa en el formato que espera MapComponent
+  // Cruzar paradas originales con paradas_completadas para color por estado
+  const completadasByIndex = (report.paradas_completadas || []).reduce((acc, p, idx) => {
+    const key = p.parada_index ?? p.index ?? idx;
+    acc[key] = p;
+    return acc;
+  }, {});
+
   const rutaParaMapa = [{
     _id: report._id || report.ruta_id || 'reporte-ruta',
     nombre: report.ruta_nombre,
     paradas: (report.ruta_paradas || []).map((p, idx) => {
       const lat = p.lat || p.latitud || p.gps_completada?.lat || p.gps_completada?.latitud;
       const lng = p.lng || p.longitud || p.gps_completada?.lng || p.gps_completada?.longitud;
+      const completedInfo = completadasByIndex[idx];
 
       return {
         nombre: p.direccion || p.nombre || `Parada ${idx + 1}`,
         direccion: p.direccion || p.nombre,
         lat: lat,
         lng: lng,
-        latitud: lat, // Alias
-        longitud: lng, // Alias
-        orden: p.orden || idx + 1
+        latitud: lat,
+        longitud: lng,
+        orden: p.orden || idx + 1,
+        completada: completedInfo ? completedInfo.completada !== false : false,
+        motivo_no_completada: completedInfo?.motivo_no_completada,
       };
-    }).filter(p => p.lat && p.lng) // Solo paradas con GPS válido
+    }).filter(p => p.lat && p.lng)
   }];
 
   // Calcular estadísticas
@@ -243,18 +254,33 @@ const RouteReportDetailModal = ({ report, onClose }) => {
                       </div>
                       {parada.completada && (
                         <div className="parada-details">
-                          {parada.categoria_carga && (
+                          {(parada.categoria_carga || parada.category) && (
                             <span className="parada-detail">
                               <Package size={14} />
-                              Carga: {parada.categoria_carga}
+                              Carga: {parada.categoria_carga || parada.category}
                             </span>
                           )}
-                          {parada.timestamp_llegada && (
+                          {parada.bolsas !== undefined && parada.bolsas !== null && (
+                            <span className="parada-detail">
+                              <Package size={14} />
+                              {parada.bolsas} bolsa{parada.bolsas === 1 ? '' : 's'}
+                            </span>
+                          )}
+                          {(parada.timestamp_llegada || parada.timestamp) && (
                             <span className="parada-detail">
                               <Clock size={14} />
-                              {parada.timestamp_llegada}
+                              {parada.timestamp_llegada || parada.timestamp}
                             </span>
                           )}
+                        </div>
+                      )}
+                      {parada.completada && parada.foto_storage_id && (
+                        <div className="parada-photo">
+                          <StorageImage
+                            storageId={parada.foto_storage_id}
+                            alt={`Foto parada ${parada.orden || idx + 1}`}
+                            className="parada-photo__img"
+                          />
                         </div>
                       )}
                       {!parada.completada && parada.motivo_no_completada && (

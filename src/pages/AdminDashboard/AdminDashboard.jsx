@@ -277,8 +277,14 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   const isViewer = userRole === 'viewer' || user?.tipo === 'viewer';
   const VIEWER_ALLOWED_TABS = ['dashboard', 'operaciones', 'riesgos'];
 
+  // TODO: temporal — perfil de cliente con operaciones bloqueadas. Reemplazar por flag en perfil.
+  const RESTRICTED_CLIENT_IDS = ['k575k7zv6ktg6qtxddvtjh6rr585vnta'];
+  const isRestrictedClient = RESTRICTED_CLIENT_IDS.includes(user?._id) || RESTRICTED_CLIENT_IDS.includes(user?.id);
+  const RESTRICTED_BLOCKED_TABS = ['operaciones'];
+
   const handleTabChange = (newTab, defaultSubTab = '') => {
     if (isViewer && !VIEWER_ALLOWED_TABS.includes(newTab)) return;
+    if (isRestrictedClient && RESTRICTED_BLOCKED_TABS.includes(newTab)) return;
     setActiveTab(newTab);
     setActiveSubTab(defaultSubTab);
   };
@@ -518,6 +524,9 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   const renderContent = () => {
     // Viewer solo ve dashboard + operaciones + riesgos. Defensa en profundidad.
     if (isViewer && !VIEWER_ALLOWED_TABS.includes(activeTab)) {
+      return null;
+    }
+    if (isRestrictedClient && RESTRICTED_BLOCKED_TABS.includes(activeTab)) {
       return null;
     }
     switch (activeTab) {
@@ -771,13 +780,15 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             <LayoutDashboard strokeWidth={1.5} size={18} />
             <span>Monitoreo</span>
           </button>
-          <button
-            className={`top-nav__tab ${activeTab === 'operaciones' ? 'active' : ''}`}
-            onClick={() => handleTabChange('operaciones', 'personal')}
-          >
-            <Truck strokeWidth={1.5} size={18} />
-            <span>Operaciones</span>
-          </button>
+          {!isRestrictedClient && (
+            <button
+              className={`top-nav__tab ${activeTab === 'operaciones' ? 'active' : ''}`}
+              onClick={() => handleTabChange('operaciones', 'personal')}
+            >
+              <Truck strokeWidth={1.5} size={18} />
+              <span>Operaciones</span>
+            </button>
+          )}
           <button
             className={`top-nav__tab ${activeTab === 'calendario' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
             onClick={() => handleTabChange('calendario')}

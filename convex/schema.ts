@@ -208,6 +208,8 @@ export default defineSchema({
     parada_orden: v.optional(v.number()),
     parada_index: v.optional(v.number()),
     categoria_carga: v.optional(v.string()),
+    bolsas: v.optional(v.number()),
+    foto_storage_id: v.optional(v.id("_storage")),
     gps_latitud: v.optional(v.number()),
     gps_longitud: v.optional(v.number()),
     detalles: v.optional(v.string()),
@@ -263,6 +265,7 @@ export default defineSchema({
     parada_nombre: v.optional(v.string()), // Dirección/nombre de la parada
     parada_orden: v.optional(v.number()), // Orden de la parada en la ruta
     parada_index: v.optional(v.number()), // Índice de la parada (0-based)
+    fotos_storage_ids: v.optional(v.array(v.id("_storage"))), // Hasta 3 fotos opcionales
     organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_fecha", ["fecha_reporte"])

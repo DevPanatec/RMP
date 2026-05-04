@@ -3,6 +3,12 @@ import { Id } from "../_generated/dataModel";
 
 export type Ctx = QueryCtx | MutationCtx;
 
+// TODO: temporal — perfiles cliente con visibilidad cross-org (riesgos internos+externos
+// de TODAS las orgs, vehículos en mapa de TODAS las orgs). Reemplazar por flag en perfil.
+const CROSS_ORG_VIEWER_PROFILE_IDS = new Set<string>(["k575k7zv6ktg6qtxddvtjh6rr585vnta"]);
+export const isCrossOrgViewer = (perfilId: string | undefined) =>
+  perfilId !== undefined && CROSS_ORG_VIEWER_PROFILE_IDS.has(perfilId);
+
 export interface AuthScope {
   perfil: any | null;
   isSuperAdmin: boolean;

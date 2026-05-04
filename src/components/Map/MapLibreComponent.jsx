@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo, useCallback, memo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback, memo, Fragment } from 'react';
 import { createPortal } from 'react-dom';
 import Map, { Marker, Source, Layer, Popup, NavigationControl, ScaleControl } from 'react-map-gl/maplibre';
 import maplibregl from 'maplibre-gl';
@@ -531,6 +531,8 @@ const MapLibreComponent = ({
   const deleteGeofence = useMutation(api.geofences.remove);
 
   // Normalize vehicles data
+  // Solo mostrar vehículos con GPS activo (ping reciente). Sin esto, los carros desconectados
+  // aparecen pegados en su última ubicación cacheada — ubicación fantasma.
   const normalizedVehicles = useMemo(() => {
     return camiones.map(c => ({
       ...c,
@@ -538,13 +540,17 @@ const MapLibreComponent = ({
       lng: c.gps_longitud || c.lng,
       id: c.id || c._id,
       placa: c.placa || c.vehiculo_placa
-    })).filter(v => v.lat && v.lng);
+    })).filter(v => {
+      if (!v.lat || !v.lng) return false;
+      return getVehicleMovementStatus(v) !== 'offline';
+    });
   }, [camiones]);
 
   // Calculate initial view state
   const initialViewState = useMemo(() => {
-    // If there are routes without vehicles (report mode), center on stops
-    if (rutas && rutas.length > 0 && normalizedVehicles.length === 0) {
+    // If there are routes without vehicles (report mode), center on stops.
+    // Usa camiones (prop) no normalizedVehicles, sino offline = report mode falso.
+    if (rutas && rutas.length > 0 && camiones.length === 0) {
       const allStops = rutas.flatMap(ruta => ruta.paradas || []);
       const validStops = allStops.filter(p => (p.lat || p.latitud) && (p.lng || p.longitud));
 
@@ -1036,48 +1042,56 @@ const MapLibreComponent = ({
           </>
         )}
 
-        {/* Historic routes (report mode - no vehicles) */}
-        {normalizedVehicles.length === 0 && rutas.map(ruta => {
+        {/* Historic routes (report mode - caller pasa camiones=[] explícito).
+            NO usar normalizedVehicles aquí: si todos están offline también es 0,
+            y eso dibujaría todas las rutas en monitoreo en vivo. */}
+        {camiones.length === 0 && rutas.map(ruta => {
           const routeKey = ruta._id || ruta.id;
           const routeCoords = roadRoutes[routeKey];
-
-          if (!routeCoords || routeCoords.length < 2) return null;
+          const stops = (ruta._paradasOriginales || ruta.paradas || [])
+            .filter(stop => !stop._isGpsOrigin);
 
           return (
-            <div key={routeKey}>
-              <RouteLine
-                id={`historic-route-${routeKey}-glow`}
-                coordinates={routeCoords}
-                color="#10b981"
-                opacity={0.3}
-                width={16}
-              />
-              <RouteLine
-                id={`historic-route-${routeKey}-main`}
-                coordinates={routeCoords}
-                color="#10b981"
-                opacity={0.95}
-                width={7}
-              />
+            <Fragment key={routeKey}>
+              {/* Línea solo si hay coords de Mapbox; paradas siempre */}
+              {routeCoords && routeCoords.length >= 2 && (
+                <>
+                  <RouteLine
+                    id={`historic-route-${routeKey}-glow`}
+                    coordinates={routeCoords}
+                    color="#10b981"
+                    opacity={0.3}
+                    width={16}
+                  />
+                  <RouteLine
+                    id={`historic-route-${routeKey}-main`}
+                    coordinates={routeCoords}
+                    color="#10b981"
+                    opacity={0.95}
+                    width={7}
+                  />
+                </>
+              )}
 
-              {/* Stop markers for historic routes */}
-              {(ruta._paradasOriginales || ruta.paradas || [])
-                .filter(stop => !stop._isGpsOrigin)
-                .map((stop, idx) => {
+              {stops.map((stop, idx) => {
                 const lat = stop.lat || stop.latitud;
                 const lng = stop.lng || stop.longitud;
                 if (!lat || !lng) return null;
+
+                const isCompleted = (stop.completada || stop.completed) && stop.completada !== false;
+                const isSkipped = stop.completada === false && stop.motivo_no_completada;
 
                 return (
                   <StopMarker
                     key={`historic-stop-${routeKey}-${idx}`}
                     stop={{ ...stop, lat, lng }}
                     index={idx}
-                    isCompleted={true}
+                    isCompleted={isCompleted}
+                    isSkipped={isSkipped}
                   />
                 );
               })}
-            </div>
+            </Fragment>
           );
         })}
 

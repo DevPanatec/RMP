@@ -20,23 +20,16 @@ export const getVehicleHistory = query({
       throw new Error(`Vehicle not found: ${vehiculoId}`);
     }
 
-    // Construir query con índice
-    let query = ctx.db
+    // Range expression EN el índice (no filter) — sino escanea todo el historial del vehículo
+    const locations = await ctx.db
       .query("vehicle_location_history")
-      .withIndex("by_vehiculo_timestamp", (q) => q.eq("vehiculo_id", vehiculoId));
-
-    // Si hay startDate, filtrar desde esa fecha
-    if (startDate) {
-      query = query.filter((q) => q.gte(q.field("timestamp"), startDate));
-    }
-
-    // Si hay endDate, filtrar hasta esa fecha
-    if (endDate) {
-      query = query.filter((q) => q.lte(q.field("timestamp"), endDate));
-    }
-
-    // Ordenar por timestamp ascendente
-    const locations = await query.collect();
+      .withIndex("by_vehiculo_timestamp", (q) => {
+        let r = q.eq("vehiculo_id", vehiculoId);
+        if (startDate !== undefined) r = r.gte("timestamp", startDate);
+        if (endDate !== undefined) r = r.lte("timestamp", endDate);
+        return r;
+      })
+      .collect();
 
     console.log(
       `📊 Historial consultado: ${vehicle.placa} (${locations.length} puntos) [${
@@ -73,23 +66,16 @@ export const getVehicleHistoryInternal = internalQuery({
       throw new Error(`Vehicle not found: ${vehiculoId}`);
     }
 
-    // Construir query con índice
-    let query = ctx.db
+    // Range expression EN el índice (no filter)
+    const locations = await ctx.db
       .query("vehicle_location_history")
-      .withIndex("by_vehiculo_timestamp", (q) => q.eq("vehiculo_id", vehiculoId));
-
-    // Si hay startDate, filtrar desde esa fecha
-    if (startDate) {
-      query = query.filter((q) => q.gte(q.field("timestamp"), startDate));
-    }
-
-    // Si hay endDate, filtrar hasta esa fecha
-    if (endDate) {
-      query = query.filter((q) => q.lte(q.field("timestamp"), endDate));
-    }
-
-    // Ordenar por timestamp ascendente
-    const locations = await query.collect();
+      .withIndex("by_vehiculo_timestamp", (q) => {
+        let r = q.eq("vehiculo_id", vehiculoId);
+        if (startDate !== undefined) r = r.gte("timestamp", startDate);
+        if (endDate !== undefined) r = r.lte("timestamp", endDate);
+        return r;
+      })
+      .collect();
 
     return {
       vehiculoId,

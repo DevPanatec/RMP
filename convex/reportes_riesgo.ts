@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthScope, getScopedProjectId, getScopedOrgId } from "./lib/auth";
+import { getAuthScope, getScopedProjectId, getScopedOrgId, isCrossOrgViewer } from "./lib/auth";
 
 // Internal: problemas del operador/vehiculo. Externo: entorno (afecta al cliente)
 const TIPOS_INTERNOS = new Set(["mecanico", "combustible", "seguridad", "mantenimiento"]);
@@ -42,6 +42,16 @@ export const list = query({
   },
   handler: async (ctx, args) => {
     const scope = await getAuthScope(ctx);
+
+    // Cross-org viewer: ve TODOS los riesgos (internos+externos) de TODAS las orgs
+    if (isCrossOrgViewer(scope.perfil?._id)) {
+      return await ctx.db
+        .query("reportes_riesgo")
+        .withIndex("by_fecha", (q) => q)
+        .order("desc")
+        .collect();
+    }
+
     const scopedProject = await getScopedProjectId(ctx, args.proyecto_id ?? null);
     const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
     let rows;
@@ -75,30 +85,39 @@ export const listWithDetails = query({
   },
   handler: async (ctx, args) => {
     const scope = await getAuthScope(ctx);
-    const scopedProject = await getScopedProjectId(ctx, args.proyecto_id ?? null);
-    const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
+    const crossOrg = isCrossOrgViewer(scope.perfil?._id);
+
     let reportes;
-    if (scopedProject === null) {
+    if (crossOrg) {
       reportes = await ctx.db
         .query("reportes_riesgo")
         .withIndex("by_fecha", (q) => q)
         .order("desc")
         .collect();
     } else {
-      reportes = await ctx.db
-        .query("reportes_riesgo")
-        .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scopedProject))
-        .collect();
-      reportes.sort((a, b) => (b.fecha_reporte || "").localeCompare(a.fecha_reporte || ""));
-    }
+      const scopedProject = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+      const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
+      if (scopedProject === null) {
+        reportes = await ctx.db
+          .query("reportes_riesgo")
+          .withIndex("by_fecha", (q) => q)
+          .order("desc")
+          .collect();
+      } else {
+        reportes = await ctx.db
+          .query("reportes_riesgo")
+          .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scopedProject))
+          .collect();
+        reportes.sort((a, b) => (b.fecha_reporte || "").localeCompare(a.fecha_reporte || ""));
+      }
 
-    if (scopedProject === null && scopedOrg) {
-      reportes = reportes.filter((r) => !r.organizacion_id || r.organizacion_id === scopedOrg);
-    }
+      if (scopedProject === null && scopedOrg) {
+        reportes = reportes.filter((r) => !r.organizacion_id || r.organizacion_id === scopedOrg);
+      }
 
-    // Enterprise/viewer solo ven riesgos externos
-    if (scope.isEnterprise || scope.isViewer) {
-      reportes = reportes.filter((r) => isExterno(r.tipo_riesgo));
+      if (scope.isEnterprise || scope.isViewer) {
+        reportes = reportes.filter((r) => isExterno(r.tipo_riesgo));
+      }
     }
 
     // Hacer JOIN manual con empleados, vehiculos y rutas
@@ -185,6 +204,7 @@ export const add = mutation({
     parada_nombre: v.optional(v.string()),
     parada_orden: v.optional(v.number()),
     parada_index: v.optional(v.number()),
+    fotos_storage_ids: v.optional(v.array(v.id("_storage"))),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("reportes_riesgo", {

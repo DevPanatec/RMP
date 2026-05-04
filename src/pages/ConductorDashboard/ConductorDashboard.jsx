@@ -14,7 +14,7 @@ import {
   Truck, LogOut, Download, Map, Clock, AlertTriangle,
   ClipboardList, Package, TrendingUp, FileText, MapPin,
   CheckCircle, Calendar, Loader, Wrench, AlertOctagon, X,
-  Activity, Navigation, Target
+  Activity, Navigation, Target, Camera
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
 import { RouteTimeline } from '../../components/Dashboard';
@@ -128,6 +128,10 @@ const ConductorDashboard = ({ user, onLogout }) => {
     descripcion: '',
     prioridad: 'media'
   });
+  const [riskPhotos, setRiskPhotos] = useState([]); // [{ storageId, previewUrl }]
+  const [riskPhotoUploading, setRiskPhotoUploading] = useState(false);
+  const riskPhotoInputRef = useRef(null);
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const [showTerminateModal, setShowTerminateModal] = useState(false);
   const [terminateReason, setTerminateReason] = useState('');
   const [selectedRiskForTermination, setSelectedRiskForTermination] = useState(null);
@@ -571,7 +575,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
     setPendingStopIndex(null);
   };
 
-  const handleWeightConfirm = async (category) => {
+  const handleWeightConfirm = async (category, extras = {}) => {
     const timestamp = new Date().toLocaleTimeString('es-ES', {
       hour: '2-digit',
       minute: '2-digit'
@@ -585,7 +589,9 @@ const ConductorDashboard = ({ user, onLogout }) => {
       category: category,
       timestamp: timestamp,
       parada_nombre: parada.direccion || parada.nombre,
-      parada_orden: parada.orden
+      parada_orden: parada.orden,
+      ...(extras.bolsas !== undefined && { bolsas: extras.bolsas }),
+      ...(extras.foto_storage_id && { foto_storage_id: extras.foto_storage_id }),
     };
 
     const updatedCompletedStops = [...completedStops, newCompletedStop];
@@ -627,6 +633,8 @@ const ConductorDashboard = ({ user, onLogout }) => {
         parada_orden: parada.orden,
         parada_index: pendingStopIndex,
         categoria_carga: category,
+        ...(extras.bolsas !== undefined && { bolsas: extras.bolsas }),
+        ...(extras.foto_storage_id && { foto_storage_id: extras.foto_storage_id }),
       };
 
       // Solo agregar GPS si tiene valores válidos (no null)
@@ -837,9 +845,12 @@ const ConductorDashboard = ({ user, onLogout }) => {
           timestamp_llegada: completedStop.timestamp,
           timestamp_salida: completedStop.timestamp,
           gps_completada: null,
-          completada: completedStop.completada !== false, // 🔥 USAR EL VALOR REAL!!!
-          motivo_no_completada: completedStop.motivo_no_completada, // 🔥 AGREGAR MOTIVO
-          reporte_riesgo_id: completedStop.reporte_riesgo_id // 🔥 AGREGAR ID DE REPORTE
+          completada: completedStop.completada !== false,
+          motivo_no_completada: completedStop.motivo_no_completada,
+          reporte_riesgo_id: completedStop.reporte_riesgo_id,
+          // Extras opcionales — solo presentes si conductor los agregó
+          ...(completedStop.bolsas !== undefined && { bolsas: completedStop.bolsas }),
+          ...(completedStop.foto_storage_id && { foto_storage_id: completedStop.foto_storage_id }),
         };
       } else {
         // Parada NO COMPLETADA
@@ -1039,7 +1050,9 @@ const ConductorDashboard = ({ user, onLogout }) => {
           timestamp_llegada: completedStop.timestamp,
           timestamp_salida: completedStop.timestamp,
           gps_completada: null,
-          completada: true
+          completada: true,
+          ...(completedStop.bolsas !== undefined && { bolsas: completedStop.bolsas }),
+          ...(completedStop.foto_storage_id && { foto_storage_id: completedStop.foto_storage_id }),
         };
       } else {
         return {
@@ -1175,6 +1188,54 @@ const ConductorDashboard = ({ user, onLogout }) => {
     }
   };
 
+  // Subir foto adicional al riesgo (max 3)
+  const handleAddRiskPhoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (riskPhotos.length >= 3) {
+      setShowSuccessModal({ type: 'error', message: 'Máximo 3 fotos por reporte' });
+      return;
+    }
+    setRiskPhotoUploading(true);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const res = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const { storageId } = await res.json();
+      setRiskPhotos((prev) => [...prev, { storageId, previewUrl: URL.createObjectURL(file) }]);
+    } catch (err) {
+      console.error('Error subiendo foto de riesgo:', err);
+      setShowSuccessModal({ type: 'error', message: 'No se pudo subir la foto.' });
+    } finally {
+      setRiskPhotoUploading(false);
+      if (riskPhotoInputRef.current) riskPhotoInputRef.current.value = '';
+    }
+  };
+
+  const handleRemoveRiskPhoto = (idx) => {
+    setRiskPhotos((prev) => {
+      const photo = prev[idx];
+      if (photo?.previewUrl) URL.revokeObjectURL(photo.previewUrl);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  const resetRiskForm = () => {
+    setRiskReport({
+      tipo: 'interno',
+      categoria: '',
+      titulo: '',
+      descripcion: '',
+      prioridad: 'media',
+    });
+    riskPhotos.forEach((p) => p.previewUrl && URL.revokeObjectURL(p.previewUrl));
+    setRiskPhotos([]);
+  };
+
   const handleSubmitRiskReport = async () => {
     console.log('🚨 handleSubmitRiskReport - skipStopData:', skipStopData);
 
@@ -1259,6 +1320,10 @@ const ConductorDashboard = ({ user, onLogout }) => {
         reportData.perfil_usuario_id = perfilId;
       }
 
+      if (riskPhotos.length > 0) {
+        reportData.fotos_storage_ids = riskPhotos.map((p) => p.storageId);
+      }
+
       console.log('📊 Enviando reporte de riesgo:', reportData);
 
       // Guardar usando el context
@@ -1326,13 +1391,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
       }
 
       // Resetear formulario
-      setRiskReport({
-        tipo: 'interno',
-        categoria: '',
-        titulo: '',
-        descripcion: '',
-        prioridad: 'media'
-      });
+      resetRiskForm();
       setShowRiskModal(false);
     } catch (error) {
       console.error('Error guardando reporte de riesgo:', error);
@@ -2286,6 +2345,42 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   onChange={e => setRiskReport(prev => ({...prev, descripcion: e.target.value}))}
                 />
 
+                <div className="sheet__section-label">Fotos (opcional, máx 3)</div>
+                <div className="risk-photos-grid">
+                  {riskPhotos.map((photo, idx) => (
+                    <div key={idx} className="risk-photo-thumb">
+                      <img src={photo.previewUrl} alt={`Foto ${idx + 1}`} />
+                      <button
+                        type="button"
+                        className="risk-photo-thumb__remove"
+                        onClick={() => handleRemoveRiskPhoto(idx)}
+                        aria-label="Quitar foto"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  {riskPhotos.length < 3 && (
+                    <button
+                      type="button"
+                      className="risk-photo-add"
+                      onClick={() => riskPhotoInputRef.current?.click()}
+                      disabled={riskPhotoUploading}
+                    >
+                      <Camera size={20} />
+                      <span>{riskPhotoUploading ? 'Subiendo...' : 'Agregar'}</span>
+                    </button>
+                  )}
+                </div>
+                <input
+                  ref={riskPhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleAddRiskPhoto}
+                  style={{ display: 'none' }}
+                />
+
                 <div className="sheet__location">
                   <MapPin size={14} />
                   <span>GPS: {(userTruck?.gps_latitud || userTruck?.lat || 0).toFixed(4)}, {(userTruck?.gps_longitud || userTruck?.lng || 0).toFixed(4)}</span>
@@ -2297,7 +2392,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   <AlertTriangle size={16} />
                   Enviar Reporte
                 </button>
-                <button className="sheet__btn sheet__btn--ghost" onClick={() => { setShowRiskModal(false); setSkipStopData(null); }}>
+                <button className="sheet__btn sheet__btn--ghost" onClick={() => { setShowRiskModal(false); setSkipStopData(null); resetRiskForm(); }}>
                   Cancelar
                 </button>
               </div>
@@ -2392,6 +2487,36 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   ></textarea>
                 </div>
 
+                <div className="form-group">
+                  <label>Fotos (opcional, máx 3)</label>
+                  <div className="risk-photos-grid">
+                    {riskPhotos.map((photo, idx) => (
+                      <div key={idx} className="risk-photo-thumb">
+                        <img src={photo.previewUrl} alt={`Foto ${idx + 1}`} />
+                        <button
+                          type="button"
+                          className="risk-photo-thumb__remove"
+                          onClick={() => handleRemoveRiskPhoto(idx)}
+                          aria-label="Quitar foto"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    {riskPhotos.length < 3 && (
+                      <button
+                        type="button"
+                        className="risk-photo-add"
+                        onClick={() => riskPhotoInputRef.current?.click()}
+                        disabled={riskPhotoUploading}
+                      >
+                        <Camera size={20} />
+                        <span>{riskPhotoUploading ? 'Subiendo...' : 'Agregar'}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 <div className="location-info">
                   <p><MapPin size={16} style={{display: 'inline', marginRight: '6px'}} /><strong>Ubicación actual:</strong></p>
                   <p>Lat: {(userTruck?.gps_latitud || userTruck?.lat || 0).toFixed(6)}, Lng: {(userTruck?.gps_longitud || userTruck?.lng || 0).toFixed(6)}</p>
@@ -2404,6 +2529,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                   onClick={() => {
                     setShowRiskModal(false);
                     setSkipStopData(null);
+                    resetRiskForm();
                   }}
                 >
                   Cancelar

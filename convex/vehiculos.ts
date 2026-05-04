@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId, getScopedOrgId, getAuthScope } from "./lib/auth";
+import { getScopedProjectId, getScopedOrgId, getAuthScope, isCrossOrgViewer } from "./lib/auth";
 
 // List all vehicles.
 // - Super_admin: ve todos (o filtra si pasa organizacion_id).
@@ -11,7 +11,7 @@ export const list = query({
   args: { proyecto_id: v.optional(v.id("proyectos")) },
   handler: async (ctx, args) => {
     const scope = await getAuthScope(ctx);
-    if (scope.isSuperAdmin) {
+    if (scope.isSuperAdmin || isCrossOrgViewer(scope.perfil?._id)) {
       return await ctx.db.query("vehiculos").collect();
     }
     if (scope.isAdmin || scope.isConductor) {
@@ -71,14 +71,22 @@ export const listWithAssignments = query({
   },
   handler: async (ctx, args) => {
     const scope = await getAuthScope(ctx);
-    const scoped = scope.isAdmin
+
+    // Cross-org viewer: ve TODOS los vehículos de TODAS las orgs (como super_admin)
+    const crossOrg = isCrossOrgViewer(scope.perfil?._id);
+
+    const scoped = crossOrg
       ? (args.proyecto_id ?? null)
-      : await getScopedProjectId(ctx, args.proyecto_id ?? null);
-    const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
+      : scope.isAdmin
+        ? (args.proyecto_id ?? null)
+        : await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    const scopedOrg = crossOrg
+      ? (args.organizacion_id ?? null)
+      : await getScopedOrgId(ctx, args.organizacion_id ?? null);
 
     // ENTERPRISE: visibilidad live derivada de route_progress (no de asignaciones).
     // Esto cubre rutas recurrentes (cuya asignación queda en 'programada' aunque corra).
-    if (scope.isEnterprise) {
+    if (scope.isEnterprise && !crossOrg) {
       if (!scoped) return [];
       // Tomar TODOS los progress en_progreso y filtrar por proyecto en memoria.
       // Esto es defensivo: si route_progress.proyecto_id está vacío (datos legacy),

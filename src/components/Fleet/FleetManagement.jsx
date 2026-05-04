@@ -89,7 +89,6 @@ const FleetManagement = () => {
           placa: formData.placa,
           safetagDeviceId: formData.safetagDeviceId || undefined,
           tipo_servicio: 'general', // Default
-          estado: 'disponible'
         });
 
         if (result?.success === false) {
