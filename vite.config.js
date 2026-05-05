@@ -28,20 +28,7 @@ export default defineConfig(({ mode }) => ({
     chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
-          if (!id.includes('node_modules')) return undefined;
-          if (id.includes('maplibre-gl') || id.includes('react-map-gl')) return 'maps-maplibre';
-          if (id.includes('leaflet') || id.includes('react-leaflet')) return 'maps-leaflet';
-          if (id.includes('pdfmake')) return 'pdf';
-          if (id.includes('@clerk')) return 'clerk';
-          if (id.includes('convex')) return 'convex';
-          if (id.includes('lucide-react')) return 'icons';
-          if (id.includes('react-hot-toast') || id.includes('react-sparklines')) return 'ui-libs';
-          if (id.includes('@googlemaps')) return 'google-maps';
-          if (id.includes('react-dom')) return 'react-dom';
-          if (id.includes('/react/')) return 'react';
-          return 'vendor';
-        }
+        manualChunks: undefined
       }
     }
   },
