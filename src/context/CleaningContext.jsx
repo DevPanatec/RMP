@@ -12,6 +12,8 @@ export const CleaningProvider = ({ children }) => {
   const assignmentsData = useQuery(api.cleaning.listAssignments, { proyecto_id: currentProjectId ?? undefined });
 
   const addSalaMutation = useMutation(api.cleaning.addSala);
+  const updateSalaMutation = useMutation(api.cleaning.updateSala);
+  const deleteSalaMutation = useMutation(api.cleaning.deleteSala);
   const addAreaMutation = useMutation(api.cleaning.addArea);
   const addAssignmentMutation = useMutation(api.cleaning.addAssignment);
   const updateAssignmentMutation = useMutation(api.cleaning.updateAssignment);
@@ -31,6 +33,26 @@ export const CleaningProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Error adding sala:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const updateSala = async (id, updates) => {
+    try {
+      await updateSalaMutation({ id, ...updates });
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating sala:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const deleteSala = async (id) => {
+    try {
+      await deleteSalaMutation({ id });
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting sala:', error);
       return { success: false, error: error.message };
     }
   };
@@ -156,6 +178,8 @@ export const CleaningProvider = ({ children }) => {
     assignments,
     loading,
     addSala,
+    updateSala,
+    deleteSala,
     addArea,
     addAssignment,
     updateAssignment,

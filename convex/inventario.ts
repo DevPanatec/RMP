@@ -1,20 +1,30 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId } from "./lib/auth";
+import { getAuthScope, getScopedProjectId } from "./lib/auth";
 
-// Generar código único para items de inventario
+// Filtra items por scope: super_admin/cross-org ven todos; demás solo su org.
+async function scopeItems(ctx: any, items: any[]) {
+  const scope = await getAuthScope(ctx);
+  if (scope.isSuperAdmin || scope.isCrossOrgViewer) return items;
+  if (!scope.organizacionId) return [];
+  return items.filter((i) => !i.organizacion_id || i.organizacion_id === scope.organizacionId);
+}
+
+// Generar código único para items de inventario (scoped)
 export const generateCodigo = query({
   handler: async (ctx) => {
-    const items = await ctx.db.query("inventario").collect();
+    const all = await ctx.db.query("inventario").collect();
+    const items = await scopeItems(ctx, all);
     const count = items.length + 1;
     return `MAT-${String(count).padStart(3, '0')}`;
   },
 });
 
-// Listar todos los items con cantidad total y ubicaciones
+// Listar todos los items con cantidad total y ubicaciones (scoped)
 export const list = query({
   handler: async (ctx) => {
-    const items = await ctx.db.query("inventario").collect();
+    const allItems = await ctx.db.query("inventario").collect();
+    const items = await scopeItems(ctx, allItems);
 
     const itemsWithLocations = await Promise.all(
       items.map(async (item) => {

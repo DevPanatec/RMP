@@ -14,14 +14,6 @@ export const PersonnelProvider = ({ children }) => {
   const allEmployees = employeesData || [];
   const loading = employeesData === undefined;
 
-  // Organize employees by shift (backwards compatibility)
-  const personnel = {
-    unassigned: allEmployees.filter(emp => !emp.turno || emp.turno === 'unassigned'),
-    morning: allEmployees.filter(emp => emp.turno === 'morning'),
-    afternoon: allEmployees.filter(emp => emp.turno === 'afternoon'),
-    night: allEmployees.filter(emp => emp.turno === 'night'),
-  };
-
   const addEmployee = async (employeeData) => {
     try {
       await addEmployeeMutation(employeeData);
@@ -52,51 +44,40 @@ export const PersonnelProvider = ({ children }) => {
     }
   };
 
-  const moveEmployee = async (employeeId, fromShift, toShift) => {
-    return updateEmployee(employeeId, { turno: toShift });
-  };
-
-  const getAllEmployees = () => {
-    return allEmployees;
-  };
-
-  const getEmployeesByShift = (shift) => {
-    return personnel[shift] || [];
-  };
+  const getAllEmployees = () => allEmployees;
 
   const getPersonnelStats = () => {
     const total = allEmployees.length;
-    const conductors = allEmployees.filter(emp => emp.cargo === 'Conductor' || emp.cargo === 'conductor').length;
-    const assistants = allEmployees.filter(emp => emp.cargo === 'Ayudante' || emp.cargo === 'ayudante').length;
-    const supervisors = allEmployees.filter(emp => emp.cargo === 'Supervisor' || emp.cargo === 'supervisor').length;
-    const avgRating = total > 0 ? (allEmployees.reduce((sum, emp) => sum + (emp.rating || 0), 0) / total).toFixed(1) : 0;
+    const activos = allEmployees.filter(e => e.activo !== false).length;
+    const inactivos = total - activos;
+    const norm = (s) => (s || '').toLowerCase();
+    const conductors = allEmployees.filter(e => norm(e.cargo).includes('conductor')).length;
+    const assistants = allEmployees.filter(e => norm(e.cargo).includes('ayudante')).length;
+    const supervisors = allEmployees.filter(e => norm(e.cargo).includes('supervisor')).length;
 
-    const byShift = {
-      unassigned: personnel.unassigned.length,
-      morning: personnel.morning.length,
-      afternoon: personnel.afternoon.length,
-      night: personnel.night.length
-    };
+    const byDepartment = allEmployees.reduce((acc, e) => {
+      const dept = e.departamento || 'Sin departamento';
+      acc[dept] = (acc[dept] || 0) + 1;
+      return acc;
+    }, {});
 
     return {
       total,
+      activos,
+      inactivos,
       conductors,
       assistants,
       supervisors,
-      avgRating,
-      byShift
+      byDepartment,
     };
   };
 
   const value = {
-    personnel,
     loading,
     addEmployee,
     updateEmployee,
     deleteEmployee,
-    moveEmployee,
     getAllEmployees,
-    getEmployeesByShift,
     getPersonnelStats,
   };
 
@@ -109,5 +90,4 @@ export const usePersonnel = () => {
   return context;
 };
 
-export const useSupabasePersonnel = usePersonnel;
 export default PersonnelContext;

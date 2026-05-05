@@ -17,7 +17,7 @@ const parseLocalDate = (dateStr) => {
   return new Date(dateStr + 'T00:00:00');
 };
 
-const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant, modalType = 'limpieza' }) => {
+const LocationReportsModal = ({ location, onClose, getStatusVariant, modalType = 'limpieza' }) => {
   // Determinar el logo según el tipo de modal
   const getModalLogo = () => {
     const logoMap = {
@@ -38,30 +38,16 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
 
   // Filtrar reportes por rango de fechas
   const filteredReports = useMemo(() => {
-    console.log('🔍 Location assignments:', location.assignments);
-    console.log('🔍 Date range:', dateRange);
-
     if (!location.assignments || location.assignments.length === 0) {
-      console.log('❌ No hay assignments en location');
       return [];
     }
 
-    const filtered = location.assignments.filter(assignment => {
+    return location.assignments.filter(assignment => {
       const assignmentDate = parseLocalDate(assignment.fecha);
       const startDate = parseLocalDate(dateRange.inicio);
       const endDate = parseLocalDate(dateRange.fin);
-      console.log('📅 Comparando:', {
-        fecha: assignment.fecha,
-        assignmentDate,
-        startDate,
-        endDate,
-        cumple: assignmentDate >= startDate && assignmentDate <= endDate
-      });
       return assignmentDate >= startDate && assignmentDate <= endDate;
     });
-
-    console.log('✅ Reportes filtrados:', filtered);
-    return filtered;
   }, [location.assignments, dateRange]);
 
   // Toggle selección de reporte
@@ -76,7 +62,6 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
   // Abrir modal de detalle
   const handleViewReport = (e, report) => {
     e.stopPropagation();
-    console.log('📝 Abriendo modal de detalle para:', report);
     setSelectedReport(report);
   };
 
@@ -197,14 +182,15 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
     }
   };
 
-  // Descargar reportes seleccionados como ZIP
-  const handleDownloadSelected = () => {
+  // Descargar reportes seleccionados individualmente
+  const handleDownloadSelected = async () => {
     const reportsToDownload = selectedReports.length > 0
       ? filteredReports.filter(r => selectedReports.includes(r._id || r.id))
       : filteredReports;
 
-    console.log('Descargando reportes seleccionados:', reportsToDownload);
-    alert(`Generando ZIP con ${reportsToDownload.length} reportes...`);
+    for (const report of reportsToDownload) {
+      await handleDownloadReport(null, report);
+    }
   };
 
   // Presets de fecha
@@ -249,16 +235,6 @@ const LocationReportsModal = ({ location, onClose, getPhotoUrl, getStatusVariant
     : location.nombre
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(location.nombre + ', Panama City, Panama')}`
       : null;
-
-  // Debug log
-  console.log('🗺️ NUEVO MODAL CARGADO - Con mapa interactivo', {
-    location: location.nombre,
-    latitud: location.latitud,
-    longitud: location.longitud,
-    mapEmbedUrl,
-    googleMapsUrl,
-    reportes: location.assignments?.length
-  });
 
   return (
     <div className="location-modal-overlay-new" onClick={onClose}>

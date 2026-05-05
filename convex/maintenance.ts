@@ -293,11 +293,21 @@ export const listReportsWithPhotos = query({
     fecha_fin: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
     let reports = await ctx.db
       .query("maintenance_reports")
       .withIndex("by_fecha", (q) => q)
       .order("desc")
       .collect();
+
+    // Scope por proyecto/org antes de resolver fotos (igual que listReports)
+    if (!scope.isSuperAdmin) {
+      if (scope.proyectoId) {
+        reports = reports.filter((r) => !r.proyecto_id || r.proyecto_id === scope.proyectoId);
+      } else if (!scope.isAdmin) {
+        reports = reports.filter((r) => !r.proyecto_id);
+      }
+    }
 
     // Filtrar por rango de fechas si se proporcionan
     if (args.fecha_inicio && args.fecha_fin) {

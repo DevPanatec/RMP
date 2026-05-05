@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId } from "./lib/auth";
+import { getScopedProjectId, getAuthScope } from "./lib/auth";
 
 export const list = query({
   args: { proyecto_id: v.optional(v.id("proyectos")) },
@@ -19,11 +19,14 @@ export const list = query({
 export const getByConductor = query({
   args: { conductor_nombre: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const scoped = await getScopedProjectId(ctx, null);
+    const all = await ctx.db
       .query("route_reports")
       .withIndex("by_conductor", (q) => q.eq("conductor_nombre", args.conductor_nombre))
       .order("desc")
       .collect();
+    if (scoped === null) return all;
+    return all.filter((r) => r.proyecto_id === scoped);
   },
 });
 
@@ -33,10 +36,16 @@ export const getByFecha = query({
     fecha_fin: v.string(),
   },
   handler: async (ctx, args) => {
-    const allReports = await ctx.db.query("route_reports").collect();
-    return allReports.filter(
-      (r) => r.fecha_completacion >= args.fecha_inicio && r.fecha_completacion <= args.fecha_fin
-    );
+    const scoped = await getScopedProjectId(ctx, null);
+    const all = await ctx.db
+      .query("route_reports")
+      .withIndex("by_fecha", (q) =>
+        q.gte("fecha_completacion", args.fecha_inicio).lte("fecha_completacion", args.fecha_fin)
+      )
+      .order("desc")
+      .collect();
+    if (scoped === null) return all;
+    return all.filter((r) => r.proyecto_id === scoped);
   },
 });
 
@@ -61,16 +70,22 @@ export const add = mutation({
     motivo_terminacion: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Derivar proyecto_id desde la asignación o ruta
+    // Derivar proyecto_id desde la asignación o ruta + denormalizar foto/ubicación de la ruta
     let proyecto_id;
+    let ruta = null;
     if (args.asignacion_id) {
       const a = await ctx.db.get(args.asignacion_id);
       proyecto_id = a?.proyecto_id;
     }
-    if (!proyecto_id && args.ruta_id) {
-      const r = await ctx.db.get(args.ruta_id);
-      proyecto_id = r?.proyecto_id;
+    if (args.ruta_id) {
+      ruta = await ctx.db.get(args.ruta_id);
+      if (!proyecto_id) proyecto_id = ruta?.proyecto_id;
     }
-    return await ctx.db.insert("route_reports", { ...args, proyecto_id });
+    return await ctx.db.insert("route_reports", {
+      ...args,
+      proyecto_id,
+      ruta_foto_portada_storage_id: ruta?.foto_portada_storage_id,
+      ruta_ubicacion_principal: ruta?.ubicacion_principal,
+    });
   },
 });

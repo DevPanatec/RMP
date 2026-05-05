@@ -56,11 +56,15 @@ export const list = query({
 });
 
 /**
- * Query: Obtener todos los geofences (incluyendo inactivos)
+ * Query: Obtener todos los geofences (incluyendo inactivos), scoped por org del usuario.
  */
 export const listAll = query({
   handler: async (ctx) => {
-    return await ctx.db.query("geofences").collect();
+    const scope = await getAuthScope(ctx);
+    const all = await ctx.db.query("geofences").collect();
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) return all;
+    if (!scope.organizacionId) return [];
+    return all.filter((g) => !g.organizacion_id || g.organizacion_id === scope.organizacionId);
   },
 });
 

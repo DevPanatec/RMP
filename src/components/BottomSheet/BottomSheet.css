@@ -6,9 +6,9 @@
   /* En mobile: parte del flujo normal (no fixed) para evitar conflictos con mapa */
   position: relative;
   background: var(--color-surface);
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.1);
+  border-top-left-radius: var(--radius-xl);
+  border-top-right-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   overflow: hidden;

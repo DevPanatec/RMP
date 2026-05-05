@@ -3,11 +3,15 @@ import { Id } from "../_generated/dataModel";
 
 export type Ctx = QueryCtx | MutationCtx;
 
-// TODO: temporal — perfiles cliente con visibilidad cross-org (riesgos internos+externos
-// de TODAS las orgs, vehículos en mapa de TODAS las orgs). Reemplazar por flag en perfil.
-const CROSS_ORG_VIEWER_PROFILE_IDS = new Set<string>(["k575k7zv6ktg6qtxddvtjh6rr585vnta"]);
-export const isCrossOrgViewer = (perfilId: string | undefined) =>
-  perfilId !== undefined && CROSS_ORG_VIEWER_PROFILE_IDS.has(perfilId);
+// Perfiles cliente con visibilidad cross-org: riesgos internos+externos
+// y vehículos en mapa de TODAS las orgs.
+// Backwards-compat: legacy hardcoded ID (k575k7zv6ktg6qtxddvtjh6rr585vnta) hasta backfill del flag.
+const LEGACY_CROSS_ORG_IDS = new Set<string>(["k575k7zv6ktg6qtxddvtjh6rr585vnta"]);
+export const isCrossOrgViewer = (perfil: any | null | undefined): boolean => {
+  if (!perfil) return false;
+  if (perfil.cross_org_viewer === true) return true;
+  return LEGACY_CROSS_ORG_IDS.has(perfil._id as string);
+};
 
 export interface AuthScope {
   perfil: any | null;
@@ -16,6 +20,7 @@ export interface AuthScope {
   isEnterprise: boolean;
   isConductor: boolean;
   isViewer: boolean;
+  isCrossOrgViewer: boolean;
   organizacionId: Id<"organizaciones"> | null;
   proyectoId: Id<"proyectos"> | null;
 }
@@ -31,6 +36,7 @@ export async function getAuthScope(ctx: Ctx): Promise<AuthScope> {
       isEnterprise: false,
       isConductor: false,
       isViewer: false,
+      isCrossOrgViewer: false,
       organizacionId: null,
       proyectoId: null,
     };
@@ -47,6 +53,7 @@ export async function getAuthScope(ctx: Ctx): Promise<AuthScope> {
       isEnterprise: false,
       isConductor: false,
       isViewer: false,
+      isCrossOrgViewer: false,
       organizacionId: null,
       proyectoId: null,
     };
@@ -58,6 +65,7 @@ export async function getAuthScope(ctx: Ctx): Promise<AuthScope> {
     isEnterprise: perfil.tipo_usuario === "enterprise",
     isConductor: perfil.tipo_usuario === "conductor",
     isViewer: perfil.tipo_usuario === "viewer",
+    isCrossOrgViewer: isCrossOrgViewer(perfil),
     organizacionId: perfil.organizacion_id ?? null,
     proyectoId: perfil.proyecto_id ?? null,
   };

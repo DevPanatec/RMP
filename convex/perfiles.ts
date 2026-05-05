@@ -1,6 +1,7 @@
 import { query, mutation, action } from "./_generated/server";
 import { v } from "convex/values";
 import { api } from "./_generated/api";
+import { getAuthScope, requireOrgAccess } from "./lib/auth";
 
 // Get perfil by userId (for auth)
 export const getByUserId = query({
@@ -24,7 +25,7 @@ export const getByEmail = query({
   },
 });
 
-// Get all profiles by tipo
+// Get profiles by tipo (scoped: super_admin/cross-org ven todos; demás solo su org)
 export const getByTipo = query({
   args: {
     tipo: v.union(
@@ -36,21 +37,41 @@ export const getByTipo = query({
     ),
   },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("perfiles_usuarios")
-      .withIndex("by_tipo", (q) => q.eq("tipo_usuario", args.tipo))
-      .filter((q) => q.eq(q.field("activo"), true))
-      .collect();
+    const scope = await getAuthScope(ctx);
+    let rows;
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) {
+      rows = await ctx.db
+        .query("perfiles_usuarios")
+        .withIndex("by_tipo", (q) => q.eq("tipo_usuario", args.tipo))
+        .collect();
+    } else {
+      if (!scope.organizacionId) return [];
+      rows = await ctx.db
+        .query("perfiles_usuarios")
+        .withIndex("by_org_tipo", (q) =>
+          q.eq("organizacion_id", scope.organizacionId!).eq("tipo_usuario", args.tipo)
+        )
+        .collect();
+    }
+    return rows.filter((p) => p.activo);
   },
 });
 
-// Get all active profiles
+// Get active profiles (scoped)
 export const listActive = query({
   handler: async (ctx) => {
-    return await ctx.db
-      .query("perfiles_usuarios")
-      .filter((q) => q.eq(q.field("activo"), true))
-      .collect();
+    const scope = await getAuthScope(ctx);
+    let rows;
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) {
+      rows = await ctx.db.query("perfiles_usuarios").collect();
+    } else {
+      if (!scope.organizacionId) return [];
+      rows = await ctx.db
+        .query("perfiles_usuarios")
+        .withIndex("by_organizacion", (q) => q.eq("organizacion_id", scope.organizacionId!))
+        .collect();
+    }
+    return rows.filter((p) => p.activo);
   },
 });
 
@@ -175,13 +196,32 @@ export const listEnterprisesByProyecto = query({
   },
 });
 
-// Reasignar proyecto de un perfil (admin only)
+// Reasignar proyecto de un perfil (admin de la org del perfil + super_admin)
 export const setProyecto = mutation({
   args: {
     perfil_id: v.id("perfiles_usuarios"),
     proyecto_id: v.optional(v.id("proyectos")),
   },
   handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    if (!scope.perfil) throw new Error("No autenticado");
+    if (!scope.isSuperAdmin && !scope.isAdmin) {
+      throw new Error("Acceso denegado: requiere admin");
+    }
+    const target = await ctx.db.get(args.perfil_id);
+    if (!target) throw new Error("Perfil no encontrado");
+    // Admin solo puede tocar perfiles de su organización
+    if (!scope.isSuperAdmin && target.organizacion_id) {
+      await requireOrgAccess(ctx, target.organizacion_id);
+    }
+    // Si se pasa proyecto, debe pertenecer a la org del perfil destino
+    if (args.proyecto_id) {
+      const proyecto = await ctx.db.get(args.proyecto_id);
+      if (!proyecto) throw new Error("Proyecto no encontrado");
+      if (target.organizacion_id && proyecto.organizacion_id !== target.organizacion_id) {
+        throw new Error("Proyecto no pertenece a la organización del usuario");
+      }
+    }
     return await ctx.db.patch(args.perfil_id, { proyecto_id: args.proyecto_id });
   },
 });

@@ -34,6 +34,7 @@ export default defineSchema({
     vehiculo_asignado_id: v.optional(v.id("vehiculos")),
     organizacion_id: v.optional(v.id("organizaciones")), // null para super_admin
     proyecto_id: v.optional(v.id("proyectos")),
+    cross_org_viewer: v.optional(v.boolean()), // permite ver riesgos+vehículos de TODAS las orgs
     activo: v.boolean(),
   })
     .index("by_user", ["userId"])
@@ -114,6 +115,13 @@ export default defineSchema({
     combustible_estimado: v.optional(v.number()),
     observaciones: v.optional(v.string()),
     organizacion_id: v.optional(v.id("organizaciones")),
+    foto_portada_storage_id: v.optional(v.id("_storage")),
+    ubicacion_principal: v.optional(v.object({
+      latitud: v.number(),
+      longitud: v.number(),
+      nombre: v.string(),
+      direccion: v.optional(v.string()),
+    })),
   })
     .index("by_estado", ["estado"])
     .index("by_proyecto", ["proyecto_id"])
@@ -164,6 +172,8 @@ export default defineSchema({
     organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_conductor", ["conductor_nombre"])
+    .index("by_conductor_id", ["conductor_id"])
+    .index("by_conductor_id_estado", ["conductor_id", "estado"])
     .index("by_estado", ["estado"])
     .index("by_proyecto", ["proyecto_id"]),
 
@@ -188,6 +198,13 @@ export default defineSchema({
     motivo_terminacion: v.optional(v.string()),
     proyecto_id: v.optional(v.id("proyectos")),
     organizacion_id: v.optional(v.id("organizaciones")),
+    ruta_foto_portada_storage_id: v.optional(v.id("_storage")),
+    ruta_ubicacion_principal: v.optional(v.object({
+      latitud: v.number(),
+      longitud: v.number(),
+      nombre: v.string(),
+      direccion: v.optional(v.string()),
+    })),
   })
     .index("by_conductor", ["conductor_nombre"])
     .index("by_fecha", ["fecha_completacion"])
@@ -237,9 +254,13 @@ export default defineSchema({
     departamento: v.optional(v.string()),
     fecha_ingreso: v.optional(v.string()),
     activo: v.boolean(),
+    proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_cedula", ["cedula"])
-    .index("by_activo", ["activo"]),
+    .index("by_activo", ["activo"])
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_proyecto", ["proyecto_id"]),
 
   // 9. Reportes de Riesgo
   reportes_riesgo: defineTable({
@@ -266,6 +287,7 @@ export default defineSchema({
     parada_orden: v.optional(v.number()), // Orden de la parada en la ruta
     parada_index: v.optional(v.number()), // Índice de la parada (0-based)
     fotos_storage_ids: v.optional(v.array(v.id("_storage"))), // Hasta 3 fotos opcionales
+    route_progress_id: v.optional(v.id("route_progress")), // Trazabilidad explícita al progreso de ruta activo
     organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_fecha", ["fecha_reporte"])
@@ -331,6 +353,7 @@ export default defineSchema({
     activo: v.boolean(),
     proyecto_id: v.optional(v.id("proyectos")),
     organizacion_id: v.optional(v.id("organizaciones")),
+    foto_storage_id: v.optional(v.id("_storage")),
   })
     .index("by_activo", ["activo"])
     .index("by_proyecto", ["proyecto_id"]),
@@ -344,6 +367,7 @@ export default defineSchema({
     activo: v.boolean(),
     proyecto_id: v.optional(v.id("proyectos")),
     organizacion_id: v.optional(v.id("organizaciones")),
+    foto_storage_id: v.optional(v.id("_storage")),
   })
     .index("by_activo", ["activo"])
     .index("by_proyecto", ["proyecto_id"]),
@@ -588,9 +612,13 @@ export default defineSchema({
     ruta_id: v.optional(v.id("rutas")),
     parada_index: v.optional(v.number()),
     auto_generada: v.optional(v.boolean()),
+    proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_activo", ["activo"])
-    .index("by_ruta", ["ruta_id"]),
+    .index("by_ruta", ["ruta_id"])
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_proyecto", ["proyecto_id"]),
 
   // 20. Alertas de Geofence
   geofence_alerts: defineTable({
@@ -605,11 +633,13 @@ export default defineSchema({
     location: v.optional(v.string()),
     speed: v.optional(v.number()),
     viewed: v.boolean(),
+    organizacion_id: v.optional(v.id("organizaciones")),
   })
     .index("by_timestamp", ["timestamp"])
     .index("by_vehiculo", ["vehiculo_id"])
     .index("by_geofence", ["geofence_id"])
-    .index("by_viewed", ["viewed"]),
+    .index("by_viewed", ["viewed"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 21. Estado de vehículos en geofences (para detectar entrada/salida)
   vehicle_geofence_state: defineTable({

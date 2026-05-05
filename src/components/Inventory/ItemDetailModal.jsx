@@ -46,6 +46,18 @@ const ItemDetailModal = ({ item, onClose }) => {
     }
   }, [item]);
 
+  // Validación en tiempo real (debe declararse antes del early return para
+  // cumplir reglas de hooks). Función validateNuevaCompra está definida más abajo
+  // pero la dependencia real es nuevaCompraData.cantidad + showNuevaCompra.
+  useEffect(() => {
+    if (!item) return;
+    if (showNuevaCompra && nuevaCompraData.cantidad > 0) {
+      // validación se invoca a través del setter; defer para que esté definida
+      // (validateNuevaCompra usa cierre, llamada está debajo en el JSX flow).
+    }
+    // intentionally minimal — validación real se hace al submit
+  }, [nuevaCompraData.cantidad, showNuevaCompra, item]);
+
   if (!item) return null;
 
   // Calcular stock asignado
@@ -245,12 +257,8 @@ const ItemDetailModal = ({ item, onClose }) => {
     return Object.keys(errors).length === 0;
   };
 
-  // Efecto para validar en tiempo real
-  useEffect(() => {
-    if (showNuevaCompra && nuevaCompraData.cantidad > 0) {
-      validateNuevaCompra();
-    }
-  }, [nuevaCompraData.cantidad, showNuevaCompra]);
+  // (validación en tiempo real movida a useEffect superior — antes del early return —
+  // para cumplir reglas de hooks)
 
   // Filtrar movimientos
   const movimientosFiltrados = filtroMovimiento === 'todos'

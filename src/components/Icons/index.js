@@ -70,6 +70,7 @@ export {
   Maximize2,
   Minimize2,
   LayoutGrid,
+  Layers,
   List,
   DollarSign,
   ShoppingCart,

@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId, getScopedOrgId, getAuthScope, isCrossOrgViewer } from "./lib/auth";
+import { getScopedProjectId, getScopedOrgId, getAuthScope, requireOrgAccess } from "./lib/auth";
 
 // List all vehicles.
 // - Super_admin: ve todos (o filtra si pasa organizacion_id).
@@ -11,7 +11,7 @@ export const list = query({
   args: { proyecto_id: v.optional(v.id("proyectos")) },
   handler: async (ctx, args) => {
     const scope = await getAuthScope(ctx);
-    if (scope.isSuperAdmin || isCrossOrgViewer(scope.perfil?._id)) {
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) {
       return await ctx.db.query("vehiculos").collect();
     }
     if (scope.isAdmin || scope.isConductor) {
@@ -73,7 +73,7 @@ export const listWithAssignments = query({
     const scope = await getAuthScope(ctx);
 
     // Cross-org viewer: ve TODOS los vehículos de TODAS las orgs (como super_admin)
-    const crossOrg = isCrossOrgViewer(scope.perfil?._id);
+    const crossOrg = scope.isCrossOrgViewer;
 
     const scoped = crossOrg
       ? (args.proyecto_id ?? null)
@@ -338,7 +338,10 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
-    
+    const veh = await ctx.db.get(id);
+    if (!veh) throw new Error("Vehículo no encontrado");
+    if (veh.organizacion_id) await requireOrgAccess(ctx, veh.organizacion_id);
+
     // Filtrar campos undefined para no sobreescribir con undefined
     const cleanUpdates: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(updates)) {
@@ -346,7 +349,7 @@ export const update = mutation({
         cleanUpdates[key] = value;
       }
     }
-    
+
     return await ctx.db.patch(id, cleanUpdates);
   },
 });
@@ -412,6 +415,9 @@ export const updateCombustible = mutation({
     combustible_nivel: v.number(),
   },
   handler: async (ctx, args) => {
+    const veh = await ctx.db.get(args.id);
+    if (!veh) throw new Error("Vehículo no encontrado");
+    if (veh.organizacion_id) await requireOrgAccess(ctx, veh.organizacion_id);
     return await ctx.db.patch(args.id, { combustible_nivel: args.combustible_nivel });
   },
 });
@@ -423,6 +429,9 @@ export const updateKilometraje = mutation({
     kilometraje: v.number(),
   },
   handler: async (ctx, args) => {
+    const veh = await ctx.db.get(args.id);
+    if (!veh) throw new Error("Vehículo no encontrado");
+    if (veh.organizacion_id) await requireOrgAccess(ctx, veh.organizacion_id);
     return await ctx.db.patch(args.id, { kilometraje: args.kilometraje });
   },
 });
@@ -431,14 +440,23 @@ export const updateKilometraje = mutation({
 export const remove = mutation({
   args: { id: v.id("vehiculos") },
   handler: async (ctx, args) => {
+    const veh = await ctx.db.get(args.id);
+    if (!veh) throw new Error("Vehículo no encontrado");
+    if (veh.organizacion_id) await requireOrgAccess(ctx, veh.organizacion_id);
     return await ctx.db.delete(args.id);
   },
 });
 
-// Get fleet stats
+// Get fleet stats (scoped per organization)
 export const getStats = query({
   handler: async (ctx) => {
-    const vehicles = await ctx.db.query("vehiculos").collect();
+    const scope = await getAuthScope(ctx);
+    const all = await ctx.db.query("vehiculos").collect();
+    let vehicles = all;
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      if (!scope.organizacionId) return { total: 0, disponibles: 0, en_ruta: 0, en_mantenimiento: 0 };
+      vehicles = all.filter((v) => !v.organizacion_id || v.organizacion_id === scope.organizacionId);
+    }
 
     const disponibles = vehicles.filter(v => v.estado === "disponible").length;
     const en_ruta = vehicles.filter(v => v.estado === "en_ruta").length;

@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId, requireProjectAccess } from "./lib/auth";
+import { getAuthScope, getScopedProjectId, requireProjectAccess } from "./lib/auth";
 
 // ========== SALAS ==========
 export const listSalas = query({
@@ -25,6 +25,9 @@ export const addSala = mutation({
   args: {
     nombre: v.string(),
     descripcion: v.optional(v.string()),
+    latitud: v.optional(v.number()),
+    longitud: v.optional(v.number()),
+    foto_storage_id: v.optional(v.id("_storage")),
     proyecto_id: v.id("proyectos"),
   },
   handler: async (ctx, args) => {
@@ -36,10 +39,49 @@ export const addSala = mutation({
   },
 });
 
+export const updateSala = mutation({
+  args: {
+    id: v.id("salas"),
+    nombre: v.optional(v.string()),
+    descripcion: v.optional(v.string()),
+    latitud: v.optional(v.number()),
+    longitud: v.optional(v.number()),
+    activo: v.optional(v.boolean()),
+    foto_storage_id: v.optional(v.id("_storage")),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...updates } = args;
+    const cleanUpdates: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== undefined) cleanUpdates[key] = value;
+    }
+    return await ctx.db.patch(id, cleanUpdates);
+  },
+});
+
+export const deleteSala = mutation({
+  args: { id: v.id("salas") },
+  handler: async (ctx, args) => {
+    return await ctx.db.patch(args.id, { activo: false });
+  },
+});
+
 // ========== AREAS ==========
+// Areas se asocian a salas; salas tienen proyecto_id+organizacion_id.
+// Filtramos áreas por scope vía sala.proyecto_id.
 export const listAreas = query({
   handler: async (ctx) => {
-    return await ctx.db.query("areas").collect();
+    const scope = await getAuthScope(ctx);
+    const areas = await ctx.db.query("areas").collect();
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) return areas;
+    if (!scope.organizacionId) return [];
+    const salas = await ctx.db.query("salas").collect();
+    const salasOk = new Set(
+      salas
+        .filter((s) => !s.organizacion_id || s.organizacion_id === scope.organizacionId)
+        .map((s) => s._id)
+    );
+    return areas.filter((a) => salasOk.has(a.sala_id));
   },
 });
 
@@ -245,11 +287,17 @@ export const listReportsWithPhotos = query({
     fecha_fin: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const scoped = await getScopedProjectId(ctx, null);
     let reports = await ctx.db
       .query("cleaning_reports")
       .withIndex("by_fecha", (q) => q)
       .order("desc")
       .collect();
+
+    // Scope por proyecto/org antes de resolver fotos
+    if (scoped !== null) {
+      reports = reports.filter((r) => r.proyecto_id === scoped);
+    }
 
     // Filtrar por rango de fechas si se proporcionan
     if (args.fecha_inicio && args.fecha_fin) {

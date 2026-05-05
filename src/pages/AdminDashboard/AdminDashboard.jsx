@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import MapLibreComponent from '../../components/Map/MapLibreComponent';
-import PersonnelComponent from '../../components/Personnel/PersonnelComponent';
 import InventoryComponent from '../../components/Inventory/InventoryComponent';
 import RoutesComponent from '../../components/Routes/RoutesComponent';
+import ServiciosComponent from '../../components/Servicios';
 import RiskComponent from '../../components/Risk/RiskComponent';
 import ReportsComponent from '../../components/Reports/ReportsComponent';
 import ScheduleComponent from '../../components/Schedule/ScheduleComponent';
@@ -34,7 +34,7 @@ import {
   BarChart3, Users, Map, LogOut, TrendingUp, CheckCircle,
   MapPin, Radio, Activity, Zap, Bell, Wrench, Leaf, Navigation, Clock, Save, Calendar,
   Satellite, Briefcase, Sparkles, Plus, X, Maximize2, Minimize2, DollarSign,
-  UserPlus, Shield, Lock, Mail, Phone, Target
+  UserPlus, Shield, Lock, Mail, Phone, Target, Layers
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
 import { DashboardKPI, AlertCard, PersonnelTable, VehicleCard, HeroStats, RealtimeActivity, RiskAlerts, UpcomingRoutes } from '../../components/Dashboard';
@@ -132,9 +132,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
 
   // Hooks de contextos reales
   const {
-    personnel,
     loading: personnelLoading,
-    moveEmployee,
     addEmployee,
     updateEmployee,
     deleteEmployee,
@@ -452,19 +450,19 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
               </div>
               <div className="ops-header-stats">
                 <div className="stat-pill">
-                  <span className="stat-value">{displayPersonnel?.filter(p => p.active === true).length || 0}</span>
+                  <span className="stat-value">{displayPersonnel?.filter(p => p.activo !== false).length || 0}</span>
                   <span className="stat-label">Activos</span>
                 </div>
                 <div className="stat-pill">
-                  <span className="stat-value">{displayPersonnel?.filter(p => p.puesto?.includes('Supervisor')).length || 0}</span>
+                  <span className="stat-value">{displayPersonnel?.filter(p => (p.cargo || '').toLowerCase().includes('supervisor')).length || 0}</span>
                   <span className="stat-label">Supervisores</span>
                 </div>
                 <div className="stat-pill">
-                  <span className="stat-value">{displayPersonnel?.filter(p => p.puesto === 'Conductor').length || 0}</span>
+                  <span className="stat-value">{displayPersonnel?.filter(p => (p.cargo || '').toLowerCase().includes('conductor')).length || 0}</span>
                   <span className="stat-label">Conductores</span>
                 </div>
                 <div className="stat-pill">
-                  <span className="stat-value">{displayPersonnel?.filter(p => p.puesto === 'Recolector').length || 0}</span>
+                  <span className="stat-value">{displayPersonnel?.filter(p => (p.cargo || '').toLowerCase().includes('recolector')).length || 0}</span>
                   <span className="stat-label">Recolectores</span>
                 </div>
               </div>
@@ -498,10 +496,10 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
       case 'flota':
         return <FleetManagement />;
 
-      case 'rutas':
+      case 'servicios':
         return (
           <div className="operations-content-modern">
-            <RoutesComponent
+            <ServiciosComponent
               initialRoutes={displayRoutes}
               onRoutesChange={(updatedRoutes) => {
                 console.log('Routes updated:', updatedRoutes);
@@ -709,12 +707,12 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                 <Truck strokeWidth={1.5} size={20} />
                 <span>Flota</span>
               </button>
-              <button 
-                className={`ops-tab ${activeSubTab === 'rutas' ? 'ops-tab-active' : ''}`}
-                onClick={() => setActiveSubTab('rutas')}
+              <button
+                className={`ops-tab ${activeSubTab === 'servicios' ? 'ops-tab-active' : ''}`}
+                onClick={() => setActiveSubTab('servicios')}
               >
-                <MapPin strokeWidth={1.5} size={20} />
-                <span>Rutas</span>
+                <Layers strokeWidth={1.5} size={20} />
+                <span>Servicios</span>
               </button>
               <button
                 className={`ops-tab ${activeSubTab === 'programacion' ? 'ops-tab-active' : ''}`}

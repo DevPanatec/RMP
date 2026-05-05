@@ -1,12 +1,15 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Map, { Marker, Source, Layer, NavigationControl } from 'react-map-gl/maplibre';
+import { useMutation, useQuery } from 'convex/react';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import EnhancedStopsManager from '../EnhancedStopsManager/EnhancedStopsManager';
+import MapLocationPicker from '../MapLocationPicker/MapLocationPicker';
+import { api } from '../../../convex/_generated/api';
 import {
   Trash2, Calendar, Sparkles,
   Truck, CheckCircle, XCircle, AlertTriangle, Edit,
   Plus, X, FileText, MapPin, Settings, Map as MapIcon, Ruler,
-  Clock, Target, Lightbulb, Save, Bot, Pencil, Briefcase
+  Clock, Target, Lightbulb, Save, Bot, Pencil, Briefcase, Camera
 } from '../Icons';
 import { useProject } from '../../context/ProjectContext';
 import { useAuth } from '../../context/AuthContext';
@@ -51,6 +54,7 @@ const MAX_DESCRIPTION_LENGTH = 500;
 const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
   const { availableProjects, currentProjectId, isAdmin } = useProject();
   const { user } = useAuth();
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const [activeTab, setActiveTab] = useState(TABS.INFO);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -67,6 +71,19 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
     hora_fin: ''
   });
   const [errors, setErrors] = useState({});
+  const [photoPortadaId, setPhotoPortadaId] = useState(null);
+  const [localPreview, setLocalPreview] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [ubicacion, setUbicacion] = useState(null);
+  const [ubicacionNombre, setUbicacionNombre] = useState('');
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const photoInputRef = useRef(null);
+
+  const remotePhotoUrl = useQuery(
+    api.files.getUrl,
+    photoPortadaId && !localPreview ? { storageId: photoPortadaId } : 'skip'
+  );
+  const photoPreview = localPreview || remotePhotoUrl;
 
   useEffect(() => {
     if (route && isEditing) {
@@ -103,6 +120,13 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
         hora_inicio: route.hora_inicio || '',
         hora_fin: route.hora_fin || ''
       });
+      setPhotoPortadaId(route.foto_portada_storage_id || null);
+      if (localPreview) URL.revokeObjectURL(localPreview);
+      setLocalPreview(null);
+      const ub = route.ubicacion_principal || null;
+      setUbicacion(ub);
+      setUbicacionNombre(ub?.nombre || '');
+      setShowLocationPicker(false);
     } else {
       // Defaults: enterprise → su proyecto fijo; admin → el del switcher si lo eligió.
       const defaultProyecto = !isAdmin
@@ -122,10 +146,91 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
         hora_inicio: '',
         hora_fin: ''
       });
+      setPhotoPortadaId(null);
+      if (localPreview) URL.revokeObjectURL(localPreview);
+      setLocalPreview(null);
+      setUbicacion(null);
+      setUbicacionNombre('');
+      setShowLocationPicker(false);
     }
     setActiveTab(TABS.INFO);
     setErrors({});
   }, [route, isEditing, isOpen]);
+
+  // Sync nombre input → ubicacion.nombre cuando ya hay punto seleccionado
+  useEffect(() => {
+    if (!ubicacion) return;
+    const trimmed = ubicacionNombre.trim();
+    if (!trimmed || ubicacion.nombre === trimmed) return;
+    setUbicacion(u => (u ? { ...u, nombre: trimmed } : u));
+  }, [ubicacionNombre]);
+
+  const handlePortadaPhotoSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const uploadUrl = await generateUploadUrl();
+      const res = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const { storageId } = await res.json();
+      setPhotoPortadaId(storageId);
+      if (localPreview) URL.revokeObjectURL(localPreview);
+      setLocalPreview(URL.createObjectURL(file));
+    } catch (err) {
+      console.error('Error subiendo foto portada:', err);
+      alert('No se pudo subir la foto. Intenta de nuevo.');
+    } finally {
+      setUploadingPhoto(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
+    }
+  };
+
+  const removePortadaPhoto = () => {
+    setPhotoPortadaId(null);
+    if (localPreview) URL.revokeObjectURL(localPreview);
+    setLocalPreview(null);
+    if (photoInputRef.current) photoInputRef.current.value = '';
+  };
+
+  const handlePickedLocation = (loc) => {
+    if (!loc?.latitud || !loc?.longitud) return;
+    const nombre = ubicacionNombre.trim() || loc.direccion || formData.nombre || 'Ubicación principal';
+    setUbicacion({
+      latitud: loc.latitud,
+      longitud: loc.longitud,
+      nombre,
+      direccion: loc.direccion_completa || loc.direccion || undefined,
+    });
+    if (!ubicacionNombre.trim()) setUbicacionNombre(nombre);
+    setShowLocationPicker(false);
+  };
+
+  const useFirstStopAsLocation = () => {
+    const first = formData.paradas[0];
+    if (!first || !first.latitud || !first.longitud) {
+      alert('Agrega al menos una parada con coordenadas primero');
+      return;
+    }
+    const nombre = ubicacionNombre.trim() || first.direccion || formData.nombre || 'Ubicación principal';
+    setUbicacion({
+      latitud: first.latitud,
+      longitud: first.longitud,
+      nombre,
+      direccion: first.direccion_completa || first.direccion || undefined,
+    });
+    if (!ubicacionNombre.trim()) setUbicacionNombre(nombre);
+  };
+
+  const clearUbicacion = () => {
+    setUbicacion(null);
+    setUbicacionNombre('');
+    setShowLocationPicker(false);
+  };
 
   useEffect(() => {
     if (formData.auto_calculate && formData.paradas.length > 1) {
@@ -281,6 +386,8 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
 
     if (formData.hora_inicio) routeData.hora_inicio = formData.hora_inicio;
     if (formData.hora_fin) routeData.hora_fin = formData.hora_fin;
+    if (photoPortadaId) routeData.foto_portada_storage_id = photoPortadaId;
+    if (ubicacion) routeData.ubicacion_principal = ubicacion;
 
     console.log('✅ DEBUG RouteModal - Datos a enviar:', routeData);
     console.log('✅ DEBUG RouteModal - Llamando onSave() con routeData');
@@ -499,6 +606,114 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
                       <span className="label-hint">El proyecto se asigna automáticamente según tu cuenta.</span>
                     )}
                     {errors.proyecto_id && <span className="error-text">{errors.proyecto_id}</span>}
+                  </div>
+                </div>
+
+                <div className="form-section">
+                  <h5><Camera size={18} /> Portada y Ubicación Principal</h5>
+                  <p className="section-hint">
+                    Foto y punto representativo de la ruta — se mostrarán en los reportes de recolección.
+                  </p>
+
+                  <div className="form-row form-row--portada">
+                    <div className="form-group portada-photo-group">
+                      <label><Camera size={14} /> Foto de portada <span className="label-hint">(opcional)</span></label>
+                      {photoPreview ? (
+                        <div className="portada-photo-preview">
+                          <img src={photoPreview} alt="Portada de la ruta" />
+                          <button
+                            type="button"
+                            className="portada-photo-remove"
+                            onClick={removePortadaPhoto}
+                            title="Quitar foto"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="portada-photo-upload-btn"
+                          onClick={() => photoInputRef.current?.click()}
+                          disabled={uploadingPhoto}
+                        >
+                          {uploadingPhoto ? (
+                            <span>Subiendo…</span>
+                          ) : (
+                            <>
+                              <Camera size={24} strokeWidth={1.5} />
+                              <span>Subir foto</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                      <input
+                        ref={photoInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePortadaPhotoSelect}
+                        style={{ display: 'none' }}
+                      />
+                    </div>
+
+                    <div className="form-group portada-location-group">
+                      <label><MapPin size={14} /> Ubicación principal <span className="label-hint">(opcional)</span></label>
+                      <input
+                        type="text"
+                        value={ubicacionNombre}
+                        onChange={(e) => setUbicacionNombre(e.target.value)}
+                        placeholder="Ej: Mercado San Felipe"
+                        className="route-input"
+                      />
+                      {ubicacion && (
+                        <div className="portada-location-summary">
+                          <MapPin size={14} />
+                          <span className="portada-location-text">
+                            {ubicacion.nombre}
+                            <small> · {ubicacion.latitud.toFixed(5)}, {ubicacion.longitud.toFixed(5)}</small>
+                          </span>
+                          <button
+                            type="button"
+                            className="portada-location-clear"
+                            onClick={clearUbicacion}
+                            title="Quitar ubicación"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+                      <div className="portada-location-actions">
+                        <button
+                          type="button"
+                          className="btn btn--sm btn--outline"
+                          onClick={() => setShowLocationPicker(s => !s)}
+                        >
+                          <MapPin size={14} />
+                          {showLocationPicker
+                            ? 'Cerrar mapa'
+                            : (ubicacion ? 'Cambiar punto' : 'Elegir en mapa')}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn--sm btn--outline"
+                          onClick={useFirstStopAsLocation}
+                          disabled={formData.paradas.length === 0}
+                          title={formData.paradas.length === 0 ? 'Agrega paradas primero' : 'Usar coords de la 1ra parada'}
+                        >
+                          Usar 1ra parada
+                        </button>
+                      </div>
+                      {showLocationPicker && (
+                        <div className="portada-location-picker">
+                          <MapLocationPicker
+                            onLocationSelect={handlePickedLocation}
+                            initialLocation={ubicacion ? [ubicacion.latitud, ubicacion.longitud] : null}
+                            placeholder="Buscar punto representativo..."
+                            height="280px"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 

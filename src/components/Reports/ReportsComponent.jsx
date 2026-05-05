@@ -5,10 +5,12 @@ import { useCleaning } from '../../context/CleaningContext';
 import { useFumigation } from '../../context/FumigationContext';
 import { useMaintenance } from '../../context/MaintenanceContext';
 import { useReports } from '../../context/ReportsContext';
+import { useRoutes } from '../../context/RoutesContext';
 import { useAuth } from '../../context/AuthContext';
 import { BarChart3, Truck, Bug, Sparkles, Wrench, MapPin, Download, Calendar } from '../Icons';
 import ReportsDashboard from './ReportsDashboard';
 import LocationReportsModal from './LocationReportsModal';
+import RouteReportsListModal from './RouteReportsListModal';
 import RouteReportDetailModal from './RouteReportDetailModal';
 import MaintenanceReportDetailModal from './MaintenanceReportDetailModal';
 import FumigationReportsPage from './FumigationReportsPage';
@@ -36,6 +38,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
   const [activeCategory, setActiveCategory] = useState('dashboard');
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedRouteReport, setSelectedRouteReport] = useState(null);
+  const [selectedRouteCard, setSelectedRouteCard] = useState(null);
   const [selectedMaintenanceReport, setSelectedMaintenanceReport] = useState(null);
   const { isDemoMode } = useDemoMode();
   const [routeReports, setRouteReports] = useState([]);
@@ -72,6 +75,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
   } = useFumigation();
   const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenance();
   const { reports: reportsData } = useReports();
+  const { routes: allRoutes } = useRoutes();
 
   // Query para reportes de mantenimiento
   const maintenanceReportsData = useQuery(api.maintenance.listReports);
@@ -101,7 +105,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
   // Manejar pre-selección de ubicación desde mapa
   useEffect(() => {
     if (preSelectedLocationId) {
-      // Buscar primero en fumigationLugares (recoleccion/fumigacion)
+      // Buscar primero en fumigationLugares (lugares de fumigación)
       const fumigationMatch = fumigationLugares.find(l => l._id === preSelectedLocationId);
       if (fumigationMatch) {
         const enrichedLocation = {
@@ -111,7 +115,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
           completedCount: 0,
           assignments: []
         };
-        setActiveCategory('recoleccion');
+        setActiveCategory('fumigacion');
         setSelectedLocation(enrichedLocation);
         return;
       }
@@ -152,13 +156,6 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
       case 'cancelado': return 'error';
       default: return 'default';
     }
-  };
-
-  // TODO: Implement with Convex File Storage
-  const getPhotoUrl = (filePath) => {
-    // Placeholder - Convex File Storage not implemented yet
-    console.warn('Photo URLs disabled - needs Convex File Storage implementation');
-    return null;
   };
 
   // Función para descargar reportes por módulo (usa generador profesional con logos, mapas, fotos)
@@ -207,50 +204,195 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     }));
   };
 
-  // Filtrar lugares para recolección - usa tabla `lugares` (misma que fumigación: 5 mercados + Mi Pueblito)
-  const recoleccionLocations = useMemo(() => {
-    const recoleccionPlaces = fumigationLugares.filter(lugar => lugar.activo !== false);
-    console.log('🏢 Total lugares de recolección:', recoleccionPlaces.length);
-    console.log('🏢 Lugares:', recoleccionPlaces.map(l => l.nombre));
+  // Cards de recolección — un card por RUTA (con sus reportes adentro) + huérfanos (reportes cuya ruta fue borrada)
+  const recoleccionCards = useMemo(() => {
+    const recoleccionRoutes = (allRoutes || []).filter(r => r.tipo_servicio === 'recoleccion');
+    const reportsByRutaId = new Map();
+    for (const report of routeReports) {
+      const key = report.ruta_id || '__sin_ruta__';
+      if (!reportsByRutaId.has(key)) reportsByRutaId.set(key, []);
+      reportsByRutaId.get(key).push(report);
+    }
 
-    return recoleccionPlaces.map(lugar => {
-      // Buscar reportes de rutas que pasaron por este lugar
-      const lugarReports = [];
-      routeReports.forEach(report => {
-        if (report.paradas_completadas && Array.isArray(report.paradas_completadas)) {
-          report.paradas_completadas.forEach(parada => {
-            const paradaDireccion = (parada.direccion || '').toLowerCase();
-            const lugarNombre = lugar.nombre.toLowerCase();
-
-            // Verificar si la parada pertenece a este lugar
-            if (paradaDireccion.includes(lugarNombre) || lugarNombre.includes(paradaDireccion.split(' ')[0])) {
-              lugarReports.push({
-                ...report,
-                tipo: 'recoleccion',
-                tipoServicio: 'recoleccion',
-                fecha: report.fecha_completacion,
-                estado: 'completado',
-                notas: report.observaciones,
-                parada_info: parada
-              });
-            }
-          });
-        }
-      });
-
+    const routeCards = recoleccionRoutes.map(ruta => {
+      const reports = reportsByRutaId.get(ruta._id) || [];
+      const ubicacion = ruta.ubicacion_principal
+        || (Array.isArray(ruta.paradas) && ruta.paradas[0]?.latitud && ruta.paradas[0]?.longitud
+            ? { latitud: ruta.paradas[0].latitud, longitud: ruta.paradas[0].longitud, nombre: ruta.nombre }
+            : null);
+      const lastReport = reports.length > 0
+        ? reports.reduce((acc, r) => (!acc || r.fecha_completacion > acc.fecha_completacion ? r : acc), null)
+        : null;
       return {
-        ...lugar,
-        id: lugar._id, // Para compatibilidad con MapCard
-        assignmentsCount: lugarReports.length,
-        completedCount: lugarReports.length,
-        assignments: lugarReports
+        _id: ruta._id,
+        ruta,
+        reports,
+        orphan: false,
+        nombre: ruta.nombre,
+        foto_storage_id: ruta.foto_portada_storage_id || null,
+        ubicacion,
+        paradasCount: Array.isArray(ruta.paradas) ? ruta.paradas.length : 0,
+        reportsCount: reports.length,
+        fechaLabel: lastReport
+          ? parseLocalDate(lastReport.fecha_completacion).toLocaleDateString('es-ES')
+          : 'Sin ejecuciones',
       };
     });
-  }, [fumigationLugares, routeReports]);
 
-  // ⚡ Component para tarjeta con mapa embebido real de Google Maps
-  const MapCard = memo(({ location, icon: Icon }) => {
-    const hasCoords = location.latitud && location.longitud;
+    // Reportes huérfanos: ruta_id no coincide con ninguna ruta existente. Agrupar por ruta_id.
+    const knownRutaIds = new Set(recoleccionRoutes.map(r => r._id));
+    const orphanGroups = new Map();
+    for (const report of routeReports) {
+      if (report.ruta_id && knownRutaIds.has(report.ruta_id)) continue;
+      const key = report.ruta_id || `__sin_ruta_${report._id}`;
+      if (!orphanGroups.has(key)) orphanGroups.set(key, []);
+      orphanGroups.get(key).push(report);
+    }
+    const orphanCards = Array.from(orphanGroups.entries()).map(([key, reports]) => {
+      const sample = reports[0];
+      const ubicacion = sample.ruta_ubicacion_principal
+        || (Array.isArray(sample.ruta_paradas) && sample.ruta_paradas[0]?.latitud && sample.ruta_paradas[0]?.longitud
+            ? { latitud: sample.ruta_paradas[0].latitud, longitud: sample.ruta_paradas[0].longitud, nombre: sample.ruta_nombre }
+            : null);
+      const lastReport = reports.reduce((acc, r) => (!acc || r.fecha_completacion > acc.fecha_completacion ? r : acc), null);
+      return {
+        _id: `orphan_${key}`,
+        ruta: null,
+        reports,
+        orphan: true,
+        nombre: `${sample.ruta_nombre || 'Ruta sin nombre'} (eliminada)`,
+        foto_storage_id: sample.ruta_foto_portada_storage_id || null,
+        ubicacion,
+        paradasCount: Array.isArray(sample.ruta_paradas) ? sample.ruta_paradas.length : 0,
+        reportsCount: reports.length,
+        fechaLabel: lastReport
+          ? parseLocalDate(lastReport.fecha_completacion).toLocaleDateString('es-ES')
+          : '—',
+      };
+    });
+
+    return [...routeCards, ...orphanCards];
+  }, [allRoutes, routeReports]);
+
+  // Tarjeta de reporte de recolección — foto subida o fallback a iframe Google Maps
+  const RecoleccionReportCard = memo(({ card, onClick }) => {
+    const remoteUrl = useQuery(
+      api.files.getUrl,
+      card.foto_storage_id ? { storageId: card.foto_storage_id } : 'skip'
+    );
+    const ubic = card.ubicacion;
+    const hasCoords = ubic?.latitud && ubic?.longitud;
+    const mapQuery = hasCoords
+      ? `${ubic.latitud},${ubic.longitud}`
+      : encodeURIComponent((ubic?.nombre || card.nombre) + ', Panama City, Panama');
+    const embedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${mapQuery}&zoom=16`;
+
+    return (
+      <div
+        className="location-map-card"
+        onClick={onClick}
+        style={{ cursor: 'pointer' }}
+      >
+        <div className="location-image-wrapper">
+          {remoteUrl ? (
+            <img
+              src={remoteUrl}
+              alt={card.nombre}
+              className="location-image"
+              loading="lazy"
+              decoding="async"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <iframe
+              src={embedUrl}
+              className="location-map-iframe"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title={`Mapa de ${card.nombre}`}
+              style={{ width: '100%', height: '100%', border: 0, pointerEvents: 'none' }}
+            />
+          )}
+        </div>
+        <div className="map-card-overlay">
+          <h4>{card.nombre}</h4>
+          <span className="report-badge">
+            {card.reportsCount} reporte{card.reportsCount === 1 ? '' : 's'} · {card.paradasCount} paradas · {card.fechaLabel}
+          </span>
+        </div>
+      </div>
+    );
+  });
+
+  const renderRecoleccion = () => {
+    const totalPages = Math.ceil(recoleccionCards.length / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedCards = recoleccionCards.slice(startIndex, endIndex);
+
+    return (
+      <div className="reports-category reports-recoleccion">
+        <div className="category-header">
+          <h3>Reportes de Recolección</h3>
+          <p>
+            {recoleccionCards.length === 0
+              ? 'Crea una ruta de recolección desde el módulo Rutas para verla aquí.'
+              : `${recoleccionCards.length} ruta${recoleccionCards.length === 1 ? '' : 's'} — click en una tarjeta para ver sus reportes de ejecución.`}
+          </p>
+        </div>
+
+        {recoleccionCards.length === 0 ? (
+          <div className="empty-state">
+            <Truck size={48} />
+            <h4>No hay rutas de recolección todavía</h4>
+            <p>Crea una ruta desde el módulo Rutas. Cada vez que un conductor la complete, aparecerá un reporte adentro.</p>
+          </div>
+        ) : (
+          <>
+            <div className="locations-grid">
+              {paginatedCards.map(card => (
+                <RecoleccionReportCard
+                  key={card._id}
+                  card={card}
+                  onClick={() => setSelectedRouteCard(card)}
+                />
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  ← Anterior
+                </button>
+                <span className="pagination-info">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <button
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente →
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  };
+
+  // Tarjeta compartida para limpieza/fumigación — usa foto_storage_id si existe, else iframe Google Maps con coords, else placeholder
+  const LocationCard = memo(({ location, onClick, FallbackIcon }) => {
+    const remoteUrl = useQuery(
+      api.files.getUrl,
+      location.foto_storage_id ? { storageId: location.foto_storage_id } : 'skip'
+    );
+    const hasCoords = typeof location.latitud === 'number' && typeof location.longitud === 'number';
     const mapQuery = hasCoords
       ? `${location.latitud},${location.longitud}`
       : encodeURIComponent(location.nombre + ', Panama City, Panama');
@@ -259,18 +401,36 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     return (
       <div
         className="location-map-card"
-        onClick={() => setSelectedLocation(location)}
+        onClick={onClick}
         style={{ cursor: 'pointer' }}
       >
         <div className="location-image-wrapper">
-          <iframe
-            src={embedUrl}
-            className="location-map-iframe"
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            title={`Mapa de ${location.nombre}`}
-            style={{ width: '100%', height: '100%', border: 0, pointerEvents: 'none' }}
-          />
+          {remoteUrl ? (
+            <img
+              src={remoteUrl}
+              alt={location.nombre}
+              className="location-image"
+              loading="lazy"
+              decoding="async"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : hasCoords ? (
+            <iframe
+              src={embedUrl}
+              className="location-map-iframe"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title={`Mapa de ${location.nombre}`}
+              style={{ width: '100%', height: '100%', border: 0, pointerEvents: 'none' }}
+            />
+          ) : (
+            <div className="location-image-fallback" style={{ display: 'flex' }}>
+              {FallbackIcon && <FallbackIcon size={48} />}
+              <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
+                {location.nombre}
+              </p>
+            </div>
+          )}
         </div>
         <div className="map-card-overlay">
           <h4>{location.nombre}</h4>
@@ -279,158 +439,6 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
       </div>
     );
   });
-
-  const renderRecoleccion = () => {
-    // Paginación
-    const totalPages = Math.ceil(recoleccionLocations.length / ITEMS_PER_PAGE);
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    const paginatedLocations = recoleccionLocations.slice(startIndex, endIndex);
-
-
-    return (
-      <div className="reports-category reports-recoleccion">
-        <div className="category-header">
-          <h3>Reportes de Recolección por Ubicación</h3>
-          <p>Selecciona un lugar para ver sus reportes de recolección ({recoleccionLocations.length} lugares)</p>
-        </div>
-
-        {/* 📊 Reportes de Recolección Completados */}
-        {routeReports.length > 0 && (
-          <div className="route-reports-section">
-            <h3 className="route-reports-header">
-              📋 Reportes Completados ({routeReports.length})
-            </h3>
-            <div className="route-reports-grid">
-              {routeReports.map((report, idx) => (
-                <div
-                  key={idx}
-                  className="route-report-card"
-                  onClick={() => {
-                    console.log('📊 Abriendo reporte:', report.ruta_nombre);
-                    setSelectedRouteReport(report);
-                  }}
-                >
-                  <div className="route-report-card-header">
-                    <h4 className="route-report-card-title">{report.ruta_nombre}</h4>
-                    <span className="route-report-badge">
-                      ✓ Completada
-                    </span>
-                  </div>
-                  <div className="route-report-meta">
-                    <span className="route-report-meta-item">
-                      👤 {report.conductor_nombre}
-                    </span>
-                    <span className="route-report-meta-item">
-                      🚛 {report.vehiculo_placa}
-                    </span>
-                    <span className="route-report-meta-item">
-                      📦 {report.paradas_completadas?.length || 0} paradas
-                    </span>
-                    <span className="route-report-meta-item">
-                      📅 {parseLocalDate(report.fecha_completacion).toLocaleDateString('es-ES')}
-                    </span>
-                  </div>
-                  <p className="route-report-hint">
-                    Click para ver detalles completos y mapa de ruta
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {fumigationLoading ? (
-          <div className="loading-state">
-            <div className="loading-spinner"></div>
-            <p>Cargando ubicaciones...</p>
-          </div>
-        ) : recoleccionLocations.length === 0 ? (
-          <div className="empty-state">
-            <Truck size={48} />
-            <p>No hay ubicaciones de recolección registradas</p>
-          </div>
-        ) : (
-          <>
-            <div className="locations-grid">
-              {paginatedLocations.map(location => (
-                <MapCard key={location._id || location.id} location={location} icon={Truck} />
-              ))}
-          </div>
-
-          {/* Paginación */}
-          {totalPages > 1 && (
-            <div className="pagination-controls" style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '12px',
-              marginTop: '24px',
-              padding: '20px'
-            }}>
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  background: currentPage === 1 ? '#f3f4f6' : 'white',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: currentPage === 1 ? '#9ca3af' : '#374151'
-                }}
-              >
-                ← Anterior
-              </button>
-
-              <span style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                fontWeight: '500'
-              }}>
-                Página {currentPage} de {totalPages}
-              </span>
-
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  background: currentPage === totalPages ? '#f3f4f6' : 'white',
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: currentPage === totalPages ? '#9ca3af' : '#374151'
-                }}
-              >
-                Siguiente →
-              </button>
-            </div>
-          )}
-          </>
-        )}
-
-        {selectedLocation && (
-          <LocationReportsModal
-            location={selectedLocation}
-            onClose={() => {
-              setSelectedLocation(null);
-              if (onClearSelection) {
-                onClearSelection();
-              }
-            }}
-            getPhotoUrl={getPhotoUrl}
-            getStatusVariant={getStatusVariant}
-            modalType="recoleccion"
-          />
-        )}
-      </div>
-    );
-  };
 
   // Agrupar fumigaciones por lugar
   const fumigacionByLocation = useMemo(() => {
@@ -536,64 +544,14 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
         ) : (
           <>
             <div className="locations-grid limpieza-grid-3col">
-              {paginatedLocations.map(location => {
-                // Mapeo de imágenes para lugares
-                const imageMap = {
-                  'Mercado del Marisco': 'mercado de mariscos.jpg',
-                  'Mercado San Felipe Neri': 'san felipe neri.jpeg',
-                  'Mercado de Alcalde Díaz': 'Mercado Alcalde Diaz.jpeg',
-                  'Mercado de Pueblo Nuevo': 'Mercado Pueblo Nuevo.jpg',
-                  'Mercado de Pacora': 'Mercado de Pacora.jpg',
-                  'Complejo Turístico Mi Pueblito': 'Mi Pueblito.jpeg'
-                };
-
-                const imageName = imageMap[location.nombre];
-                const imageUrl = imageName ? `/lugares/${imageName}` : null;
-
-                return (
-                  <div
-                    key={location._id || location.id}
-                    className="location-map-card"
-                    onClick={() => setSelectedLocation(location)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <div className="location-image-wrapper">
-                      {imageUrl ? (
-                        <>
-                          <img
-                            src={imageUrl}
-                            alt={location.nombre}
-                            className="location-image"
-                            loading="eager"
-                            decoding="async"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextElementSibling.style.display = 'flex';
-                            }}
-                          />
-                          <div className="location-image-fallback" style={{ display: 'none' }}>
-                            <Bug size={48} />
-                            <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
-                              {location.nombre}
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <div className="location-image-fallback" style={{ display: 'flex' }}>
-                          <Bug size={48} />
-                          <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
-                            {location.nombre}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    <div className="map-card-overlay">
-                      <h4>{location.nombre}</h4>
-                      <span className="report-badge">{location.assignmentsCount} reportes</span>
-                    </div>
-                  </div>
-                );
-              })}
+              {paginatedLocations.map(location => (
+                <LocationCard
+                  key={location._id || location.id}
+                  location={location}
+                  onClick={() => setSelectedLocation(location)}
+                  FallbackIcon={Bug}
+                />
+              ))}
             </div>
 
             {/* Paginación */}
@@ -666,17 +624,6 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     const endIndex = startIndex + ITEMS_PER_PAGE;
     const paginatedLocations = assignmentsByLocation.slice(startIndex, endIndex);
 
-    console.log('🔍 DEBUG - lugares:', lugares);
-    console.log('🔍 DEBUG - assignments:', assignments);
-    console.log('🔍 DEBUG - assignmentsByLocation:', assignmentsByLocation);
-    console.log('🏢 Total lugares para limpieza:', assignmentsByLocation.length);
-    console.log('📄 Paginación limpieza:', {
-      total: assignmentsByLocation.length,
-      currentPage,
-      totalPages,
-      showing: paginatedLocations.length
-    });
-
     return (
       <div className="reports-category reports-limpieza">
         <div className="category-header">
@@ -697,133 +644,37 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
         ) : (
           <>
             <div className="locations-grid limpieza-grid-3col">
-              {paginatedLocations.map(location => {
-                // Mapeo exacto entre nombres de BD y nombres de archivos
-                const imageMap = {
-                  'Almacén Central': 'Almacen Central MINSA.jpg',
-                  'Casa de la Municipalidad': 'Casa de la Municipidad.jpg',
-                  'Casa Góngora': 'Plaza Gongora.jpg',
-                  'Centro de Recaudación Magna Corp.': 'Centro de Recaudacion Magna Corp..jpg',
-                  'Complejo Turístico Mi Pueblito': 'Mi Pueblito.jpeg',
-                  'Edificio Hatillo': 'Edificio Hatillo.jpeg',
-                  'Mercado de Alcalde Díaz': 'Mercado Alcalde Diaz.jpeg',
-                  'Mercado del Marisco': 'mercado de mariscos.jpg',
-                  'Mercado de Pacora': 'Mercado de Pacora.jpg',
-                  'Mercado San Felipe Neri': 'san felipe neri.jpeg',
-                  'Mercado de Pueblo Nuevo': 'Mercado Pueblo Nuevo.jpg',
-                  'Oficinas del Parque Summit': 'Oficina del Parque Summit.jpg',
-                  'Palacio Municipal': 'Palacio Municipal.jpg',
-                  'Planta de tratamiento (Mercado San Felipe Neri)': 'san felipe neri.jpeg',
-                  'Taller': 'Taller.jpg'
-                };
-
-              const imageName = imageMap[location.nombre];
-              const imageUrl = imageName ? `/lugares/${imageName}` : null;
-
-              console.log('🖼️ Lugar:', location.nombre, '| Imagen:', imageName, '| URL:', imageUrl);
-
-              return (
-                <div
+              {paginatedLocations.map(location => (
+                <LocationCard
                   key={location._id || location.id}
-                  className="location-map-card"
+                  location={location}
                   onClick={() => setSelectedLocation(location)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="location-image-wrapper">
-                    {imageUrl ? (
-                      <>
-                        <img
-                          src={imageUrl}
-                          alt={location.nombre}
-                          className="location-image"
-                          loading="eager"
-                          decoding="async"
-                          onError={(e) => {
-                            console.error('Error cargando imagen:', imageUrl);
-                            e.target.style.display = 'none';
-                            e.target.nextElementSibling.style.display = 'flex';
-                          }}
-                        />
-                        <div className="location-image-fallback" style={{ display: 'none' }}>
-                          <MapPin size={48} />
-                          <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
-                            {location.nombre}
-                          </p>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="location-image-fallback" style={{ display: 'flex' }}>
-                        <MapPin size={48} />
-                        <p style={{ color: '#6b7280', fontSize: '14px', marginTop: '8px' }}>
-                          {location.nombre}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="map-card-overlay">
-                    <h4>{location.nombre}</h4>
-                    <span className="report-badge">{location.assignmentsCount} reportes</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Paginación */}
-          {totalPages > 1 && (
-            <div className="pagination-controls" style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '12px',
-              marginTop: '24px',
-              padding: '20px'
-            }}>
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  background: currentPage === 1 ? '#f3f4f6' : 'white',
-                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: currentPage === 1 ? '#9ca3af' : '#374151',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                ← Anterior
-              </button>
-
-              <span style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                fontWeight: '500'
-              }}>
-                Página {currentPage} de {totalPages}
-              </span>
-
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '8px',
-                  border: '1px solid #d1d5db',
-                  background: currentPage === totalPages ? '#f3f4f6' : 'white',
-                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  color: currentPage === totalPages ? '#9ca3af' : '#374151',
-                  transition: 'all 0.2s ease'
-                }}
-              >
-                Siguiente →
-              </button>
+                  FallbackIcon={MapPin}
+                />
+              ))}
             </div>
-          )}
+
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  ← Anterior
+                </button>
+                <span className="pagination-info">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <button
+                  className="pagination-btn"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Siguiente →
+                </button>
+              </div>
+            )}
           </>
         )}
 
@@ -836,7 +687,6 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
                 onClearSelection();
               }
             }}
-            getPhotoUrl={getPhotoUrl}
             getStatusVariant={getStatusVariant}
             modalType="limpieza"
           />
@@ -848,12 +698,6 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
   // maintenanceByLocation removed - maintenance tasks are grouped by vehicle, not location
 
   const renderMantenimiento = () => {
-    console.log('🔧 DEBUG Mantenimiento:', {
-      maintenanceLoading,
-      maintenanceTasks: maintenanceTasks.length,
-      maintenanceReports: maintenanceReports.length
-    });
-
     // Paginación para reportes
     const totalPages = Math.ceil(maintenanceReports.length / ITEMS_PER_PAGE);
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -1055,6 +899,16 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
             {renderCategoryContent()}
           </div>
         </>
+      )}
+
+      {/* Modal de lista de reportes por ruta */}
+      {selectedRouteCard && (
+        <RouteReportsListModal
+          card={selectedRouteCard}
+          onClose={() => setSelectedRouteCard(null)}
+          onSelectReport={(report) => setSelectedRouteReport(report)}
+          getStatusVariant={getStatusVariant}
+        />
       )}
 
       {/* Modal de detalle de reporte de ruta */}

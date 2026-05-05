@@ -25,6 +25,9 @@ export const addLugar = mutation({
   args: {
     nombre: v.string(),
     descripcion: v.optional(v.string()),
+    latitud: v.optional(v.number()),
+    longitud: v.optional(v.number()),
+    foto_storage_id: v.optional(v.id("_storage")),
     proyecto_id: v.id("proyectos"),
   },
   handler: async (ctx, args) => {
@@ -44,6 +47,7 @@ export const updateLugar = mutation({
     latitud: v.optional(v.number()),
     longitud: v.optional(v.number()),
     activo: v.optional(v.boolean()),
+    foto_storage_id: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
@@ -476,11 +480,17 @@ export const listReportsWithPhotos = query({
     fecha_fin: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const scoped = await getScopedProjectId(ctx, null);
     let reports = await ctx.db
       .query("fumigation_reports")
       .withIndex("by_fecha", (q) => q)
       .order("desc")
       .collect();
+
+    // Scope por proyecto/org antes de resolver fotos
+    if (scoped !== null) {
+      reports = reports.filter((r) => r.proyecto_id === scoped);
+    }
 
     // Filtrar por rango de fechas si se proporcionan
     if (args.fecha_inicio && args.fecha_fin) {

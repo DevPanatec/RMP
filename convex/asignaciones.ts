@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId, getScopedOrgId, requireProjectAccess } from "./lib/auth";
+import { getScopedProjectId, getScopedOrgId, requireProjectAccess, getAuthScope } from "./lib/auth";
 
 export const list = query({
   args: {
@@ -218,6 +218,9 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
+    const existing = await ctx.db.get(id);
+    if (!existing) throw new Error("Asignación no encontrada");
+    if (existing.proyecto_id) await requireProjectAccess(ctx, existing.proyecto_id);
     return await ctx.db.patch(id, updates);
   },
 });
@@ -234,6 +237,9 @@ export const updateEstado = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Asignación no encontrada");
+    if (existing.proyecto_id) await requireProjectAccess(ctx, existing.proyecto_id);
     return await ctx.db.patch(args.id, { estado: args.estado });
   },
 });
@@ -241,13 +247,18 @@ export const updateEstado = mutation({
 export const remove = mutation({
   args: { id: v.id("asignaciones_rutas") },
   handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Asignación no encontrada");
+    if (existing.proyecto_id) await requireProjectAccess(ctx, existing.proyecto_id);
+
     // Cerrar cualquier route_progress asociado para evitar huérfanos.
-    const linked = await ctx.db
+    // Usar el index by_asignacion en lugar de filter sin index.
+    const allInProgress = await ctx.db
       .query("route_progress")
-      .filter((q) => q.eq(q.field("asignacion_id"), args.id))
+      .withIndex("by_estado", (q) => q.eq("estado", "en_progreso"))
       .collect();
-    for (const rp of linked) {
-      if (rp.estado === "en_progreso") {
+    for (const rp of allInProgress) {
+      if (rp.asignacion_id === args.id) {
         await ctx.db.patch(rp._id, { estado: "completada" });
       }
     }

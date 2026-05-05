@@ -119,18 +119,6 @@ const RouteReportDetailModal = ({ report, onClose }) => {
     };
   })();
 
-  console.log('🗺️ RouteReportDetailModal - Reporte completo:', report);
-  console.log('🗺️ RouteReportDetailModal - Ruta para mapa:', rutaParaMapa);
-  console.log('🗺️ Total paradas con GPS:', rutaParaMapa[0]?.paradas?.filter(p => p.lat && p.lng).length);
-  console.log('🗺️ Paradas detalle:', rutaParaMapa[0]?.paradas);
-  console.log('🗺️ GPS Trail Real:', gpsTrailData.length, 'puntos', gpsTrailData.slice(0, 3));
-
-  // Log coordenadas de cada parada
-  console.log('🗺️ Coordenadas de paradas en RouteReportDetailModal:');
-  rutaParaMapa[0]?.paradas?.forEach((p, idx) => {
-    console.log(`  Parada ${idx + 1}: lat=${p.lat}, lng=${p.lng}, nombre=${p.nombre}`);
-  });
-
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="route-report-modal" onClick={(e) => e.stopPropagation()}>

@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { useMaintenance } from '../../context/MaintenanceContext';
 import { Plus, Eye, Trash2, CheckCircle, Calendar, Clock, Edit, FileText } from '../Icons';
-import MaintenanceTaskModal from './MaintenanceTaskModal';
 
-const MaintenanceTasks = ({ userRole }) => {
+const MaintenanceTasks = ({ userRole, isAdmin: isAdminProp, onCreate, onView, onEdit }) => {
   const { tasks, deleteTask } = useMaintenance();
   const [filter, setFilter] = useState('all');
-  const [showModal, setShowModal] = useState(false);
-  const [selectedTask, setSelectedTask] = useState(null);
-  const [viewMode, setViewMode] = useState(false);
 
-  const isAdmin = userRole === 'admin';
+  // Backwards-compat: si el parent no pasa isAdmin, derivarlo aquí
+  const isAdmin = typeof isAdminProp === 'boolean'
+    ? isAdminProp
+    : (userRole === 'admin' || userRole === 'super_admin');
 
   const filteredTasks = filter === 'all'
     ? tasks
@@ -23,21 +22,15 @@ const MaintenanceTasks = ({ userRole }) => {
   };
 
   const handleView = (task) => {
-    setSelectedTask(task);
-    setViewMode(true);
-    setShowModal(true);
+    if (onView) onView(task);
   };
 
   const handleEdit = (task) => {
-    setSelectedTask(task);
-    setViewMode(isAdmin ? false : true);
-    setShowModal(true);
+    if (onEdit) onEdit(task);
   };
 
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setSelectedTask(null);
-    setViewMode(false);
+  const handleCreate = () => {
+    if (onCreate) onCreate();
   };
 
   const formatDate = (dateStr) => {
@@ -122,11 +115,7 @@ const MaintenanceTasks = ({ userRole }) => {
           <h3 className="maint-tasks-title">Gestión de Tareas</h3>
           {isAdmin && (
             <button
-              onClick={() => {
-                setSelectedTask(null);
-                setViewMode(false);
-                setShowModal(true);
-              }}
+              onClick={handleCreate}
               className="maint-tasks-add-btn"
             >
               <Plus size={18} />
@@ -269,16 +258,6 @@ const MaintenanceTasks = ({ userRole }) => {
           )}
         </div>
       </div>
-
-      {/* Modal */}
-      {showModal && (
-        <MaintenanceTaskModal
-          task={selectedTask}
-          viewMode={viewMode}
-          userRole={userRole}
-          onClose={handleCloseModal}
-        />
-      )}
     </div>
   );
 };

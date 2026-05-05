@@ -162,7 +162,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  min-height: 40px;
+  min-height: 44px;
   border: none;
   background: transparent;
   border-radius: var(--radius-base);
@@ -414,7 +414,7 @@
   .period-selector-v2 button {
     flex: 1;
     text-align: center;
-    min-height: 40px;
+    min-height: 44px;
     padding: 10px 12px;
   }
 }
@@ -1042,7 +1042,7 @@
 
   .period-selector button {
     flex: 1;
-    min-height: 40px;
+    min-height: 44px;
   }
 
   /* Tables with horizontal scroll */

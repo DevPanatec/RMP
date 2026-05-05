@@ -244,7 +244,14 @@ const FumigationReportsPage = ({ location, onClose, getStatusVariant }) => {
           </div>
           <button
             className="fumigation-download-btn"
-            onClick={() => alert('Descargando reportes...')}
+            onClick={async () => {
+              const reportsToDownload = selectedReports.length > 0
+                ? filteredReports.filter(r => selectedReports.includes(r._id || r.id))
+                : filteredReports;
+              for (const report of reportsToDownload) {
+                await handleDownloadReport(null, report);
+              }
+            }}
             disabled={filteredReports.length === 0}
           >
             <Download size={16} />

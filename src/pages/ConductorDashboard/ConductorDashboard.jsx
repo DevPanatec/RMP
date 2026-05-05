@@ -73,11 +73,14 @@ const ConductorDashboard = ({ user, onLogout }) => {
   const completeRouteProgress = useMutation(api.route_progress.complete);
 
   // Backend source-of-truth: ¿el conductor tiene una ruta en_progreso ahora?
+  // Prioriza conductor_id (preciso); fallback a conductor_nombre solo si no hay _id.
   const activeProgress = useQuery(
     api.route_progress.getActiveProgress,
-    user?.nombre || user?.nombre_completo
-      ? { conductor_nombre: user.nombre || user.nombre_completo }
-      : 'skip'
+    user?._id
+      ? { conductor_id: user._id }
+      : user?.nombre || user?.nombre_completo
+        ? { conductor_nombre: user.nombre || user.nombre_completo }
+        : 'skip'
   );
 
   // State for route progress ID

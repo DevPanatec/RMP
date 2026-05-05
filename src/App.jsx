@@ -3,7 +3,6 @@ import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ClerkProvider, useAuth as useClerkAuth } from "@clerk/clerk-react";
 import Login from './components/Login/Login';
 import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
-import EnterpriseDashboard from './pages/EnterpriseDashboard/EnterpriseDashboard';
 import ConductorDashboard from './pages/ConductorDashboard/ConductorDashboard';
 import SeedUsers from './utils/SeedUsers';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -78,7 +77,7 @@ const AppContent = () => {
       case 'viewer':
         return <AdminDashboard user={user} onLogout={handleLogout} userRole="viewer" />;
       case 'enterprise':
-        return <EnterpriseDashboard user={user} onLogout={handleLogout} />;
+        return <AdminDashboard user={user} onLogout={handleLogout} userRole="enterprise" />;
       case 'conductor':
         return <ConductorDashboard user={user} onLogout={handleLogout} />;
       default:

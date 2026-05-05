@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthScope, getScopedProjectId, getScopedOrgId, isCrossOrgViewer } from "./lib/auth";
+import { getAuthScope, getScopedProjectId, getScopedOrgId } from "./lib/auth";
 
 // Internal: problemas del operador/vehiculo. Externo: entorno (afecta al cliente)
 const TIPOS_INTERNOS = new Set(["mecanico", "combustible", "seguridad", "mantenimiento"]);
@@ -44,7 +44,7 @@ export const list = query({
     const scope = await getAuthScope(ctx);
 
     // Cross-org viewer: ve TODOS los riesgos (internos+externos) de TODAS las orgs
-    if (isCrossOrgViewer(scope.perfil?._id)) {
+    if (scope.isCrossOrgViewer) {
       return await ctx.db
         .query("reportes_riesgo")
         .withIndex("by_fecha", (q) => q)
@@ -85,7 +85,7 @@ export const listWithDetails = query({
   },
   handler: async (ctx, args) => {
     const scope = await getAuthScope(ctx);
-    const crossOrg = isCrossOrgViewer(scope.perfil?._id);
+    const crossOrg = scope.isCrossOrgViewer;
 
     let reportes;
     if (crossOrg) {

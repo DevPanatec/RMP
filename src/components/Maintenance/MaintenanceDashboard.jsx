@@ -1,7 +1,7 @@
 import { useMaintenance } from '../../context/MaintenanceContext';
-import { Calendar, Clock, CheckCircle, AlertTriangle, Wrench, TrendingUp } from '../Icons';
+import { Calendar, Clock, CheckCircle, AlertTriangle, Wrench, TrendingUp, Plus } from '../Icons';
 
-const MaintenanceDashboard = ({ userRole }) => {
+const MaintenanceDashboard = ({ userRole, onCreateTask, onSeeAllTasks }) => {
   const { tasks, getUpcomingTasks, getTasksByStatus, getOperationalStats } = useMaintenance();
 
   const upcomingTasks = getUpcomingTasks(7);
@@ -111,6 +111,16 @@ const MaintenanceDashboard = ({ userRole }) => {
               <div className="maint-dash-empty">
                 <Calendar size={48} className="maint-dash-empty__icon" />
                 <p className="maint-dash-empty__text">No hay mantenimientos programados</p>
+                {onCreateTask && (
+                  <button
+                    type="button"
+                    className="maint-dash-empty-cta"
+                    onClick={onCreateTask}
+                  >
+                    <Plus size={16} />
+                    Crear primera tarea
+                  </button>
+                )}
               </div>
             ) : (
               <div className="maint-dash-task-list">
@@ -178,6 +188,15 @@ const MaintenanceDashboard = ({ userRole }) => {
               <div className="maint-dash-empty">
                 <CheckCircle size={48} className="maint-dash-empty__icon" />
                 <p className="maint-dash-empty__text">No hay mantenimientos completados</p>
+                {onSeeAllTasks && tasks.length > 0 && (
+                  <button
+                    type="button"
+                    className="maint-dash-empty-cta maint-dash-empty-cta--ghost"
+                    onClick={onSeeAllTasks}
+                  >
+                    Ver todas las tareas
+                  </button>
+                )}
               </div>
             ) : (
               <div className="maint-dash-task-list">

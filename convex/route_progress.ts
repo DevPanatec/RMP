@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId, getScopedOrgId } from "./lib/auth";
+import { getScopedProjectId, getScopedOrgId, getAuthScope, requireProjectAccess } from "./lib/auth";
 
 // Cleanup admin-only: marca como 'completada' todos los route_progress 'en_progreso'.
 // Útil para limpiar leaks históricos. Llamar manual una vez:
@@ -41,24 +41,52 @@ export const list = query({
   },
 });
 
+// Match por conductor_id (preciso). Mantiene fallback a conductor_nombre legacy
+// para datos antiguos sin conductor_id en frontend.
 export const getByConductor = query({
-  args: { conductor_nombre: v.string() },
+  args: {
+    conductor_id: v.optional(v.id("perfiles_usuarios")),
+    conductor_nombre: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("route_progress")
-      .withIndex("by_conductor", (q) => q.eq("conductor_nombre", args.conductor_nombre))
-      .collect();
+    if (args.conductor_id) {
+      return await ctx.db
+        .query("route_progress")
+        .withIndex("by_conductor_id", (q) => q.eq("conductor_id", args.conductor_id!))
+        .collect();
+    }
+    if (args.conductor_nombre) {
+      return await ctx.db
+        .query("route_progress")
+        .withIndex("by_conductor", (q) => q.eq("conductor_nombre", args.conductor_nombre!))
+        .collect();
+    }
+    return [];
   },
 });
 
 export const getActiveProgress = query({
-  args: { conductor_nombre: v.string() },
+  args: {
+    conductor_id: v.optional(v.id("perfiles_usuarios")),
+    conductor_nombre: v.optional(v.string()),
+  },
   handler: async (ctx, args) => {
-    return await ctx.db
-      .query("route_progress")
-      .withIndex("by_conductor", (q) => q.eq("conductor_nombre", args.conductor_nombre))
-      .filter((q) => q.eq(q.field("estado"), "en_progreso"))
-      .first();
+    if (args.conductor_id) {
+      return await ctx.db
+        .query("route_progress")
+        .withIndex("by_conductor_id_estado", (q) =>
+          q.eq("conductor_id", args.conductor_id!).eq("estado", "en_progreso")
+        )
+        .first();
+    }
+    if (args.conductor_nombre) {
+      return await ctx.db
+        .query("route_progress")
+        .withIndex("by_conductor", (q) => q.eq("conductor_nombre", args.conductor_nombre!))
+        .filter((q) => q.eq(q.field("estado"), "en_progreso"))
+        .first();
+    }
+    return null;
   },
 });
 
@@ -126,6 +154,15 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
+    const existing = await ctx.db.get(id);
+    if (!existing) throw new Error("Progreso no encontrado");
+    const scope = await getAuthScope(ctx);
+    if (!scope.perfil) throw new Error("No autenticado");
+    // Solo el conductor dueño, super_admin, o admin/cross-org del scope correcto.
+    const isOwner = scope.perfil._id === existing.conductor_id;
+    if (!isOwner && !scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      if (existing.proyecto_id) await requireProjectAccess(ctx, existing.proyecto_id);
+    }
     return await ctx.db.patch(id, updates);
   },
 });

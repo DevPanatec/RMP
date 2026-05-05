@@ -96,6 +96,13 @@ export const getById = query({
   },
 });
 
+const ubicacionPrincipalValidator = v.object({
+  latitud: v.number(),
+  longitud: v.number(),
+  nombre: v.string(),
+  direccion: v.optional(v.string()),
+});
+
 // Add ruta
 export const add = mutation({
   args: {
@@ -113,6 +120,8 @@ export const add = mutation({
     combustible_estimado: v.optional(v.number()),
     observaciones: v.optional(v.string()),
     estado: v.optional(v.string()),
+    foto_portada_storage_id: v.optional(v.id("_storage")),
+    ubicacion_principal: v.optional(ubicacionPrincipalValidator),
   },
   handler: async (ctx, args) => {
     if (!args.proyecto_id) throw new Error("proyecto_id requerido al crear ruta");
@@ -143,6 +152,8 @@ export const update = mutation({
     tiempo_estimado: v.optional(v.number()),
     combustible_estimado: v.optional(v.number()),
     observaciones: v.optional(v.string()),
+    foto_portada_storage_id: v.optional(v.id("_storage")),
+    ubicacion_principal: v.optional(ubicacionPrincipalValidator),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;

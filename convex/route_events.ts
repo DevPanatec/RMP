@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthScope, getScopedProjectId, getScopedOrgId, isCrossOrgViewer } from "./lib/auth";
+import { getAuthScope, getScopedProjectId, getScopedOrgId, requireProjectAccess } from "./lib/auth";
 
 // Create route event
 export const add = mutation({
@@ -42,6 +42,7 @@ export const add = mutation({
       const r = await ctx.db.get(args.ruta_id);
       proyecto_id = r?.proyecto_id;
     }
+    if (proyecto_id) await requireProjectAccess(ctx, proyecto_id);
     const eventData: any = {
       ...args,
       proyecto_id,
@@ -58,7 +59,7 @@ export const getByAssignment = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("route_events")
-      .filter((q) => q.eq(q.field("asignacion_id"), args.asignacion_id))
+      .withIndex("by_asignacion", (q) => q.eq("asignacion_id", args.asignacion_id))
       .order("desc")
       .collect();
   },
@@ -70,7 +71,7 @@ export const getByRoute = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("route_events")
-      .filter((q) => q.eq(q.field("ruta_id"), args.ruta_id))
+      .withIndex("by_ruta", (q) => q.eq("ruta_id", args.ruta_id))
       .order("desc")
       .collect();
   },
@@ -88,7 +89,7 @@ export const getRecent = query({
     const limit = args.limit || 50;
 
     // Cross-org viewer: ve eventos de TODAS las orgs
-    if (isCrossOrgViewer(scope.perfil?._id)) {
+    if (scope.isCrossOrgViewer) {
       return await ctx.db
         .query("route_events")
         .order("desc")
@@ -126,13 +127,13 @@ export const getByConductor = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("route_events")
-      .filter((q) => q.eq(q.field("conductor_id"), args.conductor_id))
+      .withIndex("by_conductor", (q) => q.eq("conductor_id", args.conductor_id))
       .order("desc")
       .collect();
   },
 });
 
-// Get events for today
+// Get events for today (uses by_timestamp index for efficient range scan)
 export const getToday = query({
   handler: async (ctx) => {
     const today = new Date();
@@ -141,7 +142,7 @@ export const getToday = query({
 
     return await ctx.db
       .query("route_events")
-      .filter((q) => q.gte(q.field("timestamp"), todayISO))
+      .withIndex("by_timestamp", (q) => q.gte("timestamp", todayISO))
       .order("desc")
       .collect();
   },
