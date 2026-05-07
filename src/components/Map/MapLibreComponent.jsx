@@ -41,7 +41,7 @@ const DEFAULT_CENTER = { longitude: -79.5167, latitude: 8.9833 };
 const DEFAULT_ZOOM = 13;
 
 // Mapbox Directions API token
-const MAPBOX_TOKEN = 'pk.eyJ1Ijoia2V2aW5uMjMiLCJhIjoiY204Y2J0bWN1MTg5ZzJtb2xobXljODM0MiJ9.48MFADtQhp_sFuQjewLFeA';
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 /**
  * Calculate road-following route using Mapbox Directions API
@@ -484,6 +484,406 @@ const RouteLine = memo(({ coordinates, color, opacity, width, dashArray, id }) =
   );
 });
 
+// ============================================
+// TRUCK MODAL CONTENT — separate component so useQuery hooks are stable
+// ============================================
+const TruckModalContent = ({
+  truck,
+  movementStatus,
+  statusInfo,
+  hasGPS,
+  currentRoute,
+  progress,
+  completedStopsData,
+  displayEstado,
+  estadoColor,
+  onClose,
+  onPlayback,
+}) => {
+  const [lightboxUrl, setLightboxUrl] = useState(null);
+
+  const asignacionId = progress?.asignacion_id;
+  const routeEvents = useQuery(
+    api.route_events.getByAsignacion,
+    asignacionId ? { asignacion_id: asignacionId } : 'skip'
+  );
+
+  // Latest foto_storage_id per parada_index from route_events
+  const stopPhotoMap = useMemo(() => {
+    const map = {};
+    (routeEvents || []).forEach((e) => {
+      if (e.parada_index != null && e.foto_storage_id && e.tipo_evento === 'parada_completada') {
+        if (!map[e.parada_index] || e.timestamp > (map[e.parada_index]?.ts ?? '')) {
+          map[e.parada_index] = { storageId: e.foto_storage_id, ts: e.timestamp };
+        }
+      }
+    });
+    const result = {};
+    Object.entries(map).forEach(([idx, { storageId }]) => { result[idx] = storageId; });
+    return result;
+  }, [routeEvents]);
+
+  const photoStorageIds = useMemo(
+    () => [...new Set(Object.values(stopPhotoMap).filter(Boolean))],
+    [stopPhotoMap]
+  );
+
+  const photoUrlsResult = useQuery(
+    api.files.getUrlBatch,
+    photoStorageIds.length > 0 ? { storageIds: photoStorageIds } : 'skip'
+  );
+
+  const paradas = currentRoute?.paradas || [];
+  const completedCount = completedStopsData.filter((s) => s.completada !== false).length;
+  const skippedCount = completedStopsData.filter((s) => s.completada === false).length;
+  const isLive = truck?.asignacion_estado === 'en_progreso';
+  const progressPct = paradas.length > 0 ? Math.round((completedCount / paradas.length) * 100) : 0;
+
+  const asigFecha = truck?.asignacion_fecha;
+  const asigHora = truck?.asignacion_hora_inicio;
+  const fechaLabel = asigFecha ? (() => {
+    const [y, m, d] = asigFecha.split('-');
+    return d && m && y ? `${d}/${m}/${y}` : asigFecha;
+  })() : null;
+
+  return createPortal(
+    <>
+      <div className="truck-modal-overlay" onClick={onClose}>
+        <div className="truck-modal-v2" onClick={(e) => e.stopPropagation()}>
+          {/* Header */}
+          <div className="truck-modal-header-v2">
+            <div className="header-top-row">
+              <div className="vehicle-badge-large">
+                <Truck size={20} />
+              </div>
+              <button className="modal-close-btn-v2" onClick={onClose}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="header-info">
+              <h2 className="vehicle-placa">{truck.placa || truck.id}</h2>
+              {(truck.marca || truck.modelo) && (
+                <p className="vehicle-model">
+                  {[truck.marca, truck.modelo, truck.anio].filter(Boolean).join(' • ')}
+                </p>
+              )}
+              <div className="header-badges">
+                <span className="badge-service">
+                  {truck.tipo_servicio === 'fumigacion' ? (
+                    <><Spray size={14} /><span>Fumigación</span></>
+                  ) : (
+                    <><Recycle size={14} /><span>Recolección</span></>
+                  )}
+                </span>
+                <span className={`badge-movement badge-movement--${movementStatus}`}>
+                  <span className="badge-dot"></span>
+                  {statusInfo.label}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="truck-modal-content-v2">
+            {/* === RUTA EN CURSO / PRÓXIMA === */}
+            {!currentRoute ? (
+              <div className="info-section">
+                <div className="section-title">
+                  <Navigation size={16} />
+                  <span>Ruta</span>
+                </div>
+                <div className="no-assignment-message">
+                  <Calendar size={24} />
+                  <p>Sin asignación</p>
+                </div>
+              </div>
+            ) : (
+              <div className="info-section">
+                <div className="section-title">
+                  <Navigation size={16} />
+                  <span>{isLive ? 'Ruta en curso' : 'Próxima ruta'}</span>
+                  {isLive && (
+                    <span className="status-pill status-pill--online" style={{ marginLeft: 'auto' }}>
+                      <span className="pill-dot"></span>En vivo
+                    </span>
+                  )}
+                </div>
+
+                <div className="info-rows">
+                  <div className="info-row-v2">
+                    <span className="info-label">Ruta</span>
+                    <span className="info-value">{currentRoute.nombre}</span>
+                  </div>
+                  {isLive ? (
+                    <div className="info-row-v2">
+                      <span className="info-label">Progreso</span>
+                      <span className="info-value" style={{ fontWeight: 600 }}>
+                        {completedCount} de {paradas.length} paradas
+                        {skippedCount > 0 && (
+                          <span style={{ color: 'var(--color-warning)', marginLeft: 6, fontSize: 12 }}>
+                            ({skippedCount} omitida{skippedCount > 1 ? 's' : ''})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      {fechaLabel && (
+                        <div className="info-row-v2">
+                          <span className="info-label">Fecha</span>
+                          <span className="info-value">{fechaLabel}</span>
+                        </div>
+                      )}
+                      {asigHora && (
+                        <div className="info-row-v2">
+                          <span className="info-label">Hora inicio</span>
+                          <span className="info-value">{asigHora}</span>
+                        </div>
+                      )}
+                      <div className="info-row-v2">
+                        <span className="info-label">Paradas</span>
+                        <span className="info-value">{paradas.length}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {paradas.length > 0 && (
+                  <div className="route-stops-list">
+                    <div className="stops-list-header">
+                      <span>Paradas</span>
+                      {isLive && (
+                        <span className="stops-progress-label">{progressPct}%</span>
+                      )}
+                    </div>
+
+                    {/* Progress bar */}
+                    {isLive && (
+                      <div className="route-progress-bar-wrap">
+                        <div
+                          className="route-progress-bar-fill"
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
+                    )}
+
+                    <div className="stops-list-items">
+                      {paradas.map((parada, idx) => {
+                        const completedStop = completedStopsData.find((cs) => cs.index === idx);
+                        const isCompleted = completedStop && completedStop.completada !== false;
+                        const isSkipped = completedStop && completedStop.completada === false;
+                        const isCurrent = isLive && !isCompleted && !isSkipped && idx === completedCount + skippedCount;
+                        const cls = isSkipped ? 'skipped' : isCompleted ? 'completed' : isCurrent ? 'current' : 'pending';
+
+                        // Photo for this stop (from real-time route_events)
+                        const photoStorageId = stopPhotoMap[idx];
+                        const photoUrl = photoStorageId ? (photoUrlsResult?.[photoStorageId] || null) : null;
+
+                        return (
+                          <div key={idx} className={`stop-list-item ${cls}`}>
+                            <div className="stop-number-badge">{idx + 1}</div>
+                            <div className="stop-info">
+                              <div className="stop-name">
+                                {parada.nombre || parada.direccion || `Parada ${idx + 1}`}
+                              </div>
+                              {parada.direccion && parada.nombre && parada.direccion !== parada.nombre && (
+                                <div className="stop-address">{parada.direccion}</div>
+                              )}
+                              {isCompleted && completedStop.timestamp && (
+                                <div className="stop-time">
+                                  <CheckCircle size={11} /> Completada {completedStop.timestamp}
+                                </div>
+                              )}
+                              {isSkipped && (
+                                <div className="stop-skip-reason">
+                                  <AlertTriangle size={12} /> {completedStop.motivo_no_completada || 'No completada'}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Photo thumbnail (live, from route_events) */}
+                            {photoUrl && (
+                              <button
+                                className="stop-photo-thumb"
+                                onClick={() => setLightboxUrl(photoUrl)}
+                                title="Ver foto"
+                                type="button"
+                              >
+                                <img src={photoUrl} alt={`Foto parada ${idx + 1}`} />
+                              </button>
+                            )}
+
+                            <div className="stop-status-icon">
+                              {isSkipped ? <AlertTriangle size={16} /> : isCompleted ? <CheckCircle size={16} /> : <Clock size={16} />}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* === GPS Real-time === */}
+            {hasGPS && (
+              <div className="info-section">
+                <div className="section-title">
+                  <Satellite size={16} />
+                  <span>GPS en Tiempo Real</span>
+                  {truck.gps_en_linea ? (
+                    <span className="status-pill status-pill--online">
+                      <span className="pill-dot"></span>En línea
+                    </span>
+                  ) : (
+                    <span className="status-pill status-pill--offline">Offline</span>
+                  )}
+                </div>
+
+                <div className="stats-grid-3">
+                  <div className="stat-box">
+                    <div className="stat-icon-small"><Gauge size={18} /></div>
+                    <div className="stat-data">
+                      {typeof truck.gps_velocidad === 'number' ? (
+                        <><span className="stat-number">{Math.round(truck.gps_velocidad)}</span><span className="stat-unit">km/h</span></>
+                      ) : (
+                        <span className="stat-number">—</span>
+                      )}
+                    </div>
+                    <span className="stat-label-small">Velocidad</span>
+                  </div>
+                  <div className="stat-box">
+                    <div className="stat-icon-small"><Signal size={18} /></div>
+                    <div className="stat-data">
+                      {typeof truck.gps_senal === 'number' ? (
+                        <><span className="stat-number">{truck.gps_senal}</span><span className="stat-unit">%</span></>
+                      ) : (
+                        <span className="stat-number">—</span>
+                      )}
+                    </div>
+                    <span className="stat-label-small">Señal</span>
+                  </div>
+                  <div className="stat-box">
+                    <div className="stat-icon-small"><Clock size={18} /></div>
+                    <div className="stat-data">
+                      <span className="stat-number-text">
+                        {truck.gps_ultima_actualizacion ? (() => {
+                          const diff = Date.now() - truck.gps_ultima_actualizacion;
+                          const mins = Math.floor(diff / 60000);
+                          return mins < 1 ? 'Ahora' : `${mins}m`;
+                        })() : '—'}
+                      </span>
+                    </div>
+                    <span className="stat-label-small">Última señal</span>
+                  </div>
+                </div>
+
+                {truck.lat && truck.lng && (
+                  <div className="coordinates-row">
+                    <div className="coord-icon"><MapPin size={16} /></div>
+                    <div className="coord-values">
+                      <span className="coord-label">Ubicación</span>
+                      <span className="coord-text">{truck.lat.toFixed(6)}, {truck.lng.toFixed(6)}</span>
+                    </div>
+                    <button
+                      className="btn-copy-coords"
+                      onClick={() => navigator.clipboard.writeText(`${truck.lat}, ${truck.lng}`)}
+                      title="Copiar coordenadas"
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </div>
+                )}
+
+                {truck.safetag_device_id && (
+                  <button
+                    className="btn-history-v2"
+                    onClick={() => onPlayback({
+                      _id: truck._id || truck.id,
+                      deviceId: truck.safetag_device_id,
+                      deviceName: truck.safetag_device_name,
+                      placa: truck.placa,
+                      marca: truck.marca,
+                      modelo: truck.modelo,
+                    })}
+                  >
+                    <Play size={16} />
+                    Ver Historial de Recorridos
+                  </button>
+                )}
+              </div>
+            )}
+
+            {!hasGPS && (
+              <div className="info-section">
+                <div className="section-title">
+                  <Satellite size={16} />
+                  <span>GPS</span>
+                </div>
+                <div className="no-gps-message">
+                  <Radio size={24} />
+                  <p>Este vehículo no tiene GPS configurado</p>
+                </div>
+              </div>
+            )}
+
+            {/* === Info del Vehículo === */}
+            <div className="info-section">
+              <div className="section-title">
+                <Truck size={16} />
+                <span>Información del Vehículo</span>
+              </div>
+              <div className="info-rows">
+                <div className="info-row-v2">
+                  <span className="info-label">Estado</span>
+                  <span className="info-value" style={{ color: estadoColor, fontWeight: 600 }}>{displayEstado}</span>
+                </div>
+                {truck.conductor && (
+                  <div className="info-row-v2">
+                    <span className="info-label">Conductor</span>
+                    <span className="info-value">{truck.conductor}</span>
+                  </div>
+                )}
+                {truck.marca && (
+                  <div className="info-row-v2">
+                    <span className="info-label">Marca</span>
+                    <span className="info-value">{truck.marca}</span>
+                  </div>
+                )}
+                {truck.modelo && (
+                  <div className="info-row-v2">
+                    <span className="info-label">Modelo</span>
+                    <span className="info-value">{truck.modelo}</span>
+                  </div>
+                )}
+                {truck.anio && (
+                  <div className="info-row-v2">
+                    <span className="info-label">Año</span>
+                    <span className="info-value">{truck.anio}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Lightbox for stop photos */}
+      {lightboxUrl && (
+        <div className="stop-photo-lightbox" onClick={() => setLightboxUrl(null)}>
+          <div className="stop-photo-lightbox__inner" onClick={(e) => e.stopPropagation()}>
+            <button className="stop-photo-lightbox__close" onClick={() => setLightboxUrl(null)}>
+              <X size={20} />
+            </button>
+            <img src={lightboxUrl} alt="Foto de parada" />
+          </div>
+        </div>
+      )}
+    </>,
+    document.body
+  );
+};
+
 /**
  * Main MapLibre Component
  */
@@ -524,15 +924,23 @@ const MapLibreComponent = ({
   const [geofenceType, setGeofenceType] = useState('ambos');
   const [showTruckModal, setShowTruckModal] = useState(false);
   const [showTrails, setShowTrails] = useState(true);
+  // Tick every 30s so offline detection re-evaluates even when Convex sends no new events
+  const [offlineTick, setOfflineTick] = useState(0);
 
   // Convex mutations
   const syncSafeTag = useAction(api.safetag.syncAllVehicles);
   const createGeofence = useMutation(api.geofences.create);
   const deleteGeofence = useMutation(api.geofences.remove);
 
+  useEffect(() => {
+    const id = setInterval(() => setOfflineTick(t => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   // Normalize vehicles data
   // Solo mostrar vehículos con GPS activo (ping reciente). Sin esto, los carros desconectados
   // aparecen pegados en su última ubicación cacheada — ubicación fantasma.
+  // offlineTick fuerza re-evaluación cada 30s aunque Convex no envíe datos nuevos.
   const normalizedVehicles = useMemo(() => {
     return camiones.map(c => ({
       ...c,
@@ -544,7 +952,7 @@ const MapLibreComponent = ({
       if (!v.lat || !v.lng) return false;
       return getVehicleMovementStatus(v) !== 'offline';
     });
-  }, [camiones]);
+  }, [camiones, offlineTick]); // offlineTick incluido para detectar offline sin nuevos datos
 
   // Calculate initial view state
   const initialViewState = useMemo(() => {
@@ -626,7 +1034,6 @@ const MapLibreComponent = ({
     // This prevents infinite spinner on mobile where vh units resolve late
     const fallbackTimer = setTimeout(() => {
       if (!resolved) {
-        console.warn('⚠️ Map container dimensions not detected, forcing render');
         markReady();
       }
     }, 1500);
@@ -766,7 +1173,6 @@ const MapLibreComponent = ({
         color: '#ef4444',
         tipo: geofenceType
       });
-      console.log('✅ Geofence creado:', newGeofence.nombre);
       setNewGeofence(null);
       setShowGeofenceModal(false);
       setGeofenceType('ambos'); // Reset to default
@@ -785,7 +1191,6 @@ const MapLibreComponent = ({
   const handleDeleteGeofence = async (id) => {
     try {
       await deleteGeofence({ id });
-      console.log('✅ Geofence eliminado');
       setSelectedGeofence(null); // Close popup
     } catch (error) {
       console.error('❌ Error eliminando geofence:', error);
@@ -797,9 +1202,7 @@ const MapLibreComponent = ({
     if (isSyncing) return;
     setIsSyncing(true);
     try {
-      console.log('🔄 Forzando sincronización GPS...');
       await syncSafeTag();
-      console.log('✅ Sincronización completada');
     } catch (error) {
       console.error('❌ Error en sincronización:', error);
     } finally {
@@ -1461,357 +1864,32 @@ const MapLibreComponent = ({
       {/* Vehicle Details Sidebar Modal */}
       {showTruckModal && getSelectedTruck() && (() => {
         const truck = getSelectedTruck();
-        const movementStatus = getVehicleMovementStatus(truck);
-        const statusInfo = movementColors[movementStatus];
-        const hasGPS = truck.safetag_device_id || truck.gps_latitud;
-        const currentRoute = getSelectedTruckRoute();
-        const progress = getRouteProgress();
-        const completedStopsData = progress?.paradas_completadas || [];
-
-        console.log('🔍 ADMIN SIDEBAR DEBUG:', {
-          truckPlaca: truck.placa,
-          conductorName: truck.conductor || truck.conductor_nombre,
-          currentRouteId: currentRoute?._id || currentRoute?.id,
-          progressFound: !!progress,
-          progressId: progress?._id,
-          completedStopsCount: completedStopsData.length,
-          completedStopsData: completedStopsData.map(s => ({
-            index: s.index,
-            completada: s.completada,
-            motivo: s.motivo_no_completada
-          })),
-          allProgressCount: allRouteProgress.length
-        });
-
-        // Format status display
         const displayEstado = truck.estado === 'en_ruta' ? 'En ruta' :
                              truck.estado === 'disponible' ? 'Disponible' :
                              truck.estado === 'en_mantenimiento' ? 'En mantenimiento' :
                              truck.estado || 'Sin estado';
-
         const estadoColor = truck.estado === 'en_ruta' ? '#10b981' :
                            truck.estado === 'disponible' ? '#3b82f6' :
                            truck.estado === 'en_mantenimiento' ? '#f59e0b' : '#6b7280';
 
-        return createPortal(
-          <div className="truck-modal-overlay" onClick={closeTruckModal}>
-            <div className="truck-modal-v2" onClick={(e) => e.stopPropagation()}>
-              {/* Header */}
-              <div className="truck-modal-header-v2">
-                <div className="header-top-row">
-                  <div className="vehicle-badge-large">
-                    <Truck size={20} />
-                  </div>
-                  <button className="modal-close-btn-v2" onClick={closeTruckModal}>
-                    <X size={18} />
-                  </button>
-                </div>
-
-                <div className="header-info">
-                  <h2 className="vehicle-placa">{truck.placa || truck.id}</h2>
-                  {(truck.marca || truck.modelo) && (
-                    <p className="vehicle-model">
-                      {[truck.marca, truck.modelo, truck.anio].filter(Boolean).join(' • ')}
-                    </p>
-                  )}
-                  <div className="header-badges">
-                    <span className="badge-service">
-                      {truck.tipo_servicio === 'fumigacion' ? (
-                        <><Spray size={14} /><span>Fumigación</span></>
-                      ) : (
-                        <><Recycle size={14} /><span>Recolección</span></>
-                      )}
-                    </span>
-                    <span className={`badge-movement badge-movement--${movementStatus}`}>
-                      <span className="badge-dot"></span>
-                      {statusInfo.label}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Scrollable Content */}
-              <div className="truck-modal-content-v2">
-                {/* === RUTA EN CURSO / PRÓXIMA — PRIORIDAD #1 === */}
-                {(() => {
-                  const asigEstado = truck.asignacion_estado;
-                  const asigFecha = truck.asignacion_fecha;
-                  const asigHora = truck.asignacion_hora_inicio;
-
-                  if (!currentRoute) {
-                    return (
-                      <div className="info-section">
-                        <div className="section-title">
-                          <Navigation size={16} />
-                          <span>Ruta</span>
-                        </div>
-                        <div className="no-assignment-message">
-                          <Calendar size={24} />
-                          <p>Sin asignación</p>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  const paradas = currentRoute.paradas || [];
-                  const completedCount = completedStopsData.filter(s => s.completada !== false).length;
-                  const skippedCount = completedStopsData.filter(s => s.completada === false).length;
-                  const isLive = asigEstado === 'en_progreso';
-                  const fechaLabel = asigFecha ? (() => {
-                    const [y, m, d] = asigFecha.split('-');
-                    return d && m && y ? `${d}/${m}/${y}` : asigFecha;
-                  })() : null;
-
-                  return (
-                    <div className="info-section">
-                      <div className="section-title">
-                        <Navigation size={16} />
-                        <span>{isLive ? 'Ruta en curso' : 'Próxima ruta'}</span>
-                        {isLive && (
-                          <span className="status-pill status-pill--online" style={{ marginLeft: 'auto' }}>
-                            <span className="pill-dot"></span>En vivo
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="info-rows">
-                        <div className="info-row-v2">
-                          <span className="info-label">Ruta</span>
-                          <span className="info-value">{currentRoute.nombre}</span>
-                        </div>
-                        {isLive ? (
-                          <div className="info-row-v2">
-                            <span className="info-label">Progreso</span>
-                            <span className="info-value" style={{ fontWeight: 600 }}>
-                              {completedCount} de {paradas.length} paradas
-                              {skippedCount > 0 && (
-                                <span style={{ color: 'var(--color-warning)', marginLeft: 6, fontSize: 12 }}>
-                                  ({skippedCount} omitida{skippedCount > 1 ? 's' : ''})
-                                </span>
-                              )}
-                            </span>
-                          </div>
-                        ) : (
-                          <>
-                            {fechaLabel && (
-                              <div className="info-row-v2">
-                                <span className="info-label">Fecha</span>
-                                <span className="info-value">{fechaLabel}</span>
-                              </div>
-                            )}
-                            {asigHora && (
-                              <div className="info-row-v2">
-                                <span className="info-label">Hora inicio</span>
-                                <span className="info-value">{asigHora}</span>
-                              </div>
-                            )}
-                            <div className="info-row-v2">
-                              <span className="info-label">Paradas</span>
-                              <span className="info-value">{paradas.length}</span>
-                            </div>
-                          </>
-                        )}
-                      </div>
-
-                      {paradas.length > 0 && (
-                        <div className="route-stops-list">
-                          <div className="stops-list-header"><span>Paradas</span></div>
-                          <div className="stops-list-items">
-                            {paradas.map((parada, idx) => {
-                              const completedStop = completedStopsData.find(cs => cs.index === idx);
-                              const isCompleted = completedStop && completedStop.completada !== false;
-                              const isSkipped = completedStop && completedStop.completada === false;
-                              const isCurrent = isLive && !isCompleted && !isSkipped && idx === completedCount + skippedCount;
-                              const cls = isSkipped ? 'skipped' : isCompleted ? 'completed' : isCurrent ? 'current' : 'pending';
-
-                              return (
-                                <div key={idx} className={`stop-list-item ${cls}`}>
-                                  <div className="stop-number-badge">{idx + 1}</div>
-                                  <div className="stop-info">
-                                    <div className="stop-name">{parada.nombre || parada.direccion || `Parada ${idx + 1}`}</div>
-                                    {parada.direccion && parada.nombre && parada.direccion !== parada.nombre && (
-                                      <div className="stop-address">{parada.direccion}</div>
-                                    )}
-                                    {isCompleted && completedStop.timestamp && (
-                                      <div className="stop-time">
-                                        <CheckCircle size={11} /> Completada {completedStop.timestamp}
-                                      </div>
-                                    )}
-                                    {isSkipped && (
-                                      <div className="stop-skip-reason">
-                                        <AlertTriangle size={12} /> {completedStop.motivo_no_completada || 'No completada'}
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="stop-status-icon">
-                                    {isSkipped ? <AlertTriangle size={16} /> : isCompleted ? <CheckCircle size={16} /> : <Clock size={16} />}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* === GPS Real-time === */}
-                {hasGPS && (
-                  <div className="info-section">
-                    <div className="section-title">
-                      <Satellite size={16} />
-                      <span>GPS en Tiempo Real</span>
-                      {truck.gps_en_linea ? (
-                        <span className="status-pill status-pill--online">
-                          <span className="pill-dot"></span>En línea
-                        </span>
-                      ) : (
-                        <span className="status-pill status-pill--offline">Offline</span>
-                      )}
-                    </div>
-
-                    <div className="stats-grid-3">
-                      <div className="stat-box">
-                        <div className="stat-icon-small"><Gauge size={18} /></div>
-                        <div className="stat-data">
-                          {typeof truck.gps_velocidad === 'number' ? (
-                            <>
-                              <span className="stat-number">{Math.round(truck.gps_velocidad)}</span>
-                              <span className="stat-unit">km/h</span>
-                            </>
-                          ) : (
-                            <span className="stat-number">—</span>
-                          )}
-                        </div>
-                        <span className="stat-label-small">Velocidad</span>
-                      </div>
-
-                      <div className="stat-box">
-                        <div className="stat-icon-small"><Signal size={18} /></div>
-                        <div className="stat-data">
-                          {typeof truck.gps_senal === 'number' ? (
-                            <>
-                              <span className="stat-number">{truck.gps_senal}</span>
-                              <span className="stat-unit">%</span>
-                            </>
-                          ) : (
-                            <span className="stat-number">—</span>
-                          )}
-                        </div>
-                        <span className="stat-label-small">Señal</span>
-                      </div>
-
-                      <div className="stat-box">
-                        <div className="stat-icon-small"><Clock size={18} /></div>
-                        <div className="stat-data">
-                          <span className="stat-number-text">
-                            {truck.gps_ultima_actualizacion ? formatTimeAgo(truck.gps_ultima_actualizacion) : '—'}
-                          </span>
-                        </div>
-                        <span className="stat-label-small">Última señal</span>
-                      </div>
-                    </div>
-
-                    {/* Coordinates with copy button */}
-                    {truck.lat && truck.lng && (
-                      <div className="coordinates-row">
-                        <div className="coord-icon"><MapPin size={16} /></div>
-                        <div className="coord-values">
-                          <span className="coord-label">Ubicación</span>
-                          <span className="coord-text">{truck.lat.toFixed(6)}, {truck.lng.toFixed(6)}</span>
-                        </div>
-                        <button
-                          className="btn-copy-coords"
-                          onClick={() => navigator.clipboard.writeText(`${truck.lat}, ${truck.lng}`)}
-                          title="Copiar coordenadas"
-                        >
-                          <Copy size={14} />
-                        </button>
-                      </div>
-                    )}
-
-                    {/* GPS History Button */}
-                    {truck.safetag_device_id && (
-                      <button
-                        className="btn-history-v2"
-                        onClick={() => {
-                          setPlaybackVehicle({
-                            _id: truck._id || truck.id,
-                            deviceId: truck.safetag_device_id,
-                            deviceName: truck.safetag_device_name,
-                            placa: truck.placa,
-                            marca: truck.marca,
-                            modelo: truck.modelo,
-                          });
-                          setPlaybackMode(true);
-                          closeTruckModal();
-                        }}
-                      >
-                        <Play size={16} />
-                        Ver Historial de Recorridos
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {!hasGPS && (
-                  <div className="info-section">
-                    <div className="section-title">
-                      <Satellite size={16} />
-                      <span>GPS</span>
-                    </div>
-                    <div className="no-gps-message">
-                      <Radio size={24} />
-                      <p>Este vehículo no tiene GPS configurado</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* === Estado operativo + info vehículo (combinada y compacta) === */}
-                <div className="info-section">
-                  <div className="section-title">
-                    <Truck size={16} />
-                    <span>Información del Vehículo</span>
-                  </div>
-
-                  <div className="info-rows">
-                    <div className="info-row-v2">
-                      <span className="info-label">Estado</span>
-                      <span className="info-value" style={{ color: estadoColor, fontWeight: 600 }}>
-                        {displayEstado}
-                      </span>
-                    </div>
-                    {truck.conductor && (
-                      <div className="info-row-v2">
-                        <span className="info-label">Conductor</span>
-                        <span className="info-value">{truck.conductor}</span>
-                      </div>
-                    )}
-                    {truck.marca && (
-                      <div className="info-row-v2">
-                        <span className="info-label">Marca</span>
-                        <span className="info-value">{truck.marca}</span>
-                      </div>
-                    )}
-                    {truck.modelo && (
-                      <div className="info-row-v2">
-                        <span className="info-label">Modelo</span>
-                        <span className="info-value">{truck.modelo}</span>
-                      </div>
-                    )}
-                    {truck.anio && (
-                      <div className="info-row-v2">
-                        <span className="info-label">Año</span>
-                        <span className="info-value">{truck.anio}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>,
-          document.body
+        return (
+          <TruckModalContent
+            truck={truck}
+            movementStatus={getVehicleMovementStatus(truck)}
+            statusInfo={movementColors[getVehicleMovementStatus(truck)]}
+            hasGPS={!!(truck.safetag_device_id || truck.gps_latitud)}
+            currentRoute={getSelectedTruckRoute()}
+            progress={getRouteProgress()}
+            completedStopsData={getRouteProgress()?.paradas_completadas || []}
+            displayEstado={displayEstado}
+            estadoColor={estadoColor}
+            onClose={closeTruckModal}
+            onPlayback={(vehicle) => {
+              setPlaybackVehicle(vehicle);
+              setPlaybackMode(true);
+              closeTruckModal();
+            }}
+          />
         );
       })()}
     </div>

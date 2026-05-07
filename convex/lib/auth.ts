@@ -145,7 +145,17 @@ export async function requireProjectAccess(ctx: Ctx, proyectoId: Id<"proyectos">
     }
     return;
   }
-  if (!scope.proyectoId) throw new Error("Usuario sin proyecto asignado");
+  // Conductor/enterprise sin proyecto_id: permitir si el proyecto está en su organización.
+  // Cubre conductores legacy / recién creados sin proyecto explícito todavía.
+  if (!scope.proyectoId) {
+    if (!scope.organizacionId) throw new Error("Usuario sin proyecto ni organización asignada");
+    const proyecto = await ctx.db.get(proyectoId);
+    if (!proyecto) throw new Error("Proyecto no encontrado");
+    if (proyecto.organizacion_id !== scope.organizacionId) {
+      throw new Error("Acceso denegado al proyecto");
+    }
+    return;
+  }
   if (scope.proyectoId !== proyectoId) throw new Error("Acceso denegado al proyecto");
 }
 
@@ -161,6 +171,28 @@ export async function requireOrgAccess(ctx: Ctx, orgId: Id<"organizaciones">): P
 export async function requireSuperAdmin(ctx: Ctx): Promise<void> {
   const scope = await getAuthScope(ctx);
   if (!scope.isSuperAdmin) throw new Error("Acceso denegado: requiere super_admin");
+}
+
+// Bloquea mutaciones de roles read-only (enterprise, viewer). Super_admin/admin/conductor pasan.
+// Conductor solo debería invocarse vía sus propias mutations (route_progress.start, etc.).
+export async function requireWriteRole(ctx: Ctx): Promise<AuthScope> {
+  const scope = await getAuthScope(ctx);
+  if (!scope.perfil) throw new Error("No autenticado");
+  if (scope.isEnterprise || scope.isViewer) {
+    throw new Error("Acceso denegado: rol de solo lectura");
+  }
+  return scope;
+}
+
+// Bloquea mutaciones para cualquiera que no sea super_admin o admin.
+// Para acciones administrativas que conductor tampoco debería poder hacer.
+export async function requireAdminWrite(ctx: Ctx): Promise<AuthScope> {
+  const scope = await getAuthScope(ctx);
+  if (!scope.perfil) throw new Error("No autenticado");
+  if (!scope.isSuperAdmin && !scope.isAdmin) {
+    throw new Error("Acceso denegado: requiere admin o super_admin");
+  }
+  return scope;
 }
 
 // Helper para filtrar arrays in-memory por proyecto_id según scope.

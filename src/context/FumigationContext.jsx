@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useProject } from './ProjectContext';
@@ -193,7 +193,7 @@ export const FumigationProvider = ({ children }) => {
   };
 
   // ========== ESTADÍSTICAS ==========
-  const getStats = () => {
+  const stats = useMemo(() => {
     const total = assignments.length;
     const programadas = assignments.filter(a => a.estado === 'programada').length;
     const realizadas = assignments.filter(a => a.estado === 'realizada').length;
@@ -211,9 +211,11 @@ export const FumigationProvider = ({ children }) => {
       externas,
       lugaresActivos: lugares.length,
     };
-  };
+  }, [assignments, lugares]);
 
-  const value = {
+  const getStats = () => stats;
+
+  const value = useMemo(() => ({
     // Data
     lugares,
     assignments,
@@ -240,8 +242,9 @@ export const FumigationProvider = ({ children }) => {
     // Helpers
     getAssignmentsByEstado,
     getAssignmentsByLugar,
+    stats,
     getStats,
-  };
+  }), [lugares, assignments, loading, stats]);
 
   return <FumigationContext.Provider value={value}>{children}</FumigationContext.Provider>;
 };

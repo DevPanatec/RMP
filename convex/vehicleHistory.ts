@@ -1,6 +1,7 @@
 import { v } from "convex/values";
-import { query, mutation, internalQuery } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
+import { internal, api } from "./_generated/api";
+import { getAuthScope } from "./lib/auth";
 
 /**
  * Query: Obtener historial de ubicaciones de un vehículo en un rango de fechas
@@ -18,6 +19,14 @@ export const getVehicleHistory = query({
     const vehicle = await ctx.db.get(vehiculoId);
     if (!vehicle) {
       throw new Error(`Vehicle not found: ${vehiculoId}`);
+    }
+
+    // Validar acceso a este vehículo
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      if (!scope.organizacionId || vehicle.organizacion_id !== scope.organizacionId) {
+        throw new Error("Acceso denegado");
+      }
     }
 
     // Range expression EN el índice (no filter) — sino escanea todo el historial del vehículo
@@ -99,6 +108,16 @@ export const getVehicleHistoryByDay = query({
   handler: async (ctx, args) => {
     const { vehiculoId, date } = args;
 
+    // Validar acceso a este vehículo
+    const vehicle = await ctx.db.get(vehiculoId);
+    if (!vehicle) throw new Error(`Vehicle not found: ${vehiculoId}`);
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      if (!scope.organizacionId || vehicle.organizacion_id !== scope.organizacionId) {
+        throw new Error("Acceso denegado");
+      }
+    }
+
     // Convertir fecha a rango de timestamps
     const startOfDay = new Date(date);
     startOfDay.setHours(0, 0, 0, 0);
@@ -128,6 +147,16 @@ export const getRecentHistory = query({
   handler: async (ctx, args) => {
     const { vehiculoId, hours } = args;
 
+    // Validar acceso a este vehículo
+    const vehicle = await ctx.db.get(vehiculoId);
+    if (!vehicle) throw new Error(`Vehicle not found: ${vehiculoId}`);
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      if (!scope.organizacionId || vehicle.organizacion_id !== scope.organizacionId) {
+        throw new Error("Acceso denegado");
+      }
+    }
+
     const now = Date.now();
     const startTime = now - hours * 60 * 60 * 1000;
 
@@ -142,73 +171,36 @@ export const getRecentHistory = query({
 });
 
 /**
- * Query: Obtener estadísticas de almacenamiento
+ * Mutation: Limpiar historial antiguo (retención de X días).
+ * PAGINADO en batches de 1000 para evitar timeout/8192 doc TX limit.
+ * Si quedan más, se reagenda a sí mismo via scheduler.
  */
-export const getStorageStats = query({
-  handler: async (ctx) => {
-    // Obtener todos los registros de historial
-    const allHistory = await ctx.db.query("vehicle_location_history").collect();
-
-    // Agrupar por vehículo
-    const byVehicle: Record<string, number> = {};
-    for (const record of allHistory) {
-      const vehicleId = record.vehiculo_id;
-      byVehicle[vehicleId] = (byVehicle[vehicleId] || 0) + 1;
-    }
-
-    // Obtener timestamp más antiguo y más reciente
-    const timestamps = allHistory.map((r) => r.timestamp);
-    const oldestTimestamp = timestamps.length > 0 ? Math.min(...timestamps) : null;
-    const newestTimestamp = timestamps.length > 0 ? Math.max(...timestamps) : null;
-
-    return {
-      totalRecords: allHistory.length,
-      recordsByVehicle: byVehicle,
-      oldestRecord: oldestTimestamp ? new Date(oldestTimestamp).toISOString() : null,
-      newestRecord: newestTimestamp ? new Date(newestTimestamp).toISOString() : null,
-      storageSpanDays: oldestTimestamp && newestTimestamp
-        ? Math.ceil((newestTimestamp - oldestTimestamp) / (1000 * 60 * 60 * 24))
-        : 0,
-    };
-  },
-});
-
-/**
- * Mutation: Limpiar historial antiguo (retención de X días)
- */
-export const cleanOldHistory = mutation({
+export const cleanOldHistory = internalMutation({
   args: {
-    retentionDays: v.optional(v.number()), // Mantener últimos X días (default: 90)
+    retentionDays: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const retentionDays = args.retentionDays || 90; // Default 90 días
-
+    const retentionDays = args.retentionDays || 90;
     const cutoffTimestamp = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+    const BATCH_SIZE = 1000;
 
-    console.log(
-      `🧹 Iniciando limpieza de historial GPS (retención: ${retentionDays} días, cutoff: ${new Date(
-        cutoffTimestamp
-      ).toISOString()})`
-    );
-
-    // Obtener registros antiguos
     const oldRecords = await ctx.db
       .query("vehicle_location_history")
-      .withIndex("by_timestamp")
-      .filter((q) => q.lt(q.field("timestamp"), cutoffTimestamp))
-      .collect();
+      .withIndex("by_timestamp", (q) => q.lt("timestamp", cutoffTimestamp))
+      .take(BATCH_SIZE);
 
-    console.log(`🗑️ Eliminando ${oldRecords.length} registros antiguos...`);
-
-    // Eliminar registros
     for (const record of oldRecords) {
       await ctx.db.delete(record._id);
     }
 
-    console.log(`✅ Limpieza completada: ${oldRecords.length} registros eliminados`);
+    // Si llenamos el batch hay más; reagendar.
+    if (oldRecords.length === BATCH_SIZE) {
+      await ctx.scheduler.runAfter(0, internal.vehicleHistory.cleanOldHistory, { retentionDays });
+    }
 
     return {
       deletedCount: oldRecords.length,
+      hasMore: oldRecords.length === BATCH_SIZE,
       cutoffDate: new Date(cutoffTimestamp).toISOString(),
     };
   },
@@ -224,6 +216,15 @@ export const calculateDistance = query({
     endDate: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    // Validar acceso a este vehículo
+    const vehicle = await ctx.db.get(args.vehiculoId);
+    if (!vehicle) throw new Error(`Vehicle not found: ${args.vehiculoId}`);
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      if (!scope.organizacionId || vehicle.organizacion_id !== scope.organizacionId) {
+        throw new Error("Acceso denegado");
+      }
+    }
     const historyData = await ctx.runQuery(internal.vehicleHistory.getVehicleHistoryInternal, args);
 
     if (historyData.locations.length < 2) {
@@ -241,7 +242,7 @@ export const calculateDistance = query({
       const prev = locations[i - 1];
       const curr = locations[i];
 
-      const distance = calculateHaversine(
+      const distance = haversineKm(
         prev.gps_latitud,
         prev.gps_longitud,
         curr.gps_latitud,
@@ -262,9 +263,10 @@ export const calculateDistance = query({
 });
 
 /**
- * Fórmula de Haversine para calcular distancia entre dos puntos GPS
+ * Fórmula de Haversine para calcular distancia entre dos puntos GPS.
+ * Retorna distancia en KILÓMETROS (R = 6371km). Para versión en metros ver `geofences.haversineMeters`.
  */
-function calculateHaversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Radio de la Tierra en km
   const dLat = toRadians(lat2 - lat1);
   const dLon = toRadians(lon2 - lon1);
@@ -289,27 +291,23 @@ function toRadians(degrees: number): number {
  * Esta mutation es llamada por el webhook HTTP cuando SafeTag envía
  * una actualización de GPS en tiempo real
  */
-export const createFromWebhook = mutation({
+export const createFromWebhook = internalMutation({
   args: {
     imei: v.string(),
     gps_latitud: v.number(),
     gps_longitud: v.number(),
     gps_velocidad: v.optional(v.number()),
     gps_rumbo: v.optional(v.number()),
-    timestamp: v.string(), // ISO string
+    timestamp_ms: v.number(),
   },
   handler: async (ctx, args) => {
-    const { imei, gps_latitud, gps_longitud, gps_velocidad, gps_rumbo, timestamp } = args;
+    const { imei, gps_latitud, gps_longitud, gps_velocidad, gps_rumbo, timestamp_ms } = args;
 
-    console.log(`🔔 [Webhook] Procesando datos GPS para IMEI: ${imei}`);
-
-    // Buscar el vehículo por IMEI (busca en gps_imei o safetag_device_id)
     let vehicle = await ctx.db
       .query("vehiculos")
       .withIndex("by_gps_imei", (q) => q.eq("gps_imei", imei))
       .first();
 
-    // Si no se encuentra por gps_imei, buscar por safetag_device_id
     if (!vehicle) {
       vehicle = await ctx.db
         .query("vehiculos")
@@ -318,40 +316,32 @@ export const createFromWebhook = mutation({
     }
 
     if (!vehicle) {
-      console.warn(`⚠️ [Webhook] Vehículo no encontrado para IMEI: ${imei}`);
       return {
         success: false,
         error: `Vehicle not found for IMEI: ${imei}`,
       };
     }
 
-    // Convertir timestamp ISO a milisegundos
-    const timestampMs = new Date(timestamp).getTime();
-
-    // Crear registro en vehicle_location_history
     const historyId = await ctx.db.insert("vehicle_location_history", {
       vehiculo_id: vehicle._id,
       gps_latitud,
       gps_longitud,
       gps_velocidad: gps_velocidad || 0,
       gps_rumbo: gps_rumbo || 0,
-      timestamp: timestampMs,
-      source: "safetag_webhook",
+      timestamp: timestamp_ms,
+      safetag_timestamp: timestamp_ms,
+      source: "safetag",
     });
 
-    // Actualizar la posición actual del vehículo en la tabla vehiculos
     await ctx.db.patch(vehicle._id, {
       gps_latitud,
       gps_longitud,
       gps_velocidad: gps_velocidad || 0,
       gps_rumbo: gps_rumbo || 0,
-      gps_ultima_actualizacion: timestampMs,
+      gps_ultima_actualizacion: timestamp_ms,
+      safetag_timestamp: timestamp_ms,
       gps_conectado: true,
     });
-
-    console.log(
-      `✅ [Webhook] GPS actualizado: ${vehicle.placa} -> [${gps_latitud.toFixed(5)}, ${gps_longitud.toFixed(5)}] @ ${new Date(timestampMs).toLocaleTimeString()}`
-    );
 
     return {
       success: true,

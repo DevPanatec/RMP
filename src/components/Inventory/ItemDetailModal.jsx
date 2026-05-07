@@ -2,18 +2,20 @@ import { useState, useEffect } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useInventory } from '../../context/InventoryContext';
-import { Package, MapPin, Plus, Edit, Trash2, X, Save, AlertTriangle, Building, ShoppingCart, Clock, DollarSign, Info } from '../Icons';
+import { Package, MapPin, Plus, Edit, Trash2, X, Save, AlertTriangle, Building, ShoppingCart, Clock, DollarSign, Info, TrendingDown } from '../Icons';
 import toast, { Toaster } from 'react-hot-toast';
 import './ItemDetailModal.css';
 
 const ItemDetailModal = ({ item, onClose }) => {
-  const { lugares, addToLocation, updateLocationQuantity, removeFromLocation, asignarDesdeAlmacen, registrarCompra } = useInventory();
+  const { lugares, addToLocation, updateLocationQuantity, removeFromLocation, asignarDesdeAlmacen, registrarCompra, registrarConsumo } = useInventory();
   const stockSinAsignar = useQuery(api.inventario.getStockSinAsignar, item ? { itemId: item._id } : "skip");
   const movimientos = useQuery(api.inventario.getMovimientosByItem, item ? { itemId: item._id } : "skip");
 
   const [showAddLocation, setShowAddLocation] = useState(false);
   const [showAsignarDesdeAlmacen, setShowAsignarDesdeAlmacen] = useState(false);
   const [showNuevaCompra, setShowNuevaCompra] = useState(false);
+  const [showConsumo, setShowConsumo] = useState(false);
+  const [consumoData, setConsumoData] = useState({ lugar_id: '', cantidad: 0, notas: '' });
   const [editingLocation, setEditingLocation] = useState(null);
   const [addLocationData, setAddLocationData] = useState({
     lugar_id: '',
@@ -240,6 +242,54 @@ const ItemDetailModal = ({ item, onClose }) => {
     }
   };
 
+  // Registrar consumo (descuenta stock de una ubicación)
+  const handleRegistrarConsumo = async (e) => {
+    e.preventDefault();
+
+    if (!consumoData.lugar_id) {
+      toast.error('Selecciona una ubicación');
+      return;
+    }
+    const cant = parseFloat(consumoData.cantidad);
+    if (!cant || cant <= 0) {
+      toast.error('La cantidad debe ser mayor a 0');
+      return;
+    }
+
+    // Validar contra stock de la ubicación seleccionada
+    const ubicacion = item.ubicaciones?.find((ub) => ub.lugar_id === consumoData.lugar_id);
+    const stockUbic = ubicacion?.cantidad ?? 0;
+    if (cant > stockUbic) {
+      toast.error(`Stock insuficiente en la ubicación. Disponible: ${stockUbic} ${item.unidad_medida || 'unidades'}`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await registrarConsumo(
+        item._id,
+        consumoData.lugar_id,
+        cant,
+        consumoData.notas || undefined
+      );
+
+      if (result.success) {
+        toast.success(`Consumo registrado: ${cant} ${item.unidad_medida || 'unidades'}`);
+        setShowConsumo(false);
+        setConsumoData({ lugar_id: '', cantidad: 0, notas: '' });
+      } else {
+        toast.error('Error al registrar consumo: ' + result.error);
+      }
+    } catch (error) {
+      toast.error('Error: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Ubicaciones que tienen stock > 0 (para el dropdown de consumo)
+  const ubicacionesConStock = item.ubicaciones?.filter((ub) => ub.cantidad > 0) || [];
+
   // Validación en tiempo real para nueva compra
   const validateNuevaCompra = () => {
     const errors = {};
@@ -329,6 +379,15 @@ const ItemDetailModal = ({ item, onClose }) => {
               title="Añadir stock (nueva compra)"
             >
               <ShoppingCart size={18} /> Añadir Stock
+            </button>
+            <button
+              className="btn-add-stock"
+              onClick={() => setShowConsumo(!showConsumo)}
+              title="Registrar consumo desde ubicación"
+              disabled={ubicacionesConStock.length === 0}
+              style={{ opacity: ubicacionesConStock.length === 0 ? 0.5 : 1 }}
+            >
+              <TrendingDown size={18} /> Registrar consumo
             </button>
             <button className="modal-close-detail" onClick={onClose}>
               <X size={24} />
@@ -487,6 +546,75 @@ const ItemDetailModal = ({ item, onClose }) => {
           )}
 
           {showNuevaCompra && <div className="section-divider"></div>}
+
+          {/* Formulario Registrar Consumo */}
+          {showConsumo && (
+            <div className="nueva-compra-section">
+              <h3><TrendingDown size={20} /> Registrar Consumo</h3>
+              <p className="section-help">
+                Descuenta stock de una ubicación específica. Útil para registrar uso de
+                materiales/insumos en operaciones diarias.
+              </p>
+              <form onSubmit={handleRegistrarConsumo} className="nueva-compra-form">
+                <div className="form-row-compra">
+                  <div className="form-group-compra">
+                    <label>Ubicación *</label>
+                    <select
+                      value={consumoData.lugar_id}
+                      onChange={(e) => setConsumoData((prev) => ({ ...prev, lugar_id: e.target.value }))}
+                      required
+                    >
+                      <option value="">Seleccionar ubicación...</option>
+                      {ubicacionesConStock.map((ub) => (
+                        <option key={ub._id} value={ub.lugar_id}>
+                          {ub.lugar_nombre} ({ub.cantidad} {item.unidad_medida || 'un.'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group-compra">
+                    <label>Cantidad consumida *</label>
+                    <input
+                      type="number"
+                      value={consumoData.cantidad}
+                      onChange={(e) => setConsumoData((prev) => ({ ...prev, cantidad: e.target.value }))}
+                      min="0"
+                      step="0.01"
+                      required
+                      placeholder="Ej: 5"
+                    />
+                  </div>
+                  <div className="form-group-compra full-width">
+                    <label>Notas</label>
+                    <input
+                      type="text"
+                      value={consumoData.notas}
+                      onChange={(e) => setConsumoData((prev) => ({ ...prev, notas: e.target.value }))}
+                      placeholder="Motivo del consumo (opcional)"
+                    />
+                  </div>
+                </div>
+                <div className="form-actions-compra">
+                  <button type="submit" className="btn-save-compra" disabled={isSubmitting}>
+                    <Save size={16} /> Registrar Consumo
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-cancel-compra"
+                    onClick={() => {
+                      setShowConsumo(false);
+                      setConsumoData({ lugar_id: '', cantidad: 0, notas: '' });
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {showConsumo && <div className="section-divider"></div>}
 
           {/* Descripción */}
           {item.descripcion && (

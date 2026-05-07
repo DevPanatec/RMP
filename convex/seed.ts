@@ -1,11 +1,23 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { requireSuperAdmin } from "./lib/auth";
+
+// Guardrail global para todas las seed mutations:
+// 1. Solo super_admin puede ejecutar.
+// 2. Requiere ALLOW_SEED=1 en env (defensa en profundidad).
+async function assertSeedAllowed(ctx: any) {
+  if (process.env.ALLOW_SEED !== "1") {
+    throw new Error("Seed deshabilitado. Setear ALLOW_SEED=1 en Convex env vars.");
+  }
+  await requireSuperAdmin(ctx);
+}
 
 // Helper para crear un ID de usuario temporal
 // Nota: Estos usuarios NO tendrán credenciales de auth reales
 // Solo son perfiles en la base de datos para demostración
 export const seedTestUsers = mutation({
   handler: async (ctx) => {
+    await assertSeedAllowed(ctx);
     const users = [
       {
         email: "admin@rmp.com",
@@ -91,6 +103,7 @@ export const seedTestUsers = mutation({
 // 5 mercados + Mi Pueblito + 8 oficinas/edificios + Planta de tratamiento
 export const seedCleaningLocations = mutation({
   handler: async (ctx) => {
+    await assertSeedAllowed(ctx);
     const salas = [
       { nombre: "Mercado de Alcalde Díaz", descripcion: "Mercado principal de Alcalde Díaz", latitud: 9.1380, longitud: -79.4820, activo: true },
       { nombre: "Mercado del Marisco", descripcion: "Mercado de pescados y mariscos frente al mar", latitud: 8.9580, longitud: -79.5341, activo: true },
@@ -134,6 +147,7 @@ export const seedCleaningLocations = mutation({
 // 5 mercados + Mi Pueblito
 export const seedFumigationLocations = mutation({
   handler: async (ctx) => {
+    await assertSeedAllowed(ctx);
     const lugares = [
       { nombre: "Mercado de Alcalde Díaz", descripcion: "Mercado principal de Alcalde Díaz", latitud: 9.1380, longitud: -79.4820, activo: true },
       { nombre: "Mercado del Marisco", descripcion: "Mercado de pescados y mariscos frente al mar", latitud: 8.9580, longitud: -79.5341, activo: true },
@@ -168,6 +182,7 @@ export const seedFumigationLocations = mutation({
 export const deactivateSala = mutation({
   args: { id: v.id("salas") },
   handler: async (ctx, args) => {
+    await assertSeedAllowed(ctx);
     return await ctx.db.patch(args.id, { activo: false });
   },
 });
@@ -175,6 +190,7 @@ export const deactivateSala = mutation({
 // Seed: Tareas y reportes de mantenimiento para la Planta de tratamiento
 export const seedMaintenanceData = mutation({
   handler: async (ctx) => {
+    await assertSeedAllowed(ctx);
     // Verificar si ya hay tareas para no duplicar
     const existingTasks = await ctx.db.query("maintenance_tasks").collect();
     if (existingTasks.length >= 6) {
@@ -317,6 +333,7 @@ export const seedMaintenanceData = mutation({
 // Mutation para eliminar todos los usuarios de prueba
 export const clearTestUsers = mutation({
   handler: async (ctx) => {
+    await assertSeedAllowed(ctx);
     const testEmails = [
       "admin@rmp.com",
       "enterprise@rmp.com",

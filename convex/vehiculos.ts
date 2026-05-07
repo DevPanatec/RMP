@@ -1,11 +1,11 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId, getScopedOrgId, getAuthScope, requireOrgAccess } from "./lib/auth";
+import { getScopedProjectId, getScopedOrgId, getAuthScope, requireOrgAccess, requireWriteRole } from "./lib/auth";
 
 // List all vehicles.
 // - Super_admin: ve todos (o filtra si pasa organizacion_id).
 // - Admin: ve todos los vehículos de su organización.
-// - Conductor: ve la flota de su organización.
+// - Conductor: SOLO su vehículo asignado.
 // - Enterprise: solo veh. con asignación en_progreso en su proyecto (live).
 export const list = query({
   args: { proyecto_id: v.optional(v.id("proyectos")) },
@@ -14,13 +14,15 @@ export const list = query({
     if (scope.isSuperAdmin || scope.isCrossOrgViewer) {
       return await ctx.db.query("vehiculos").collect();
     }
-    if (scope.isAdmin || scope.isConductor) {
+    if (scope.isConductor) {
+      if (!scope.perfil?.vehiculo_asignado_id) return [];
+      const veh = await ctx.db.get(scope.perfil.vehiculo_asignado_id);
+      return veh ? [veh] : [];
+    }
+    if (scope.isAdmin) {
       if (!scope.organizacionId) return [];
-      // Filtrar por organización (defensa en profundidad)
       const all = await ctx.db.query("vehiculos").collect();
-      return all.filter(
-        (v) => !v.organizacion_id || v.organizacion_id === scope.organizacionId
-      );
+      return all.filter((v) => v.organizacion_id === scope.organizacionId);
     }
     // Enterprise
     const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
@@ -37,13 +39,24 @@ export const list = query({
   },
 });
 
-// List vehicles with minimal fields (for map view)
-// This reduces bandwidth by 60-80% by only sending essential GPS data
+// List vehicles with minimal fields (for map view). Scope igual que list.
 export const listMinimal = query({
   handler: async (ctx) => {
-    const vehicles = await ctx.db.query("vehiculos").collect();
+    const scope = await getAuthScope(ctx);
+    let vehicles;
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) {
+      vehicles = await ctx.db.query("vehiculos").collect();
+    } else if (scope.isConductor) {
+      if (!scope.perfil?.vehiculo_asignado_id) return [];
+      const veh = await ctx.db.get(scope.perfil.vehiculo_asignado_id);
+      vehicles = veh ? [veh] : [];
+    } else if (scope.organizacionId) {
+      const all = await ctx.db.query("vehiculos").collect();
+      vehicles = all.filter((v) => v.organizacion_id === scope.organizacionId);
+    } else {
+      return [];
+    }
 
-    // Only return fields needed for map markers
     return vehicles.map((v) => ({
       _id: v._id,
       placa: v.placa,
@@ -52,7 +65,6 @@ export const listMinimal = query({
       tipo_servicio: v.tipo_servicio,
       gps_latitud: v.gps_latitud,
       gps_longitud: v.gps_longitud,
-      // Omit: marca, modelo, capacidad_carga, etc.
     }));
   },
 });
@@ -144,7 +156,7 @@ export const listWithAssignments = query({
 
     const allVehiclesRaw = await ctx.db.query("vehiculos").collect();
     const vehicles = scopedOrg
-      ? allVehiclesRaw.filter((v) => !v.organizacion_id || v.organizacion_id === scopedOrg)
+      ? allVehiclesRaw.filter((v) => v.organizacion_id === scopedOrg)
       : allVehiclesRaw;
 
     const allAssignments = await ctx.db.query("asignaciones_rutas").collect();
@@ -232,36 +244,6 @@ export const listWithAssignments = query({
   },
 });
 
-// Get vehicles by estado
-export const getByEstado = query({
-  args: { estado: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("vehiculos")
-      .withIndex("by_estado", (q) => q.eq("estado", args.estado))
-      .collect();
-  },
-});
-
-// Get vehicle by placa
-export const getByPlaca = query({
-  args: { placa: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("vehiculos")
-      .withIndex("by_placa", (q) => q.eq("placa", args.placa))
-      .first();
-  },
-});
-
-// Get vehicle by ID
-export const getById = query({
-  args: { id: v.id("vehiculos") },
-  handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
-  },
-});
-
 // Add vehicle
 export const add = mutation({
   args: {
@@ -283,7 +265,21 @@ export const add = mutation({
     safetagDeviceName: v.optional(v.string()), // Nombre del GPS SafeTag (frontend)
   },
   handler: async (ctx, args) => {
-    // Normalizar campos (frontend usa camelCase, DB usa snake_case)
+    const scope = await requireWriteRole(ctx);
+    if (!scope.isSuperAdmin && !scope.isAdmin) {
+      throw new Error("Acceso denegado: solo admin/super_admin pueden crear vehículos");
+    }
+    if (!scope.organizacionId && !scope.isSuperAdmin) {
+      throw new Error("Admin sin organización asignada");
+    }
+    if (args.proyecto_asignado_id) {
+      const proyecto = await ctx.db.get(args.proyecto_asignado_id);
+      if (!proyecto) throw new Error("Proyecto no encontrado");
+      if (!scope.isSuperAdmin && proyecto.organizacion_id !== scope.organizacionId) {
+        throw new Error("Acceso denegado al proyecto");
+      }
+    }
+
     const anio = args.anio;
     const tipo_servicio = args.tipoServicio || args.tipo_servicio;
     const tipo_vehiculo = args.tipoVehiculo;
@@ -298,16 +294,15 @@ export const add = mutation({
       anio,
       tipo: args.tipo || tipo_vehiculo || "camion",
       tipo_servicio: tipo_servicio || "limpieza",
-      tipo_vehiculo, // Guardar tipo de vehículo específico
+      tipo_vehiculo,
       capacidad_carga: args.capacidad_carga,
       proyecto_asignado_id: args.proyecto_asignado_id,
+      organizacion_id: scope.organizacionId ?? undefined,
       estado: "disponible",
-      combustible_nivel: 100,
       kilometraje: 0,
-      // GPS SafeTag
       safetag_device_id,
       safetag_device_name,
-      gps_imei: safetag_device_id, // Usar el IMEI de SafeTag
+      gps_imei: safetag_device_id,
       gps_protocolo: args.gps_protocolo,
       gps_conectado: safetag_device_id ? false : undefined,
       gps_en_linea: false,
@@ -328,7 +323,6 @@ export const update = mutation({
     tipo_servicio: v.optional(v.string()),
     estado: v.optional(v.string()),
     capacidad_carga: v.optional(v.number()),
-    combustible_nivel: v.optional(v.number()),
     kilometraje: v.optional(v.number()),
     proyecto_asignado_id: v.optional(v.id("proyectos")),
     // Campos GPS
@@ -337,10 +331,12 @@ export const update = mutation({
     gps_imei: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
     const { id, ...updates } = args;
     const veh = await ctx.db.get(id);
     if (!veh) throw new Error("Vehículo no encontrado");
-    if (veh.organizacion_id) await requireOrgAccess(ctx, veh.organizacion_id);
+    if (!veh.organizacion_id) throw new Error("Vehículo sin organización — requiere migración");
+    await requireOrgAccess(ctx, veh.organizacion_id);
 
     // Filtrar campos undefined para no sobreescribir con undefined
     const cleanUpdates: Record<string, unknown> = {};
@@ -354,7 +350,8 @@ export const update = mutation({
   },
 });
 
-// Update GPS position (single vehicle)
+// Update GPS position (single vehicle). Auth: solo admin del org del vehículo o super_admin.
+// El path normal de GPS es vía webhook/cron — esta mutation manual es backup.
 export const updateGPS = mutation({
   args: {
     id: v.id("vehiculos"),
@@ -362,65 +359,34 @@ export const updateGPS = mutation({
     gps_longitud: v.number(),
   },
   handler: async (ctx, args) => {
-    const { id, gps_latitud, gps_longitud } = args;
-    return await ctx.db.patch(id, { gps_latitud, gps_longitud });
+    await requireWriteRole(ctx);
+    const veh = await ctx.db.get(args.id);
+    if (!veh) throw new Error("Vehículo no encontrado");
+    if (!veh.organizacion_id) throw new Error("Vehículo sin organización — requiere migración");
+    await requireOrgAccess(ctx, veh.organizacion_id);
+    return await ctx.db.patch(args.id, {
+      gps_latitud: args.gps_latitud,
+      gps_longitud: args.gps_longitud,
+    });
   },
 });
 
-// BATCHED: Update GPS position for multiple vehicles at once
-// This reduces network overhead and triggers only ONE subscription update
-export const batchUpdateGPS = mutation({
-  args: {
-    updates: v.array(
-      v.object({
-        id: v.id("vehiculos"),
-        gps_latitud: v.number(),
-        gps_longitud: v.number(),
-      })
-    ),
-  },
-  handler: async (ctx, args) => {
-    // Update all vehicles in parallel within a single transaction
-    const results = await Promise.all(
-      args.updates.map((update) =>
-        ctx.db.patch(update.id, {
-          gps_latitud: update.gps_latitud,
-          gps_longitud: update.gps_longitud,
-        })
-      )
-    );
-
-    return {
-      success: true,
-      updated: results.length,
-    };
-  },
-});
-
-// Update estado
+// Update estado. Solo admin del org del vehículo o super_admin.
 export const updateEstado = mutation({
   args: {
     id: v.id("vehiculos"),
     estado: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const veh = await ctx.db.get(args.id);
+    if (!veh) throw new Error("Vehículo no encontrado");
+    if (!veh.organizacion_id) throw new Error("Vehículo sin organización — requiere migración");
+    await requireOrgAccess(ctx, veh.organizacion_id);
     return await ctx.db.patch(args.id, { estado: args.estado });
   },
 });
 
-// Update combustible
-export const updateCombustible = mutation({
-  args: {
-    id: v.id("vehiculos"),
-    combustible_nivel: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const veh = await ctx.db.get(args.id);
-    if (!veh) throw new Error("Vehículo no encontrado");
-    if (veh.organizacion_id) await requireOrgAccess(ctx, veh.organizacion_id);
-    return await ctx.db.patch(args.id, { combustible_nivel: args.combustible_nivel });
-  },
-});
 
 // Update kilometraje
 export const updateKilometraje = mutation({
@@ -429,9 +395,11 @@ export const updateKilometraje = mutation({
     kilometraje: v.number(),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
     const veh = await ctx.db.get(args.id);
     if (!veh) throw new Error("Vehículo no encontrado");
-    if (veh.organizacion_id) await requireOrgAccess(ctx, veh.organizacion_id);
+    if (!veh.organizacion_id) throw new Error("Vehículo sin organización — requiere migración");
+    await requireOrgAccess(ctx, veh.organizacion_id);
     return await ctx.db.patch(args.id, { kilometraje: args.kilometraje });
   },
 });
@@ -440,9 +408,11 @@ export const updateKilometraje = mutation({
 export const remove = mutation({
   args: { id: v.id("vehiculos") },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
     const veh = await ctx.db.get(args.id);
     if (!veh) throw new Error("Vehículo no encontrado");
-    if (veh.organizacion_id) await requireOrgAccess(ctx, veh.organizacion_id);
+    if (!veh.organizacion_id) throw new Error("Vehículo sin organización — requiere migración");
+    await requireOrgAccess(ctx, veh.organizacion_id);
     return await ctx.db.delete(args.id);
   },
 });
@@ -455,7 +425,7 @@ export const getStats = query({
     let vehicles = all;
     if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
       if (!scope.organizacionId) return { total: 0, disponibles: 0, en_ruta: 0, en_mantenimiento: 0 };
-      vehicles = all.filter((v) => !v.organizacion_id || v.organizacion_id === scope.organizacionId);
+      vehicles = all.filter((v) => v.organizacion_id === scope.organizacionId);
     }
 
     const disponibles = vehicles.filter(v => v.estado === "disponible").length;
@@ -468,5 +438,22 @@ export const getStats = query({
       en_ruta,
       en_mantenimiento,
     };
+  },
+});
+
+// One-shot migration: backfill organizacion_id en vehículos huérfanos.
+// Asigna a la organización default de RMP (q17ab6eqe73bvp7c75kyh5avdd85rrn2).
+export const _migrationBackfillOrganizacionIdRMP = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const RMP_ORG_ID = "q17ab6eqe73bvp7c75kyh5avdd85rrn2";
+    const all = await ctx.db.query("vehiculos").collect();
+    let fixed = 0;
+    for (const veh of all) {
+      if (veh.organizacion_id != null) continue;
+      await ctx.db.patch(veh._id, { organizacion_id: RMP_ORG_ID as any });
+      fixed++;
+    }
+    return { fixed, total: all.length };
   },
 });

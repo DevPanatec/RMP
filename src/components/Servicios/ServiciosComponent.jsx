@@ -28,7 +28,7 @@ const TABS = [
   },
 ];
 
-const ServiciosComponent = ({ initialRoutes = [], onRoutesChange }) => {
+const ServiciosComponent = ({ initialRoutes = [] }) => {
   const [activeTab, setActiveTab] = useState('recoleccion');
   const { routes } = useRoutes();
   const { lugares: lugaresFum } = useFumigation();
@@ -48,7 +48,6 @@ const ServiciosComponent = ({ initialRoutes = [], onRoutesChange }) => {
         return (
           <RoutesComponent
             initialRoutes={initialRoutes}
-            onRoutesChange={onRoutesChange}
           />
         );
       case 'fumigacion':

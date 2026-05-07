@@ -35,6 +35,7 @@ export default defineSchema({
     organizacion_id: v.optional(v.id("organizaciones")), // null para super_admin
     proyecto_id: v.optional(v.id("proyectos")),
     cross_org_viewer: v.optional(v.boolean()), // permite ver riesgos+vehículos de TODAS las orgs
+    restricted_operations: v.optional(v.boolean()), // bloquea pestañas/operaciones (cliente con permisos limitados)
     activo: v.boolean(),
   })
     .index("by_user", ["userId"])
@@ -68,7 +69,6 @@ export default defineSchema({
     tipo_vehiculo: v.optional(v.string()), // "bus", "barredora", "pickup", "cisterna", "camion_carga", "compactador", "fumigadora"
     estado: v.string(), // "disponible", "en_ruta", "en_mantenimiento"
     capacidad_carga: v.optional(v.number()),
-    combustible_nivel: v.optional(v.number()),
     kilometraje: v.optional(v.number()),
     // Campos GPS
     gps_latitud: v.optional(v.number()),

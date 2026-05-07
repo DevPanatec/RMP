@@ -26,7 +26,7 @@ import { useRoutePlayback } from '../../hooks/useRoutePlayback';
 import { exportToGPX } from '../../utils/routeExport';
 import './GPSPlaybackModal.css';
 
-const MAPBOX_TOKEN = 'pk.eyJ1Ijoia2V2aW5uMjMiLCJhIjoiY204Y2J0bWN1MTg5ZzJtb2xobXljODM0MiJ9.48MFADtQhp_sFuQjewLFeA';
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 // Stadia Maps style URLs
 const MAP_STYLES = {
@@ -531,7 +531,6 @@ const GPSPlaybackModal = ({
               onMove={evt => setViewState(evt.viewState)}
               mapStyle={MAP_STYLES[mapTheme]}
               style={{ width: '100%', height: '100%' }}
-              attributionControl={false}
             >
               <NavigationControl position="top-right" />
 

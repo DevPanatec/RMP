@@ -95,7 +95,6 @@
   safetag_device_name: "GPS Principal",
   gps_imei: "357956371545858", // Duplicado para compatibilidad
   estado: "disponible",
-  combustible_nivel: 100,
   kilometraje: 0,
   gps_conectado: false,
   gps_en_linea: false

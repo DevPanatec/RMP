@@ -1,18 +1,11 @@
-const CACHE_NAME = 'rmp-conductor-v6.0';
-const STATIC_CACHE = 'rmp-static-v6.0';
-const DYNAMIC_CACHE = 'rmp-dynamic-v6.0';
+const CACHE_NAME = 'rmp-conductor-v8.1';
+const STATIC_CACHE = 'rmp-static-v8.1';
+const DYNAMIC_CACHE = 'rmp-dynamic-v8.1';
 
 const urlsToCache = [
   '/',
-  '/static/js/bundle.js',
-  '/static/css/main.css',
   '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/src/main.jsx',
-  '/src/pages/ConductorDashboard/ConductorDashboard.jsx',
-  '/src/pages/ConductorDashboard/ConductorDashboard.css',
-  '/src/components/WeightModal/WeightModal.jsx'
+  '/icon-192.png'
 ];
 
 function isDevelopment() {
@@ -21,20 +14,27 @@ function isDevelopment() {
 }
 
 // Instalación del Service Worker
+// Cacheamos cada archivo individualmente: si uno falla (404, red intermitente),
+// no se aborta todo el install como ocurre con cache.addAll().
 self.addEventListener('install', (event) => {
   console.log('SW: Instalando...');
   event.waitUntil(
     caches.open(STATIC_CACHE)
-      .then((cache) => {
-        console.log('SW: Cache estático abierto');
-        return cache.addAll(urlsToCache);
+      .then(async (cache) => {
+        const results = await Promise.allSettled(
+          urlsToCache.map((url) =>
+            cache.add(url).catch((err) => {
+              console.warn(`SW: No se pudo cachear ${url}:`, err.message);
+              throw err;
+            })
+          )
+        );
+        const failed = results.filter((r) => r.status === 'rejected').length;
+        console.log(`SW: Cache estático listo (${results.length - failed}/${results.length})`);
       })
-      .then(() => {
-        console.log('SW: Archivos cacheados correctamente');
-        return self.skipWaiting();
-      })
-      .catch(error => {
-        console.error('SW: Error al cachear archivos:', error);
+      .then(() => self.skipWaiting())
+      .catch((error) => {
+        console.error('SW: Error fatal en install:', error);
       })
   );
 });
@@ -54,7 +54,7 @@ self.addEventListener('activate', (event) => {
       );
     }).then(() => {
       console.log('SW: Activado correctamente');
-      
+
       // Invalidación automática de cache en desarrollo cada 5 minutos
       if (isDevelopment()) {
         setInterval(() => {
@@ -69,8 +69,8 @@ self.addEventListener('activate', (event) => {
           });
         }, 5 * 60 * 1000);
       }
-      
-       // return self.clients.claim(); // Desactivado para evitar reinicios en desarrollo
+
+      return self.clients.claim();
     })
   );
 });
@@ -227,28 +227,23 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Stale While Revalidate para navegación (HTML)
+  // Network First para navegación (HTML) — evita servir index.html viejo con hashes rotos
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match(request)
-        .then(response => {
-          const fetchPromise = fetch(request)
-            .then(fetchResponse => {
-              if (fetchResponse.status === 200) {
-                const responseClone = fetchResponse.clone();
-                caches.open(DYNAMIC_CACHE)
-                  .then(cache => {
-                    cache.put(request, responseClone);
-                  });
-              }
-              return fetchResponse;
-            })
-            .catch(() => {
-              // Si falla la red, devolver página offline
-              return caches.match('/') || new Response('Offline', { status: 503 });
-            });
-
-          return response || fetchPromise;
+      fetch(request)
+        .then(fetchResponse => {
+          if (fetchResponse.status === 200) {
+            const responseClone = fetchResponse.clone();
+            caches.open(DYNAMIC_CACHE)
+              .then(cache => {
+                cache.put(request, responseClone);
+              });
+          }
+          return fetchResponse;
+        })
+        .catch(() => {
+          return caches.match(request)
+            .then(cached => cached || caches.match('/') || new Response('Offline', { status: 503 }));
         })
     );
     return;
@@ -263,57 +258,18 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Sincronización en segundo plano
+// Background Sync — notifica al cliente React para que drene la cola de fotos
+// El SW no sube directamente porque no tiene el token de Clerk; el cliente sí lo tiene.
 self.addEventListener('sync', (event) => {
   console.log('SW: Evento sync:', event.tag);
-  
-  if (event.tag === 'background-sync') {
-    event.waitUntil(
-      // Sincronizar datos pendientes cuando hay conexión
-      syncPendingData()
-    );
+  if (event.tag === 'sync-stop-photos') {
+    event.waitUntil(notifyClientsToSync());
   }
 });
 
-async function syncPendingData() {
-  try {
-    // Obtener datos pendientes del IndexedDB o localStorage
-    const pendingData = await getPendingData();
-    
-    if (pendingData && pendingData.length > 0) {
-      console.log('SW: Sincronizando datos pendientes:', pendingData.length);
-      
-      for (const data of pendingData) {
-        try {
-          await fetch('/api/sync', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-          });
-          
-          // Marcar como sincronizado
-          await markAsSynced(data.id);
-        } catch (error) {
-          console.error('SW: Error sincronizando:', error);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('SW: Error en sincronización:', error);
-  }
-}
-
-async function getPendingData() {
-  // Implementar obtención de datos pendientes
-  // Por ahora retornamos array vacío
-  return [];
-}
-
-async function markAsSynced(id) {
-  // Implementar marcado como sincronizado
-  console.log('SW: Marcando como sincronizado:', id);
+async function notifyClientsToSync() {
+  const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+  clientList.forEach((c) => c.postMessage({ type: 'DRAIN_PHOTO_QUEUE' }));
 }
 
 // Manejo de notificaciones push para conductores

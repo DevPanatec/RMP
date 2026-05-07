@@ -16,7 +16,7 @@
 
 .geofence-alert-card {
   display: flex;
-  background: #ffffff;
+  background: var(--color-surface);
   border-radius: 12px;
   box-shadow: 
     0 10px 40px rgba(0, 0, 0, 0.15),
@@ -82,7 +82,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--color-surface);
 }
 
 .alert-icon--enter {
@@ -202,7 +202,7 @@
   gap: 6px;
   padding: 10px 16px;
   background: var(--color-primary);
-  color: #ffffff;
+  color: var(--color-surface);
   border: none;
   border-radius: 8px;
   font-size: 13px;
@@ -277,7 +277,7 @@
 }
 
 .geofence-alert-popup {
-  background: white;
+  background: var(--color-surface);
   border-radius: 20px;
   padding: 40px;
   max-width: 500px;
@@ -371,7 +371,7 @@
 
   .geofence-alert-popup {
     background: var(--color-text);
-    color: white;
+    color: var(--color-surface);
   }
 }
 

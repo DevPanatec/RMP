@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useProject } from './ProjectContext';
@@ -60,7 +60,7 @@ export const RiskReportsProvider = ({ children }) => {
     });
   };
 
-  const getReportStats = () => {
+  const reportStats = useMemo(() => {
     const total = reports.length;
     const internos = reports.filter(r => r.tipo === 'interno').length;
     const externos = reports.filter(r => r.tipo === 'externo').length;
@@ -84,17 +84,20 @@ export const RiskReportsProvider = ({ children }) => {
       resueltos,
       porPrioridad
     };
-  };
+  }, [reports]);
 
-  const value = {
+  const getReportStats = () => reportStats;
+
+  const value = useMemo(() => ({
     reports,
     loading,
     addReport,
     updateReportStatus,
     deleteReport,
     getReportsByDriver,
+    reportStats,
     getReportStats,
-  };
+  }), [reports, loading, reportStats]);
 
   return <RiskReportsContext.Provider value={value}>{children}</RiskReportsContext.Provider>;
 };

@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useDemoMode } from '../hooks/useDemoMode';
@@ -27,7 +27,6 @@ export const FleetProvider = ({ children }) => {
   const deleteVehicleMutation = useMutation(api.vehiculos.remove);
   const updateGPSMutation = useMutation(api.vehiculos.updateGPS);
   const updateEstadoMutation = useMutation(api.vehiculos.updateEstado);
-  const updateCombustibleMutation = useMutation(api.vehiculos.updateCombustible);
   const updateKilometrajeMutation = useMutation(api.vehiculos.updateKilometraje);
 
   const vehicles = isDemoMode ? DEMO_VEHICLES : (vehiclesData || []);
@@ -83,18 +82,6 @@ export const FleetProvider = ({ children }) => {
     }
   };
 
-  // Update combustible level (fuel)
-  // NOTE: Available but not currently used in UI - could be added to maintenance forms
-  const updateVehicleCombustible = async (id, combustible_nivel) => {
-    try {
-      await updateCombustibleMutation({ id, combustible_nivel });
-      return { success: true };
-    } catch (error) {
-      console.error('Error updating combustible:', error);
-      return { success: false, error: error.message };
-    }
-  };
-
   // Update kilometraje (odometer)
   // NOTE: Available but not currently used in UI - could be added to maintenance forms
   // or calculated automatically from GPS history
@@ -108,7 +95,8 @@ export const FleetProvider = ({ children }) => {
     }
   };
 
-  const getFleetStats = () => {
+  // Memoized stats — recomputed only when vehicles or backend stats change.
+  const fleetStats = useMemo(() => {
     if (isDemoMode || !fleetStatsData) {
       const disponibles = vehicles.filter(v => v.estado === "disponible" || v.estado === "Disponible").length;
       const en_ruta = vehicles.filter(v => v.estado === "en_ruta" || v.estado === "En ruta").length;
@@ -124,9 +112,12 @@ export const FleetProvider = ({ children }) => {
       };
     }
     return fleetStatsData;
-  };
+  }, [vehicles, fleetStatsData, isDemoMode]);
 
-  const value = {
+  // Backwards-compat function alias.
+  const getFleetStats = () => fleetStats;
+
+  const value = useMemo(() => ({
     vehicles,
     loading,
     addVehicle,
@@ -134,12 +125,12 @@ export const FleetProvider = ({ children }) => {
     deleteVehicle,
     updateVehicleLocation,
     updateVehicleStatus,
-    updateVehicleCombustible,
     updateVehicleKilometraje,
+    fleetStats,
     getFleetStats,
     // Backwards compatibility aliases
     updateGPS: updateVehicleLocation,
-  };
+  }), [vehicles, loading, fleetStats]);
 
   return <FleetContext.Provider value={value}>{children}</FleetContext.Provider>;
 };
@@ -151,8 +142,5 @@ export const useFleet = () => {
   }
   return context;
 };
-
-// Backwards compatibility
-export const useSupabaseFleet = useFleet;
 
 export default FleetContext;

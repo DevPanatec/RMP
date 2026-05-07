@@ -1,7 +1,15 @@
 import { mutation } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
+import { requireSuperAdmin } from "../lib/auth";
 
 const LEGACY_NAME = "Legacy / Sin Proyecto";
+
+async function assertSeedAllowed(ctx: any) {
+  if (process.env.ALLOW_SEED !== "1") {
+    throw new Error("Seed deshabilitado. Setear ALLOW_SEED=1 en Convex env vars.");
+  }
+  await requireSuperAdmin(ctx);
+}
 
 // Mutation única: asigna proyecto_id "Legacy" a todos los registros que no lo tengan.
 // Idempotente: se puede ejecutar varias veces.
@@ -9,6 +17,7 @@ const LEGACY_NAME = "Legacy / Sin Proyecto";
 export const run = mutation({
   args: {},
   handler: async (ctx) => {
+    await assertSeedAllowed(ctx);
     // 1. Crear proyecto Legacy si no existe
     const existentes = await ctx.db
       .query("proyectos")

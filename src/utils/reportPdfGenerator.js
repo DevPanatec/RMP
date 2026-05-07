@@ -157,7 +157,7 @@ const imageUrlToBase64 = async (url) => {
  * Usa el tema OSCURO (dark-v11) similar al mapa de monitoreo
  * Docs: https://docs.mapbox.com/api/maps/static-images/
  */
-const MAPBOX_TOKEN = 'pk.eyJ1Ijoia2V2aW5uMjMiLCJhIjoiY204Y2J0bWN1MTg5ZzJtb2xobXljODM0MiJ9.48MFADtQhp_sFuQjewLFeA';
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const MAP_STYLE = 'mapbox/dark-v11'; // Estilo oscuro similar al de monitoreo
 
 const getStaticMapWithMarker = (lat, lng, zoom = 15) => {

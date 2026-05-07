@@ -26,11 +26,6 @@ export const useSafeTagSync = () => {
     try {
       const results = await syncAction();
 
-      const successful = results.filter(r => r.success).length;
-      const total = results.length;
-
-      console.log(`✅ Sincronización SafeTag: ${successful}/${total} vehículos actualizados`);
-
       return results;
     } catch (err) {
       console.error("❌ Error en sincronización SafeTag:", err);

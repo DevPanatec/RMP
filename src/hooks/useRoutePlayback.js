@@ -81,8 +81,6 @@ export const useRoutePlayback = (deviceId, selectedDate = null, vehiculoId = nul
   const processLocations = useCallback((locations) => {
     if (!locations || locations.length === 0) return [];
 
-    console.log(`📊 [Playback] Procesando ${locations.length} puntos GPS...`);
-
     // Convertir todos los timestamps a números para ordenar
     const withTimestamps = locations.map(loc => ({
       ...loc,
@@ -97,21 +95,6 @@ export const useRoutePlayback = (deviceId, selectedDate = null, vehiculoId = nul
 
     if (withTimestamps.length === 0) return [];
 
-    const startTime = new Date(withTimestamps[0]._timestamp);
-    const endTime = new Date(withTimestamps[withTimestamps.length - 1]._timestamp);
-    const durationMinutes = Math.round((endTime - startTime) / 1000 / 60);
-
-    console.log(`✅ [Playback] ${withTimestamps.length} puntos GPS ordenados (sin filtros)`);
-    console.log(`⏱️ [Playback] Duración: ${durationMinutes} minutos (${startTime.toLocaleTimeString()} → ${endTime.toLocaleTimeString()})`);
-
-    // 🔍 DEBUG: Ver los primeros 10 puntos para entender el intervalo real
-    console.log('🔍 [DEBUG] Primeros 10 timestamps:');
-    withTimestamps.slice(0, 10).forEach((loc, idx) => {
-      const time = new Date(loc._timestamp);
-      const diff = idx > 0 ? (loc._timestamp - withTimestamps[idx - 1]._timestamp) / 1000 : 0;
-      console.log(`  ${idx}: ${time.toLocaleTimeString()}.${time.getMilliseconds()} (+${diff.toFixed(1)}s)`);
-    });
-
     return withTimestamps;
   }, []);
 
@@ -123,12 +106,6 @@ export const useRoutePlayback = (deviceId, selectedDate = null, vehiculoId = nul
     if (localHistoryQuery === undefined) return;
     
     if (localHistoryQuery && localHistoryQuery.locations && localHistoryQuery.locations.length > 0) {
-      console.log("📊 [Convex] Auto-sync: Processing local history data", {
-        locationCount: localHistoryQuery.locations.length,
-        vehiculoId,
-        selectedDate
-      });
-
       // Transformar datos de Convex al formato esperado
       const locations = localHistoryQuery.locations.map((loc) => ({
         coords: {
@@ -164,7 +141,6 @@ export const useRoutePlayback = (deviceId, selectedDate = null, vehiculoId = nul
         initialLoadDone.current = true;
       }
     } else if (localHistoryQuery && (!localHistoryQuery.locations || localHistoryQuery.locations.length === 0)) {
-      console.log("📊 [Convex] No data found for this date/vehicle");
       setRouteData(null);
       setProcessedLocations([]);
       setLoading(false);

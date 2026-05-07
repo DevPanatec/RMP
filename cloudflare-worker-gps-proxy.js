@@ -1,9 +1,8 @@
 /**
  * Cloudflare Worker - GPS Proxy para RMP
  *
- * Este worker actúa como proxy entre el GPS tracker y Convex.
- * Redirige todas las peticiones a youthful-warbler-749.convex.site
- * agregando el header Host correcto para que Convex las acepte.
+ * Proxy entre el GPS tracker y Convex. Solo redirige el path
+ * `/safetag/webhook` para evitar abuso del proxy.
  */
 
 addEventListener('fetch', event => {
@@ -11,6 +10,11 @@ addEventListener('fetch', event => {
 })
 
 async function handleRequest(request) {
+  // Restringir el proxy ÚNICAMENTE al endpoint de webhook de SafeTag.
+  if (!request.url.includes('/safetag/webhook')) {
+    return new Response('Not Found', { status: 404 })
+  }
+
   // URL de destino de Convex
   const CONVEX_URL = 'https://youthful-warbler-749.convex.site'
 

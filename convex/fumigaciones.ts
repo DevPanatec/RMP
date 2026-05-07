@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId, requireProjectAccess } from "./lib/auth";
+import { getAuthScope, getScopedProjectId, requireProjectAccess, requireWriteRole, requireOrgAccess } from "./lib/auth";
 
 // ========== LUGARES ==========
 export const listLugares = query({
@@ -31,6 +31,7 @@ export const addLugar = mutation({
     proyecto_id: v.id("proyectos"),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
     await requireProjectAccess(ctx, args.proyecto_id);
     return await ctx.db.insert("lugares", {
       ...args,
@@ -50,6 +51,12 @@ export const updateLugar = mutation({
     foto_storage_id: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const lugar = await ctx.db.get(args.id);
+    if (!lugar) throw new Error("Lugar no encontrado");
+    if (lugar.proyecto_id) await requireProjectAccess(ctx, lugar.proyecto_id);
+    else if (lugar.organizacion_id) await requireOrgAccess(ctx, lugar.organizacion_id);
+    else throw new Error("Lugar sin proyecto ni organización — requiere migración");
     const { id, ...updates } = args;
     // Filtrar campos undefined para no sobreescribir con undefined
     const cleanUpdates: Record<string, unknown> = {};
@@ -65,6 +72,12 @@ export const updateLugar = mutation({
 export const deleteLugar = mutation({
   args: { id: v.id("lugares") },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const lugar = await ctx.db.get(args.id);
+    if (!lugar) throw new Error("Lugar no encontrado");
+    if (lugar.proyecto_id) await requireProjectAccess(ctx, lugar.proyecto_id);
+    else if (lugar.organizacion_id) await requireOrgAccess(ctx, lugar.organizacion_id);
+    else throw new Error("Lugar sin proyecto ni organización — requiere migración");
     // Soft delete
     return await ctx.db.patch(args.id, { activo: false });
   },
@@ -98,6 +111,13 @@ export const getById = query({
   handler: async (ctx, args) => {
     const assignment = await ctx.db.get(args.id);
     if (!assignment) return null;
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+      else if (assignment.organizacion_id) {
+        if (!scope.organizacionId || scope.organizacionId !== assignment.organizacion_id) throw new Error("Acceso denegado");
+      }
+    }
 
     // Join con lugar
     const lugar = await ctx.db.get(assignment.lugar_id);
@@ -126,55 +146,6 @@ export const getById = query({
   },
 });
 
-export const getByLugar = query({
-  args: { lugar_id: v.id("lugares") },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("fumigation_assignments")
-      .withIndex("by_lugar", (q) => q.eq("lugar_id", args.lugar_id))
-      .collect();
-  },
-});
-
-export const getByDateRange = query({
-  args: {
-    fecha_inicio: v.string(),
-    fecha_fin: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const all = await ctx.db.query("fumigation_assignments").collect();
-
-    // Filtrar por rango de fechas
-    const filtered = all.filter((assignment) => {
-      return assignment.fecha >= args.fecha_inicio && assignment.fecha <= args.fecha_fin;
-    });
-
-    // Join con lugares
-    const withLugares = await Promise.all(
-      filtered.map(async (assignment) => {
-        const lugar = await ctx.db.get(assignment.lugar_id);
-        return {
-          ...assignment,
-          lugar_nombre: lugar?.nombre || "Desconocido",
-          lugar_tipo: lugar?.tipo || "interno",
-        };
-      })
-    );
-
-    return withLugares;
-  },
-});
-
-export const getByEstado = query({
-  args: { estado: v.union(v.literal("programada"), v.literal("realizada"), v.literal("reportada")) },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("fumigation_assignments")
-      .withIndex("by_estado", (q) => q.eq("estado", args.estado))
-      .collect();
-  },
-});
-
 // Validación de duplicados: mismo tipo + lugar + fecha
 export const checkDuplicate = query({
   args: {
@@ -183,6 +154,15 @@ export const checkDuplicate = query({
     fecha: v.string(),
   },
   handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      const lugar = await ctx.db.get(args.lugar_id);
+      if (!lugar) return false;
+      if (lugar.proyecto_id) await requireProjectAccess(ctx, lugar.proyecto_id);
+      else if (lugar.organizacion_id) {
+        if (!scope.organizacionId || scope.organizacionId !== lugar.organizacion_id) throw new Error("Acceso denegado");
+      }
+    }
     const existing = await ctx.db
       .query("fumigation_assignments")
       .withIndex("by_fecha_lugar_tipo", (q) =>
@@ -202,6 +182,15 @@ export const checkFrequencyCompliance = query({
     fecha: v.string(), // Fecha a verificar
   },
   handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      const lugar = await ctx.db.get(args.lugar_id);
+      if (!lugar) return { excedido: false, limite: 1, actual: 0, periodo: "mes" };
+      if (lugar.proyecto_id) await requireProjectAccess(ctx, lugar.proyecto_id);
+      else if (lugar.organizacion_id) {
+        if (!scope.organizacionId || scope.organizacionId !== lugar.organizacion_id) throw new Error("Acceso denegado");
+      }
+    }
     const targetDate = new Date(args.fecha);
 
     if (args.tipo_fumigacion === "interna") {
@@ -271,10 +260,54 @@ export const create = mutation({
     created_by: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
     const lugar = await ctx.db.get(args.lugar_id);
     if (!lugar) throw new Error("Lugar no encontrado");
     if (!lugar.proyecto_id) throw new Error("Lugar sin proyecto_id; ejecuta migración");
     await requireProjectAccess(ctx, lugar.proyecto_id);
+
+    // Enforce frequency rule server-side: interna max 1/mes, externa max 3/semana.
+    const targetDate = new Date(args.fecha);
+    if (args.tipo_fumigacion === "interna") {
+      const mesInicio = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1).toISOString().split("T")[0];
+      const mesFin = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).toISOString().split("T")[0];
+      const existentes = await ctx.db
+        .query("fumigation_assignments")
+        .withIndex("by_lugar", (q) => q.eq("lugar_id", args.lugar_id))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("tipo_fumigacion"), "interna"),
+            q.gte(q.field("fecha"), mesInicio),
+            q.lte(q.field("fecha"), mesFin)
+          )
+        )
+        .collect();
+      if (existentes.length >= 1) {
+        throw new Error("Excede límite mensual: solo 1 fumigación interna por mes en este lugar");
+      }
+    } else {
+      const diaInicio = new Date(targetDate);
+      diaInicio.setDate(targetDate.getDate() - targetDate.getDay());
+      const diaFin = new Date(diaInicio);
+      diaFin.setDate(diaInicio.getDate() + 6);
+      const semanaInicio = diaInicio.toISOString().split("T")[0];
+      const semanaFin = diaFin.toISOString().split("T")[0];
+      const existentes = await ctx.db
+        .query("fumigation_assignments")
+        .withIndex("by_lugar", (q) => q.eq("lugar_id", args.lugar_id))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("tipo_fumigacion"), "externa"),
+            q.gte(q.field("fecha"), semanaInicio),
+            q.lte(q.field("fecha"), semanaFin)
+          )
+        )
+        .collect();
+      if (existentes.length >= 3) {
+        throw new Error("Excede límite semanal: máximo 3 fumigaciones externas por semana en este lugar");
+      }
+    }
+
     return await ctx.db.insert("fumigation_assignments", {
       ...args,
       proyecto_id: lugar.proyecto_id,
@@ -296,6 +329,12 @@ export const update = mutation({
     estado: v.optional(v.union(v.literal("programada"), v.literal("realizada"), v.literal("reportada"))),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const assignment = await ctx.db.get(args.id);
+    if (!assignment) throw new Error("Asignación no encontrada");
+    if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+    else if (assignment.organizacion_id) await requireOrgAccess(ctx, assignment.organizacion_id);
+    else throw new Error("Asignación sin proyecto ni organización — requiere migración");
     const { id, ...updates } = args;
     return await ctx.db.patch(id, updates);
   },
@@ -307,6 +346,12 @@ export const updateEstado = mutation({
     estado: v.union(v.literal("programada"), v.literal("realizada"), v.literal("reportada")),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const assignment = await ctx.db.get(args.id);
+    if (!assignment) throw new Error("Asignación no encontrada");
+    if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+    else if (assignment.organizacion_id) await requireOrgAccess(ctx, assignment.organizacion_id);
+    else throw new Error("Asignación sin proyecto ni organización — requiere migración");
     return await ctx.db.patch(args.id, { estado: args.estado });
   },
 });
@@ -314,16 +359,26 @@ export const updateEstado = mutation({
 export const deleteAssignment = mutation({
   args: { id: v.id("fumigation_assignments") },
   handler: async (ctx, args) => {
-    // Eliminar fotos asociadas primero
+    await requireWriteRole(ctx);
+    const assignment = await ctx.db.get(args.id);
+    if (!assignment) throw new Error("Asignación no encontrada");
+    if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+    else if (assignment.organizacion_id) await requireOrgAccess(ctx, assignment.organizacion_id);
+    else throw new Error("Asignación sin proyecto ni organización — requiere migración");
+
+    // Eliminar fotos asociadas primero (DB + storage)
     const photos = await ctx.db
       .query("fumigation_photos")
       .withIndex("by_assignment", (q) => q.eq("assignment_id", args.id))
       .collect();
 
     for (const photo of photos) {
+      try {
+        await ctx.storage.delete(photo.storage_id);
+      } catch (err) {
+        console.warn(`No se pudo borrar storage ${photo.storage_id}`, err);
+      }
       await ctx.db.delete(photo._id);
-      // Opcional: eliminar archivo del storage
-      // await ctx.storage.delete(photo.storage_id);
     }
 
     // Eliminar asignación
@@ -335,6 +390,15 @@ export const deleteAssignment = mutation({
 export const getPhotosByAssignment = query({
   args: { assignment_id: v.id("fumigation_assignments") },
   handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      const assignment = await ctx.db.get(args.assignment_id);
+      if (!assignment) return [];
+      if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+      else if (assignment.organizacion_id) {
+        if (!scope.organizacionId || scope.organizacionId !== assignment.organizacion_id) throw new Error("Acceso denegado");
+      }
+    }
     const photos = await ctx.db
       .query("fumigation_photos")
       .withIndex("by_assignment", (q) => q.eq("assignment_id", args.assignment_id))
@@ -357,6 +421,7 @@ export const getPhotosByAssignment = query({
 
 export const generateUploadUrl = mutation({
   handler: async (ctx) => {
+    await requireWriteRole(ctx);
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -371,6 +436,12 @@ export const savePhoto = mutation({
     mime_type: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const assignment = await ctx.db.get(args.assignment_id);
+    if (!assignment) throw new Error("Asignación no encontrada");
+    if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+    else if (assignment.organizacion_id) await requireOrgAccess(ctx, assignment.organizacion_id);
+    else throw new Error("Asignación sin proyecto ni organización — requiere migración");
     return await ctx.db.insert("fumigation_photos", args);
   },
 });
@@ -378,8 +449,16 @@ export const savePhoto = mutation({
 export const deletePhoto = mutation({
   args: { id: v.id("fumigation_photos") },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
     const photo = await ctx.db.get(args.id);
     if (!photo) return null;
+
+    // Validar acceso vía la asignación asociada
+    const assignment = photo.assignment_id ? await ctx.db.get(photo.assignment_id) : null;
+    if (!assignment) throw new Error("Asignación asociada no encontrada");
+    if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+    else if (assignment.organizacion_id) await requireOrgAccess(ctx, assignment.organizacion_id);
+    else throw new Error("Asignación sin proyecto ni organización — requiere migración");
 
     // Eliminar del storage
     await ctx.storage.delete(photo.storage_id);
@@ -390,25 +469,18 @@ export const deletePhoto = mutation({
 });
 
 // ========== FUMIGATION REPORTS ==========
-export const listReports = query({
-  args: { proyecto_id: v.optional(v.id("proyectos")) },
-  handler: async (ctx, args) => {
-    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
-    const all = await ctx.db
-      .query("fumigation_reports")
-      .withIndex("by_fecha", (q) => q)
-      .order("desc")
-      .collect();
-    if (scoped === null) return all;
-    return all.filter((r) => r.proyecto_id === scoped);
-  },
-});
-
 export const getReportById = query({
   args: { id: v.id("fumigation_reports") },
   handler: async (ctx, args) => {
     const report = await ctx.db.get(args.id);
     if (!report) return null;
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      if (report.proyecto_id) await requireProjectAccess(ctx, report.proyecto_id);
+      else if (report.organizacion_id) {
+        if (!scope.organizacionId || scope.organizacionId !== report.organizacion_id) throw new Error("Acceso denegado");
+      }
+    }
 
     // Función helper para obtener fotos con URLs
     const getPhotosWithUrls = async (photoIds: any[]) => {
@@ -446,30 +518,6 @@ export const getReportById = query({
       fotos_durante: fotosDurante.filter(Boolean),
       fotos_despues: fotosDespues.filter(Boolean),
     };
-  },
-});
-
-export const getReportsByLugar = query({
-  args: { lugar_id: v.id("lugares") },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("fumigation_reports")
-      .withIndex("by_lugar", (q) => q.eq("lugar_id", args.lugar_id))
-      .order("desc")
-      .collect();
-  },
-});
-
-export const getReportsByDateRange = query({
-  args: {
-    fecha_inicio: v.string(),
-    fecha_fin: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const all = await ctx.db.query("fumigation_reports").collect();
-    return all.filter(
-      (r) => r.fecha_completacion >= args.fecha_inicio && r.fecha_completacion <= args.fecha_fin
-    );
   },
 });
 
@@ -566,6 +614,13 @@ export const createReport = mutation({
     fecha_completacion: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const assignment = await ctx.db.get(args.assignment_id);
+    if (!assignment) throw new Error("Asignación no encontrada");
+    if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+    else if (assignment.organizacion_id) await requireOrgAccess(ctx, assignment.organizacion_id);
+    else throw new Error("Asignación sin proyecto ni organización — requiere migración");
+
     // Si no se pasan fotos_ids, buscar las fotos del assignment automáticamente por etapa
     let fotosAntesIds = args.fotos_antes_ids || [];
     let fotosDuranteIds = args.fotos_durante_ids || [];
@@ -597,12 +652,15 @@ export const createReport = mutation({
     const lugar = await ctx.db.get(args.lugar_id);
     const proyecto_id = lugar?.proyecto_id;
 
-    return await ctx.db.insert("fumigation_reports", {
+    const payload: any = {
       ...restArgs,
       proyecto_id,
       fotos_antes_ids: fotosAntesIds,
       fotos_durante_ids: fotosDuranteIds,
       fotos_despues_ids: fotosDespuesIds,
-    });
+    };
+    if (lugar?.organizacion_id) payload.organizacion_id = lugar.organizacion_id;
+
+    return await ctx.db.insert("fumigation_reports", payload);
   },
 });

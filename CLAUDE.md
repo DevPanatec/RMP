@@ -28,11 +28,14 @@ super_admin (sin organizacion_id) → ve todas las orgs
 - Email is globally unique (Clerk default): one email = one user, tied to one Org.
 
 ### User Roles
-The system supports **4 user types**:
+The system supports **5 user types**:
 1. **Super Admin** (`tipo: 'super_admin'`) - Global, no `organizacion_id`. Creates Orgs and switches between them via `OrganizationSwitcher`.
 2. **Admin** (`tipo: 'admin'`) - Tied to one Org. Full access within their Org's projects.
-3. **Enterprise** (`tipo: 'enterprise'`) - Tied to one Org + one Project. Read-only operational view.
-4. **Conductor** (`tipo: 'conductor'`) - Tied to one Org + one Project. Driver dashboard with assigned route.
+3. **Enterprise** (`tipo: 'enterprise'`) - Tied to one Org + one Project. Read-only operational view (enforced server-side via `requireWriteRole` in `convex/lib/auth.ts`).
+4. **Viewer** (`tipo: 'viewer'`) - Tied to one Org. Restricted dashboard tabs (dashboard/operaciones/riesgos only). Read-only.
+5. **Conductor** (`tipo: 'conductor'`) - Tied to one Org + one Project. Driver dashboard. Sees ONLY their assigned vehicle (server-side filter).
+
+**Auth helpers** (`convex/lib/auth.ts`): `requireOrgAccess`, `requireProjectAccess`, `requireSuperAdmin`, `requireWriteRole` (blocks enterprise/viewer), `requireAdminWrite` (blocks enterprise/viewer/conductor). Every mutation MUST call one of these.
 
 ## Commands
 
@@ -75,23 +78,29 @@ npm run lint    # ESLint check (JSX files only)
 
 The app uses **domain-specific context providers** that wrap all dashboard content. All providers follow the same pattern: they expose data, loading states, CRUD operations, and statistics functions.
 
-**Provider nesting order** (defined in `App.jsx`):
+**Provider nesting order** (defined in `App.jsx`) — **14 providers**:
 ```jsx
-<ClerkProvider>                    // Outermost - Clerk authentication
-  <ConvexProviderWithClerk>        // Convex backend + Clerk integration
-    <AuthProvider>                 // Auth state management + user profiles
-      <RiskReportsProvider>        // Risk/alert reporting system
-        <PersonnelProvider>        // Employee/personnel management
-          <FleetProvider>          // Vehicle/fleet tracking
-            <RoutesProvider>       // Route assignments & tracking
-              <ReportsProvider>    // Report generation
-                <InventoryProvider>  // Material/supply inventory
-                  <ScheduleProvider> // Scheduling system
-                    <CleaningProvider>     // Cleaning service assignments
-                      <FumigationProvider> // Fumigation service management
-                        <MaintenanceProvider> // Equipment maintenance
-                          {dashboardContent}
+<ClerkProvider>                      // Outermost - Clerk authentication
+  <ConvexProviderWithClerk>          // Convex backend + Clerk integration
+    <GooglePlacesErrorBoundary>
+      <GooglePlacesProvider>         // Google Places autocomplete
+        <AuthProvider>               // Auth state + user profiles
+          <OrganizationProvider>     // Multi-tenant: current Org
+            <ProjectProvider>        // Active project selection
+              <RiskReportsProvider>  // Risk/alert reporting
+                <PersonnelProvider>  // Employees
+                  <FleetProvider>    // Vehicle/fleet tracking
+                    <RoutesProvider>     // Route assignments
+                      <ReportsProvider>  // Report generation
+                        <InventoryProvider>
+                          <ScheduleProvider>
+                            <CleaningProvider>
+                              <FumigationProvider>
+                                <MaintenanceProvider>
+                                  {dashboardContent}
 ```
+
+All context `value` objects are wrapped in `useMemo` to prevent re-render storms.
 
 **How to use contexts:**
 ```javascript
@@ -202,11 +211,12 @@ await createVehicle({ placa: 'ABC-123', ... });
 
 2. **vehiculos** - Fleet/vehicle management
    - GPS tracking: `gps_latitud`, `gps_longitud`, `gps_velocidad`, `gps_rumbo`, `gps_altitud`
-   - SafeTag integration: `gps_imei`, `safetag_device_id`, `gps_ultima_actualizacion`, `gps_conectado`
+   - SafeTag integration: `gps_imei`, `safetag_device_id`, `gps_ultima_actualizacion` (number ms), `gps_conectado`
    - GPS details: `gps_precision`, `gps_satelites`, `gps_bateria`, `gps_senal`, `gps_en_linea`
-   - Status: `estado` ('disponible', 'en_ruta', 'en_mantenimiento')
+   - Status: `estado` ('disponible', 'en_ruta', 'en_mantenimiento') — actualizado server-side por `route_progress.start/complete`
    - Service type: `tipo_servicio` ('recoleccion', 'fumigacion', 'limpieza')
    - Vehicle type: `tipo_vehiculo` ('bus', 'barredora', 'pickup', 'cisterna', 'camion_carga', 'compactador', 'fumigadora')
+   - **NOTA**: `combustible_nivel` removido. Sistema NO trackea fuel.
    - Indexes: `by_estado`, `by_placa`, `by_gps_imei`, `by_safetag_device`
 
 3. **rutas** - Routes/collection paths
@@ -246,10 +256,7 @@ await createVehicle({ placa: 'ABC-123', ... });
     - `cleaning_photos` - Evidence photos (antes/durante/después)
     - Storage bucket: `cleaning-photos` for images
 
-11. **Schedule Module** (`schedule_schema.sql`):
-    - `services` - Service type definitions (cleaning, fumigation, etc.)
-    - `schedule_templates` - Recurring schedule patterns
-    - `scheduled_events` - Specific scheduled events
+11. **Schedule Module**: NO hay tablas separadas. Schedule reusa `asignaciones_rutas` con campos `fecha_asignacion`, `dias_semana[]`, `hora_inicio`. El módulo de programación maneja patrones recurrentes vía `dias_semana`.
 
 12. **inventario** - Inventory/supplies management
     - Tracking: `cantidad_disponible`, `cantidad_minima`, `cantidad_maxima`
@@ -391,9 +398,7 @@ await createVehicle({ placa: 'ABC-123', ... });
 - `files.ts` - File storage helpers
 - `seed.ts` - Database seeding for development
 
-**Testing/Debugging:**
-- `testSafeTagAPI.ts`, `testWebhook.ts`, `debugVehicle.ts` - Integration testing
-- `createTestVehicle.ts`, `listVehicles.ts` - Dev utilities
+**Note**: archivos test/debug previos (`testSafeTagAPI.ts`, `debugVehicle.ts`, etc.) ya no existen. `seed.ts` y `seed/*` están bloqueados detrás de `requireSuperAdmin` + env var `ALLOW_SEED=1`.
 
 ### Component Architecture
 
@@ -577,14 +582,11 @@ await createVehicle({ placa: 'ABC-123', ... });
 - **Cron jobs**: Scheduled tasks run via `convex/crons.ts` - check for GPS connection monitoring
 - **Route events**: Every route action creates an event in `route_events` for audit trail
 
-### Testing Credentials
+### Test Users
 
-Test users created via SeedUsers component:
-- **Admin**: `admin@rmp.com` / `Admin@RMP2025!`
-- **Enterprise**: `enterprise@rmp.com` / `Enterprise@RMP2025!`
-- **Conductor**: `conductor@rmp.com` / `Conductor@RMP2025!`
-
-To seed users: Visit `http://localhost:8000/?seed` or use the SeedUsers component.
+`?seed` route y `SeedUsers` component fueron eliminados (riesgo seguridad). Para crear usuarios:
+1. Como super_admin/admin desde Admin Dashboard → "Crear Perfil" (action `api.perfiles.createUserWithClerk`).
+2. O via Clerk Dashboard manualmente + `api.perfiles.createByUserId` (admin-gated).
 
 ### Important Files to Check Before Making Changes
 
@@ -634,6 +636,19 @@ To seed users: Visit `http://localhost:8000/?seed` or use the SeedUsers componen
 - **Schema**: TypeScript definitions in `convex/schema.ts`
 - **Functions**: Serverless queries/mutations in `convex/*.ts` files
 - **File Storage**: Built-in Convex storage (`.db.storage`)
+
+**Required Convex Env Vars (before deploy)**:
+
+The Clerk domain is no longer hardcoded in backend files. You MUST set these env vars on the Convex deployment before deploying, otherwise auth will fall back to the legacy default and break in any non-default deployment:
+
+```bash
+npx convex env set CLERK_ISSUER https://your-clerk-domain.clerk.accounts.dev
+npx convex env set CLERK_FRONTEND_DOMAIN https://your-clerk-domain.clerk.accounts.dev
+```
+
+- `CLERK_ISSUER` is read by `convex/auth.config.ts` (Convex JWT validation).
+- `CLERK_FRONTEND_DOMAIN` is read by `convex/perfiles.ts` (`createUserWithClerk` action) when constructing `userId` in the `https://clerk-domain|user_id` format Convex expects.
+- Both fall back to `https://peaceful-mustang-86.clerk.accounts.dev` to avoid breaking existing dev environments. New deploys MUST override.
 
 ### Performance Considerations
 

@@ -1,35 +1,68 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthScope, requireOrgAccess } from "./lib/auth";
+import { getAuthScope, requireOrgAccess, requireProjectAccess, requireWriteRole, requireAdminWrite } from "./lib/auth";
 
 // Filtra empleados por scope: super_admin/cross-org ve todos; demás solo su org.
 async function scopeEmpleados(ctx: any, rows: any[]) {
   const scope = await getAuthScope(ctx);
   if (scope.isSuperAdmin || scope.isCrossOrgViewer) return rows;
   if (!scope.organizacionId) return [];
-  return rows.filter((e) => !e.organizacion_id || e.organizacion_id === scope.organizacionId);
+  return rows.filter((e) => e.organizacion_id === scope.organizacionId);
 }
 
-// List all active employees (scoped)
+// Strip PII según role del caller. salario solo super_admin. documento solo super_admin/admin.
+// enterprise/viewer/conductor ven solo campos operativos no sensibles.
+function stripPII(rows: any[], scope: { isSuperAdmin: boolean; isAdmin: boolean }) {
+  return rows.map((e) => {
+    const base: any = {
+      _id: e._id,
+      _creationTime: e._creationTime,
+      nombre: e.nombre,
+      apellido: e.apellido,
+      cargo: e.cargo,
+      departamento: e.departamento,
+      fecha_ingreso: e.fecha_ingreso,
+      activo: e.activo,
+      organizacion_id: e.organizacion_id,
+      proyecto_id: e.proyecto_id,
+    };
+    if (scope.isSuperAdmin || scope.isAdmin) {
+      base.cedula = e.cedula;
+      base.telefono = e.telefono;
+      base.fecha_nacimiento = e.fecha_nacimiento;
+      base.direccion = e.direccion;
+    }
+    if (scope.isSuperAdmin) {
+      base.salario = e.salario;
+    }
+    return base;
+  });
+}
+
+// List all active employees (scoped + PII-stripped)
 export const listActive = query({
   handler: async (ctx) => {
     const rows = await ctx.db
       .query("empleados")
       .withIndex("by_activo", (q) => q.eq("activo", true))
       .collect();
-    return await scopeEmpleados(ctx, rows);
+    const scoped = await scopeEmpleados(ctx, rows);
+    const scope = await getAuthScope(ctx);
+    return stripPII(scoped, scope);
   },
 });
 
-// List all employees (scoped)
+// List all employees (scoped + PII-stripped)
 export const list = query({
   handler: async (ctx) => {
     const rows = await ctx.db.query("empleados").collect();
-    return await scopeEmpleados(ctx, rows);
+    const scoped = await scopeEmpleados(ctx, rows);
+    const scope = await getAuthScope(ctx);
+    return stripPII(scoped, scope);
   },
 });
 
-// Get by cedula (scoped)
+// Get by cedula (scoped + PII stripped)
 export const getByCedula = query({
   args: { cedula: v.string() },
   handler: async (ctx, args) => {
@@ -39,9 +72,11 @@ export const getByCedula = query({
       .first();
     if (!emp) return null;
     const scope = await getAuthScope(ctx);
-    if (scope.isSuperAdmin || scope.isCrossOrgViewer) return emp;
-    if (emp.organizacion_id && scope.organizacionId && emp.organizacion_id !== scope.organizacionId) return null;
-    return emp;
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      if (!scope.organizacionId) return null;
+      if (emp.organizacion_id !== scope.organizacionId) return null;
+    }
+    return stripPII([emp], scope)[0];
   },
 });
 
@@ -53,8 +88,9 @@ export const getById = query({
     if (!emp) return null;
     const scope = await getAuthScope(ctx);
     if (scope.isSuperAdmin || scope.isCrossOrgViewer) return emp;
-    if (emp.organizacion_id && scope.organizacionId && emp.organizacion_id !== scope.organizacionId) return null;
-    return emp;
+    if (!scope.organizacionId) return null;
+    if (emp.organizacion_id !== scope.organizacionId) return null;
+    return stripPII([emp], scope)[0];
   },
 });
 
@@ -75,9 +111,11 @@ export const add = mutation({
     proyecto_id: v.optional(v.id("proyectos")),
   },
   handler: async (ctx, args) => {
+    await requireAdminWrite(ctx);
     const scope = await getAuthScope(ctx);
     const orgId = args.organizacion_id ?? scope.organizacionId ?? undefined;
     if (orgId) await requireOrgAccess(ctx, orgId);
+    if (args.proyecto_id) await requireProjectAccess(ctx, args.proyecto_id);
     const data: any = { ...args, activo: true };
     if (orgId) data.organizacion_id = orgId;
     return await ctx.db.insert("empleados", data);
@@ -97,9 +135,11 @@ export const update = mutation({
     departamento: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAdminWrite(ctx);
     const emp = await ctx.db.get(args.id);
     if (!emp) throw new Error("Empleado no encontrado");
-    if (emp.organizacion_id) await requireOrgAccess(ctx, emp.organizacion_id);
+    if (!emp.organizacion_id) throw new Error("Empleado sin organización — requiere migración");
+    await requireOrgAccess(ctx, emp.organizacion_id);
     const { id, ...updates } = args;
     return await ctx.db.patch(id, updates);
   },
@@ -109,9 +149,11 @@ export const update = mutation({
 export const deactivate = mutation({
   args: { id: v.id("empleados") },
   handler: async (ctx, args) => {
+    await requireAdminWrite(ctx);
     const emp = await ctx.db.get(args.id);
     if (!emp) throw new Error("Empleado no encontrado");
-    if (emp.organizacion_id) await requireOrgAccess(ctx, emp.organizacion_id);
+    if (!emp.organizacion_id) throw new Error("Empleado sin organización — requiere migración");
+    await requireOrgAccess(ctx, emp.organizacion_id);
     return await ctx.db.patch(args.id, { activo: false });
   },
 });
@@ -120,9 +162,11 @@ export const deactivate = mutation({
 export const activate = mutation({
   args: { id: v.id("empleados") },
   handler: async (ctx, args) => {
+    await requireAdminWrite(ctx);
     const emp = await ctx.db.get(args.id);
     if (!emp) throw new Error("Empleado no encontrado");
-    if (emp.organizacion_id) await requireOrgAccess(ctx, emp.organizacion_id);
+    if (!emp.organizacion_id) throw new Error("Empleado sin organización — requiere migración");
+    await requireOrgAccess(ctx, emp.organizacion_id);
     return await ctx.db.patch(args.id, { activo: true });
   },
 });
@@ -131,9 +175,11 @@ export const activate = mutation({
 export const remove = mutation({
   args: { id: v.id("empleados") },
   handler: async (ctx, args) => {
+    await requireAdminWrite(ctx);
     const emp = await ctx.db.get(args.id);
     if (!emp) throw new Error("Empleado no encontrado");
-    if (emp.organizacion_id) await requireOrgAccess(ctx, emp.organizacion_id);
+    if (!emp.organizacion_id) throw new Error("Empleado sin organización — requiere migración");
+    await requireOrgAccess(ctx, emp.organizacion_id);
     return await ctx.db.delete(args.id);
   },
 });

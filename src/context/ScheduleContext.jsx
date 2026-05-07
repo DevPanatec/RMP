@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { useQuery, useMutation, useConvex } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useProject } from './ProjectContext';
@@ -82,7 +82,7 @@ export const ScheduleProvider = ({ children }) => {
     return monday.toISOString().split('T')[0];
   };
 
-  const value = {
+  const value = useMemo(() => ({
     assignments,
     loading,
     addAssignment,
@@ -91,7 +91,7 @@ export const ScheduleProvider = ({ children }) => {
     checkConflicts,
     getDayNameFromDate,
     getStartOfWeekFromDate,
-  };
+  }), [assignments, loading]);
 
   return <ScheduleContext.Provider value={value}>{children}</ScheduleContext.Provider>;
 };
@@ -102,5 +102,4 @@ export const useSchedule = () => {
   return context;
 };
 
-export const useSupabaseSchedule = useSchedule;
 export default ScheduleContext;

@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthScope, getScopedProjectId, getScopedOrgId } from "./lib/auth";
+import { getAuthScope, getScopedProjectId, getScopedOrgId, requireOrgAccess, requireProjectAccess, requireWriteRole } from "./lib/auth";
 
 // Internal: problemas del operador/vehiculo. Externo: entorno (afecta al cliente)
 const TIPOS_INTERNOS = new Set(["mecanico", "combustible", "seguridad", "mantenimiento"]);
@@ -69,7 +69,7 @@ export const list = query({
       rows.sort((a, b) => (b.fecha_reporte || "").localeCompare(a.fecha_reporte || ""));
     }
     if (scopedProject === null && scopedOrg) {
-      rows = rows.filter((r) => !r.organizacion_id || r.organizacion_id === scopedOrg);
+      rows = rows.filter((r) => r.organizacion_id === scopedOrg);
     }
     if (scope.isEnterprise || scope.isViewer) {
       rows = rows.filter((r) => isExterno(r.tipo_riesgo));
@@ -112,7 +112,7 @@ export const listWithDetails = query({
       }
 
       if (scopedProject === null && scopedOrg) {
-        reportes = reportes.filter((r) => !r.organizacion_id || r.organizacion_id === scopedOrg);
+        reportes = reportes.filter((r) => r.organizacion_id === scopedOrg);
       }
 
       if (scope.isEnterprise || scope.isViewer) {
@@ -176,10 +176,14 @@ export const listWithDetails = query({
 export const getBySeveridad = query({
   args: { nivel_severidad: nivelSeveridadValidator },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const scope = await getAuthScope(ctx);
+    const all = await ctx.db
       .query("reportes_riesgo")
       .withIndex("by_severidad", (q) => q.eq("nivel_severidad", args.nivel_severidad))
       .collect();
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) return all;
+    if (!scope.organizacionId) return [];
+    return all.filter((r) => r.organizacion_id === scope.organizacionId);
   },
 });
 
@@ -207,11 +211,18 @@ export const add = mutation({
     fotos_storage_ids: v.optional(v.array(v.id("_storage"))),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("reportes_riesgo", {
+    const scope = await requireWriteRole(ctx);
+    if (args.proyecto_id) await requireProjectAccess(ctx, args.proyecto_id);
+    if (!scope.isSuperAdmin && !scope.organizacionId) {
+      throw new Error("Sin organización asignada");
+    }
+    const payload: any = {
       ...args,
       fecha_reporte: new Date().toISOString(),
       estado: "reportado",
-    });
+    };
+    if (scope.organizacionId) payload.organizacion_id = scope.organizacionId;
+    return await ctx.db.insert("reportes_riesgo", payload);
   },
 });
 
@@ -232,6 +243,12 @@ export const update = mutation({
     parada_index: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const reporte = await ctx.db.get(args.id);
+    if (!reporte) throw new Error("Reporte no encontrado");
+    if (reporte.organizacion_id) await requireOrgAccess(ctx, reporte.organizacion_id);
+    else if (reporte.proyecto_id) await requireProjectAccess(ctx, reporte.proyecto_id);
+    else throw new Error("Reporte sin proyecto ni organización — requiere migración");
     const { id, ...updates } = args;
     return await ctx.db.patch(id, updates);
   },
@@ -240,6 +257,12 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("reportes_riesgo") },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const reporte = await ctx.db.get(args.id);
+    if (!reporte) throw new Error("Reporte no encontrado");
+    if (reporte.organizacion_id) await requireOrgAccess(ctx, reporte.organizacion_id);
+    else if (reporte.proyecto_id) await requireProjectAccess(ctx, reporte.proyecto_id);
+    else throw new Error("Reporte sin proyecto ni organización — requiere migración");
     return await ctx.db.delete(args.id);
   },
 });

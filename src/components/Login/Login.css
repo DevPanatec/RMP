@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f7fa;
+  background: var(--color-background);
   padding: var(--space-24);
   position: relative;
   overflow: hidden;
@@ -22,7 +22,7 @@
 }
 
 .login-card {
-  background: #ffffff;
+  background: var(--color-surface);
   padding: 60px 50px;
   border-radius: 16px;
   box-shadow: 
@@ -146,7 +146,7 @@
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #2d3748;
+  color: var(--color-text);
   margin-bottom: 8px;
   letter-spacing: 0.2px;
 }
@@ -176,12 +176,12 @@
 .form-control-modern:focus {
   outline: none;
   border-color: #16877a;
-  background: #ffffff;
+  background: var(--color-surface);
   box-shadow: 0 0 0 3px rgba(13, 92, 76, 0.08);
 }
 
 .form-control-modern::placeholder {
-  color: #a0aec0;
+  color: var(--color-text-muted);
   font-weight: 400;
 }
 
@@ -232,7 +232,7 @@
 }
 
 .btn--primary:disabled {
-  background: #a0aec0;
+  background: var(--color-text-muted);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -267,8 +267,8 @@
 .btn--outline {
   padding: 10px 16px;
   border: 2px solid var(--color-border);
-  background: #ffffff;
-  color: #4a5568;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
@@ -387,7 +387,7 @@
   padding: 8px;
   transition: all 0.2s ease;
   opacity: 0.5;
-  color: #718096;
+  color: var(--color-text-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;

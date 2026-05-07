@@ -57,9 +57,6 @@ const ScheduleComponent = ({ viewerMode = false }) => {
     uploadPhoto: uploadFumigationPhoto
   } = useFumigation();
 
-  console.log('🎯 DEBUG Schedule Component - scheduleAssignments:', scheduleAssignments);
-  console.log('🎯 DEBUG Schedule Component - routes:', routes);
-
   // Helper: obtener el lunes de la semana actual
   const getStartOfWeek = () => {
     const now = new Date();
@@ -182,13 +179,18 @@ const ScheduleComponent = ({ viewerMode = false }) => {
     v.estado === 'activo' ||
     v.estado === 'Disponible' ||
     v.estado === 'disponible' ||
-    v.estado === 'En ruta'
+    v.estado === 'En ruta' ||
+    v.estado === 'en_ruta'
   );
   const loading = scheduleLoading || cleaningLoading || fumigationLoading;
 
-  // Filtrar vehículos por tipo de ruta seleccionada (solo recolección)
+  // Filtrar vehículos compatibles con asignación de recolección.
+  // Acepta 'recoleccion' (específico) y 'general' (uso general — sirve para cualquier servicio).
   const getCompatibleVehicles = () => {
-    return activeVehicles.filter(v => v.tipo_servicio === 'recoleccion' || v.tipoServicio === 'recoleccion');
+    return activeVehicles.filter(v => {
+      const tipo = v.tipo_servicio || v.tipoServicio;
+      return tipo === 'recoleccion' || tipo === 'general' || !tipo;
+    });
   };
 
   const compatibleVehicles = getCompatibleVehicles();
@@ -292,16 +294,11 @@ const ScheduleComponent = ({ viewerMode = false }) => {
     const blockedDaysMap = {};
 
     if (!routeFormData.ruta_id) {
-      console.log('🔍 DEBUG - No hay ruta seleccionada');
       return blockedDaysMap;
     }
 
     // Obtener la ruta seleccionada
     const selectedRoute = routes.find(r => String(r._id || r.id) === String(routeFormData.ruta_id));
-
-    console.log('🔍 DEBUG - Ruta seleccionada:', selectedRoute);
-    console.log('🔍 DEBUG - dias_operacion RAW:', selectedRoute?.dias_operacion);
-    console.log('🔍 DEBUG - tipo:', typeof selectedRoute?.dias_operacion, 'isArray:', Array.isArray(selectedRoute?.dias_operacion));
 
     // Bloquear días que NO están en dias_operacion de la ruta
     if (selectedRoute && selectedRoute.dias_operacion) {
@@ -312,7 +309,6 @@ const ScheduleComponent = ({ viewerMode = false }) => {
       if (typeof allowedDays === 'string') {
         try {
           allowedDays = JSON.parse(allowedDays);
-          console.log('🔍 DEBUG - Días parseados de string:', allowedDays);
         } catch (e) {
           console.error('❌ ERROR parseando dias_operacion:', e);
           allowedDays = [];
@@ -322,21 +318,12 @@ const ScheduleComponent = ({ viewerMode = false }) => {
       // Normalizar días (quitar acentos)
       allowedDays = normalizeDays(allowedDays);
 
-      console.log('🔍 DEBUG - Días permitidos FINAL:', allowedDays);
-      console.log('🔍 DEBUG - Tipo de allowedDays:', typeof allowedDays, 'isArray:', Array.isArray(allowedDays));
-
       allDays.forEach(day => {
         const isIncluded = allowedDays.includes(day);
-        console.log(`🔍 DEBUG - Día "${day}": includes = ${isIncluded}`);
         if (!isIncluded) {
           blockedDaysMap[day] = 'No disponible';
-          console.log(`  ❌ Bloqueando "${day}"`);
-        } else {
-          console.log(`  ✅ Permitiendo "${day}"`);
         }
       });
-
-      console.log('🔍 DEBUG - Días bloqueados por ruta:', blockedDaysMap);
     }
 
     // Bloquear días ya asignados a otros conductores
@@ -347,8 +334,6 @@ const ScheduleComponent = ({ viewerMode = false }) => {
         (assignment._id || assignment.id) !== (editingAssignment?._id || editingAssignment?.id)
       );
 
-      console.log('🔍 DEBUG - Asignaciones en conflicto:', conflictos);
-
       conflictos.forEach(assignment => {
         if (assignment.dias_semana && Array.isArray(assignment.dias_semana)) {
           assignment.dias_semana.forEach(dia => {
@@ -358,7 +343,6 @@ const ScheduleComponent = ({ viewerMode = false }) => {
       });
     }
 
-    console.log('🔍 DEBUG - Resultado final blockedDaysMap:', blockedDaysMap);
     return blockedDaysMap;
   };
 

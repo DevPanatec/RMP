@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useGoogleMaps } from '../hooks/useGoogleMaps';
 
 const GooglePlacesContext = createContext(null);
@@ -32,6 +32,7 @@ export const GooglePlacesProvider = ({ children }) => {
   useEffect(() => {
     if (!google || !google.maps) return;
 
+    let placesServiceDiv = null;
     try {
       // Inicializar AutocompleteService
       const autocompleteService = new google.maps.places.AutocompleteService();
@@ -40,7 +41,7 @@ export const GooglePlacesProvider = ({ children }) => {
       const geocoder = new google.maps.Geocoder();
 
       // PlacesService requiere un elemento DOM (usamos un div oculto)
-      const placesServiceDiv = document.createElement('div');
+      placesServiceDiv = document.createElement('div');
       placesServiceDiv.style.display = 'none';
       document.body.appendChild(placesServiceDiv);
       const placesService = new google.maps.places.PlacesService(placesServiceDiv);
@@ -50,20 +51,25 @@ export const GooglePlacesProvider = ({ children }) => {
         placesService,
         geocoder
       });
-
-      console.log('✅ Google Places services initialized successfully');
     } catch (err) {
       console.error('❌ Error initializing Google Places services:', err);
     }
+
+    return () => {
+      // Cleanup: remove the hidden div appended to document.body
+      if (placesServiceDiv && placesServiceDiv.parentNode) {
+        placesServiceDiv.remove();
+      }
+    };
   }, [google]);
 
-  const value = {
+  const value = useMemo(() => ({
     google,
     ...services,
     loading,
     error,
     isReady: !loading && !error && services.autocompleteService !== null
-  };
+  }), [google, services, loading, error]);
 
   return (
     <GooglePlacesContext.Provider value={value}>

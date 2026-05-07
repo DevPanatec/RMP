@@ -4,6 +4,7 @@ import { api } from '../../../convex/_generated/api';
 import WeightModal from '../../components/WeightModal/WeightModal';
 import RouteCompletionModal from '../../components/RouteCompletionModal/RouteCompletionModal';
 import MapLibreComponent from '../../components/Map/MapLibreComponent';
+import { useOfflinePhotoQueue } from '../../hooks/useOfflinePhotoQueue';
 import { useRiskReports } from '../../context/RiskReportsContext';
 import { useFleet } from '../../context/FleetContext';
 import { useRoutes } from '../../context/RoutesContext';
@@ -63,6 +64,15 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
   // Route events logging
   const addRouteEvent = useMutation(api.route_events.add);
+  const attachPhotoToParada = useMutation(api.route_events.attachPhotoToParada);
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
+
+  // Offline photo queue
+  const offlineQueue = useOfflinePhotoQueue({
+    generateUploadUrl,
+    attachPhotoToParada,
+    addRouteEvent,
+  });
 
   // Assignment status update
   const updateAssignmentStatus = useMutation(api.asignaciones.updateEstado);
@@ -134,7 +144,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
   const [riskPhotos, setRiskPhotos] = useState([]); // [{ storageId, previewUrl }]
   const [riskPhotoUploading, setRiskPhotoUploading] = useState(false);
   const riskPhotoInputRef = useRef(null);
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const [showTerminateModal, setShowTerminateModal] = useState(false);
   const [terminateReason, setTerminateReason] = useState('');
   const [selectedRiskForTermination, setSelectedRiskForTermination] = useState(null);
@@ -190,22 +199,10 @@ const ConductorDashboard = ({ user, onLogout }) => {
   })();
   const todayDayName = getDayNameFromDate(today);
 
-  console.log('🔍 DEBUG CONDUCTOR:', {
-    userName: user.nombre,
-    userFullName: user.nombre_completo,
-    today,
-    todayDayName,
-    conductorAssignments,
-    assignmentsCount: conductorAssignments.length
-  });
-
   const todayAssignment = conductorAssignments.find(assignment => {
-    console.log('🔍 Checking assignment:', assignment._id || assignment.id, assignment.dias_semana, 'includes', todayDayName, '?', assignment.dias_semana?.includes(todayDayName));
     if (!assignment.dias_semana || !Array.isArray(assignment.dias_semana)) return false;
     return assignment.dias_semana.includes(todayDayName);
   });
-
-  console.log('🔍 TODAY ASSIGNMENT:', todayAssignment);
 
   // Obtener vehículo y ruta de la asignación de hoy (MEMOIZADOS para evitar re-creación constante)
   const userTruck = useMemo(() => {
@@ -564,7 +561,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
       }
 
       await addRouteEvent(eventData);
-      console.log(`✅ Evento registrado: Llegada a parada ${stopIndex}`);
     } catch (error) {
       console.error('❌ Error registrando evento de llegada:', error);
     }
@@ -595,7 +591,31 @@ const ConductorDashboard = ({ user, onLogout }) => {
       parada_orden: parada.orden,
       ...(extras.bolsas !== undefined && { bolsas: extras.bolsas }),
       ...(extras.foto_storage_id && { foto_storage_id: extras.foto_storage_id }),
+      ...(extras.fileBlob && { foto_pending: true }),
     };
+
+    // Queue offline photo if present
+    if (extras.fileBlob && routeProgressId) {
+      try {
+        await offlineQueue.addToQueue({
+          routeProgressId,
+          asignacionId: todayAssignment._id || todayAssignment.id,
+          paradaIndex: pendingStopIndex,
+          paradaNombre: parada.direccion || parada.nombre || `Parada ${pendingStopIndex + 1}`,
+          rutaId: assignedRoute._id || assignedRoute.id,
+          rutaNombre: assignedRoute.nombre,
+          conductorId: user._id || user.id,
+          conductorNombre: user.nombre || user.nombre_completo,
+          vehiculoId: userTruck._id || userTruck.id,
+          vehiculoPlaca: userTruck.placa,
+          fileBlob: extras.fileBlob,
+          fileName: extras.fileName || 'foto.jpg',
+          mimeType: extras.mimeType || 'image/jpeg',
+        });
+      } catch (qErr) {
+        console.error('❌ Error encolando foto offline:', qErr);
+      }
+    }
 
     const updatedCompletedStops = [...completedStops, newCompletedStop];
     setCompletedStops(updatedCompletedStops);
@@ -615,7 +635,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
             lng: currentGPS.lng
           }
         });
-        console.log('✅ Route progress actualizado');
       } catch (error) {
         console.error('❌ Error actualizando route progress:', error);
       }
@@ -647,7 +666,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
       }
 
       await addRouteEvent(eventData);
-      console.log(`✅ Evento registrado: Parada completada - ${category}`);
     } catch (error) {
       console.error('❌ Error registrando evento de parada completada:', error);
     }
@@ -690,8 +708,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
   };
 
   const handleSkipStop = () => {
-    console.log('⏭️ handleSkipStop ejecutado - pendingStopIndex:', pendingStopIndex);
-
     // Capturar datos de la parada actual para vincular con el reporte de riesgo
     const paradas = getParadasArray(assignedRoute.paradas);
     const parada = paradas[pendingStopIndex];
@@ -704,11 +720,8 @@ const ConductorDashboard = ({ user, onLogout }) => {
       lng: currentGPS.lng
     };
 
-    console.log('⏭️ skipData creado:', skipData);
-
     // Guardar datos de parada para vincular con el reporte
     setSkipStopData(skipData);
-    console.log('⏭️ setSkipStopData llamado con:', skipData);
 
     // Cerrar modal de peso y abrir modal de riesgo
     setIsModalOpen(false);
@@ -794,7 +807,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
         id: todayAssignment._id || todayAssignment.id,
         estado: "en_progreso"
       });
-      console.log('✅ Asignación marcada como en progreso');
     } catch (error) {
       console.error('❌ Error actualizando estado de asignación:', error);
     }
@@ -812,7 +824,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
         tipo_ruta: assignedRoute.tipo_servicio || 'recoleccion'
       });
       setRouteProgressId(progressId);
-      console.log('✅ Route progress creado:', progressId);
     } catch (error) {
       console.error('❌ Error creando route progress:', error);
     }
@@ -837,7 +848,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
       }
 
       await addRouteEvent(eventData);
-      console.log('✅ Evento registrado: Ruta iniciada');
     } catch (error) {
       console.error('❌ Error registrando evento de inicio:', error);
     }
@@ -985,7 +995,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
           id: completionReportData.asignacion_id,
           estado: "completada"
         });
-        console.log('✅ Asignación marcada como completada');
       } catch (error) {
         console.error('❌ Error actualizando estado de asignación:', error);
       }
@@ -996,7 +1005,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
           await completeRouteProgress({
             id: routeProgressId
           });
-          console.log('✅ Route progress completado');
         } catch (error) {
           console.error('❌ Error completando route progress:', error);
         }
@@ -1023,7 +1031,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
         }
 
         await addRouteEvent(eventData);
-        console.log('✅ Evento registrado: Ruta completada');
       } catch (error) {
         console.error('❌ Error registrando evento de ruta completada:', error);
       }
@@ -1297,8 +1304,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
   };
 
   const handleSubmitRiskReport = async () => {
-    console.log('🚨 handleSubmitRiskReport - skipStopData:', skipStopData);
-
     if (!riskReport.categoria || !riskReport.titulo || !riskReport.descripcion) {
       setShowSuccessModal({
         type: 'error',
@@ -1319,7 +1324,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
       // Mapear categoría a tipo_riesgo
       const tipoRiesgoMap = {
         'Mecánico': 'mecanico',
-        'Combustible': 'combustible',
         'Equipo de seguridad': 'seguridad',
         'Mantenimiento': 'mantenimiento',
         'Bloqueo de vía': 'bloqueo_via',
@@ -1351,7 +1355,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
         reportData.parada_nombre = skipStopData.nombre;
         reportData.parada_orden = skipStopData.orden;
         reportData.parada_index = skipStopData.index;
-        console.log('🔗 Vinculando reporte con parada:', skipStopData);
       }
 
       // Agregar campos opcionales solo si tienen valores válidos (no null ni undefined)
@@ -1384,8 +1387,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
         reportData.fotos_storage_ids = riskPhotos.map((p) => p.storageId);
       }
 
-      console.log('📊 Enviando reporte de riesgo:', reportData);
-
       // Guardar usando el context
       const reportId = await addReport(reportData);
 
@@ -1416,8 +1417,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
         setCompletedStops(updatedCompletedStops);
         setCurrentStop(prev => prev + 1);
 
-        console.log('⏭️ Parada marcada como no completada:', skippedStop);
-
         // Actualizar route_progress si existe
         if (routeProgressId) {
           try {
@@ -1430,7 +1429,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
                 lng: skipStopData.lng
               }
             });
-            console.log('✅ Route progress actualizado con parada saltada');
           } catch (error) {
             console.error('❌ Error actualizando route progress:', error);
           }
@@ -2256,10 +2254,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
                       distancia: assignedRoute.distancia_total || assignedRoute.distanciaTotal
                     }}
                     onCompleteStop={handleCompleteStop}
-                    onViewMap={() => console.log('View map')}
-                    onEdit={() => console.log('Edit disabled')}
-                    onPause={() => console.log('Pause')}
-                    onViewStats={() => console.log('Stats')}
                   />
                 </div>
               )
@@ -2787,12 +2781,26 @@ const ConductorDashboard = ({ user, onLogout }) => {
           onClose={handleCloseModal}
           onConfirm={handleWeightConfirm}
           onSkip={handleSkipStop}
+          isOnline={isOnline}
           currentStop={pendingStopIndex !== null ? (() => {
             const paradas = getParadasArray(assignedRoute?.paradas);
             const parada = paradas[pendingStopIndex];
             return parada?.direccion || parada?.nombre || `Parada ${pendingStopIndex + 1}`;
           })() : ''}
         />
+
+        {/* Sync status banner for offline photo queue */}
+        {(offlineQueue.pendingCount > 0 || offlineQueue.syncingCount > 0) && (
+          <div className={`photo-sync-banner ${offlineQueue.syncingCount > 0 ? 'photo-sync-banner--syncing' : ''}`}>
+            <Camera size={14} />
+            <span>
+              {offlineQueue.syncingCount > 0
+                ? `Sincronizando fotos...`
+                : `${offlineQueue.pendingCount} foto${offlineQueue.pendingCount > 1 ? 's' : ''} por sincronizar`}
+            </span>
+            {offlineQueue.syncingCount > 0 && <span className="photo-sync-spinner" />}
+          </div>
+        )}
 
         {/* Modal de completación de ruta */}
         <RouteCompletionModal

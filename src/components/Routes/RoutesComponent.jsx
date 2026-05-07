@@ -14,7 +14,7 @@ const formatTime12h = (time24) => {
   return `${hour12}:${minutes} ${period}`;
 };
 
-const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
+const RoutesComponent = ({ initialRoutes = [] }) => {
   const { routes, loading, addRoute, updateRoute, deleteRoute } = useRoutes();
   const [showModal, setShowModal] = useState(false);
   const [editingRoute, setEditingRoute] = useState(null);
@@ -36,7 +36,6 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
     if (window.confirm('¿Eliminar esta ruta?')) {
       try {
         await deleteRoute(id);
-        onRoutesChange && onRoutesChange(routes);
       } catch (error) {
         alert('Error al eliminar la ruta: ' + error.message);
       }
@@ -50,7 +49,6 @@ const RoutesComponent = ({ initialRoutes = [], onRoutesChange }) => {
       } else {
         await addRoute(routeData);
       }
-      onRoutesChange && onRoutesChange(routes);
       setShowModal(false);
       setEditingRoute(null);
     } catch (error) {

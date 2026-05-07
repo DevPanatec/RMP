@@ -11,11 +11,12 @@ const CATEGORIES = [
   { key: 'muy alta', label: 'Muy Alta', desc: 'Gran vol.', color: '#a85a52' },
 ];
 
-const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop }) => {
+const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop, isOnline = true, onQueuePhoto }) => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [bolsas, setBolsas] = useState('');
   const [photoStorageId, setPhotoStorageId] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [pendingOfflineFile, setPendingOfflineFile] = useState(null); // { blob, name, type }
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -30,6 +31,7 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop }) => {
       setBolsas('');
       setPhotoStorageId(null);
       setPhotoPreview(null);
+      setPendingOfflineFile(null);
       setUploading(false);
       setSubmitting(false);
       setError('');
@@ -46,6 +48,14 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop }) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setError('');
+
+    // Offline: queue photo instead of uploading immediately
+    if (!isOnline) {
+      setPendingOfflineFile({ blob: file, name: file.name, type: file.type });
+      setPhotoPreview(URL.createObjectURL(file));
+      return;
+    }
+
     setUploading(true);
     try {
       const uploadUrl = await generateUploadUrl();
@@ -68,6 +78,7 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop }) => {
 
   const removePhoto = () => {
     setPhotoStorageId(null);
+    setPendingOfflineFile(null);
     if (photoPreview) URL.revokeObjectURL(photoPreview);
     setPhotoPreview(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -83,6 +94,12 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop }) => {
     await onConfirm(selectedCategory, {
       bolsas: bolsasNum,
       foto_storage_id: photoStorageId || undefined,
+      // Offline: pass file data so ConductorDashboard can queue it
+      ...(pendingOfflineFile && {
+        fileBlob: pendingOfflineFile.blob,
+        fileName: pendingOfflineFile.name,
+        mimeType: pendingOfflineFile.type,
+      }),
     });
     setSubmitting(false);
   };
@@ -125,6 +142,11 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop }) => {
           {photoPreview ? (
             <div className="weight-extras__photo-preview">
               <img src={photoPreview} alt="Foto de la parada" />
+              {pendingOfflineFile && (
+                <div className="weight-extras__photo-queued">
+                  <span>📷 En cola</span>
+                </div>
+              )}
               <button
                 type="button"
                 className="weight-extras__photo-remove"
@@ -137,12 +159,12 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop }) => {
           ) : (
             <button
               type="button"
-              className="weight-extras__photo-btn"
+              className={`weight-extras__photo-btn${!isOnline ? ' weight-extras__photo-btn--offline' : ''}`}
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
             >
               <Camera size={18} />
-              {uploading ? 'Subiendo...' : 'Tomar foto'}
+              {uploading ? 'Subiendo...' : !isOnline ? 'Foto (sin señal)' : 'Tomar foto'}
             </button>
           )}
           <input

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Download, Eye, Trash2, Filter, FileText } from '../Icons';
+import { Search, Eye, Trash2, Filter, FileText } from '../Icons';
 import { Button, Card } from '../UI';
 import { useCleaning } from '../../context/CleaningContext';
 import ReportDetailModal from './ReportDetailModal';
@@ -23,12 +23,6 @@ const CleaningReports = ({ userRole }) => {
   const handleViewReport = (report) => {
     setSelectedReport(report);
     setShowDetailModal(true);
-  };
-
-  const handleDownloadPDF = (report) => {
-    // Aquí se generaría y descargaría el PDF
-    console.log('Descargar PDF del reporte:', report.id);
-    alert(`Descargando reporte de ${report.lugar} - ${report.area}`);
   };
 
   const handleDeleteReport = async (reportId) => {
@@ -255,13 +249,6 @@ const CleaningReports = ({ userRole }) => {
                         >
                           <Eye size={16} />
                         </button>
-                        <button
-                          className="cleaning-table__action cleaning-table__action--download"
-                          onClick={() => handleDownloadPDF(report)}
-                          title="Descargar PDF"
-                        >
-                          <Download size={16} />
-                        </button>
                         {userRole === 'admin' && (
                           <button
                             className="cleaning-table__action cleaning-table__action--delete"
@@ -287,7 +274,6 @@ const CleaningReports = ({ userRole }) => {
           isOpen={showDetailModal}
           onClose={() => setShowDetailModal(false)}
           report={selectedReport}
-          onDownload={() => handleDownloadPDF(selectedReport)}
         />
       )}
     </div>

@@ -13,10 +13,14 @@ export const useGeofenceAlerts = () => {
   const [activeAlerts, setActiveAlerts] = useState([]);
   const [alertQueue, setAlertQueue] = useState([]);
   const processedAlerts = useRef(new Set());
-  
+  const dismissTimeoutsRef = useRef(new Set());
+  // Single shared AudioContext for the lifetime of this hook — browsers cap
+  // ~6 simultaneous contexts, so creating one per alert leaks until reload.
+  const audioContextRef = useRef(null);
+
   // Query para obtener alertas no vistas
   const unviewedAlerts = useQuery(api.geofences.getUnviewedAlerts);
-  
+
   // Mutation para marcar alerta como vista
   const markViewed = useMutation(api.geofences.markAlertViewed);
 
@@ -30,8 +34,6 @@ export const useGeofenceAlerts = () => {
     );
 
     if (newAlerts.length > 0) {
-      console.log('🚨 Nuevas alertas de geofence:', newAlerts.length);
-
       // Agregar a la cola de alertas
       setAlertQueue(prev => [...prev, ...newAlerts]);
 
@@ -49,23 +51,44 @@ export const useGeofenceAlerts = () => {
   useEffect(() => {
     if (alertQueue.length > 0 && activeAlerts.length < 3) {
       const nextAlert = alertQueue[0];
-      
+
       setActiveAlerts(prev => [...prev, nextAlert]);
       setAlertQueue(prev => prev.slice(1));
 
       // Auto-cerrar después de 10 segundos
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
+        dismissTimeoutsRef.current.delete(timeoutId);
         dismissAlert(nextAlert._id);
       }, 10000);
+      dismissTimeoutsRef.current.add(timeoutId);
     }
   }, [alertQueue, activeAlerts]);
+
+  // Cleanup auto-dismiss timeouts on unmount
+  useEffect(() => {
+    return () => {
+      dismissTimeoutsRef.current.forEach((id) => clearTimeout(id));
+      dismissTimeoutsRef.current.clear();
+    };
+  }, []);
+
+  // Inicializar (y limpiar) un único AudioContext para todas las alertas.
+  useEffect(() => {
+    return () => {
+      // Close on unmount — browsers cap simultaneous contexts.
+      const ctx = audioContextRef.current;
+      audioContextRef.current = null;
+      if (ctx && typeof ctx.close === 'function' && ctx.state !== 'closed') {
+        ctx.close().catch(() => { /* noop */ });
+      }
+    };
+  }, []);
 
   // Hablar alerta usando Web Speech API
   const speakAlert = useCallback((message, isEntering) => {
     try {
       // Verificar si el navegador soporta Web Speech API
       if (!window.speechSynthesis) {
-        console.log('🔇 Web Speech API no disponible');
         return;
       }
 
@@ -87,10 +110,8 @@ export const useGeofenceAlerts = () => {
 
       // Hablar
       window.speechSynthesis.speak(utterance);
-
-      console.log(`🎤 Hablando: "${message}"`);
     } catch (error) {
-      console.log('🔇 Error en Web Speech API:', error);
+      // Web Speech API no disponible o falló
     }
   }, []);
 
@@ -101,8 +122,17 @@ export const useGeofenceAlerts = () => {
       const firstAlert = alerts[0];
       const isEntering = firstAlert.tipo_evento === 'entrada' || firstAlert.category === 'geofence_enter';
 
-      // Crear contexto de audio
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      // Reusar AudioContext compartido (lazy-init on first call). Algunos
+      // navegadores requieren reanudarlo si fue suspendido por autoplay policy.
+      if (!audioContextRef.current) {
+        const Ctor = window.AudioContext || window.webkitAudioContext;
+        if (!Ctor) return;
+        audioContextRef.current = new Ctor();
+      }
+      const audioContext = audioContextRef.current;
+      if (audioContext.state === 'suspended' && typeof audioContext.resume === 'function') {
+        audioContext.resume().catch(() => { /* noop */ });
+      }
 
       // Frecuencias: E5 = 659.25 Hz, A5 = 880 Hz
       const E5 = 659.25;
@@ -143,7 +173,7 @@ export const useGeofenceAlerts = () => {
       osc2.stop(audioContext.currentTime + 0.3);
 
     } catch (error) {
-      console.log('Audio no disponible');
+      // Audio no disponible
     }
 
     // Sin voz - solo tonos profesionales

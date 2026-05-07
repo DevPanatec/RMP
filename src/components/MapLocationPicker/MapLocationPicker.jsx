@@ -345,7 +345,6 @@ const MapLocationPicker = ({
           onClick={handleMapClick}
           mapStyle={MAP_STYLE}
           style={{ width: '100%', height: '100%' }}
-          attributionControl={false}
         >
           <NavigationControl position="top-right" />
 

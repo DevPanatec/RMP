@@ -87,12 +87,6 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
 
   useEffect(() => {
     if (route && isEditing) {
-      console.log('🔍 DEBUG RouteModal - Cargando ruta para editar:', route);
-      console.log('🔍 DEBUG RouteModal - dias_operacion recibidos:', route.dias_operacion);
-      console.log('🔍 DEBUG RouteModal - Tipo de dias_operacion:', typeof route.dias_operacion, Array.isArray(route.dias_operacion));
-      console.log('🔍 DEBUG RouteModal - paradas recibidas:', route.paradas);
-      console.log('🔍 DEBUG RouteModal - Tipo de paradas:', typeof route.paradas, Array.isArray(route.paradas));
-
       const diasOperacion = Array.isArray(route.dias_operacion)
         ? route.dias_operacion
         : [];
@@ -101,10 +95,6 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
       const paradas = Array.isArray(route.paradas)
         ? route.paradas
         : (Array.isArray(route.stops) ? route.stops : []);
-
-      console.log('🔍 DEBUG RouteModal - dias_operacion procesados:', diasOperacion);
-      console.log('🔍 DEBUG RouteModal - paradas procesadas:', paradas);
-      console.log('🔍 DEBUG RouteModal - Cantidad de paradas:', paradas.length);
 
       setFormData({
         nombre: route.nombre || route.name || '',
@@ -303,9 +293,6 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
       }
     }
 
-    console.log('🔍 DEBUG validateForm - Errores encontrados:', newErrors);
-    console.log('🔍 DEBUG validateForm - Cantidad de paradas:', formData.paradas.length);
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -359,16 +346,9 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
   };
 
   const handleSave = () => {
-    console.log('🔍 DEBUG RouteModal - handleSave() ejecutado');
-    console.log('🔍 DEBUG RouteModal - formData actual:', formData);
-    console.log('🔍 DEBUG RouteModal - dias_operacion en formData:', formData.dias_operacion);
-
     const isValid = validateForm();
-    console.log('🔍 DEBUG RouteModal - Validación:', isValid ? '✅ PASÓ' : '❌ FALLÓ');
 
     if (!isValid) {
-      console.log('❌ DEBUG RouteModal - Validación falló, abortando guardado');
-      console.log('❌ DEBUG RouteModal - Revisa los errores arriba loggeados por validateForm()');
       return;
     }
 
@@ -388,9 +368,6 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
     if (formData.hora_fin) routeData.hora_fin = formData.hora_fin;
     if (photoPortadaId) routeData.foto_portada_storage_id = photoPortadaId;
     if (ubicacion) routeData.ubicacion_principal = ubicacion;
-
-    console.log('✅ DEBUG RouteModal - Datos a enviar:', routeData);
-    console.log('✅ DEBUG RouteModal - Llamando onSave() con routeData');
 
     onSave(routeData);
   };
@@ -815,7 +792,6 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
                       initialViewState={initialViewState}
                       mapStyle={MAP_STYLE}
                       style={{ height: '100%', width: '100%' }}
-                      attributionControl={false}
                     >
                       <NavigationControl position="top-right" />
 

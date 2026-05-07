@@ -1,13 +1,13 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthScope, getScopedProjectId } from "./lib/auth";
+import { getAuthScope, requireOrgAccess, requireWriteRole } from "./lib/auth";
 
-// Filtra items por scope: super_admin/cross-org ven todos; demás solo su org.
+// Filtra items por scope: super_admin/cross-org ven todos; demás solo su org (estricta).
 async function scopeItems(ctx: any, items: any[]) {
   const scope = await getAuthScope(ctx);
   if (scope.isSuperAdmin || scope.isCrossOrgViewer) return items;
   if (!scope.organizacionId) return [];
-  return items.filter((i) => !i.organizacion_id || i.organizacion_id === scope.organizacionId);
+  return items.filter((i) => i.organizacion_id === scope.organizacionId);
 }
 
 // Generar código único para items de inventario (scoped)
@@ -80,54 +80,6 @@ export const list = query({
   },
 });
 
-// Obtener item específico con todas sus ubicaciones (para modal detallado)
-export const getItemWithLocations = query({
-  args: { itemId: v.id("inventario") },
-  handler: async (ctx, args) => {
-    const item = await ctx.db.get(args.itemId);
-    if (!item) return null;
-
-    // Obtener todas las ubicaciones
-    const ubicaciones = await ctx.db
-      .query("inventario_ubicaciones")
-      .withIndex("by_item", (q) => q.eq("item_id", args.itemId))
-      .collect();
-
-    // Enriquecer con datos de lugar
-    const ubicacionesConDetalles = await Promise.all(
-      ubicaciones.map(async (ub) => {
-        const lugar = await ctx.db.get(ub.lugar_id);
-        return {
-          _id: ub._id,
-          lugar_id: ub.lugar_id,
-          lugar_nombre: lugar?.nombre || "Desconocido",
-          lugar_descripcion: lugar?.descripcion,
-          cantidad: ub.cantidad,
-        };
-      })
-    );
-
-    const cantidad_total = ubicaciones.reduce((sum, ub) => sum + ub.cantidad, 0);
-
-    return {
-      ...item,
-      cantidad_total,
-      ubicaciones: ubicacionesConDetalles,
-    };
-  },
-});
-
-// Obtener items por tipo
-export const getByTipo = query({
-  args: { tipo_articulo: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("inventario")
-      .withIndex("by_tipo", (q) => q.eq("tipo_articulo", args.tipo_articulo))
-      .collect();
-  },
-});
-
 // Crear nuevo item con ubicación inicial OPCIONAL
 export const add = mutation({
   args: {
@@ -146,10 +98,26 @@ export const add = mutation({
     usuario_id: v.optional(v.id("perfiles_usuarios")),
   },
   handler: async (ctx, args) => {
+    const scope = await requireWriteRole(ctx);
+    if (!scope.isSuperAdmin && !scope.organizacionId) {
+      throw new Error("Sin organización asignada");
+    }
+    const orgId = scope.organizacionId ?? undefined;
+
+    // Validar lugar si viene
+    if (args.lugar_id) {
+      const lugar = await ctx.db.get(args.lugar_id);
+      if (!lugar) throw new Error("Lugar no encontrado");
+      if (!lugar.organizacion_id) throw new Error("Lugar sin organización — requiere migración");
+      await requireOrgAccess(ctx, lugar.organizacion_id);
+    }
+
     const { lugar_id, cantidad_inicial, usuario_id, ...itemData } = args;
 
-    // Crear el item
-    const itemId = await ctx.db.insert("inventario", itemData);
+    // Crear el item con organizacion_id auto-attach
+    const itemPayload: any = { ...itemData };
+    if (orgId) itemPayload.organizacion_id = orgId;
+    const itemId = await ctx.db.insert("inventario", itemPayload);
 
     // Si se proporciona ubicación, crear la ubicación inicial
     if (lugar_id && cantidad_inicial !== undefined && cantidad_inicial > 0) {
@@ -160,7 +128,7 @@ export const add = mutation({
       });
 
       // Registrar movimiento de asignación
-      await ctx.db.insert("inventario_movimientos", {
+      const movPayload: any = {
         item_id: itemId,
         tipo_movimiento: "asignacion",
         cantidad: cantidad_inicial,
@@ -170,11 +138,13 @@ export const add = mutation({
         usuario_id: usuario_id,
         fecha: Date.now(),
         notas: "Asignación inicial al crear item",
-      });
+      };
+      if (orgId) movPayload.organizacion_id = orgId;
+      await ctx.db.insert("inventario_movimientos", movPayload);
     }
 
     // Registrar movimiento de compra (entrada al almacén principal)
-    await ctx.db.insert("inventario_movimientos", {
+    const compraPayload: any = {
       item_id: itemId,
       tipo_movimiento: "compra",
       cantidad: cantidad_inicial || 0,
@@ -183,7 +153,9 @@ export const add = mutation({
       usuario_id: usuario_id,
       fecha: Date.now(),
       notas: `Compra inicial: ${args.nombre}`,
-    });
+    };
+    if (orgId) compraPayload.organizacion_id = orgId;
+    await ctx.db.insert("inventario_movimientos", compraPayload);
 
     return itemId;
   },
@@ -197,6 +169,16 @@ export const addToLocation = mutation({
     cantidad: v.number(),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const item = await ctx.db.get(args.item_id);
+    if (!item) throw new Error("Item no encontrado");
+    if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
+    await requireOrgAccess(ctx, item.organizacion_id);
+    const lugar = await ctx.db.get(args.lugar_id);
+    if (!lugar) throw new Error("Lugar no encontrado");
+    if (!lugar.organizacion_id) throw new Error("Lugar sin organización — requiere migración");
+    await requireOrgAccess(ctx, lugar.organizacion_id);
+
     // Verificar si ya existe esta combinación
     const existing = await ctx.db
       .query("inventario_ubicaciones")
@@ -224,6 +206,13 @@ export const updateLocationQuantity = mutation({
     cantidad: v.number(),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const ub = await ctx.db.get(args.ubicacion_id);
+    if (!ub) throw new Error("Ubicación no encontrada");
+    const item = await ctx.db.get(ub.item_id);
+    if (!item) throw new Error("Item no encontrado");
+    if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
+    await requireOrgAccess(ctx, item.organizacion_id);
     return await ctx.db.patch(args.ubicacion_id, { cantidad: args.cantidad });
   },
 });
@@ -232,6 +221,13 @@ export const updateLocationQuantity = mutation({
 export const removeFromLocation = mutation({
   args: { ubicacion_id: v.id("inventario_ubicaciones") },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const ub = await ctx.db.get(args.ubicacion_id);
+    if (!ub) throw new Error("Ubicación no encontrada");
+    const item = await ctx.db.get(ub.item_id);
+    if (!item) throw new Error("Item no encontrado");
+    if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
+    await requireOrgAccess(ctx, item.organizacion_id);
     return await ctx.db.delete(args.ubicacion_id);
   },
 });
@@ -250,6 +246,11 @@ export const update = mutation({
     proveedor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const item = await ctx.db.get(args.id);
+    if (!item) throw new Error("Item no encontrado");
+    if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
+    await requireOrgAccess(ctx, item.organizacion_id);
     const { id, ...updates } = args;
     return await ctx.db.patch(id, updates);
   },
@@ -259,6 +260,12 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("inventario") },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const item = await ctx.db.get(args.id);
+    if (!item) throw new Error("Item no encontrado");
+    if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
+    await requireOrgAccess(ctx, item.organizacion_id);
+
     // Primero eliminar todas las ubicaciones
     const ubicaciones = await ctx.db
       .query("inventario_ubicaciones")
@@ -274,22 +281,47 @@ export const remove = mutation({
   },
 });
 
-// Listar todos los lugares activos (para selectores)
+// Listar todos los lugares activos (para selectores) — scoped por org
 export const getLugaresActivos = query({
   handler: async (ctx) => {
-    return await ctx.db
+    const scope = await getAuthScope(ctx);
+    const all = await ctx.db
       .query("lugares")
       .withIndex("by_activo", (q) => q.eq("activo", true))
       .collect();
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) return all;
+    if (!scope.organizacionId) return [];
+    // Lugares con organizacion_id directo: filtrar por org
+    // Lugares con solo proyecto_id: resolver org via proyecto
+    const proyectoCache = new Map<string, any>();
+    const result: any[] = [];
+    for (const l of all) {
+      if (l.organizacion_id) {
+        if (l.organizacion_id === scope.organizacionId) result.push(l);
+      } else if (l.proyecto_id) {
+        let proyecto = proyectoCache.get(l.proyecto_id as string);
+        if (!proyecto) {
+          proyecto = await ctx.db.get(l.proyecto_id);
+          proyectoCache.set(l.proyecto_id as string, proyecto);
+        }
+        if (proyecto?.organizacion_id === scope.organizacionId) result.push(l);
+      }
+    }
+    return result;
   },
 });
 
-// Obtener stock sin asignar de un item (almacén principal)
+// Obtener stock sin asignar de un item (almacén principal) — scoped por org
 export const getStockSinAsignar = query({
   args: { itemId: v.id("inventario") },
   handler: async (ctx, args) => {
     const item = await ctx.db.get(args.itemId);
     if (!item) return 0;
+    // Validar acceso al item
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      if (!scope.organizacionId || item.organizacion_id !== scope.organizacionId) return 0;
+    }
 
     // Para items legacy con cantidad_disponible
     if (item.cantidad_disponible !== undefined) {
@@ -329,27 +361,43 @@ export const asignarDesdeAlmacen = mutation({
     proyecto_id: v.optional(v.id("proyectos")),
   },
   handler: async (ctx, args) => {
-    // Verificar que haya suficiente stock sin asignar
-    const stockSinAsignar = await ctx.db
-      .query("inventario_movimientos")
-      .withIndex("by_item", (q) => q.eq("item_id", args.item_id))
-      .collect();
+    await requireWriteRole(ctx);
+    const item = await ctx.db.get(args.item_id);
+    if (!item) throw new Error("Item no encontrado");
+    if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
+    await requireOrgAccess(ctx, item.organizacion_id);
+    const lugar = await ctx.db.get(args.lugar_id);
+    if (!lugar) throw new Error("Lugar no encontrado");
+    if (!lugar.organizacion_id) throw new Error("Lugar sin organización — requiere migración");
+    await requireOrgAccess(ctx, lugar.organizacion_id);
 
-    const totalComprado = stockSinAsignar
-      .filter((m) => m.tipo_movimiento === "compra")
-      .reduce((sum, m) => sum + m.cantidad, 0);
-
-    const ubicaciones = await ctx.db
-      .query("inventario_ubicaciones")
-      .withIndex("by_item", (q) => q.eq("item_id", args.item_id))
-      .collect();
-
-    const totalAsignado = ubicaciones.reduce((sum, ub) => sum + ub.cantidad, 0);
-    const disponible = totalComprado - totalAsignado;
+    // Anti-race: usar item.cantidad_disponible como single source of truth para stock
+    // sin asignar. Convex serializa writes por documento → concurrent calls a esta
+    // mutation conflictan en el patch del item y OCC reintenta automáticamente.
+    let disponible: number;
+    if (typeof item.cantidad_disponible === "number") {
+      disponible = item.cantidad_disponible;
+    } else {
+      // Bootstrap legacy: calcular desde movimientos UNA vez y materializar.
+      const movs = await ctx.db
+        .query("inventario_movimientos")
+        .withIndex("by_item", (q) => q.eq("item_id", args.item_id))
+        .collect();
+      const totalComprado = movs.filter((m) => m.tipo_movimiento === "compra").reduce((s, m) => s + m.cantidad, 0);
+      const ubsAll = await ctx.db
+        .query("inventario_ubicaciones")
+        .withIndex("by_item", (q) => q.eq("item_id", args.item_id))
+        .collect();
+      const totalAsignado = ubsAll.reduce((sum, ub) => sum + ub.cantidad, 0);
+      disponible = totalComprado - totalAsignado;
+    }
 
     if (disponible < args.cantidad) {
       throw new Error(`Stock insuficiente. Disponible: ${disponible}, solicitado: ${args.cantidad}`);
     }
+
+    // Decrementar atómicamente (esto fuerza write-conflict si hay race).
+    await ctx.db.patch(args.item_id, { cantidad_disponible: disponible - args.cantidad });
 
     // Verificar si ya existe esta ubicación
     const existing = await ctx.db
@@ -374,12 +422,10 @@ export const asignarDesdeAlmacen = mutation({
     }
 
     // Derivar proyecto_id desde el lugar si no se pasó explícito
-    const lugar = await ctx.db.get(args.lugar_id);
     const proyecto_id = args.proyecto_id ?? lugar?.proyecto_id;
 
     // Registrar movimiento de asignación
-    const item = await ctx.db.get(args.item_id);
-    await ctx.db.insert("inventario_movimientos", {
+    const movPayload: any = {
       item_id: args.item_id,
       tipo_movimiento: "asignacion",
       cantidad: args.cantidad,
@@ -390,16 +436,19 @@ export const asignarDesdeAlmacen = mutation({
       proyecto_id,
       fecha: Date.now(),
       notas: "Asignación desde almacén principal",
-    });
+    };
+    if (item.organizacion_id) movPayload.organizacion_id = item.organizacion_id;
+    await ctx.db.insert("inventario_movimientos", movPayload);
 
     return { success: true };
   },
 });
 
-// Calcular valor total del inventario (para costos)
+// Calcular valor total del inventario (para costos) — scoped por org
 export const getValorTotalInventario = query({
   handler: async (ctx) => {
-    const items = await ctx.db.query("inventario").collect();
+    const allItems = await ctx.db.query("inventario").collect();
+    const items = await scopeItems(ctx, allItems);
 
     let valorTotal = 0;
 
@@ -431,70 +480,17 @@ export const getValorTotalInventario = query({
   },
 });
 
-// Obtener movimientos por periodo (para historial y gráficas)
-export const getMovimientosPorPeriodo = query({
-  args: {
-    desde: v.optional(v.number()), // timestamp
-    hasta: v.optional(v.number()), // timestamp
-    tipo_movimiento: v.optional(v.string()),
-    proyecto_id: v.optional(v.id("proyectos")),
-  },
-  handler: async (ctx, args) => {
-    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
-    let query = ctx.db.query("inventario_movimientos");
-
-    // Filtrar por fecha si se proporciona
-    if (args.desde || args.hasta) {
-      query = query.withIndex("by_fecha");
-    }
-
-    let movimientos = await query.collect();
-
-    // Filtrar por proyecto (excepto compras que pueden ser globales)
-    if (scoped) {
-      movimientos = movimientos.filter(
-        (m) => m.proyecto_id === scoped || m.tipo_movimiento === "compra"
-      );
-    }
-
-    // Filtrar por rango de fechas
-    if (args.desde) {
-      movimientos = movimientos.filter((m) => m.fecha >= args.desde!);
-    }
-    if (args.hasta) {
-      movimientos = movimientos.filter((m) => m.fecha <= args.hasta!);
-    }
-
-    // Filtrar por tipo
-    if (args.tipo_movimiento) {
-      movimientos = movimientos.filter((m) => m.tipo_movimiento === args.tipo_movimiento);
-    }
-
-    // Enriquecer con datos del item
-    const movimientosConDatos = await Promise.all(
-      movimientos.map(async (mov) => {
-        const item = await ctx.db.get(mov.item_id);
-        const lugar_destino = mov.lugar_destino_id ? await ctx.db.get(mov.lugar_destino_id) : null;
-
-        return {
-          ...mov,
-          item_nombre: item?.nombre || "Desconocido",
-          item_codigo: item?.codigo,
-          item_tipo: item?.tipo_articulo,
-          lugar_destino_nombre: lugar_destino?.nombre,
-        };
-      })
-    );
-
-    // Ordenar por fecha descendente
-    return movimientosConDatos.sort((a, b) => b.fecha - a.fecha);
-  },
-});
-
-// Obtener movimientos de un item específico (para historial en modal)
+// Obtener movimientos de un item específico (para historial en modal) — scoped por org
 export const getMovimientosByItem = query({
   args: { itemId: v.id("inventario") },
   handler: async (ctx, args) => {
+    // Validar acceso al item
+    const item = await ctx.db.get(args.itemId);
+    if (!item) return [];
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      if (!scope.organizacionId || item.organizacion_id !== scope.organizacionId) return [];
+    }
     const movimientos = await ctx.db
       .query("inventario_movimientos")
       .withIndex("by_item", (q) => q.eq("item_id", args.itemId))
@@ -535,10 +531,13 @@ export const registrarCompra = mutation({
     usuario_id: v.optional(v.id("perfiles_usuarios")),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
     const item = await ctx.db.get(args.item_id);
     if (!item) {
       throw new Error("Item no encontrado");
     }
+    if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
+    await requireOrgAccess(ctx, item.organizacion_id);
 
     // Actualizar precio unitario del item si es diferente
     if (args.precio_unitario !== item.precio_unitario) {
@@ -561,7 +560,7 @@ export const registrarCompra = mutation({
     });
 
     // Registrar movimiento de compra
-    await ctx.db.insert("inventario_movimientos", {
+    const movPayload: any = {
       item_id: args.item_id,
       tipo_movimiento: "compra",
       cantidad: args.cantidad,
@@ -570,16 +569,19 @@ export const registrarCompra = mutation({
       usuario_id: args.usuario_id,
       fecha: Date.now(),
       notas: args.notas || `Compra: ${item.nombre}`,
-    });
+    };
+    if (item.organizacion_id) movPayload.organizacion_id = item.organizacion_id;
+    await ctx.db.insert("inventario_movimientos", movPayload);
 
     return { success: true };
   },
 });
 
-// Obtener costos agrupados por tipo de artículo
+// Obtener costos agrupados por tipo de artículo — scoped por org
 export const getCostosPorTipo = query({
   handler: async (ctx) => {
-    const items = await ctx.db.query("inventario").collect();
+    const allItems = await ctx.db.query("inventario").collect();
+    const items = await scopeItems(ctx, allItems);
 
     const costosPorTipo: Record<string, { valor: number; cantidad_items: number; cantidad_unidades: number }> = {
       herramienta: { valor: 0, cantidad_items: 0, cantidad_unidades: 0 },
@@ -629,6 +631,57 @@ export const getCostosPorTipo = query({
   },
 });
 
+// Obtener consumo agrupado por tipo de artículo (gasto real por uso, no compra).
+export const getConsumoPorTipo = query({
+  handler: async (ctx) => {
+    const scope = await getAuthScope(ctx);
+    const movimientos = await ctx.db
+      .query("inventario_movimientos")
+      .withIndex("by_tipo", (q) => q.eq("tipo_movimiento", "consumo"))
+      .collect();
+
+    // Filtrar por scope.
+    const scoped = scope.isSuperAdmin || scope.isCrossOrgViewer
+      ? movimientos
+      : (scope.organizacionId
+          ? movimientos.filter((m) => m.organizacion_id === scope.organizacionId)
+          : []);
+
+    const consumoPorTipo: Record<string, { valor: number; cantidad_unidades: number }> = {
+      herramienta: { valor: 0, cantidad_unidades: 0 },
+      insumo: { valor: 0, cantidad_unidades: 0 },
+      equipo: { valor: 0, cantidad_unidades: 0 },
+      uniforme: { valor: 0, cantidad_unidades: 0 },
+    };
+
+    // Cache de items para no re-query.
+    const itemCache = new Map<string, any>();
+    for (const mov of scoped) {
+      let item = itemCache.get(mov.item_id as string);
+      if (!item) {
+        item = await ctx.db.get(mov.item_id);
+        itemCache.set(mov.item_id as string, item);
+      }
+      if (!item) continue;
+      const tipo = item.tipo_articulo || "insumo";
+      const valor = mov.costo_total || 0;
+      if (consumoPorTipo[tipo]) {
+        consumoPorTipo[tipo].valor += valor;
+        consumoPorTipo[tipo].cantidad_unidades += mov.cantidad;
+      }
+    }
+
+    const valorTotal = Object.values(consumoPorTipo).reduce((sum, t) => sum + t.valor, 0);
+
+    return Object.entries(consumoPorTipo).map(([tipo, datos]) => ({
+      tipo,
+      valor: Math.round(datos.valor * 100) / 100,
+      porcentaje: valorTotal > 0 ? ((datos.valor / valorTotal) * 100).toFixed(1) : "0.0",
+      cantidad_unidades: datos.cantidad_unidades,
+    }));
+  },
+});
+
 // Obtener historial de compras agrupado por mes (para gráficas)
 export const getHistorialComprasPorMes = query({
   args: {
@@ -639,13 +692,19 @@ export const getHistorialComprasPorMes = query({
     const ahora = Date.now();
     const fechaInicio = ahora - mesesAtras * 30 * 24 * 60 * 60 * 1000; // Aproximado
 
+    const scope = await getAuthScope(ctx);
     const movimientos = await ctx.db
       .query("inventario_movimientos")
       .withIndex("by_tipo", (q) => q.eq("tipo_movimiento", "compra"))
       .collect();
 
-    // Filtrar por fecha
-    const movimientosFiltrados = movimientos.filter((m) => m.fecha >= fechaInicio);
+    // Filtrar por fecha y org
+    const movimientosFiltrados = movimientos.filter((m) => {
+      if (m.fecha < fechaInicio) return false;
+      if (scope.isSuperAdmin || scope.isCrossOrgViewer) return true;
+      if (!scope.organizacionId) return false;
+      return m.organizacion_id === scope.organizacionId;
+    });
 
     // Agrupar por mes
     const comprasPorMes: Record<string, number> = {};
@@ -672,6 +731,72 @@ export const getHistorialComprasPorMes = query({
   },
 });
 
+// Registrar consumo de inventario: decrementa stock por uso. Auth-gated por proyecto del lugar.
+export const registrarConsumo = mutation({
+  args: {
+    item_id: v.id("inventario"),
+    lugar_id: v.id("lugares"),
+    cantidad: v.number(),
+    notas: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (args.cantidad <= 0) throw new Error("Cantidad debe ser positiva");
+
+    const scope = await requireWriteRole(ctx);
+    const item = await ctx.db.get(args.item_id);
+    if (!item) throw new Error("Item no encontrado");
+    if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
+    await requireOrgAccess(ctx, item.organizacion_id);
+
+    const lugar = await ctx.db.get(args.lugar_id);
+    if (!lugar) throw new Error("Lugar no encontrado");
+    if (lugar.proyecto_id) {
+      // Best-effort: si el lugar tiene proyecto, validar acceso al proyecto.
+      // No bloquea si lugar está sin proyecto (legacy).
+      const proyecto = await ctx.db.get(lugar.proyecto_id);
+      if (proyecto && !scope.isSuperAdmin && proyecto.organizacion_id !== scope.organizacionId) {
+        throw new Error("Acceso denegado al proyecto del lugar");
+      }
+    }
+
+    // Buscar ubicación item+lugar.
+    const ubicacion = await ctx.db
+      .query("inventario_ubicaciones")
+      .withIndex("by_item_lugar", (q) => q.eq("item_id", args.item_id).eq("lugar_id", args.lugar_id))
+      .first();
+
+    if (!ubicacion || ubicacion.cantidad < args.cantidad) {
+      throw new Error(`Stock insuficiente en ${lugar.nombre} (disponible: ${ubicacion?.cantidad ?? 0}, solicitado: ${args.cantidad})`);
+    }
+
+    // Decrementar ubicación.
+    await ctx.db.patch(ubicacion._id, { cantidad: ubicacion.cantidad - args.cantidad });
+
+    // Decrementar legacy cantidad_disponible si existe (mantener consistencia).
+    if (typeof item.cantidad_disponible === "number") {
+      await ctx.db.patch(args.item_id, {
+        cantidad_disponible: Math.max(0, item.cantidad_disponible - args.cantidad),
+      });
+    }
+
+    // Insertar movimiento type=consumo.
+    await ctx.db.insert("inventario_movimientos", {
+      item_id: args.item_id,
+      lugar_origen_id: args.lugar_id,
+      tipo_movimiento: "consumo",
+      cantidad: args.cantidad,
+      precio_unitario: item.precio_unitario,
+      costo_total: (item.precio_unitario || 0) * args.cantidad,
+      usuario_id: scope.perfil?._id,
+      notas: args.notas,
+      fecha: Date.now(),
+      organizacion_id: item.organizacion_id,
+    });
+
+    return { success: true, restante: ubicacion.cantidad - args.cantidad };
+  },
+});
+
 // Obtener top items más costosos
 export const getTopItemsMasCostosos = query({
   args: {
@@ -679,7 +804,8 @@ export const getTopItemsMasCostosos = query({
   },
   handler: async (ctx, args) => {
     const limite = args.limit || 10;
-    const items = await ctx.db.query("inventario").collect();
+    const allRaw = await ctx.db.query("inventario").collect();
+    const items = await scopeItems(ctx, allRaw);
 
     const itemsConValor = await Promise.all(
       items.map(async (item) => {

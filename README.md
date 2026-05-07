@@ -41,13 +41,9 @@ Este proyecto ha sido migrado exitosamente de:
 
 3. **Abre tu navegador en:** `http://localhost:3000`
 
-## 👥 Credenciales de Prueba
+## 👥 Usuarios
 
-| Tipo | Usuario | Contraseña | Descripción |
-|------|---------|------------|-------------|
-| Admin | `admin` | `admin123` | Acceso completo al sistema |
-| Enterprise | `empresa1` | `emp123` | Vista de empresa con camiones asignados |
-| Conductor | `conductor1` | `cond123` | Vista de conductor con ruta asignada |
+Los usuarios se crean desde el Admin Dashboard ("Crear Perfil") o vía Clerk Dashboard. No hay credenciales públicas — cada deploy genera sus propios usuarios.
 
 ## 📁 Estructura del Proyecto
 

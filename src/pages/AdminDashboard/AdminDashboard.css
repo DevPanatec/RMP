@@ -52,6 +52,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-12);
   padding: var(--space-12) var(--space-24);
   border-bottom: 1px solid var(--color-divider);
 }
@@ -84,6 +86,64 @@
   display: flex;
   align-items: center;
   gap: var(--space-12);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.app-bar__actions > * {
+  min-width: 0;
+}
+
+/* Laptop estándar: ocultar texto del status, compactar gap */
+@media (max-width: 1600px) {
+  .app-bar__status span {
+    display: none;
+  }
+}
+
+/* Tablet / laptop pequeño: compactar switchers */
+@media (max-width: 1280px) {
+  .app-bar__actions {
+    gap: var(--space-8);
+  }
+  .organization-switcher-select,
+  .project-switcher-select {
+    min-width: 140px;
+  }
+  .organization-switcher,
+  .project-switcher {
+    padding: var(--space-4) var(--space-8);
+  }
+  .organization-switcher-label,
+  .project-switcher-label {
+    font-size: 10px;
+  }
+}
+
+/* Pantallas medianas: ocultar labels de switchers */
+@media (max-width: 1100px) {
+  .organization-switcher-label,
+  .project-switcher-label {
+    display: none;
+  }
+  .app-bar__logout span {
+    display: none;
+  }
+}
+
+/* Laptop estándar (1366px y similares): tabs solo íconos para que quepan los 10 */
+@media (max-width: 1366px) {
+  .top-nav__tab {
+    padding: var(--space-12) var(--space-12);
+    flex-shrink: 0;
+  }
+  .top-nav__tab span:not(:empty) {
+    display: none;
+  }
+  .top-nav__tab.active span:not(:empty) {
+    display: inline;
+  }
 }
 
 .app-bar__status {
@@ -665,7 +725,7 @@
   gap: var(--space-8);
   padding: var(--space-8) var(--space-16);
   background: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-semibold);
@@ -707,7 +767,7 @@
   gap: var(--space-4);
   padding: var(--space-8) var(--space-12);
   background: var(--color-warning);
-  color: white;
+  color: var(--color-surface);
   border-radius: var(--radius-base);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
@@ -737,7 +797,7 @@
 .demo-toggle-btn.active {
   background: var(--color-warning);
   border-color: var(--color-warning);
-  color: white;
+  color: var(--color-surface);
 }
 
 .demo-toggle-btn.active:hover {
@@ -809,7 +869,7 @@
 .kpi-card:hover .kpi-icon {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
 }
 
 .kpi-content {
@@ -1016,7 +1076,7 @@
 
 .filter-btn.active {
   background: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
   border-color: var(--color-primary);
   font-weight: var(--font-weight-semibold);
 }
@@ -1108,7 +1168,7 @@
   padding: var(--space-12);
   background: var(--color-primary);
   border-radius: var(--radius-md);
-  color: white;
+  color: var(--color-surface);
   flex-shrink: 0;
 }
 
@@ -1156,7 +1216,7 @@
   gap: var(--space-8);
   padding: var(--space-8) var(--space-20);
   background: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
@@ -1180,7 +1240,7 @@
   gap: var(--space-8);
   padding: var(--space-8) var(--space-20);
   background: var(--color-info);
-  color: white;
+  color: var(--color-surface);
   border: 1px solid var(--color-info);
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
@@ -1201,7 +1261,7 @@
   gap: var(--space-8);
   padding: var(--space-8) var(--space-20);
   background: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
@@ -1301,7 +1361,7 @@
 .ops-filter-chip.active {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
 }
 
 .ops-filter-chip svg {
@@ -1544,12 +1604,12 @@
 .ops-tab-active {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
   font-weight: var(--font-weight-semibold);
 }
 
 .ops-tab-active svg {
-  color: white;
+  color: var(--color-surface);
 }
 
 .ops-tab-active:hover {
@@ -1557,7 +1617,7 @@
 }
 
 .ops-tab-active:hover svg {
-  color: white;
+  color: var(--color-surface);
 }
 
 @media (max-width: 768px) {
@@ -1828,7 +1888,7 @@
 
 .filter-chip.active {
   background: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
   font-weight: var(--font-weight-semibold);
   box-shadow: var(--shadow-sm);
 }
@@ -1871,7 +1931,7 @@
 
 .maximize-btn:hover {
   background: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
   border-color: var(--color-primary);
 }
 
@@ -2026,7 +2086,7 @@
 
 .minimize-btn:hover {
   background: var(--color-error);
-  color: white;
+  color: var(--color-surface);
 }
 
 /* Floating Notifications in maximized map */
@@ -2283,7 +2343,7 @@
   padding: var(--space-8) var(--space-20);
   border: 1px solid var(--color-primary);
   background: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
   border-radius: var(--radius-base);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
@@ -2391,7 +2451,7 @@
   gap: var(--space-4);
   padding: var(--space-8) var(--space-16);
   background: var(--color-error);
-  color: white;
+  color: var(--color-surface);
   border: none;
   border-radius: var(--radius-base);
   font-size: var(--font-size-xs);
@@ -2476,7 +2536,7 @@
   background: var(--color-primary);
   border: none;
   border-radius: var(--radius-full);
-  color: white;
+  color: var(--color-surface);
   cursor: pointer;
   box-shadow: var(--shadow-md);
   transition: all var(--duration-fast) var(--ease-out);
@@ -2786,13 +2846,13 @@
 
   .sheet-tab.active {
     background: var(--color-primary);
-    color: white;
+    color: var(--color-surface);
     border-color: var(--color-primary);
   }
 
   .sheet-tab__badge {
     background: var(--color-error);
-    color: white;
+    color: var(--color-surface);
     font-size: 10px;
     font-weight: var(--font-weight-semibold);
     padding: 1px 6px;

@@ -14,7 +14,6 @@ import type * as crons from "../crons.js";
 import type * as empleados from "../empleados.js";
 import type * as files from "../files.js";
 import type * as fumigaciones from "../fumigaciones.js";
-import type * as geofenceAlerts from "../geofenceAlerts.js";
 import type * as geofences from "../geofences.js";
 import type * as gps from "../gps.js";
 import type * as http from "../http.js";
@@ -49,7 +48,6 @@ declare const fullApi: ApiFromModules<{
   empleados: typeof empleados;
   files: typeof files;
   fumigaciones: typeof fumigaciones;
-  geofenceAlerts: typeof geofenceAlerts;
   geofences: typeof geofences;
   gps: typeof gps;
   http: typeof http;

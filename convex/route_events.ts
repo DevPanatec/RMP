@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthScope, getScopedProjectId, getScopedOrgId, requireProjectAccess } from "./lib/auth";
+import { getAuthScope, getScopedProjectId, getScopedOrgId, requireProjectAccess, requireWriteRole } from "./lib/auth";
 
 // Create route event
 export const add = mutation({
@@ -33,47 +33,116 @@ export const add = mutation({
     detalles: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const scope = await getAuthScope(ctx);
+    if (!scope.perfil) throw new Error("No autenticado");
     let proyecto_id;
+    let asignacion = null;
+    let ruta = null;
     if (args.asignacion_id) {
-      const a = await ctx.db.get(args.asignacion_id);
-      proyecto_id = a?.proyecto_id;
+      asignacion = await ctx.db.get(args.asignacion_id);
+      proyecto_id = asignacion?.proyecto_id;
     }
     if (!proyecto_id && args.ruta_id) {
-      const r = await ctx.db.get(args.ruta_id);
-      proyecto_id = r?.proyecto_id;
+      ruta = await ctx.db.get(args.ruta_id);
+      proyecto_id = ruta?.proyecto_id;
     }
     if (proyecto_id) await requireProjectAccess(ctx, proyecto_id);
+
+    const orgId =
+      asignacion?.organizacion_id ??
+      ruta?.organizacion_id ??
+      scope.organizacionId ??
+      undefined;
+
     const eventData: any = {
       ...args,
       proyecto_id,
       timestamp: new Date().toISOString(),
     };
+    if (orgId) eventData.organizacion_id = orgId;
 
     return await ctx.db.insert("route_events", eventData);
   },
 });
 
-// Get events for a specific route/assignment
-export const getByAssignment = query({
-  args: { asignacion_id: v.id("asignaciones_rutas") },
+// Adjuntar foto a un evento parada_completada existente.
+// Usado por offline-photo-queue cuando regresa la conexión: en vez de emitir
+// un evento duplicado, parchea el evento original con foto_storage_id.
+// Si no encuentra el evento (raro), inserta uno nuevo como fallback.
+export const attachPhotoToParada = mutation({
+  args: {
+    asignacion_id: v.id("asignaciones_rutas"),
+    parada_index: v.float64(),
+    foto_storage_id: v.id("_storage"),
+  },
   handler: async (ctx, args) => {
-    return await ctx.db
+    await requireWriteRole(ctx);
+    const scope = await getAuthScope(ctx);
+    if (!scope.perfil) throw new Error("No autenticado");
+
+    const events = await ctx.db
       .query("route_events")
       .withIndex("by_asignacion", (q) => q.eq("asignacion_id", args.asignacion_id))
-      .order("desc")
       .collect();
+    const target = events.find(
+      (e) => e.tipo_evento === "parada_completada" && e.parada_index === args.parada_index
+    );
+    if (!target) {
+      console.warn("attachPhotoToParada: no se encontró evento parada_completada para asignacion+parada");
+      return null;
+    }
+    if (!scope.isSuperAdmin && target.organizacion_id !== scope.organizacionId) {
+      throw new Error("Acceso denegado");
+    }
+    await ctx.db.patch(target._id, { foto_storage_id: args.foto_storage_id });
+    return target._id;
   },
 });
 
-// Get events for a specific route
-export const getByRoute = query({
-  args: { ruta_id: v.id("rutas") },
+// Get all events for a specific assignment (for admin sidebar live photos).
+export const getByAsignacion = query({
+  args: { asignacion_id: v.id("asignaciones_rutas") },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const scope = await getAuthScope(ctx);
+    if (!scope.perfil) throw new Error("No autenticado");
+    const events = await ctx.db
       .query("route_events")
-      .withIndex("by_ruta", (q) => q.eq("ruta_id", args.ruta_id))
-      .order("desc")
+      .withIndex("by_asignacion", (q) => q.eq("asignacion_id", args.asignacion_id))
       .collect();
+    if (scope.isCrossOrgViewer || scope.isSuperAdmin) return events;
+    if (!scope.organizacionId) return [];
+    return events.filter((e) => e.organizacion_id === scope.organizacionId);
+  },
+});
+
+// One-shot migration: backfill organizacion_id en route_events.
+// Deriva del proyecto: route_event.proyecto_id → proyectos.organizacion_id.
+export const _migrationBackfillOrganizacionId = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("route_events").collect();
+    let fixed = 0;
+    for (const ev of all) {
+      if (ev.organizacion_id != null) continue;
+      let orgId: typeof ev.organizacion_id = null;
+      if (ev.proyecto_id) {
+        const p = await ctx.db.get(ev.proyecto_id);
+        orgId = p?.organizacion_id ?? null;
+      }
+      if (!orgId && ev.asignacion_id) {
+        const a = await ctx.db.get(ev.asignacion_id);
+        orgId = a?.organizacion_id ?? null;
+      }
+      if (!orgId && ev.ruta_id) {
+        const r = await ctx.db.get(ev.ruta_id);
+        orgId = r?.organizacion_id ?? null;
+      }
+      if (!orgId) continue;
+      await ctx.db.patch(ev._id, { organizacion_id: orgId });
+      fixed++;
+    }
+    return { fixed, total: all.length };
   },
 });
 
@@ -111,39 +180,14 @@ export const getRecent = query({
         .order("desc")
         .take(limit * 4);
       return all
-        .filter((e) => !e.organizacion_id || e.organizacion_id === scopedOrg)
+        .filter((e) => e.organizacion_id === scopedOrg)
         .slice(0, limit);
     }
-    return await ctx.db
-      .query("route_events")
-      .order("desc")
-      .take(limit);
+    // Fallback: solo super_admin ve eventos globales sin filtro de org
+    if (scope.isSuperAdmin) {
+      return await ctx.db.query("route_events").order("desc").take(limit);
+    }
+    return [];
   },
 });
 
-// Get events by conductor
-export const getByConductor = query({
-  args: { conductor_id: v.id("perfiles_usuarios") },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("route_events")
-      .withIndex("by_conductor", (q) => q.eq("conductor_id", args.conductor_id))
-      .order("desc")
-      .collect();
-  },
-});
-
-// Get events for today (uses by_timestamp index for efficient range scan)
-export const getToday = query({
-  handler: async (ctx) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayISO = today.toISOString();
-
-    return await ctx.db
-      .query("route_events")
-      .withIndex("by_timestamp", (q) => q.gte("timestamp", todayISO))
-      .order("desc")
-      .collect();
-  },
-});

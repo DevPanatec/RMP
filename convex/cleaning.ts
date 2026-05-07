@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthScope, getScopedProjectId, requireProjectAccess } from "./lib/auth";
+import { getAuthScope, getScopedProjectId, requireProjectAccess, requireWriteRole, requireOrgAccess } from "./lib/auth";
 
 // ========== SALAS ==========
 export const listSalas = query({
@@ -31,6 +31,7 @@ export const addSala = mutation({
     proyecto_id: v.id("proyectos"),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
     await requireProjectAccess(ctx, args.proyecto_id);
     return await ctx.db.insert("salas", {
       ...args,
@@ -50,6 +51,13 @@ export const updateSala = mutation({
     foto_storage_id: v.optional(v.id("_storage")),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const sala = await ctx.db.get(args.id);
+    if (!sala) throw new Error("Sala no encontrada");
+    if (sala.proyecto_id) await requireProjectAccess(ctx, sala.proyecto_id);
+    else if (sala.organizacion_id) await requireOrgAccess(ctx, sala.organizacion_id);
+    else throw new Error("Sala sin organización — requiere migración");
+
     const { id, ...updates } = args;
     const cleanUpdates: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(updates)) {
@@ -62,6 +70,12 @@ export const updateSala = mutation({
 export const deleteSala = mutation({
   args: { id: v.id("salas") },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const sala = await ctx.db.get(args.id);
+    if (!sala) throw new Error("Sala no encontrada");
+    if (sala.proyecto_id) await requireProjectAccess(ctx, sala.proyecto_id);
+    else if (sala.organizacion_id) await requireOrgAccess(ctx, sala.organizacion_id);
+    else throw new Error("Sala sin organización — requiere migración");
     return await ctx.db.patch(args.id, { activo: false });
   },
 });
@@ -78,7 +92,7 @@ export const listAreas = query({
     const salas = await ctx.db.query("salas").collect();
     const salasOk = new Set(
       salas
-        .filter((s) => !s.organizacion_id || s.organizacion_id === scope.organizacionId)
+        .filter((s) => s.organizacion_id === scope.organizacionId)
         .map((s) => s._id)
     );
     return areas.filter((a) => salasOk.has(a.sala_id));
@@ -88,6 +102,15 @@ export const listAreas = query({
 export const getAreasBySala = query({
   args: { sala_id: v.id("salas") },
   handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      const sala = await ctx.db.get(args.sala_id);
+      if (!sala) return [];
+      if (sala.proyecto_id) await requireProjectAccess(ctx, sala.proyecto_id);
+      else if (sala.organizacion_id) {
+        if (!scope.organizacionId || scope.organizacionId !== sala.organizacion_id) throw new Error("Acceso denegado");
+      }
+    }
     return await ctx.db
       .query("areas")
       .withIndex("by_sala", (q) => q.eq("sala_id", args.sala_id))
@@ -103,6 +126,12 @@ export const addArea = mutation({
     descripcion: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const sala = await ctx.db.get(args.sala_id);
+    if (!sala) throw new Error("Sala no encontrada");
+    if (sala.proyecto_id) await requireProjectAccess(ctx, sala.proyecto_id);
+    else if (sala.organizacion_id) await requireOrgAccess(ctx, sala.organizacion_id);
+    else throw new Error("Sala sin proyecto ni organización — requiere migración");
     return await ctx.db.insert("areas", {
       ...args,
       activo: true,
@@ -118,26 +147,6 @@ export const listAssignments = query({
     const all = await ctx.db.query("cleaning_assignments").collect();
     if (scoped === null) return all;
     return all.filter((a) => a.proyecto_id === scoped);
-  },
-});
-
-export const getAssignmentsByFecha = query({
-  args: { fecha: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("cleaning_assignments")
-      .withIndex("by_fecha", (q) => q.eq("fecha", args.fecha))
-      .collect();
-  },
-});
-
-export const getAssignmentsByEstado = query({
-  args: { estado: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("cleaning_assignments")
-      .withIndex("by_estado", (q) => q.eq("estado", args.estado))
-      .collect();
   },
 });
 
@@ -170,6 +179,12 @@ export const updateAssignment = mutation({
     notas: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const assignment = await ctx.db.get(args.id);
+    if (!assignment) throw new Error("Asignación no encontrada");
+    if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+    else if (assignment.organizacion_id) await requireOrgAccess(ctx, assignment.organizacion_id);
+    else throw new Error("Asignación sin proyecto ni organización — requiere migración");
     const { id, ...updates } = args;
     return await ctx.db.patch(id, updates);
   },
@@ -178,21 +193,32 @@ export const updateAssignment = mutation({
 export const deleteAssignment = mutation({
   args: { id: v.id("cleaning_assignments") },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const assignment = await ctx.db.get(args.id);
+    if (!assignment) throw new Error("Asignación no encontrada");
+    if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+    else if (assignment.organizacion_id) await requireOrgAccess(ctx, assignment.organizacion_id);
+    else throw new Error("Asignación sin proyecto ni organización — requiere migración");
+
+    // Cleanup: borrar fotos asociadas (DB + storage) para evitar leaks
+    const photos = await ctx.db
+      .query("cleaning_photos")
+      .withIndex("by_assignment", (q) => q.eq("assignment_id", args.id))
+      .collect();
+    for (const photo of photos) {
+      try {
+        await ctx.storage.delete(photo.storage_id);
+      } catch (err) {
+        console.warn(`No se pudo borrar storage ${photo.storage_id}`, err);
+      }
+      await ctx.db.delete(photo._id);
+    }
+
     return await ctx.db.delete(args.id);
   },
 });
 
 // ========== CLEANING PHOTOS ==========
-export const getPhotosByAssignment = query({
-  args: { assignment_id: v.id("cleaning_assignments") },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("cleaning_photos")
-      .withIndex("by_assignment", (q) => q.eq("assignment_id", args.assignment_id))
-      .collect();
-  },
-});
-
 export const addPhoto = mutation({
   args: {
     assignment_id: v.id("cleaning_assignments"),
@@ -203,83 +229,17 @@ export const addPhoto = mutation({
     mime_type: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const assignment = await ctx.db.get(args.assignment_id);
+    if (!assignment) throw new Error("Asignación no encontrada");
+    if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+    else if (assignment.organizacion_id) await requireOrgAccess(ctx, assignment.organizacion_id);
+    else throw new Error("Asignación sin proyecto ni organización — requiere migración");
     return await ctx.db.insert("cleaning_photos", args);
   },
 });
 
 // ========== CLEANING REPORTS ==========
-export const listReports = query({
-  args: { proyecto_id: v.optional(v.id("proyectos")) },
-  handler: async (ctx, args) => {
-    const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
-    const all = await ctx.db
-      .query("cleaning_reports")
-      .withIndex("by_fecha", (q) => q)
-      .order("desc")
-      .collect();
-    if (scoped === null) return all;
-    return all.filter((r) => r.proyecto_id === scoped);
-  },
-});
-
-export const getReportById = query({
-  args: { id: v.id("cleaning_reports") },
-  handler: async (ctx, args) => {
-    const report = await ctx.db.get(args.id);
-    if (!report) return null;
-
-    // Obtener fotos con URLs
-    const getPhotosWithUrls = async (photoIds: any[]) => {
-      return await Promise.all(
-        (photoIds || []).map(async (photoId) => {
-          const photo = await ctx.db.get(photoId);
-          if (!photo) return null;
-          const url = await ctx.storage.getUrl(photo.storage_id);
-          return {
-            ...photo,
-            url,
-          };
-        })
-      );
-    };
-
-    const fotosAntes = await getPhotosWithUrls(report.fotos_antes_ids);
-    const fotosDurante = await getPhotosWithUrls(report.fotos_durante_ids);
-    const fotosDespues = await getPhotosWithUrls(report.fotos_despues_ids);
-
-    return {
-      ...report,
-      fotos_antes: fotosAntes.filter(Boolean),
-      fotos_durante: fotosDurante.filter(Boolean),
-      fotos_despues: fotosDespues.filter(Boolean),
-    };
-  },
-});
-
-export const getReportsBySala = query({
-  args: { sala_id: v.id("salas") },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("cleaning_reports")
-      .withIndex("by_sala", (q) => q.eq("sala_id", args.sala_id))
-      .order("desc")
-      .collect();
-  },
-});
-
-export const getReportsByDateRange = query({
-  args: {
-    fecha_inicio: v.string(),
-    fecha_fin: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const all = await ctx.db.query("cleaning_reports").collect();
-    return all.filter(
-      (r) => r.fecha_completacion >= args.fecha_inicio && r.fecha_completacion <= args.fecha_fin
-    );
-  },
-});
-
 // Query para obtener reportes con fotos para generacion de PDF
 export const listReportsWithPhotos = query({
   args: {
@@ -364,9 +324,16 @@ export const createReport = mutation({
     fecha_completacion: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
     // Derivar proyecto_id desde la sala
     const sala = await ctx.db.get(args.sala_id);
+    if (!sala) throw new Error("Sala no encontrada");
+    if (sala.proyecto_id) await requireProjectAccess(ctx, sala.proyecto_id);
+    else if (sala.organizacion_id) await requireOrgAccess(ctx, sala.organizacion_id);
+    else throw new Error("Sala sin proyecto ni organización — requiere migración");
     const proyecto_id = sala?.proyecto_id;
-    return await ctx.db.insert("cleaning_reports", { ...args, proyecto_id });
+    const payload: any = { ...args, proyecto_id };
+    if (sala.organizacion_id) payload.organizacion_id = sala.organizacion_id;
+    return await ctx.db.insert("cleaning_reports", payload);
   },
 });

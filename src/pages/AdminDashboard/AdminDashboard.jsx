@@ -37,7 +37,7 @@ import {
   UserPlus, Shield, Lock, Mail, Phone, Target, Layers
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
-import { DashboardKPI, AlertCard, PersonnelTable, VehicleCard, HeroStats, RealtimeActivity, RiskAlerts, UpcomingRoutes } from '../../components/Dashboard';
+import { AlertCard, PersonnelTable, HeroStats, RealtimeActivity, RiskAlerts, UpcomingRoutes } from '../../components/Dashboard';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
@@ -70,6 +70,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
     apellido: '',
     cargo: ''
   });
+  const [personnelPage, setPersonnelPage] = useState(1);
 
   // Responsive breakpoint listener
   useEffect(() => {
@@ -254,30 +255,15 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   const fleetStats = getFleetStats();
   const routesStats = getRoutesStats();
 
-  // Calcular estadísticas operativas basadas en datos activos (reales o demo)
-  const operationalStats = useMemo(() => {
-    const defaultStats = {
-      eficienciaPromedio: 85,
-      totalKgHoy: 0
-    };
-
-    if (!displayVehicles || displayVehicles.length === 0) return defaultStats;
-
-    return {
-      eficienciaPromedio: 85, // Se puede calcular basado en rutas completadas
-      totalKgHoy: displayVehicles.reduce((total, vehicle) => total + (vehicle.capacidad_carga || 0), 0)
-    };
-  }, [displayVehicles]);
-
   // Monitoring notifications (sounds + animation IDs)
   const { newEventIds, newAlertIds } = useMonitoringNotifications(recentActivity, displayAlerts);
 
   const isViewer = userRole === 'viewer' || user?.tipo === 'viewer';
   const VIEWER_ALLOWED_TABS = ['dashboard', 'operaciones', 'riesgos'];
 
-  // TODO: temporal — perfil de cliente con operaciones bloqueadas. Reemplazar por flag en perfil.
-  const RESTRICTED_CLIENT_IDS = ['k575k7zv6ktg6qtxddvtjh6rr585vnta'];
-  const isRestrictedClient = RESTRICTED_CLIENT_IDS.includes(user?._id) || RESTRICTED_CLIENT_IDS.includes(user?.id);
+  // Cliente con operaciones bloqueadas — controlado por flag `restricted_operations`
+  // en `perfiles_usuarios` (schema). El backend lo expone vía `getCurrentUser`.
+  const isRestrictedClient = user?.restricted_operations === true;
   const RESTRICTED_BLOCKED_TABS = ['operaciones'];
 
   const handleTabChange = (newTab, defaultSubTab = '') => {
@@ -484,11 +470,9 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                     deleteEmployee(employeeId);
                   }
                 }}
-                currentPage={1}
+                currentPage={personnelPage}
                 totalPages={Math.ceil((displayPersonnel?.length || 0) / 8)}
-                onPageChange={(page) => {
-                  console.log('Page change:', page);
-                }}
+                onPageChange={setPersonnelPage}
               />
             </div>
           </div>
@@ -501,9 +485,6 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
           <div className="operations-content-modern">
             <ServiciosComponent
               initialRoutes={displayRoutes}
-              onRoutesChange={(updatedRoutes) => {
-                console.log('Routes updated:', updatedRoutes);
-              }}
             />
           </div>
         );
@@ -529,20 +510,8 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
     }
     switch (activeTab) {
       case 'dashboard':
-        // Generate sparkline data (last 14 data points for trend visualization)
-        const generateSparklineData = (baseValue, variance = 0.15) => {
-          const dataPoints = 14;
-          return Array.from({ length: dataPoints }, (_, i) => {
-            const randomVariance = (Math.random() - 0.5) * variance * baseValue;
-            const trendFactor = (i / dataPoints) * 0.1 * baseValue; // slight upward trend
-            return Math.max(0, Math.round(baseValue + randomVariance + trendFactor));
-          });
-        };
-
-        const vehicleCount = normalizedCamiones.length;
         const activeCount = normalizedCamiones.filter(c => c.estado === 'En ruta' || c.estado === 'en_ruta').length;
         const personnelCount = displayPersonnel?.length || 0;
-        const activeRoutesCount = displayRoutes.filter(r => r.estado === 'activa' || r.status === 'active').length;
 
         const heroStatsData = [
           {
@@ -550,14 +519,12 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             icon: <TrendingUp strokeWidth={1.5} size={24} />,
             value: activeCount,
             label: 'En Ruta',
-            sparklineData: generateSparklineData(activeCount, 0.25)
           },
           {
             id: 'personnel',
             icon: <Briefcase strokeWidth={1.5} size={24} />,
             value: personnelCount,
             label: 'Personal',
-            sparklineData: generateSparklineData(personnelCount, 0.05)
           }
         ];
 

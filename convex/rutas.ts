@@ -1,7 +1,7 @@
 import { query, mutation, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
-import { getScopedProjectId, getScopedOrgId, requireProjectAccess } from "./lib/auth";
+import { getAuthScope, getScopedProjectId, getScopedOrgId, requireProjectAccess, requireWriteRole } from "./lib/auth";
 
 // Sync auto-generated geofences for a route's paradas.
 // Deletes previous auto-generated geofences for this ruta, then inserts one per parada.
@@ -60,7 +60,7 @@ export const list = query({
     const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
     if (scopedOrg) {
       const all = await ctx.db.query("rutas").collect();
-      return all.filter((r) => !r.organizacion_id || r.organizacion_id === scopedOrg);
+      return all.filter((r) => r.organizacion_id === scopedOrg);
     }
     return await ctx.db.query("rutas").collect();
   },
@@ -70,10 +70,14 @@ export const list = query({
 export const getByEstado = query({
   args: { estado: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const scope = await getAuthScope(ctx);
+    const all = await ctx.db
       .query("rutas")
       .withIndex("by_estado", (q) => q.eq("estado", args.estado))
       .collect();
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) return all;
+    if (!scope.organizacionId) return [];
+    return all.filter((r) => r.organizacion_id === scope.organizacionId);
   },
 });
 
@@ -81,6 +85,7 @@ export const getByEstado = query({
 export const getByProyecto = query({
   args: { proyecto_id: v.id("proyectos") },
   handler: async (ctx, args) => {
+    await requireProjectAccess(ctx, args.proyecto_id);
     return await ctx.db
       .query("rutas")
       .withIndex("by_proyecto", (q) => q.eq("proyecto_id", args.proyecto_id))
@@ -92,7 +97,16 @@ export const getByProyecto = query({
 export const getById = query({
   args: { id: v.id("rutas") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const ruta = await ctx.db.get(args.id);
+    if (!ruta) return null;
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      if (!ruta.organizacion_id) throw new Error("Ruta sin organización — requiere migración");
+      if (!scope.organizacionId || scope.organizacionId !== ruta.organizacion_id) {
+        throw new Error("Acceso denegado");
+      }
+    }
+    return ruta;
   },
 });
 
@@ -124,11 +138,16 @@ export const add = mutation({
     ubicacion_principal: v.optional(ubicacionPrincipalValidator),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
     if (!args.proyecto_id) throw new Error("proyecto_id requerido al crear ruta");
     await requireProjectAccess(ctx, args.proyecto_id);
+    // Persistir organizacion_id derivado del proyecto.
+    const proyecto = await ctx.db.get(args.proyecto_id);
+    const organizacion_id = proyecto?.organizacion_id ?? undefined;
     const newId = await ctx.db.insert("rutas", {
       ...args,
       estado: args.estado || "programada",
+      ...(organizacion_id && { organizacion_id }),
     });
     await syncParadaGeofences(ctx, newId, args.paradas);
     return newId;
@@ -156,6 +175,10 @@ export const update = mutation({
     ubicacion_principal: v.optional(ubicacionPrincipalValidator),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const ruta = await ctx.db.get(args.id);
+    if (!ruta) throw new Error("Ruta no encontrada");
+    if (ruta.proyecto_id) await requireProjectAccess(ctx, ruta.proyecto_id);
     const { id, ...updates } = args;
     await ctx.db.patch(id, updates);
     if (args.paradas !== undefined) {
@@ -172,6 +195,10 @@ export const updateEstado = mutation({
     estado: v.string(),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const ruta = await ctx.db.get(args.id);
+    if (!ruta) throw new Error("Ruta no encontrada");
+    if (ruta.proyecto_id) await requireProjectAccess(ctx, ruta.proyecto_id);
     return await ctx.db.patch(args.id, { estado: args.estado });
   },
 });
@@ -180,6 +207,10 @@ export const updateEstado = mutation({
 export const remove = mutation({
   args: { id: v.id("rutas") },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const ruta = await ctx.db.get(args.id);
+    if (!ruta) throw new Error("Ruta no encontrada");
+    if (ruta.proyecto_id) await requireProjectAccess(ctx, ruta.proyecto_id);
     await syncParadaGeofences(ctx, args.id, null);
     return await ctx.db.delete(args.id);
   },
@@ -190,9 +221,20 @@ export const getStats = query({
   args: { proyecto_id: v.optional(v.id("proyectos")) },
   handler: async (ctx, args) => {
     const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
-    const rutas = scoped
-      ? await ctx.db.query("rutas").withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped)).collect()
-      : await ctx.db.query("rutas").collect();
+    let rutas;
+    if (scoped) {
+      rutas = await ctx.db.query("rutas").withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped)).collect();
+    } else {
+      const scope = await getAuthScope(ctx);
+      const all = await ctx.db.query("rutas").collect();
+      if (scope.isSuperAdmin || scope.isCrossOrgViewer) {
+        rutas = all;
+      } else if (scope.organizacionId) {
+        rutas = all.filter((r) => r.organizacion_id === scope.organizacionId);
+      } else {
+        rutas = [];
+      }
+    }
 
     const pendientes = rutas.filter(r => r.estado === "pendiente").length;
     const en_progreso = rutas.filter(r => r.estado === "en_progreso").length;
@@ -204,5 +246,23 @@ export const getStats = query({
       en_progreso,
       completadas,
     };
+  },
+});
+
+// One-shot migration: backfill organizacion_id on rutas derived from proyectos.
+export const _migrationBackfillOrganizacionId = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("rutas").collect();
+    let fixed = 0;
+    for (const ruta of all) {
+      if (ruta.organizacion_id != null) continue;
+      if (!ruta.proyecto_id) continue;
+      const proyecto = await ctx.db.get(ruta.proyecto_id);
+      if (!proyecto?.organizacion_id) continue;
+      await ctx.db.patch(ruta._id, { organizacion_id: proyecto.organizacion_id });
+      fixed++;
+    }
+    return { fixed, total: all.length };
   },
 });

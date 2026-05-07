@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthScope, getScopedOrgId, requireOrgAccess } from "./lib/auth";
+import { getAuthScope, getScopedOrgId, requireAdminWrite, requireOrgAccess } from "./lib/auth";
 
 export const list = query({
   args: { organizacion_id: v.optional(v.id("organizaciones")) },
@@ -80,7 +80,8 @@ export const getById = query({
     if (!proyecto) return null;
     const scope = await getAuthScope(ctx);
     if (scope.isSuperAdmin) return proyecto;
-    if (proyecto.organizacion_id && scope.organizacionId && proyecto.organizacion_id !== scope.organizacionId) {
+    if (!proyecto.organizacion_id) throw new Error("Proyecto sin organización — requiere migración");
+    if (!scope.organizacionId || proyecto.organizacion_id !== scope.organizacionId) {
       throw new Error("Acceso denegado al proyecto");
     }
     return proyecto;
@@ -131,6 +132,7 @@ export const update = mutation({
     activo: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    await requireAdminWrite(ctx);
     const proyecto = await ctx.db.get(args.id);
     if (!proyecto) throw new Error("Proyecto no encontrado");
     const scope = await getAuthScope(ctx);
@@ -147,6 +149,7 @@ export const update = mutation({
 export const remove = mutation({
   args: { id: v.id("proyectos") },
   handler: async (ctx, args) => {
+    await requireAdminWrite(ctx);
     const proyecto = await ctx.db.get(args.id);
     if (!proyecto) throw new Error("Proyecto no encontrado");
     const scope = await getAuthScope(ctx);

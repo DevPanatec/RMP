@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { X, Download, Calendar, MapPin, Clock, Building, FileText, Image as ImageIcon, Camera, CheckCircle, Wrench } from '../Icons';
+import { X, Calendar, MapPin, Clock, Building, FileText, Image as ImageIcon, Camera, CheckCircle, Wrench } from '../Icons';
 import { MapLibreComponent } from '../Map';
 import '../Reports/StandardReportModal.css';
 
-const ReportDetailModal = ({ isOpen, onClose, report, onDownload, location }) => {
+const ReportDetailModal = ({ isOpen, onClose, report, location }) => {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
 
   if (!isOpen || !report) return null;
@@ -262,10 +262,6 @@ const ReportDetailModal = ({ isOpen, onClose, report, onDownload, location }) =>
           <button className="report-modal__btn report-modal__btn--secondary" onClick={onClose}>
             <X size={18} />
             Cerrar
-          </button>
-          <button className="report-modal__btn report-modal__btn--primary" onClick={onDownload}>
-            <Download size={18} />
-            Descargar PDF
           </button>
         </div>
 

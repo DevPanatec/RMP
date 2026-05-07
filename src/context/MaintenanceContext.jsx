@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useProject } from './ProjectContext';
@@ -153,13 +153,15 @@ export const MaintenanceProvider = ({ children }) => {
     }
   };
 
-  // Helper functions
-  const getUpcomingTasks = (days = 7) => {
+  // Helper functions — memoized derivatives.
+  // Default upcoming window of 7 days; callers needing different windows still
+  // can use getUpcomingTasks(N) which falls back to the live filter.
+  const upcomingTasks = useMemo(() => {
     if (!tasks || tasks.length === 0) return [];
 
     const now = new Date();
     const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + days);
+    futureDate.setDate(futureDate.getDate() + 7);
 
     return tasks.filter(task => {
       if (task.estado === 'completada') return false;
@@ -168,14 +170,37 @@ export const MaintenanceProvider = ({ children }) => {
       const taskDate = new Date(task.fecha_programada);
       return taskDate >= now && taskDate <= futureDate;
     });
+  }, [tasks]);
+
+  const getUpcomingTasks = (days = 7) => {
+    if (days === 7) return upcomingTasks;
+    if (!tasks || tasks.length === 0) return [];
+    const now = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + days);
+    return tasks.filter(task => {
+      if (task.estado === 'completada') return false;
+      if (!task.fecha_programada) return false;
+      const taskDate = new Date(task.fecha_programada);
+      return taskDate >= now && taskDate <= futureDate;
+    });
   };
 
-  const getTasksByStatus = (estado) => {
-    if (!tasks) return [];
-    return tasks.filter(task => task.estado === estado);
-  };
+  // Indexar tasks por estado para evitar re-iteraciones por cada llamada.
+  const tasksByStatus = useMemo(() => {
+    const map = {};
+    if (!tasks) return map;
+    for (const t of tasks) {
+      const k = t.estado || 'unknown';
+      if (!map[k]) map[k] = [];
+      map[k].push(t);
+    }
+    return map;
+  }, [tasks]);
 
-  const getOperationalStats = () => {
+  const getTasksByStatus = (estado) => tasksByStatus[estado] || [];
+
+  const operationalStats = useMemo(() => {
     if (!tasks || tasks.length === 0) {
       return {
         total: 0,
@@ -200,7 +225,6 @@ export const MaintenanceProvider = ({ children }) => {
     const pendiente = tasks.filter(t => t.estado === 'pendiente');
     const inProgress = tasks.filter(t => t.estado === 'en_progreso');
 
-    // Calcular costo total de tareas completadas
     const totalCost = completed.reduce((sum, task) =>
       sum + (task.costo || 0), 0
     );
@@ -214,9 +238,11 @@ export const MaintenanceProvider = ({ children }) => {
       completionRate: tasks.length > 0 ? Math.round((completed.length / tasks.length) * 100) : 0,
       totalCost
     };
-  };
+  }, [tasks]);
 
-  const value = {
+  const getOperationalStats = () => operationalStats;
+
+  const value = useMemo(() => ({
     tasks,
     alerts,
     loading,
@@ -227,10 +253,12 @@ export const MaintenanceProvider = ({ children }) => {
     dismissAlert,
     uploadPhoto,
     completeTask,
+    upcomingTasks,
+    operationalStats,
     getUpcomingTasks,
     getTasksByStatus,
     getOperationalStats,
-  };
+  }), [tasks, alerts, loading, upcomingTasks, operationalStats, tasksByStatus]);
 
   return <MaintenanceContext.Provider value={value}>{children}</MaintenanceContext.Provider>;
 };
@@ -241,5 +269,4 @@ export const useMaintenance = () => {
   return context;
 };
 
-export const useSupabaseMaintenance = useMaintenance;
 export default MaintenanceContext;

@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useProject } from './ProjectContext';
@@ -59,7 +59,7 @@ export const RoutesProvider = ({ children }) => {
     return routes.filter(route => route.estado === status);
   };
 
-  const getRoutesStats = () => {
+  const routesStats = useMemo(() => {
     const total = routes.length;
     const programada = routes.filter(r => r.estado === 'programada').length;
     const enProgreso = routes.filter(r => r.estado === 'en_progreso').length;
@@ -80,13 +80,15 @@ export const RoutesProvider = ({ children }) => {
       active: enProgreso,
       inactive: cancelada,
     };
-  };
+  }, [routes]);
+
+  const getRoutesStats = () => routesStats;
 
   const getRouteById = (routeId) => {
     return routes.find(route => route._id === routeId || route.id === routeId);
   };
 
-  const value = {
+  const value = useMemo(() => ({
     routes,
     loading,
     addRoute,
@@ -94,9 +96,10 @@ export const RoutesProvider = ({ children }) => {
     deleteRoute,
     getRoutesByType,
     getRoutesByStatus,
+    routesStats,
     getRoutesStats,
     getRouteById,
-  };
+  }), [routes, loading, routesStats]);
 
   return <RoutesContext.Provider value={value}>{children}</RoutesContext.Provider>;
 };
@@ -107,5 +110,4 @@ export const useRoutes = () => {
   return context;
 };
 
-export const useSupabaseRoutes = useRoutes;
 export default RoutesContext;

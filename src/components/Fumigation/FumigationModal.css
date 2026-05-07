@@ -72,7 +72,7 @@
 
 .modal-close:hover {
   background: var(--color-error);
-  color: white;
+  color: var(--color-surface);
 }
 
 /* Form Grid Layout */
@@ -174,7 +174,7 @@
 
 .tab-badge {
   background: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
   font-size: 11px;
   font-weight: 600;
   padding: 2px 6px;
@@ -353,7 +353,7 @@ textarea.fumigation-input {
 
 .warning-banner {
   background: rgba(255, 159, 10, 0.08);
-  color: #FF9F0A;
+  color: var(--color-warning);
   border: 1px solid rgba(255, 159, 10, 0.2);
 }
 
@@ -392,7 +392,7 @@ textarea.fumigation-input {
 
 .photos-badge {
   background: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
   font-size: 12px;
   font-weight: 600;
   padding: 6px 12px;
@@ -506,7 +506,7 @@ textarea.fumigation-input {
 }
 
 .validation-banner.warning {
-  color: #FF9F0A;
+  color: var(--color-warning);
 }
 
 .validation-banner strong {
@@ -549,7 +549,7 @@ textarea.fumigation-input {
 }
 
 .validation-info.warning {
-  color: #FF9F0A;
+  color: var(--color-warning);
 }
 
 .validation-info.success {
@@ -589,7 +589,7 @@ textarea.fumigation-input {
 
 .btn--primary {
   background: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
 }
 
 .btn--primary:hover:not(:disabled) {

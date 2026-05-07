@@ -1,6 +1,7 @@
 import { v } from "convex/values";
-import { query, mutation, action } from "./_generated/server";
-import { api } from "./_generated/api";
+import { query, mutation, action, internalAction, internalMutation } from "./_generated/server";
+import { api, internal } from "./_generated/api";
+import { getAuthScope, requireAdminWrite, requireOrgAccess } from "./lib/auth";
 
 // Configuración
 const SAFETAG_API_BASE = "https://api.safetagtracking.com/api/v1";
@@ -30,7 +31,7 @@ interface SafeTagDevice {
  * Action para obtener devices desde SafeTag API
  * Hace fetch externo a la API de SafeTag
  */
-export const fetchDevices = action({
+export const fetchDevices = internalAction({
   args: {},
   handler: async (ctx): Promise<SafeTagDevice[]> => {
     const apiKey = process.env.SAFETAG_API_KEY;
@@ -102,9 +103,10 @@ export const fetchDevices = action({
 });
 
 /**
- * Mutation para actualizar vehículo con datos de SafeTag
+ * Internal mutation: actualizar vehículo con datos de SafeTag.
+ * Solo callable desde la action syncAllVehicles (cron) — no expuesta al cliente.
  */
-export const updateVehicleFromSafeTag = mutation({
+export const updateVehicleFromSafeTag = internalMutation({
   args: {
     vehiculoId: v.id("vehiculos"),
     deviceData: v.object({
@@ -211,7 +213,7 @@ export const syncAllVehicles = action({
 
     try {
       // 1. Obtener devices desde SafeTag API
-      const devices = await ctx.runAction(api.safetag.fetchDevices);
+      const devices = await ctx.runAction(internal.safetag.fetchDevices);
 
       // 2. Obtener vehículos con SafeTag configurado
       const vehiculos = await ctx.runQuery(api.safetag.getVehiclesWithSafeTag);
@@ -256,7 +258,7 @@ export const syncAllVehicles = action({
           }
 
           // Actualizar vehículo con datos del device
-          await ctx.runMutation(api.safetag.updateVehicleFromSafeTag, {
+          await ctx.runMutation(internal.safetag.updateVehicleFromSafeTag, {
             vehiculoId: vehiculo._id,
             deviceData: {
               _id: device._id,
@@ -273,7 +275,7 @@ export const syncAllVehicles = action({
 
           // Verificar geofences para este vehículo
           try {
-            await ctx.runMutation(api.geofences.checkVehicleGeofences, {
+            await ctx.runMutation(internal.geofences.checkVehicleGeofences, {
               vehiculoId: vehiculo._id,
               latitud: device.status.coords.lat,
               longitud: device.status.coords.lon,
@@ -323,10 +325,14 @@ export const syncAllVehicles = action({
  */
 export const getVehiclesWithSafeTag = query({
   handler: async (ctx) => {
-    return await ctx.db
+    const scope = await getAuthScope(ctx);
+    const vehicles = await ctx.db
       .query("vehiculos")
       .filter((q) => q.neq(q.field("safetag_device_id"), undefined))
       .collect();
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) return vehicles;
+    if (!scope.organizacionId) return [];
+    return vehicles.filter((v) => v.organizacion_id === scope.organizacionId);
   },
 });
 
@@ -335,10 +341,15 @@ export const getVehiclesWithSafeTag = query({
  */
 export const getSyncStatus = query({
   handler: async (ctx) => {
-    const vehiculos = await ctx.db
+    const scope = await getAuthScope(ctx);
+    let vehiculos = await ctx.db
       .query("vehiculos")
       .filter((q) => q.neq(q.field("safetag_device_id"), undefined))
       .collect();
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      if (!scope.organizacionId) return [];
+      vehiculos = vehiculos.filter((v) => v.organizacion_id === scope.organizacionId);
+    }
 
     return vehiculos.map((v) => ({
       vehiculoId: v._id,
@@ -362,7 +373,7 @@ export const getSyncStatus = query({
 });
 
 /**
- * Mutation: Asociar device SafeTag con vehículo
+ * Mutation: Asociar device SafeTag con vehículo. Auth: admin de la org del vehículo o super_admin.
  */
 export const linkDeviceToVehicle = mutation({
   args: {
@@ -371,14 +382,16 @@ export const linkDeviceToVehicle = mutation({
     deviceName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireAdminWrite(ctx);
+    const veh = await ctx.db.get(args.vehiculoId);
+    if (!veh) throw new Error("Vehículo no encontrado");
+    if (!veh.organizacion_id) throw new Error("Vehículo sin organización — requiere migración");
+    await requireOrgAccess(ctx, veh.organizacion_id);
+
     await ctx.db.patch(args.vehiculoId, {
       safetag_device_id: args.safetagDeviceId,
       safetag_device_name: args.deviceName,
     });
-
-    console.log(
-      `✅ Device ${args.safetagDeviceId} vinculado a vehículo ${args.vehiculoId}`
-    );
 
     return { success: true };
   },
@@ -394,6 +407,8 @@ export const fetchLocationHistory = action({
     endDate: v.optional(v.string()), // ISO timestamp
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("No autenticado");
     const apiKey = process.env.SAFETAG_API_KEY;
     const username = process.env.SAFETAG_USERNAME;
 
@@ -479,6 +494,8 @@ export const fetchTodayHistory = action({
     deviceId: v.string(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("No autenticado");
     // Obtener inicio y fin del día actual (UTC)
     const now = new Date();
     const startOfDay = new Date(now);

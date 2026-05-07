@@ -1,15 +1,15 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
 const PersonnelContext = createContext();
 
 export const PersonnelProvider = ({ children }) => {
-  const employeesData = useQuery(api.empleados.list);
+  const employeesData = useQuery(api.empleados.listActive);
 
   const addEmployeeMutation = useMutation(api.empleados.add);
   const updateEmployeeMutation = useMutation(api.empleados.update);
-  const deleteEmployeeMutation = useMutation(api.empleados.remove);
+  const deactivateEmployeeMutation = useMutation(api.empleados.deactivate);
 
   const allEmployees = employeesData || [];
   const loading = employeesData === undefined;
@@ -19,7 +19,6 @@ export const PersonnelProvider = ({ children }) => {
       await addEmployeeMutation(employeeData);
       return { success: true };
     } catch (error) {
-      console.error('Error adding employee:', error);
       return { success: false, error: error.message };
     }
   };
@@ -29,24 +28,22 @@ export const PersonnelProvider = ({ children }) => {
       await updateEmployeeMutation({ id: employeeId, ...updates });
       return { success: true };
     } catch (error) {
-      console.error('Error updating employee:', error);
       return { success: false, error: error.message };
     }
   };
 
   const deleteEmployee = async (employeeId) => {
     try {
-      await deleteEmployeeMutation({ id: employeeId });
+      await deactivateEmployeeMutation({ id: employeeId });
       return { success: true };
     } catch (error) {
-      console.error('Error deleting employee:', error);
       return { success: false, error: error.message };
     }
   };
 
   const getAllEmployees = () => allEmployees;
 
-  const getPersonnelStats = () => {
+  const personnelStats = useMemo(() => {
     const total = allEmployees.length;
     const activos = allEmployees.filter(e => e.activo !== false).length;
     const inactivos = total - activos;
@@ -70,16 +67,20 @@ export const PersonnelProvider = ({ children }) => {
       supervisors,
       byDepartment,
     };
-  };
+  }, [allEmployees]);
 
-  const value = {
+  const getPersonnelStats = () => personnelStats;
+
+  const value = useMemo(() => ({
+    employees: allEmployees,
     loading,
     addEmployee,
     updateEmployee,
     deleteEmployee,
     getAllEmployees,
+    personnelStats,
     getPersonnelStats,
-  };
+  }), [allEmployees, loading, personnelStats]);
 
   return <PersonnelContext.Provider value={value}>{children}</PersonnelContext.Provider>;
 };

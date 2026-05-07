@@ -24,11 +24,6 @@ const CalendarComponent = () => {
   const { assignments: scheduleAssignments, loading: scheduleLoading, getDayNameFromDate, getStartOfWeekFromDate } = useSchedule();
   const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenance();
 
-  console.log('📅 DEBUG CalendarComponent - cleaningAssignments:', cleaningAssignments);
-  console.log('📅 DEBUG CalendarComponent - Cantidad:', cleaningAssignments.length);
-  console.log('📅 DEBUG CalendarComponent - fumigationAssignments:', fumigationAssignments);
-  console.log('📅 DEBUG CalendarComponent - Fumigaciones:', fumigationAssignments?.length || 0);
-
   const [viewMode, setViewMode] = useState('month');
   const [selectedDate, setSelectedDate] = useState(new Date()); // Default to current date
   const [filters, setFilters] = useState({
@@ -102,11 +97,6 @@ const CalendarComponent = () => {
         a => a.fecha === dateStr
       );
 
-      console.log('🗓️ DEBUG Calendario - Fecha buscada:', dateStr);
-      console.log('🗓️ DEBUG Calendario - Asignaciones totales:', cleaningAssignments.length);
-      console.log('🗓️ DEBUG Calendario - Asignaciones filtradas:', cleaningForDate.length);
-      console.log('🗓️ DEBUG Calendario - Datos filtrados:', cleaningForDate);
-
       cleaningForDate.forEach(assignment => {
         const timeFormatted = assignment.hora ? assignment.hora.substring(0, 5) : '10:00';
         const activity = {
@@ -118,7 +108,6 @@ const CalendarComponent = () => {
           data: assignment
         };
 
-        console.log('🗓️ DEBUG Calendario - Actividad agregada:', activity);
         activities.push(activity);
       });
     }
@@ -146,15 +135,15 @@ const CalendarComponent = () => {
 
     if (filters.mantenimiento) {
       const maintenanceForDate = maintenanceTasks.filter(
-        task => task.scheduled_date === dateStr
+        task => task.fecha_programada === dateStr
       );
       maintenanceForDate.forEach(task => {
         activities.push({
-          id: `maintenance-${task.id}`,
+          id: `maintenance-${task._id || task.id}`,
           type: 'mantenimiento',
-          title: `Mantenimiento ${task.type} - ${task.observations?.substring(0, 30) || 'Tarea'}`,
-          time: task.scheduled_time || '08:00',
-          status: task.status,
+          title: `Mantenimiento ${task.tipo || ''} - ${(task.descripcion || task.titulo || 'Tarea').substring(0, 30)}`,
+          time: task.hora_programada || '08:00',
+          status: task.estado,
           data: task
         });
       });

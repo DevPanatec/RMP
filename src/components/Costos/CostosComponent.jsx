@@ -39,10 +39,10 @@ const CostosComponent = () => {
 
   // Iconos y colores por tipo inventario
   const tipoConfig = {
-    herramienta: { icon: <Wrench size={24} />, color: '#007aff', nombre: 'Herramientas' },
-    insumo: { icon: <Package size={24} />, color: '#5856d6', nombre: 'Insumos' },
-    equipo: { icon: <Shield size={24} />, color: '#ff9500', nombre: 'Equipos' },
-    uniforme: { icon: <UsersIcon size={24} />, color: '#34c759', nombre: 'Uniformes' }
+    herramienta: { icon: <Wrench size={24} />, color: 'var(--color-info)', bgColor: 'rgba(var(--color-info-rgb), 0.1)', nombre: 'Herramientas' },
+    insumo: { icon: <Package size={24} />, color: 'var(--color-primary)', bgColor: 'rgba(var(--color-primary-rgb), 0.1)', nombre: 'Insumos' },
+    equipo: { icon: <Shield size={24} />, color: 'var(--color-warning)', bgColor: 'rgba(var(--color-warning-rgb), 0.1)', nombre: 'Equipos' },
+    uniforme: { icon: <UsersIcon size={24} />, color: 'var(--color-success)', bgColor: 'rgba(var(--color-success-rgb), 0.1)', nombre: 'Uniformes' }
   };
 
   // Gráfica inventario
@@ -129,9 +129,9 @@ const CostosComponent = () => {
 
   // Iconos y colores por tipo mantenimiento
   const maintTipoConfig = {
-    preventivo: { icon: <Shield size={24} />, color: '#0078D4', nombre: 'Preventivo' },
-    correctivo: { icon: <Wrench size={24} />, color: '#D13438', nombre: 'Correctivo' },
-    'inspección': { icon: <ClipboardList size={24} />, color: '#FFB900', nombre: 'Inspección' }
+    preventivo: { icon: <Shield size={24} />, color: 'var(--color-info)', bgColor: 'rgba(var(--color-info-rgb), 0.1)', nombre: 'Preventivo' },
+    correctivo: { icon: <Wrench size={24} />, color: 'var(--color-error)', bgColor: 'rgba(var(--color-error-rgb), 0.1)', nombre: 'Correctivo' },
+    'inspección': { icon: <ClipboardList size={24} />, color: 'var(--color-warning)', bgColor: 'rgba(var(--color-warning-rgb), 0.1)', nombre: 'Inspección' }
   };
 
   // ========================
@@ -192,8 +192,8 @@ const CostosComponent = () => {
         <div className="costos-tab-content">
           <div className="kpi-summary-grid">
             <div className="kpi-card">
-              <div className="kpi-icon" style={{ backgroundColor: 'rgba(0, 120, 212, 0.1)' }}>
-                <DollarSign size={32} style={{ color: '#0078D4' }} />
+              <div className="kpi-icon" style={{ backgroundColor: 'rgba(var(--color-info-rgb), 0.1)' }}>
+                <DollarSign size={32} style={{ color: 'var(--color-info)' }} />
               </div>
               <div className="kpi-content">
                 <div className="kpi-label">Costo Total Operacional</div>
@@ -202,8 +202,8 @@ const CostosComponent = () => {
             </div>
 
             <div className="kpi-card">
-              <div className="kpi-icon" style={{ backgroundColor: 'rgba(88, 86, 214, 0.1)' }}>
-                <Package size={32} style={{ color: '#5856d6' }} />
+              <div className="kpi-icon" style={{ backgroundColor: 'rgba(var(--color-primary-rgb), 0.1)' }}>
+                <Package size={32} style={{ color: 'var(--color-primary)' }} />
               </div>
               <div className="kpi-content">
                 <div className="kpi-label">Valor Inventario</div>
@@ -215,8 +215,8 @@ const CostosComponent = () => {
             </div>
 
             <div className="kpi-card">
-              <div className="kpi-icon" style={{ backgroundColor: 'rgba(202, 80, 16, 0.1)' }}>
-                <Wrench size={32} style={{ color: '#CA5010' }} />
+              <div className="kpi-icon" style={{ backgroundColor: 'rgba(var(--color-warning-rgb), 0.1)' }}>
+                <Wrench size={32} style={{ color: 'var(--color-warning)' }} />
               </div>
               <div className="kpi-content">
                 <div className="kpi-label">Costo Mantenimiento</div>
@@ -228,8 +228,8 @@ const CostosComponent = () => {
             </div>
 
             <div className="kpi-card">
-              <div className="kpi-icon" style={{ backgroundColor: 'rgba(16, 124, 16, 0.1)' }}>
-                <ShoppingCart size={32} style={{ color: '#107C10' }} />
+              <div className="kpi-icon" style={{ backgroundColor: 'rgba(var(--color-success-rgb), 0.1)' }}>
+                <ShoppingCart size={32} style={{ color: 'var(--color-success)' }} />
               </div>
               <div className="kpi-content">
                 <div className="kpi-label">Gasto Inventario Este Mes</div>
@@ -285,8 +285,8 @@ const CostosComponent = () => {
           {/* KPI Cards Inventario */}
           <div className="kpi-summary-grid">
             <div className="kpi-card">
-              <div className="kpi-icon" style={{ backgroundColor: 'rgba(0, 122, 255, 0.08)' }}>
-                <DollarSign size={32} style={{ color: '#007aff' }} />
+              <div className="kpi-icon" style={{ backgroundColor: 'rgba(var(--color-info-rgb), 0.08)' }}>
+                <DollarSign size={32} style={{ color: 'var(--color-info)' }} />
               </div>
               <div className="kpi-content">
                 <div className="kpi-label">Valor Total Inventario</div>
@@ -295,8 +295,8 @@ const CostosComponent = () => {
             </div>
 
             <div className="kpi-card">
-              <div className="kpi-icon" style={{ backgroundColor: 'rgba(88, 86, 214, 0.08)' }}>
-                <ShoppingCart size={32} style={{ color: '#5856d6' }} />
+              <div className="kpi-icon" style={{ backgroundColor: 'rgba(var(--color-primary-rgb), 0.08)' }}>
+                <ShoppingCart size={32} style={{ color: 'var(--color-primary)' }} />
               </div>
               <div className="kpi-content">
                 <div className="kpi-label">Gastado Este Mes</div>
@@ -311,8 +311,8 @@ const CostosComponent = () => {
             </div>
 
             <div className="kpi-card">
-              <div className="kpi-icon" style={{ backgroundColor: 'rgba(255, 149, 0, 0.08)' }}>
-                <Package size={32} style={{ color: '#ff9500' }} />
+              <div className="kpi-icon" style={{ backgroundColor: 'rgba(var(--color-warning-rgb), 0.08)' }}>
+                <Package size={32} style={{ color: 'var(--color-warning)' }} />
               </div>
               <div className="kpi-content">
                 <div className="kpi-label">Total de Items</div>
@@ -321,8 +321,8 @@ const CostosComponent = () => {
             </div>
 
             <div className="kpi-card">
-              <div className="kpi-icon" style={{ backgroundColor: 'rgba(52, 199, 89, 0.08)' }}>
-                <Calendar size={32} style={{ color: '#34c759' }} />
+              <div className="kpi-icon" style={{ backgroundColor: 'rgba(var(--color-success-rgb), 0.08)' }}>
+                <Calendar size={32} style={{ color: 'var(--color-success)' }} />
               </div>
               <div className="kpi-content">
                 <div className="kpi-label">Promedio Mensual</div>
@@ -340,11 +340,11 @@ const CostosComponent = () => {
             <h3>Desglose por Tipo de Articulo</h3>
             <div className="breakdown-grid">
               {costosPorTipo.map((tipo, idx) => {
-                const config = tipoConfig[tipo.tipo] || { icon: <Package size={24} />, color: '#666', nombre: tipo.tipo };
+                const config = tipoConfig[tipo.tipo] || { icon: <Package size={24} />, color: 'var(--color-text-tertiary)', bgColor: 'var(--color-surface-secondary)', nombre: tipo.tipo };
                 return (
                   <div key={idx} className="breakdown-card" style={{ borderLeft: `4px solid ${config.color}` }}>
                     <div className="breakdown-header">
-                      <div className="breakdown-icon" style={{ backgroundColor: `${config.color}15` }}>
+                      <div className="breakdown-icon" style={{ backgroundColor: config.bgColor }}>
                         {config.icon}
                       </div>
                       <div className="breakdown-info">
@@ -387,8 +387,8 @@ const CostosComponent = () => {
                 <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} preserveAspectRatio="none" className="cost-chart">
                   <defs>
                     <linearGradient id="areaGradientInventario" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#5856d6" stopOpacity="0.3" />
-                      <stop offset="100%" stopColor="#5856d6" stopOpacity="0" />
+                      <stop offset="0%" stopColor="var(--color-primary)" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="var(--color-primary)" stopOpacity="0" />
                     </linearGradient>
                   </defs>
 
@@ -397,8 +397,8 @@ const CostosComponent = () => {
                     const value = Math.round(maxGasto * t);
                     return (
                       <g key={i}>
-                        <line x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} stroke="#e5e7eb" strokeDasharray="4" />
-                        <text x={padding.left - 10} y={y + 4} textAnchor="end" fontSize="11" fill="#666">
+                        <line x1={padding.left} y1={y} x2={chartWidth - padding.right} y2={y} stroke="var(--color-border)" strokeDasharray="4" />
+                        <text x={padding.left - 10} y={y + 4} textAnchor="end" fontSize="11" fill="var(--color-text-tertiary)">
                           ${value}
                         </text>
                       </g>
@@ -406,19 +406,19 @@ const CostosComponent = () => {
                   })}
 
                   <path d={areaPath} fill="url(#areaGradientInventario)" />
-                  <path d={linePath} fill="none" stroke="#5856d6" strokeWidth="3" />
+                  <path d={linePath} fill="none" stroke="var(--color-primary)" strokeWidth="3" />
 
                   {chartData.map((d, i) => (
                     <g key={i}>
-                      <circle cx={xScale(i)} cy={yScale(d.total)} r="5" fill="#5856d6" stroke="white" strokeWidth="2" />
-                      <text x={xScale(i)} y={yScale(d.total) - 15} textAnchor="middle" fontSize="12" fill="#666">
+                      <circle cx={xScale(i)} cy={yScale(d.total)} r="5" fill="var(--color-primary)" stroke="var(--color-surface)" strokeWidth="2" />
+                      <text x={xScale(i)} y={yScale(d.total) - 15} textAnchor="middle" fontSize="12" fill="var(--color-text-tertiary)">
                         ${d.total.toFixed(0)}
                       </text>
                     </g>
                   ))}
 
                   {chartData.map((d, i) => (
-                    <text key={i} x={xScale(i)} y={chartHeight - 10} textAnchor="middle" fontSize="12" fill="#666">
+                    <text key={i} x={xScale(i)} y={chartHeight - 10} textAnchor="middle" fontSize="12" fill="var(--color-text-tertiary)">
                       {formatMes(d.mes)}
                     </text>
                   ))}
@@ -455,7 +455,7 @@ const CostosComponent = () => {
                       const porcentaje = valorTotalInventario > 0
                         ? ((item.valor_total / valorTotalInventario) * 100).toFixed(1)
                         : 0;
-                      const config = tipoConfig[item.tipo_articulo] || { color: '#666' };
+                      const config = tipoConfig[item.tipo_articulo] || { color: 'var(--color-text-tertiary)', bgColor: 'var(--color-surface-secondary)' };
 
                       return (
                         <tr key={idx}>
@@ -463,7 +463,7 @@ const CostosComponent = () => {
                           <td><code>{item.codigo}</code></td>
                           <td><strong>{item.nombre}</strong></td>
                           <td>
-                            <span className="tipo-badge" style={{ backgroundColor: `${config.color}15`, color: config.color }}>
+                            <span className="tipo-badge" style={{ backgroundColor: config.bgColor, color: config.color }}>
                               {item.tipo_articulo}
                             </span>
                           </td>
@@ -488,8 +488,8 @@ const CostosComponent = () => {
           {/* KPI Cards Mantenimiento */}
           <div className="kpi-summary-grid">
             <div className="kpi-card">
-              <div className="kpi-icon" style={{ backgroundColor: 'rgba(202, 80, 16, 0.1)' }}>
-                <DollarSign size={32} style={{ color: '#CA5010' }} />
+              <div className="kpi-icon" style={{ backgroundColor: 'rgba(var(--color-warning-rgb), 0.1)' }}>
+                <DollarSign size={32} style={{ color: 'var(--color-warning)' }} />
               </div>
               <div className="kpi-content">
                 <div className="kpi-label">Costo Total Mantenimiento</div>
@@ -498,8 +498,8 @@ const CostosComponent = () => {
             </div>
 
             <div className="kpi-card">
-              <div className="kpi-icon" style={{ backgroundColor: 'rgba(0, 120, 212, 0.1)' }}>
-                <BarChart3 size={32} style={{ color: '#0078D4' }} />
+              <div className="kpi-icon" style={{ backgroundColor: 'rgba(var(--color-info-rgb), 0.1)' }}>
+                <BarChart3 size={32} style={{ color: 'var(--color-info)' }} />
               </div>
               <div className="kpi-content">
                 <div className="kpi-label">Costo Promedio por Tarea</div>
@@ -508,8 +508,8 @@ const CostosComponent = () => {
             </div>
 
             <div className="kpi-card">
-              <div className="kpi-icon" style={{ backgroundColor: 'rgba(16, 124, 16, 0.1)' }}>
-                <CheckCircle size={32} style={{ color: '#107C10' }} />
+              <div className="kpi-icon" style={{ backgroundColor: 'rgba(var(--color-success-rgb), 0.1)' }}>
+                <CheckCircle size={32} style={{ color: 'var(--color-success)' }} />
               </div>
               <div className="kpi-content">
                 <div className="kpi-label">Tareas con Costo</div>
@@ -527,11 +527,11 @@ const CostosComponent = () => {
               <h3>Desglose por Tipo de Mantenimiento</h3>
               <div className="breakdown-grid">
                 {maintCostData.byType.map((tipo, idx) => {
-                  const config = maintTipoConfig[tipo.tipo] || { icon: <Wrench size={24} />, color: '#666', nombre: tipo.tipo };
+                  const config = maintTipoConfig[tipo.tipo] || { icon: <Wrench size={24} />, color: 'var(--color-text-tertiary)', bgColor: 'var(--color-surface-secondary)', nombre: tipo.tipo };
                   return (
                     <div key={idx} className="breakdown-card" style={{ borderLeft: `4px solid ${config.color}` }}>
                       <div className="breakdown-header">
-                        <div className="breakdown-icon" style={{ backgroundColor: `${config.color}15` }}>
+                        <div className="breakdown-icon" style={{ backgroundColor: config.bgColor }}>
                           {config.icon}
                         </div>
                         <div className="breakdown-info">
@@ -576,26 +576,27 @@ const CostosComponent = () => {
                   </thead>
                   <tbody>
                     {maintCostData.completedWithCost.map((task, idx) => {
-                      const config = maintTipoConfig[task.tipo] || { color: '#666' };
-                      const prioridadColors = {
-                        baja: '#107C10',
-                        media: '#FFB900',
-                        alta: '#D13438',
-                        urgente: '#A4262C'
+                      const config = maintTipoConfig[task.tipo] || { color: 'var(--color-text-tertiary)', bgColor: 'var(--color-surface-secondary)' };
+                      const prioridadStyles = {
+                        baja: { color: 'var(--color-success)', bg: 'rgba(var(--color-success-rgb), 0.1)' },
+                        media: { color: 'var(--color-warning)', bg: 'rgba(var(--color-warning-rgb), 0.1)' },
+                        alta: { color: 'var(--color-error)', bg: 'rgba(var(--color-error-rgb), 0.1)' },
+                        urgente: { color: 'var(--color-error-contrast)', bg: 'rgba(var(--color-error-rgb), 0.15)' }
                       };
+                      const prioridadStyle = prioridadStyles[task.prioridad] || { color: 'var(--color-text-tertiary)', bg: 'var(--color-surface-secondary)' };
                       return (
                         <tr key={task._id || idx}>
                           <td><strong>#{idx + 1}</strong></td>
                           <td><strong>{task.titulo}</strong></td>
                           <td>
-                            <span className="tipo-badge" style={{ backgroundColor: `${config.color}15`, color: config.color }}>
+                            <span className="tipo-badge" style={{ backgroundColor: config.bgColor, color: config.color }}>
                               {task.tipo}
                             </span>
                           </td>
                           <td>
                             <span className="tipo-badge" style={{
-                              backgroundColor: `${prioridadColors[task.prioridad] || '#666'}15`,
-                              color: prioridadColors[task.prioridad] || '#666'
+                              backgroundColor: prioridadStyle.bg,
+                              color: prioridadStyle.color
                             }}>
                               {task.prioridad}
                             </span>

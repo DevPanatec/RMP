@@ -4,7 +4,6 @@ import { ClerkProvider, useAuth as useClerkAuth } from "@clerk/clerk-react";
 import Login from './components/Login/Login';
 import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
 import ConductorDashboard from './pages/ConductorDashboard/ConductorDashboard';
-import SeedUsers from './utils/SeedUsers';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { OrganizationProvider } from './context/OrganizationContext';
 import { ProjectProvider } from './context/ProjectContext';
@@ -26,27 +25,11 @@ const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL);
 const AppContent = () => {
   const { user, loading, signOut } = useAuth();
 
-  // Detectar si estamos en modo seed
-  const isSeedMode = window.location.search.includes('seed');
-
-  // Debug: ver estado en cada render
-  console.log('🎯 AppContent render - loading:', loading, 'user:', user ? `${user.tipo} - ${user.nombre}` : 'null');
-
   const handleLogout = async () => {
     await signOut();
-    console.log('Usuario deslogueado');
   };
 
-  // Si estamos en modo seed, mostrar el componente de seed
-  if (isSeedMode && !user) {
-    // Auto-start si viene con ?seed&auto
-    const autoStart = window.location.search.includes('auto');
-    return <SeedUsers autoStart={autoStart} />;
-  }
-
-  // Mostrar pantalla de carga
   if (loading) {
-    console.log('⏳ Mostrando pantalla de carga...');
     return (
       <div className="loading-container">
         <div className="loading-spinner">
@@ -59,13 +42,9 @@ const AppContent = () => {
     );
   }
 
-  // Si no hay usuario logueado, mostrar login
   if (!user) {
-    console.log('🔓 Mostrando login (sin usuario)');
     return <Login />;
   }
-
-  console.log('✅ Mostrando dashboard para:', user.tipo);
 
   // Mostrar dashboard según el tipo de usuario
   const renderDashboard = () => {

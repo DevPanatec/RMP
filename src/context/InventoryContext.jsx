@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
@@ -13,6 +13,7 @@ export const InventoryProvider = ({ children }) => {
 
   // Queries de costos/estadísticas
   const costosPorTipo = useQuery(api.inventario.getCostosPorTipo);
+  const consumoPorTipo = useQuery(api.inventario.getConsumoPorTipo);
   const historialComprasPorMes = useQuery(api.inventario.getHistorialComprasPorMes, { meses: 12 });
   const topItemsMasCostosos = useQuery(api.inventario.getTopItemsMasCostosos, { limit: 10 });
 
@@ -25,6 +26,7 @@ export const InventoryProvider = ({ children }) => {
   const removeFromLocationMutation = useMutation(api.inventario.removeFromLocation);
   const asignarDesdeAlmacenMutation = useMutation(api.inventario.asignarDesdeAlmacen);
   const registrarCompraMutation = useMutation(api.inventario.registrarCompra);
+  const registrarConsumoMutation = useMutation(api.inventario.registrarConsumo);
 
   const inventory = inventoryData || [];
   const lugares = lugaresData || [];
@@ -118,8 +120,19 @@ export const InventoryProvider = ({ children }) => {
     }
   };
 
-  // Estadísticas de inventario
-  const getInventoryStats = () => {
+  // Registrar consumo desde una ubicación (descuenta stock)
+  const registrarConsumo = async (item_id, lugar_id, cantidad, notas) => {
+    try {
+      await registrarConsumoMutation({ item_id, lugar_id, cantidad, notas });
+      return { success: true };
+    } catch (error) {
+      console.error('Error registrando consumo:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  // Estadísticas de inventario (memoized)
+  const inventoryStats = useMemo(() => {
     if (!inventory || inventory.length === 0) {
       return {
         total: 0,
@@ -129,7 +142,7 @@ export const InventoryProvider = ({ children }) => {
       };
     }
 
-    const stats = {
+    return {
       total: inventory.length,
       lowStock: inventory.filter(item =>
         item.cantidad_disponible <= (item.cantidad_minima || 0) && item.cantidad_disponible > 0
@@ -137,11 +150,11 @@ export const InventoryProvider = ({ children }) => {
       outOfStock: inventory.filter(item => item.cantidad_disponible === 0).length,
       totalValue: inventory.reduce((sum, item) =>
         sum + (item.cantidad_disponible * (item.precio_unitario || 0)), 0
-      )
+      ),
     };
+  }, [inventory]);
 
-    return stats;
-  };
+  const getInventoryStats = () => inventoryStats;
 
   // Búsqueda de materiales
   const searchMaterials = (query) => {
@@ -156,7 +169,7 @@ export const InventoryProvider = ({ children }) => {
     );
   };
 
-  const value = {
+  const value = useMemo(() => ({
     inventory,
     materials: inventory, // Alias para compatibilidad
     lugares,
@@ -164,6 +177,7 @@ export const InventoryProvider = ({ children }) => {
     valorTotalInventario: valorTotalInventario || 0,
     // Queries de costos
     costosPorTipo: costosPorTipo || [],
+    consumoPorTipo: consumoPorTipo || [],
     historialComprasPorMes: historialComprasPorMes || [],
     topItemsMasCostosos: topItemsMasCostosos || [],
     loading,
@@ -176,13 +190,26 @@ export const InventoryProvider = ({ children }) => {
     removeFromLocation,
     asignarDesdeAlmacen,
     registrarCompra,
+    registrarConsumo,
     // Aliases para compatibilidad con código existente
     addMaterial: addItem,
     updateMaterial: updateItem,
     deleteMaterial: deleteItem,
+    inventoryStats,
     getInventoryStats,
     searchMaterials,
-  };
+  }), [
+    inventory,
+    lugares,
+    codigoSugerido,
+    valorTotalInventario,
+    costosPorTipo,
+    consumoPorTipo,
+    historialComprasPorMes,
+    topItemsMasCostosos,
+    loading,
+    inventoryStats,
+  ]);
 
   return <InventoryContext.Provider value={value}>{children}</InventoryContext.Provider>;
 };

@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useProject } from './ProjectContext';
@@ -172,7 +172,7 @@ export const CleaningProvider = ({ children }) => {
     }
   };
 
-  const value = {
+  const value = useMemo(() => ({
     lugares,
     areas,
     assignments,
@@ -186,7 +186,7 @@ export const CleaningProvider = ({ children }) => {
     deleteAssignment,
     uploadPhoto,
     completeAssignment,
-  };
+  }), [lugares, areas, assignments, loading]);
 
   return <CleaningContext.Provider value={value}>{children}</CleaningContext.Provider>;
 };
@@ -197,5 +197,4 @@ export const useCleaning = () => {
   return context;
 };
 
-export const useSupabaseCleaning = useCleaning;
 export default CleaningContext;

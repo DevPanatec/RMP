@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getScopedProjectId, getAuthScope } from "./lib/auth";
+import { getScopedProjectId, requireProjectAccess, requireWriteRole, getAuthScope } from "./lib/auth";
 
 export const list = query({
   args: { proyecto_id: v.optional(v.id("proyectos")) },
@@ -11,41 +11,12 @@ export const list = query({
       .withIndex("by_fecha", (q) => q)
       .order("desc")
       .collect();
-    if (scoped === null) return all;
-    return all.filter((r) => r.proyecto_id === scoped);
-  },
-});
-
-export const getByConductor = query({
-  args: { conductor_nombre: v.string() },
-  handler: async (ctx, args) => {
-    const scoped = await getScopedProjectId(ctx, null);
-    const all = await ctx.db
-      .query("route_reports")
-      .withIndex("by_conductor", (q) => q.eq("conductor_nombre", args.conductor_nombre))
-      .order("desc")
-      .collect();
-    if (scoped === null) return all;
-    return all.filter((r) => r.proyecto_id === scoped);
-  },
-});
-
-export const getByFecha = query({
-  args: {
-    fecha_inicio: v.string(),
-    fecha_fin: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const scoped = await getScopedProjectId(ctx, null);
-    const all = await ctx.db
-      .query("route_reports")
-      .withIndex("by_fecha", (q) =>
-        q.gte("fecha_completacion", args.fecha_inicio).lte("fecha_completacion", args.fecha_fin)
-      )
-      .order("desc")
-      .collect();
-    if (scoped === null) return all;
-    return all.filter((r) => r.proyecto_id === scoped);
+    if (scoped !== null) return all.filter((r) => r.proyecto_id === scoped);
+    // scoped === null: super_admin ve todo; demás filtran por su org.
+    const scope = await getAuthScope(ctx);
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) return all;
+    if (!scope.organizacionId) return [];
+    return all.filter((r) => r.organizacion_id === scope.organizacionId);
   },
 });
 
@@ -70,22 +41,35 @@ export const add = mutation({
     motivo_terminacion: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const scope = await requireWriteRole(ctx);
     // Derivar proyecto_id desde la asignación o ruta + denormalizar foto/ubicación de la ruta
     let proyecto_id;
     let ruta = null;
+    let asignacion = null;
     if (args.asignacion_id) {
-      const a = await ctx.db.get(args.asignacion_id);
-      proyecto_id = a?.proyecto_id;
+      asignacion = await ctx.db.get(args.asignacion_id);
+      proyecto_id = asignacion?.proyecto_id;
     }
     if (args.ruta_id) {
       ruta = await ctx.db.get(args.ruta_id);
       if (!proyecto_id) proyecto_id = ruta?.proyecto_id;
     }
-    return await ctx.db.insert("route_reports", {
+    if (proyecto_id) await requireProjectAccess(ctx, proyecto_id);
+
+    // Auto-attach organizacion_id desde la fuente más confiable (ruta/asignación/scope)
+    const orgId =
+      asignacion?.organizacion_id ??
+      ruta?.organizacion_id ??
+      scope.organizacionId ??
+      undefined;
+
+    const payload: any = {
       ...args,
       proyecto_id,
       ruta_foto_portada_storage_id: ruta?.foto_portada_storage_id,
       ruta_ubicacion_principal: ruta?.ubicacion_principal,
-    });
+    };
+    if (orgId) payload.organizacion_id = orgId;
+    return await ctx.db.insert("route_reports", payload);
   },
 });

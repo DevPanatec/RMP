@@ -1,5 +1,5 @@
 import { cronJobs } from "convex/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 const crons = cronJobs();
 
@@ -23,9 +23,12 @@ const crons = cronJobs();
  * - { seconds: 30 } → Cada 30 segundos (menos frecuente)
  * - { minutes: 1 } → Cada 1 minuto (muy poco frecuente)
  */
+// Bajado de 10s a 30s para no quemar Convex free tier (~520k mutations/día → ~170k).
+// SafeTag reporta cada 10s pero el path principal de GPS es webhook real-time.
+// Este cron es fallback por si el webhook falla o vehículo no está suscrito.
 crons.interval(
   "sync-safetag-devices",
-  { seconds: 10 },
+  { seconds: 30 },
   api.safetag.syncAllVehicles
 );
 
@@ -43,7 +46,7 @@ crons.interval(
 crons.daily(
   "clean-old-gps-history",
   { hourUTC: 3, minuteUTC: 0 },
-  api.vehicleHistory.cleanOldHistory
+  internal.vehicleHistory.cleanOldHistory
 );
 
 /**
@@ -56,7 +59,7 @@ crons.daily(
 crons.interval(
   "update-gps-connection-status",
   { seconds: 60 },
-  api.gps.updateConnectionStatus
+  internal.gps.updateConnectionStatus
 );
 
 export default crons;

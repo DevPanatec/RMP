@@ -1,5 +1,13 @@
 import { mutation } from "../_generated/server";
 import { v } from "convex/values";
+import { requireSuperAdmin } from "../lib/auth";
+
+async function assertSeedAllowed(ctx: any) {
+  if (process.env.ALLOW_SEED !== "1") {
+    throw new Error("Seed deshabilitado. Setear ALLOW_SEED=1 en Convex env vars.");
+  }
+  await requireSuperAdmin(ctx);
+}
 
 // Migra toda la data existente a una Organización default.
 // Idempotente: si ya hay orgs creadas, lanza error (no doble-corre).
@@ -15,6 +23,7 @@ export const runMigration = mutation({
     orgSlug: v.string(),
   },
   handler: async (ctx, args) => {
+    await assertSeedAllowed(ctx);
     // Guardrail: no doble-corre
     const existingOrg = await ctx.db.query("organizaciones").first();
     if (existingOrg) {
@@ -83,6 +92,7 @@ export const seedCreateOrg = mutation({
     slug: v.string(),
   },
   handler: async (ctx, args) => {
+    await assertSeedAllowed(ctx);
     const existing = await ctx.db
       .query("organizaciones")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
@@ -105,6 +115,7 @@ export const seedMoveUserToOrg = mutation({
     organizacion_id: v.id("organizaciones"),
   },
   handler: async (ctx, args) => {
+    await assertSeedAllowed(ctx);
     const perfil = await ctx.db
       .query("perfiles_usuarios")
       .withIndex("by_email", (q) => q.eq("email", args.email))
@@ -126,6 +137,7 @@ export const promoteToSuperAdmin = mutation({
     perfil_id: v.id("perfiles_usuarios"),
   },
   handler: async (ctx, args) => {
+    await assertSeedAllowed(ctx);
     const perfil = await ctx.db.get(args.perfil_id);
     if (!perfil) throw new Error("Perfil no encontrado");
     await ctx.db.patch(args.perfil_id, {

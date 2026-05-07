@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useMemo } from 'react';
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useProject } from './ProjectContext';
@@ -24,11 +24,11 @@ export const ReportsProvider = ({ children }) => {
     }
   };
 
-  const value = {
+  const value = useMemo(() => ({
     reports,
     loading,
     saveRouteCompletionReport,
-  };
+  }), [reports, loading]);
 
   return <ReportsContext.Provider value={value}>{children}</ReportsContext.Provider>;
 };
@@ -39,5 +39,4 @@ export const useReports = () => {
   return context;
 };
 
-export const useSupabaseReports = useReports;
 export default ReportsContext;

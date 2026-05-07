@@ -1,13 +1,13 @@
 import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import { getAuthScope } from "./lib/auth";
+import { getAuthScope, requireOrgAccess, requireWriteRole } from "./lib/auth";
 
 /**
- * Calcular distancia entre dos puntos GPS usando fórmula Haversine
- * Retorna distancia en metros
+ * Calcular distancia entre dos puntos GPS usando fórmula Haversine.
+ * Retorna distancia en METROS (R = 6371000m). Para versión en km ver `vehicleHistory.haversineKm`.
  */
-function haversineDistance(
+function haversineMeters(
   lat1: number,
   lon1: number,
   lat2: number,
@@ -28,10 +28,11 @@ function haversineDistance(
 
 /**
  * Query: Obtener geofences activos.
- * - Admin: todas.
+ * - Super admin/cross-org viewer: todas.
+ * - Admin: todas las de su org.
  * - Enterprise: solo las geofences ligadas a rutas de su proyecto.
  *   Las geofences manuales (sin ruta_id) NO las ve, ya que no podemos atribuirlas a un proyecto.
- * - Conductor: todas (necesita las paradas/zonas activas para su trabajo).
+ * - Conductor: todas las de su org (necesita paradas/zonas activas para su trabajo, scoped a su org).
  */
 export const list = query({
   handler: async (ctx) => {
@@ -41,17 +42,24 @@ export const list = query({
       .withIndex("by_activo", (q) => q.eq("activo", true))
       .collect();
 
-    if (!scope.isEnterprise) return all;
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) return all;
+    if (!scope.organizacionId) return [];
+
+    // Strict scope a la org del caller
+    const inOrg = all.filter((g) => g.organizacion_id === scope.organizacionId);
+
+    if (!scope.isEnterprise) return inOrg; // admin + conductor: todas las de su org
+
     if (!scope.proyectoId) return [];
 
-    // Construir set de ruta_ids del proyecto del enterprise
+    // Enterprise: solo las ligadas a rutas de su proyecto
     const rutas = await ctx.db
       .query("rutas")
       .withIndex("by_proyecto", (q) => q.eq("proyecto_id", scope.proyectoId!))
       .collect();
     const rutaIds = new Set(rutas.map((r) => r._id));
 
-    return all.filter((g) => g.ruta_id && rutaIds.has(g.ruta_id));
+    return inOrg.filter((g) => g.ruta_id && rutaIds.has(g.ruta_id));
   },
 });
 
@@ -64,7 +72,7 @@ export const listAll = query({
     const all = await ctx.db.query("geofences").collect();
     if (scope.isSuperAdmin || scope.isCrossOrgViewer) return all;
     if (!scope.organizacionId) return [];
-    return all.filter((g) => !g.organizacion_id || g.organizacion_id === scope.organizacionId);
+    return all.filter((g) => g.organizacion_id === scope.organizacionId);
   },
 });
 
@@ -82,7 +90,11 @@ export const create = mutation({
     tipo: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const geofenceId = await ctx.db.insert("geofences", {
+    const scope = await requireWriteRole(ctx);
+    if (!scope.isSuperAdmin && !scope.organizacionId) {
+      throw new Error("Sin organización asignada");
+    }
+    const payload: any = {
       nombre: args.nombre,
       descripcion: args.descripcion,
       latitud: args.latitud,
@@ -92,7 +104,9 @@ export const create = mutation({
       tipo: args.tipo || "ambos",
       activo: true,
       created_at: Date.now(),
-    });
+    };
+    if (scope.organizacionId) payload.organizacion_id = scope.organizacionId;
+    const geofenceId = await ctx.db.insert("geofences", payload);
 
     console.log(`✅ Geofence creado: ${args.nombre} (radio: ${args.radio}m)`);
 
@@ -116,6 +130,11 @@ export const update = mutation({
     activo: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const geofence = await ctx.db.get(args.id);
+    if (!geofence) throw new Error("Geofence no encontrado");
+    if (!geofence.organizacion_id) throw new Error("Geofence sin organización — requiere migración");
+    await requireOrgAccess(ctx, geofence.organizacion_id);
     const { id, ...updates } = args;
     await ctx.db.patch(id, updates);
     return { success: true };
@@ -130,12 +149,18 @@ export const remove = mutation({
     id: v.id("geofences"),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const geofence = await ctx.db.get(args.id);
+    if (!geofence) throw new Error("Geofence no encontrado");
+    if (!geofence.organizacion_id) throw new Error("Geofence sin organización — requiere migración");
+    await requireOrgAccess(ctx, geofence.organizacion_id);
+
     // Eliminar estados relacionados
     const states = await ctx.db
       .query("vehicle_geofence_state")
       .withIndex("by_geofence", (q) => q.eq("geofence_id", args.id))
       .collect();
-    
+
     for (const state of states) {
       await ctx.db.delete(state._id);
     }
@@ -146,7 +171,30 @@ export const remove = mutation({
 });
 
 /**
- * Query: Obtener alertas no vistas
+ * Helper: filtra alertas a las que el caller tiene acceso (vehículo de su org).
+ */
+async function filterAlertsByScope(ctx: any, alerts: any[]) {
+  const scope = await getAuthScope(ctx);
+  if (scope.isSuperAdmin || scope.isCrossOrgViewer) return alerts;
+  if (!scope.organizacionId) return [];
+  // Cargar vehículos para mapear org. Usamos cache simple por id.
+  const vehCache = new Map<string, any>();
+  const filtered: any[] = [];
+  for (const alert of alerts) {
+    let veh = vehCache.get(alert.vehiculo_id as string);
+    if (!veh) {
+      veh = await ctx.db.get(alert.vehiculo_id);
+      vehCache.set(alert.vehiculo_id as string, veh);
+    }
+    if (veh && veh.organizacion_id === scope.organizacionId) {
+      filtered.push(alert);
+    }
+  }
+  return filtered;
+}
+
+/**
+ * Query: Obtener alertas no vistas (scoped por org del vehículo).
  */
 export const getUnviewedAlerts = query({
   handler: async (ctx) => {
@@ -154,14 +202,15 @@ export const getUnviewedAlerts = query({
       .query("geofence_alerts")
       .withIndex("by_viewed", (q) => q.eq("viewed", false))
       .order("desc")
-      .take(50);
+      .take(200); // Más amplio antes de filtrar por scope.
 
-    // Enriquecer con datos del vehículo y geofence
-    const enrichedAlerts = await Promise.all(
-      alerts.map(async (alert) => {
+    const scoped = await filterAlertsByScope(ctx, alerts);
+    const limited = scoped.slice(0, 50);
+
+    return await Promise.all(
+      limited.map(async (alert) => {
         const vehicle = await ctx.db.get(alert.vehiculo_id);
         const geofence = alert.geofence_id ? await ctx.db.get(alert.geofence_id) : null;
-
         return {
           ...alert,
           vehiculo_placa: vehicle?.placa || "Desconocido",
@@ -171,13 +220,11 @@ export const getUnviewedAlerts = query({
         };
       })
     );
-
-    return enrichedAlerts;
   },
 });
 
 /**
- * Query: Obtener alertas recientes (vistas y no vistas)
+ * Query: Obtener alertas recientes (scoped por org del vehículo).
  */
 export const getRecentAlerts = query({
   args: {
@@ -185,19 +232,19 @@ export const getRecentAlerts = query({
   },
   handler: async (ctx, args) => {
     const limit = args.limit || 20;
-
     const alerts = await ctx.db
       .query("geofence_alerts")
       .withIndex("by_timestamp")
       .order("desc")
-      .take(limit);
+      .take(Math.max(100, limit * 5));
 
-    // Enriquecer con datos del vehículo y geofence
-    const enrichedAlerts = await Promise.all(
-      alerts.map(async (alert) => {
+    const scoped = await filterAlertsByScope(ctx, alerts);
+    const limited = scoped.slice(0, limit);
+
+    return await Promise.all(
+      limited.map(async (alert) => {
         const vehicle = await ctx.db.get(alert.vehiculo_id);
         const geofence = alert.geofence_id ? await ctx.db.get(alert.geofence_id) : null;
-
         return {
           ...alert,
           vehiculo_placa: vehicle?.placa || "Desconocido",
@@ -207,39 +254,49 @@ export const getRecentAlerts = query({
         };
       })
     );
-
-    return enrichedAlerts;
   },
 });
 
 /**
- * Mutation: Marcar alerta como vista
+ * Mutation: Marcar alerta como vista. Auth: vehículo debe pertenecer a la org del caller.
  */
 export const markAlertViewed = mutation({
   args: {
     alertId: v.id("geofence_alerts"),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    const alert = await ctx.db.get(args.alertId);
+    if (!alert) throw new Error("Alerta no encontrada");
+    const veh = await ctx.db.get(alert.vehiculo_id);
+    if (!veh) throw new Error("Vehículo no encontrado");
+    if (!veh.organizacion_id) throw new Error("Vehículo sin organización — requiere migración");
+    await requireOrgAccess(ctx, veh.organizacion_id);
     await ctx.db.patch(args.alertId, { viewed: true });
     return { success: true };
   },
 });
 
 /**
- * Mutation: Marcar todas las alertas como vistas
+ * Mutation: Marcar todas las alertas (de la org del caller) como vistas.
  */
 export const markAllAlertsViewed = mutation({
   handler: async (ctx) => {
+    const scope = await requireWriteRole(ctx);
     const unviewed = await ctx.db
       .query("geofence_alerts")
       .withIndex("by_viewed", (q) => q.eq("viewed", false))
       .collect();
 
-    for (const alert of unviewed) {
+    const filtered = scope.isSuperAdmin
+      ? unviewed
+      : await filterAlertsByScope(ctx, unviewed);
+
+    for (const alert of filtered) {
       await ctx.db.patch(alert._id, { viewed: true });
     }
 
-    return { success: true, count: unviewed.length };
+    return { success: true, count: filtered.length };
   },
 });
 
@@ -247,7 +304,7 @@ export const markAllAlertsViewed = mutation({
  * Mutation: Verificar geofences para un vehículo
  * Esta función se llama cuando se actualiza la posición GPS de un vehículo
  */
-export const checkVehicleGeofences = mutation({
+export const checkVehicleGeofences = internalMutation({
   args: {
     vehiculoId: v.id("vehiculos"),
     latitud: v.number(),
@@ -270,7 +327,7 @@ export const checkVehicleGeofences = mutation({
 
     for (const geofence of geofences) {
       // Calcular distancia al centro del geofence
-      const distance = haversineDistance(
+      const distance = haversineMeters(
         latitud,
         longitud,
         geofence.latitud,
@@ -287,7 +344,10 @@ export const checkVehicleGeofences = mutation({
         )
         .first();
 
-      const wasInside = previousState?.inside ?? false;
+      // Si no hay estado previo, asumimos wasInside=isInside para evitar
+      // emitir alertas espurias en el primer check (no podemos saber si
+      // realmente cruzó el borde — solo creamos el row de estado).
+      const wasInside = previousState?.inside ?? isInside;
 
       // Detectar cambio de estado
       if (isInside !== wasInside) {

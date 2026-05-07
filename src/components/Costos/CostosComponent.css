@@ -53,7 +53,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-surface);
   box-shadow: 
     0 4px 12px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -64,7 +64,7 @@
   font-family: var(--font-family-display);
   font-size: 26px;
   font-weight: 700;
-  color: white;
+  color: var(--color-surface);
   margin: 0 0 6px 0;
   letter-spacing: -0.02em;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
@@ -104,7 +104,7 @@
 .costos-stat-pill .stat-number {
   font-size: 20px;
   font-weight: 700;
-  color: white;
+  color: var(--color-surface);
   line-height: 1;
   margin-bottom: 4px;
 }
@@ -180,7 +180,7 @@
 
 .costos-tab-btn.active {
   background: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
   box-shadow: var(--shadow-xs);
 }
 
@@ -296,7 +296,7 @@
 
 .period-selector-inline button.active {
   background: var(--color-primary);
-  color: white;
+  color: var(--color-surface);
 }
 
 /* Period Selector V2 */
@@ -322,14 +322,14 @@
 }
 
 .period-selector-v2 button.active {
-  background: white;
+  background: var(--color-surface);
   color: var(--color-primary);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .period-selector-v2 button:hover:not(.active) {
   background: rgba(255, 255, 255, 0.1);
-  color: white;
+  color: var(--color-surface);
 }
 
 /* Responsive V2 Header */
@@ -481,7 +481,7 @@
 .period-selector {
   display: flex;
   gap: 8px;
-  background: white;
+  background: var(--color-surface);
   padding: 4px;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -501,7 +501,7 @@
 
 .period-selector button.active {
   background: var(--color-info);
-  color: white;
+  color: var(--color-surface);
 }
 
 .period-selector button:hover:not(.active) {
@@ -511,7 +511,7 @@
 
 /* Gráfico de costos */
 .costos-chart-container {
-  background: white;
+  background: var(--color-surface);
   border-radius: 16px;
   padding: 28px;
   margin-bottom: 28px;
@@ -546,7 +546,7 @@
 }
 
 .breakdown-card {
-  background: white;
+  background: var(--color-surface);
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
@@ -624,7 +624,7 @@
 }
 
 .evolution-table-container {
-  background: white;
+  background: var(--color-surface);
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
@@ -684,7 +684,7 @@
 }
 
 .kpi-card {
-  background: white;
+  background: var(--color-surface);
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
@@ -798,7 +798,7 @@
 }
 
 .top-items-table-container {
-  background: white;
+  background: var(--color-surface);
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
@@ -879,7 +879,7 @@
   gap: 16px;
   color: var(--color-text-secondary);
   padding: 60px 20px;
-  background: white;
+  background: var(--color-surface);
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
