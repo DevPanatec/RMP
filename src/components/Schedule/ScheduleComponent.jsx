@@ -9,7 +9,8 @@ import {
   Calendar, Plus, Edit, Trash2, AlertTriangle, CheckCircle,
   Truck, Users, Map, Clock, X, Sparkles, Camera, Info, Bug, CalendarCheck
 } from '../Icons';
-import { CustomSelect } from '../UI';
+import { CustomSelect, EmptyState } from '../UI';
+import notify from '../../utils/notify';
 import PhotoUploadField from '../Cleaning/PhotoUploadField';
 import HelperManager from './HelperManager';
 import WeekdayPicker from './WeekdayPicker';
@@ -421,19 +422,19 @@ const ScheduleComponent = ({ viewerMode = false }) => {
 
     // Validar campos requeridos
     if (!routeFormData.ruta_id) {
-      alert('❌ Debe seleccionar una ruta');
+      notify.error('Debe seleccionar una ruta');
       return;
     }
     if (!routeFormData.conductor_nombre) {
-      alert('❌ Debe seleccionar un conductor');
+      notify.error('Debe seleccionar un conductor');
       return;
     }
     if (!routeFormData.vehiculo_id) {
-      alert('❌ Debe seleccionar un vehículo');
+      notify.error('Debe seleccionar un vehículo');
       return;
     }
     if (routeFormData.dias_semana.length === 0) {
-      alert('❌ Debe seleccionar al menos un día de la semana');
+      notify.error('Debe seleccionar al menos un día de la semana');
       return;
     }
 
@@ -450,7 +451,7 @@ const ScheduleComponent = ({ viewerMode = false }) => {
         return `${diaCapitalizado} (asignado a ${blockedDays[dia]})`;
       }).join(', ');
 
-      alert(`❌ No se puede guardar la asignación\n\nLos siguientes días ya están asignados:\n${conflictDetails}\n\nPor favor, selecciona solo días disponibles.`);
+      notify.error(`No se puede guardar — días en conflicto: ${conflictDetails}`);
       return;
     }
 
@@ -468,7 +469,7 @@ const ScheduleComponent = ({ viewerMode = false }) => {
         return `• ${diasCapitalizados}: ${conflict.ruta} (${conflict.horario}) - Conductor: ${conflict.conductor}`;
       }).join('\n');
 
-      alert(`❌ Conflicto de vehículo detectado\n\nEl vehículo seleccionado ya está asignado en los siguientes horarios:\n\n${conflictMessages}\n\nPor favor, selecciona otro vehículo o cambia los días/horarios.`);
+      notify.error(`Conflicto de vehículo: ${conflictMessages}`);
       return;
     }
 
@@ -500,7 +501,7 @@ const ScheduleComponent = ({ viewerMode = false }) => {
     if (result.success) {
       handleCloseModal();
     } else {
-      alert(`Error: ${result.error}`);
+      notify.error(result.error);
     }
   };
 
@@ -508,7 +509,7 @@ const ScheduleComponent = ({ viewerMode = false }) => {
     if (window.confirm('¿Estás seguro de eliminar esta asignación?')) {
       const result = await deleteScheduleAssignment(id);
       if (!result.success) {
-        alert(`Error: ${result.error}`);
+        notify.error(result.error);
       }
     }
   };
@@ -590,11 +591,11 @@ const ScheduleComponent = ({ viewerMode = false }) => {
         }
         setShowSuccessModal(true);
       } else {
-        alert(`Error al crear asignación: ${result.error}`);
+        notify.error(`Error al crear asignación: ${result.error}`);
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al crear la asignación');
+      notify.error('Error al crear la asignación');
     } finally {
       setSubmitting(false);
     }
@@ -730,14 +731,16 @@ const ScheduleComponent = ({ viewerMode = false }) => {
           {activeTab === 'routes' && (
             <div className="assignments-list">
               {scheduleAssignments.length === 0 ? (
-                <div className="empty-state">
-                  <Truck size={40} />
-                  <h3>No hay rutas programadas</h3>
-                  <p>Comienza agregando una nueva asignación de ruta</p>
-                  <button className="btn btn--primary btn--sm" onClick={() => handleOpenRouteModal()}>
-                    <Plus size={16} /> Nueva Ruta
-                  </button>
-                </div>
+                <EmptyState
+                  icon={Truck}
+                  title="No hay rutas programadas"
+                  description="Comienza agregando una nueva asignación de ruta para tu flota."
+                  action={
+                    <button className="btn btn--primary btn--sm" onClick={() => handleOpenRouteModal()}>
+                      <Plus size={16} /> Nueva Ruta
+                    </button>
+                  }
+                />
               ) : (
                 <div className="assignments-table-container">
                   <table className="assignments-table">
@@ -807,14 +810,16 @@ const ScheduleComponent = ({ viewerMode = false }) => {
           {activeTab === 'cleaning' && (
             <div className="assignments-list">
               {cleaningAssignments.length === 0 ? (
-                <div className="empty-state">
-                  <Sparkles size={40} />
-                  <h3>No hay tareas de limpieza programadas</h3>
-                  <p>Comienza agregando una nueva asignación de limpieza</p>
-                  <button className="btn btn--primary btn--sm" onClick={handleOpenCleaningModal}>
-                    <Plus size={16} /> Nueva Asignación
-                  </button>
-                </div>
+                <EmptyState
+                  icon={Sparkles}
+                  title="No hay tareas de limpieza programadas"
+                  description="Agrega una nueva asignación de limpieza."
+                  action={
+                    <button className="btn btn--primary btn--sm" onClick={handleOpenCleaningModal}>
+                      <Plus size={16} /> Nueva Asignación
+                    </button>
+                  }
+                />
               ) : (
                 <div className="assignments-table-container">
                   <table className="assignments-table">

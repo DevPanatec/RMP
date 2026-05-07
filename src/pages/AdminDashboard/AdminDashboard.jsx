@@ -729,7 +729,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
               <Activity size={16} />
               <span>Sistema en Tiempo Real</span>
             </div>
-            <button className="app-bar__logout" onClick={onLogout}>
+            <button className="app-bar__logout" onClick={onLogout} aria-label="Cerrar sesión">
               <LogOut size={18} />
               <span>Cerrar Sesión</span>
             </button>

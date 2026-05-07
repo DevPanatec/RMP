@@ -1493,7 +1493,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                 <Activity size={16} />
                 <span>{user.nombre}</span>
               </div>
-              <button className="app-bar__logout" onClick={handleLogout}>
+              <button className="app-bar__logout" onClick={handleLogout} aria-label="Cerrar sesión">
                 <LogOut size={18} />
                 <span>Cerrar Sesión</span>
               </button>
@@ -1626,7 +1626,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
               <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="app-bar__logo" />
             </div>
             <div className="app-bar__actions">
-              <button className="app-bar__logout" onClick={handleLogout}>
+              <button className="app-bar__logout" onClick={handleLogout} aria-label="Cerrar sesión">
                 <LogOut size={18} />
                 <span>Cerrar Sesión</span>
               </button>
@@ -1716,7 +1716,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
               <Activity size={16} />
               <span>{user.nombre}</span>
             </div>
-            <button className="app-bar__logout" onClick={handleLogout}>
+            <button className="app-bar__logout" onClick={handleLogout} aria-label="Cerrar sesión">
               <LogOut size={18} />
               <span>Salir</span>
             </button>

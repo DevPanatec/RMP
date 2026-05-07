@@ -202,7 +202,7 @@
 }
 
 .cleaning-table__photo-badge--despues {
-  background: #30d158;
+  background: var(--color-success);
 }
 
 .cleaning-table__actions {
@@ -234,7 +234,7 @@
 }
 
 .cleaning-table__action--download:hover {
-  background: #30d158;
+  background: var(--color-success);
   color: white;
 }
 

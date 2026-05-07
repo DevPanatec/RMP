@@ -258,8 +258,8 @@
 }
 
 .route-card-icon.recoleccion {
-  background: linear-gradient(135deg, var(--color-success) 0%, #30d158 100%);
-  box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);
+  background: var(--color-success);
+  box-shadow: var(--shadow-sm);
 }
 
 .route-card-icon.fumigacion {

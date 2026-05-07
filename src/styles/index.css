@@ -45,6 +45,16 @@
   --color-info-light: #dbeafe;        /* Blue 100 - light bg */
   --color-info-dark: #2563eb;         /* Blue 600 - dark variant */
 
+  /* Categorías de carga (WeightModal) - solid tokens, no gradients */
+  --color-cat-baja: #16a34a;          /* Green 600 - low weight */
+  --color-cat-baja-light: #dcfce7;    /* Green 100 - bg */
+  --color-cat-intermedia: #d97706;    /* Amber 600 - medium */
+  --color-cat-intermedia-light: #fef3c7; /* Amber 100 - bg */
+  --color-cat-alta: #2563eb;          /* Blue 600 - high */
+  --color-cat-alta-light: #dbeafe;    /* Blue 100 - bg */
+  --color-cat-muy-alta: #dc2626;      /* Red 600 - very high */
+  --color-cat-muy-alta-light: #fee2e2; /* Red 100 - bg */
+
   /* Focus & Interaction - Premium States */
   --color-focus-ring: rgba(30, 41, 59, 0.4);  /* Slate focus ring */
   --color-hover-overlay: rgba(0, 0, 0, 0.03);  /* Subtle hover */

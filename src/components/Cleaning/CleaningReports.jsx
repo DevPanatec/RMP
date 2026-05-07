@@ -171,7 +171,7 @@ const CleaningReports = ({ userRole }) => {
       {/* Estadísticas */}
       <div className="cleaning-reports__stats">
         <div className="cleaning-stat">
-          <FileText size={24} color="#30d158" />
+          <FileText size={24} style={{ color: 'var(--color-success)' }} />
           <div>
             <div className="cleaning-stat__value">{reports.length}</div>
             <div className="cleaning-stat__label">Total Reportes</div>

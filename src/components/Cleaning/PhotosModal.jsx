@@ -5,9 +5,9 @@ import { useCleaning } from '../../context/CleaningContext';
 import './PhotosModal.css';
 
 const PHOTO_STAGES = [
-  { id: 'antes', label: 'Antes', color: '#ff3b30' },
-  { id: 'durante', label: 'Durante', color: '#ff9500' },
-  { id: 'despues', label: 'Después', color: '#30d158' },
+  { id: 'antes', label: 'Antes', color: 'var(--color-error)' },
+  { id: 'durante', label: 'Durante', color: 'var(--color-warning)' },
+  { id: 'despues', label: 'Después', color: 'var(--color-success)' },
 ];
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB

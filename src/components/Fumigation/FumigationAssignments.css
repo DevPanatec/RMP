@@ -187,8 +187,8 @@
 }
 
 .assignment-card__status--reportada {
-  background: rgba(48, 209, 88, 0.1);
-  color: #30D158;
+  background: var(--color-success-light);
+  color: var(--color-success-dark);
 }
 
 /* Responsive */

@@ -305,12 +305,12 @@ self.addEventListener('push', (event) => {
     actions: [
       {
         action: 'view',
-        title: '👀 Ver',
+        title: 'Ver',
         icon: '/icon-192.png'
       },
       {
         action: 'dismiss',
-        title: '❌ Descartar',
+        title: 'Descartar',
         icon: '/icon-192.png'
       }
     ],

@@ -1583,7 +1583,7 @@
 }
 
 .compliance-percent.compliance-ok {
-  color: #30D158;
+  color: var(--color-success);
 }
 
 .compliance-percent.compliance-warning {

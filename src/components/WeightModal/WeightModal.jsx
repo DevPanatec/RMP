@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { FileText, Trash2, RefreshCw, Truck, Package, MapPin, ClipboardList, AlertTriangle, X, CheckCircle, Camera } from '../Icons';
+import useFocusTrap from '../../hooks/useFocusTrap';
 import './WeightModal.css';
 
 const CATEGORIES = [
@@ -22,6 +23,7 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop, isOnline
   const [error, setError] = useState('');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const fileInputRef = useRef(null);
+  const trapRef = useFocusTrap(isOpen, onClose);
 
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
@@ -210,8 +212,8 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop, isOnline
   // ==========================================
   if (isMobile) {
     return (
-      <div className="weight-sheet-backdrop" onClick={onClose}>
-        <div className="weight-sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="weight-sheet-backdrop" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="weight-sheet-title">
+        <div className="weight-sheet" onClick={(e) => e.stopPropagation()} ref={trapRef}>
           <div className="weight-sheet__handle" />
 
           <div className="weight-sheet__header">
@@ -219,12 +221,16 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop, isOnline
               <MapPin size={14} />
               <span>{currentStop}</span>
             </div>
-            <button className="weight-sheet__close" onClick={onClose}>
+            <button
+              className="weight-sheet__close"
+              onClick={onClose}
+              aria-label="Cerrar selección de carga"
+            >
               <X size={18} />
             </button>
           </div>
 
-          <div className="weight-sheet__title">Categoría de carga</div>
+          <div className="weight-sheet__title" id="weight-sheet-title">Categoría de carga</div>
 
           <div className="weight-sheet__categories">
             {CATEGORIES.map((cat) => (
@@ -261,11 +267,11 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop, isOnline
   // DESKTOP: Modal clásico
   // ==========================================
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="weight-modal-title">
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} ref={trapRef}>
         <div className="modal-header">
-          <h3><Package size={20} /> Registrar Recolección</h3>
-          <button className="modal-close" onClick={onClose}>
+          <h3 id="weight-modal-title"><Package size={20} /> Registrar Recolección</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Cerrar modal">
             <X size={20} />
           </button>
         </div>

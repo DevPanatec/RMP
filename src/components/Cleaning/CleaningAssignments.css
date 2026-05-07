@@ -277,8 +277,8 @@
 }
 
 .assignment-card__status--completado {
-  background: rgba(48, 209, 88, 0.1);
-  color: #30d158;
+  background: var(--color-success-light);
+  color: var(--color-success-dark);
 }
 
 .assignment-card__status--cancelado {
