@@ -1,7 +1,7 @@
 import { Badge } from './Badge';
 import {
   CheckCircle, Clock, AlertTriangle, Wrench, Truck,
-  PauseCircle, XCircle, Play, Calendar
+  Pause, XCircle, Play, Calendar
 } from '../Icons';
 
 /**
@@ -28,7 +28,7 @@ const STATUS_MAP = {
   en_curso:          { variant: 'info',    icon: Play,        label: 'En curso' },
   completada:        { variant: 'success', icon: CheckCircle, label: 'Completada' },
   cancelada:         { variant: 'error',   icon: XCircle,     label: 'Cancelada' },
-  pausada:           { variant: 'warning', icon: PauseCircle, label: 'Pausada' },
+  pausada:           { variant: 'warning', icon: Pause,      label: 'Pausada' },
 
   // Mantenimiento
   realizada:         { variant: 'success', icon: CheckCircle, label: 'Realizada' },
