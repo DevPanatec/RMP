@@ -356,7 +356,8 @@ export default defineSchema({
     foto_storage_id: v.optional(v.id("_storage")),
   })
     .index("by_activo", ["activo"])
-    .index("by_proyecto", ["proyecto_id"]),
+    .index("by_proyecto", ["proyecto_id"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 11b. Lugares (Fumigación - espacios internos y externos)
   lugares: defineTable({
@@ -370,7 +371,8 @@ export default defineSchema({
     foto_storage_id: v.optional(v.id("_storage")),
   })
     .index("by_activo", ["activo"])
-    .index("by_proyecto", ["proyecto_id"]),
+    .index("by_proyecto", ["proyecto_id"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 12. Áreas (Cleaning)
   areas: defineTable({
@@ -397,7 +399,8 @@ export default defineSchema({
     .index("by_fecha", ["fecha"])
     .index("by_estado", ["estado"])
     .index("by_sala", ["sala_id"])
-    .index("by_proyecto_fecha", ["proyecto_id", "fecha"]),
+    .index("by_proyecto_fecha", ["proyecto_id", "fecha"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 14. Fotos de Limpieza
   cleaning_photos: defineTable({
@@ -430,7 +433,8 @@ export default defineSchema({
     .index("by_vehiculo", ["vehiculo_id"])
     .index("by_estado", ["estado"])
     .index("by_fecha", ["fecha_programada"])
-    .index("by_proyecto", ["proyecto_id"]),
+    .index("by_proyecto", ["proyecto_id"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 16. Alertas de Mantenimiento
   maintenance_alerts: defineTable({
@@ -446,7 +450,8 @@ export default defineSchema({
   })
     .index("by_vehiculo", ["vehiculo_id"])
     .index("by_leida", ["leida"])
-    .index("by_proyecto", ["proyecto_id"]),
+    .index("by_proyecto", ["proyecto_id"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 16b. Fotos de Mantenimiento
   maintenance_photos: defineTable({
@@ -526,7 +531,8 @@ export default defineSchema({
     .index("by_lugar", ["lugar_id"])
     .index("by_tipo", ["tipo_fumigacion"])
     .index("by_fecha_lugar_tipo", ["fecha", "lugar_id", "tipo_fumigacion"])
-    .index("by_proyecto_fecha", ["proyecto_id", "fecha"]),
+    .index("by_proyecto_fecha", ["proyecto_id", "fecha"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 18. Fotos de Fumigación
   fumigation_photos: defineTable({
@@ -568,7 +574,8 @@ export default defineSchema({
     .index("by_fecha", ["fecha_completacion"])
     .index("by_lugar", ["lugar_id"])
     .index("by_tipo", ["tipo_fumigacion"])
-    .index("by_proyecto_fecha", ["proyecto_id", "fecha_completacion"]),
+    .index("by_proyecto_fecha", ["proyecto_id", "fecha_completacion"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 18c. Reportes de Limpieza Completados
   cleaning_reports: defineTable({
@@ -595,7 +602,8 @@ export default defineSchema({
     .index("by_fecha", ["fecha_completacion"])
     .index("by_sala", ["sala_id"])
     .index("by_area", ["area_id"])
-    .index("by_proyecto_fecha", ["proyecto_id", "fecha_completacion"]),
+    .index("by_proyecto_fecha", ["proyecto_id", "fecha_completacion"])
+    .index("by_organizacion", ["organizacion_id"]),
 
   // 19. Geofences (Zonas de monitoreo)
   geofences: defineTable({

@@ -113,7 +113,14 @@ export const add = mutation({
   handler: async (ctx, args) => {
     await requireAdminWrite(ctx);
     const scope = await getAuthScope(ctx);
-    const orgId = args.organizacion_id ?? scope.organizacionId ?? undefined;
+    let orgId: any = args.organizacion_id ?? scope.organizacionId ?? undefined;
+    if (!orgId && args.proyecto_id) {
+      const p = await ctx.db.get(args.proyecto_id);
+      orgId = p?.organizacion_id ?? undefined;
+    }
+    if (!orgId && !scope.isSuperAdmin) {
+      throw new Error("No se puede crear empleado sin organización");
+    }
     if (orgId) await requireOrgAccess(ctx, orgId);
     if (args.proyecto_id) await requireProjectAccess(ctx, args.proyecto_id);
     const data: any = { ...args, activo: true };
@@ -196,5 +203,52 @@ export const getStats = query({
       activos,
       inactivos: empleados.length - activos,
     };
+  },
+});
+
+// One-shot: backfill organizacion_id en empleados.
+// Empleados no tienen relación directa a entidad con org — usa la org default si está sola.
+// Si hay múltiples orgs y empleado no tiene proyecto_id, requiere intervención manual.
+export const _migrationBackfillOrganizacionId = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const orgs = await ctx.db.query("organizaciones").collect();
+    const defaultOrgId = orgs.length === 1 ? orgs[0]._id : null;
+
+    const empleados = await ctx.db.query("empleados").collect();
+    let fixed = 0;
+    let skipped = 0;
+    for (const e of empleados) {
+      if (e.organizacion_id != null) continue;
+      let orgId = null;
+      if (e.proyecto_id) {
+        const p = await ctx.db.get(e.proyecto_id);
+        orgId = p?.organizacion_id ?? null;
+      }
+      if (!orgId) orgId = defaultOrgId;
+      if (!orgId) {
+        skipped++;
+        continue;
+      }
+      await ctx.db.patch(e._id, { organizacion_id: orgId });
+      fixed++;
+    }
+    return { fixed, skipped, total: empleados.length };
+  },
+});
+
+// One-shot: backfill empleados huérfanos a org RMP default.
+export const _migrationBackfillOrganizacionIdRMP = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const RMP_ORG_ID = "q17ab6eqe73bvp7c75kyh5avdd85rrn2";
+    const empleados = await ctx.db.query("empleados").collect();
+    let fixed = 0;
+    for (const e of empleados) {
+      if (e.organizacion_id != null) continue;
+      await ctx.db.patch(e._id, { organizacion_id: RMP_ORG_ID as any });
+      fixed++;
+    }
+    return { fixed, total: empleados.length };
   },
 });

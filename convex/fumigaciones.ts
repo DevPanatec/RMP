@@ -668,3 +668,59 @@ export const createReport = mutation({
     return await ctx.db.insert("fumigation_reports", payload);
   },
 });
+
+// One-shot: backfill organizacion_id en lugares, fumigation_assignments y fumigation_reports.
+export const _migrationBackfillOrganizacionId = mutation({
+  args: {},
+  handler: async (ctx) => {
+    let lugares_fixed = 0;
+    let assignments_fixed = 0;
+    let reports_fixed = 0;
+
+    const lugares = await ctx.db.query("lugares").collect();
+    for (const lugar of lugares) {
+      if (lugar.organizacion_id != null) continue;
+      if (!lugar.proyecto_id) continue;
+      const proyecto = await ctx.db.get(lugar.proyecto_id);
+      if (!proyecto?.organizacion_id) continue;
+      await ctx.db.patch(lugar._id, { organizacion_id: proyecto.organizacion_id });
+      lugares_fixed++;
+    }
+
+    const assignments = await ctx.db.query("fumigation_assignments").collect();
+    for (const a of assignments) {
+      if (a.organizacion_id != null) continue;
+      let orgId = null;
+      if (a.proyecto_id) {
+        const p = await ctx.db.get(a.proyecto_id);
+        orgId = p?.organizacion_id ?? null;
+      }
+      if (!orgId && a.lugar_id) {
+        const l = await ctx.db.get(a.lugar_id);
+        orgId = l?.organizacion_id ?? null;
+      }
+      if (!orgId) continue;
+      await ctx.db.patch(a._id, { organizacion_id: orgId });
+      assignments_fixed++;
+    }
+
+    const reports = await ctx.db.query("fumigation_reports").collect();
+    for (const r of reports) {
+      if (r.organizacion_id != null) continue;
+      let orgId = null;
+      if (r.proyecto_id) {
+        const p = await ctx.db.get(r.proyecto_id);
+        orgId = p?.organizacion_id ?? null;
+      }
+      if (!orgId && r.lugar_id) {
+        const l = await ctx.db.get(r.lugar_id);
+        orgId = l?.organizacion_id ?? null;
+      }
+      if (!orgId) continue;
+      await ctx.db.patch(r._id, { organizacion_id: orgId });
+      reports_fixed++;
+    }
+
+    return { lugares_fixed, assignments_fixed, reports_fixed };
+  },
+});

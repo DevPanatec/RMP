@@ -221,7 +221,20 @@ export const add = mutation({
       fecha_reporte: new Date().toISOString(),
       estado: "reportado",
     };
-    if (scope.organizacionId) payload.organizacion_id = scope.organizacionId;
+    // Derivar org: scope → proyecto → vehículo (super_admin sin org).
+    let orgId = scope.organizacionId;
+    if (!orgId && args.proyecto_id) {
+      const p = await ctx.db.get(args.proyecto_id);
+      orgId = p?.organizacion_id ?? null;
+    }
+    if (!orgId && args.vehiculo_id) {
+      const v = await ctx.db.get(args.vehiculo_id);
+      orgId = v?.organizacion_id ?? null;
+    }
+    if (!orgId && !scope.isSuperAdmin) {
+      throw new Error("No se puede crear reporte sin organización");
+    }
+    if (orgId) payload.organizacion_id = orgId;
     return await ctx.db.insert("reportes_riesgo", payload);
   },
 });
@@ -264,5 +277,30 @@ export const remove = mutation({
     else if (reporte.proyecto_id) await requireProjectAccess(ctx, reporte.proyecto_id);
     else throw new Error("Reporte sin proyecto ni organización — requiere migración");
     return await ctx.db.delete(args.id);
+  },
+});
+
+// One-shot: backfill organizacion_id derivando de proyecto, luego vehiculo.
+export const _migrationBackfillOrganizacionId = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("reportes_riesgo").collect();
+    let fixed = 0;
+    for (const r of all) {
+      if (r.organizacion_id != null) continue;
+      let orgId = null;
+      if (r.proyecto_id) {
+        const p = await ctx.db.get(r.proyecto_id);
+        orgId = p?.organizacion_id ?? null;
+      }
+      if (!orgId && r.vehiculo_id) {
+        const v = await ctx.db.get(r.vehiculo_id);
+        orgId = v?.organizacion_id ?? null;
+      }
+      if (!orgId) continue;
+      await ctx.db.patch(r._id, { organizacion_id: orgId });
+      fixed++;
+    }
+    return { fixed, total: all.length };
   },
 });

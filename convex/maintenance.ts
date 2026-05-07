@@ -101,7 +101,16 @@ export const addTask = mutation({
       ...rest,
       estado: estado || "pendiente",
     };
-    if (scope.organizacionId) payload.organizacion_id = scope.organizacionId;
+    // Derivar org_id: scope first, fallback al vehículo (super_admin sin org current).
+    let orgId = scope.organizacionId;
+    if (!orgId && args.vehiculo_id) {
+      const veh = await ctx.db.get(args.vehiculo_id);
+      orgId = veh?.organizacion_id ?? null;
+    }
+    if (!orgId && !scope.isSuperAdmin) {
+      throw new Error("No se puede crear tarea sin organización");
+    }
+    if (orgId) payload.organizacion_id = orgId;
     return await ctx.db.insert("maintenance_tasks", payload);
   },
 });
@@ -633,5 +642,36 @@ export const deleteVolumePreset = mutation({
     }
 
     return await ctx.db.delete(args.id);
+  },
+});
+
+// One-shot: backfill organizacion_id en maintenance_tasks y maintenance_alerts derivado de vehiculos.
+export const _migrationBackfillOrganizacionId = mutation({
+  args: {},
+  handler: async (ctx) => {
+    let tasks_fixed = 0;
+    let alerts_fixed = 0;
+
+    const tasks = await ctx.db.query("maintenance_tasks").collect();
+    for (const t of tasks) {
+      if (t.organizacion_id != null) continue;
+      if (!t.vehiculo_id) continue;
+      const veh = await ctx.db.get(t.vehiculo_id);
+      if (!veh?.organizacion_id) continue;
+      await ctx.db.patch(t._id, { organizacion_id: veh.organizacion_id });
+      tasks_fixed++;
+    }
+
+    const alerts = await ctx.db.query("maintenance_alerts").collect();
+    for (const a of alerts) {
+      if (a.organizacion_id != null) continue;
+      if (!a.vehiculo_id) continue;
+      const veh = await ctx.db.get(a.vehiculo_id);
+      if (!veh?.organizacion_id) continue;
+      await ctx.db.patch(a._id, { organizacion_id: veh.organizacion_id });
+      alerts_fixed++;
+    }
+
+    return { tasks_fixed, alerts_fixed };
   },
 });
