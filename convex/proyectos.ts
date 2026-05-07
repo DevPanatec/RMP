@@ -158,6 +158,33 @@ export const remove = mutation({
         throw new Error("Acceso denegado al proyecto");
       }
     }
+
+    // Block-if-children: evita borrado destructivo si quedan dependencias.
+    // Para borrar un proyecto, primero hay que reasignar/borrar sus recursos.
+    const blockers: string[] = [];
+
+    const rutasCount = (
+      await ctx.db.query("rutas").withIndex("by_proyecto", (q) => q.eq("proyecto_id", args.id)).take(1)
+    ).length;
+    if (rutasCount > 0) blockers.push("rutas");
+
+    const asignacionesCount = (
+      await ctx.db.query("asignaciones_rutas").withIndex("by_proyecto", (q) => q.eq("proyecto_id", args.id)).take(1)
+    ).length;
+    if (asignacionesCount > 0) blockers.push("asignaciones");
+
+    const perfilesQ = await ctx.db
+      .query("perfiles_usuarios")
+      .filter((q) => q.eq(q.field("proyecto_id"), args.id))
+      .take(1);
+    if (perfilesQ.length > 0) blockers.push("usuarios (conductores/enterprise)");
+
+    if (blockers.length > 0) {
+      throw new Error(
+        `No se puede eliminar: el proyecto tiene ${blockers.join(", ")}. Reasigna o elimina esos recursos primero.`
+      );
+    }
+
     return await ctx.db.delete(args.id);
   },
 });

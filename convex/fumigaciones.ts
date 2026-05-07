@@ -33,9 +33,12 @@ export const addLugar = mutation({
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
     await requireProjectAccess(ctx, args.proyecto_id);
+    const proyecto = await ctx.db.get(args.proyecto_id);
+    const organizacion_id = proyecto?.organizacion_id;
     return await ctx.db.insert("lugares", {
       ...args,
       activo: true,
+      ...(organizacion_id && { organizacion_id }),
     });
   },
 });
@@ -312,6 +315,7 @@ export const create = mutation({
       ...args,
       proyecto_id: lugar.proyecto_id,
       estado: "programada",
+      ...(lugar.organizacion_id && { organizacion_id: lugar.organizacion_id }),
     });
   },
 });

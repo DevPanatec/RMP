@@ -33,9 +33,13 @@ export const addSala = mutation({
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
     await requireProjectAccess(ctx, args.proyecto_id);
+    // Persistir organizacion_id derivada del proyecto.
+    const proyecto = await ctx.db.get(args.proyecto_id);
+    const organizacion_id = proyecto?.organizacion_id;
     return await ctx.db.insert("salas", {
       ...args,
       activo: true,
+      ...(organizacion_id && { organizacion_id }),
     });
   },
 });
@@ -164,10 +168,12 @@ export const addAssignment = mutation({
     if (!sala) throw new Error("Sala no encontrada");
     if (!sala.proyecto_id) throw new Error("Sala sin proyecto_id; ejecuta migración");
     await requireProjectAccess(ctx, sala.proyecto_id);
+    // Persistir organizacion_id desde la sala (que la heredó del proyecto).
     return await ctx.db.insert("cleaning_assignments", {
       ...args,
       proyecto_id: sala.proyecto_id,
       estado: "pendiente",
+      ...(sala.organizacion_id && { organizacion_id: sala.organizacion_id }),
     });
   },
 });
