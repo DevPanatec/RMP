@@ -8,6 +8,7 @@ import { useReports } from '../../context/ReportsContext';
 import { useRoutes } from '../../context/RoutesContext';
 import { useAuth } from '../../context/AuthContext';
 import { BarChart3, Truck, Bug, Sparkles, Wrench, MapPin, Download, Calendar } from '../Icons';
+import { EmptyState } from '../UI';
 import ReportsDashboard from './ReportsDashboard';
 import LocationReportsModal from './LocationReportsModal';
 import RouteReportsListModal from './RouteReportsListModal';
@@ -342,11 +343,11 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
         </div>
 
         {recoleccionCards.length === 0 ? (
-          <div className="empty-state">
-            <Truck size={48} />
-            <h4>No hay rutas de recolección todavía</h4>
-            <p>Crea una ruta desde el módulo Rutas. Cada vez que un conductor la complete, aparecerá un reporte adentro.</p>
-          </div>
+          <EmptyState
+            icon={Truck}
+            title="No hay rutas de recolección todavía"
+            description="Crea una ruta desde el módulo Rutas. Cada vez que un conductor la complete, aparecerá un reporte adentro."
+          />
         ) : (
           <>
             <div className="locations-grid">
@@ -536,11 +537,11 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
             <p>Cargando ubicaciones...</p>
           </div>
         ) : fumigacionByLocation.length === 0 ? (
-          <div className="empty-state">
-            <Bug size={48} />
-            <h4>No hay lugares de fumigación registrados</h4>
-            <p>Registra lugares internos o externos en Asignaciones → Fumigación</p>
-          </div>
+          <EmptyState
+            icon={Bug}
+            title="No hay lugares de fumigación registrados"
+            description="Registra lugares internos o externos en Asignaciones → Fumigación."
+          />
         ) : (
           <>
             <div className="locations-grid limpieza-grid-3col">
@@ -637,10 +638,12 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
             <p>Cargando reportes de limpieza...</p>
           </div>
         ) : assignmentsByLocation.length === 0 ? (
-          <div className="empty-state">
-            <Sparkles size={48} />
-            <p>No hay lugares registrados</p>
-          </div>
+          <EmptyState
+            icon={Sparkles}
+            title="No hay lugares registrados"
+            description="Registra salas y áreas en el módulo de Limpieza."
+            size="sm"
+          />
         ) : (
           <>
             <div className="locations-grid limpieza-grid-3col">
@@ -768,16 +771,11 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
             <p>Cargando reportes de mantenimiento...</p>
           </div>
         ) : maintenanceReports.length === 0 ? (
-          <div className="empty-state">
-            <Wrench size={48} />
-            <h4>No hay reportes de mantenimiento</h4>
-            <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
-              Completa tareas de mantenimiento para generar reportes
-            </p>
-            <p style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px' }}>
-              ({maintenanceTasks.length} tareas en sistema)
-            </p>
-          </div>
+          <EmptyState
+            icon={Wrench}
+            title="No hay reportes de mantenimiento"
+            description={`Completa tareas de mantenimiento para generar reportes (${maintenanceTasks.length} tareas en sistema).`}
+          />
         ) : (
           <>
             {/* Grid de reportes */}

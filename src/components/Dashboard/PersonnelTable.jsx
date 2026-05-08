@@ -1,8 +1,10 @@
 import { Edit, Trash2, Settings, Users } from '../Icons';
+import { EmptyState, SkeletonRow } from '../UI';
 import './PersonnelTable.css';
 
 export const PersonnelTable = ({
   personnel,
+  loading = false,
   onEdit,
   onDelete,
   currentPage = 1,
@@ -57,14 +59,37 @@ export const PersonnelTable = ({
   const endIndex = startIndex + itemsPerPage;
   const currentPersonnel = (personnel || []).slice(startIndex, endIndex);
 
+  if (loading && (!personnel || personnel.length === 0)) {
+    return (
+      <div className="personnel-table-container">
+        <div className="personnel-table-wrapper">
+          <table className="personnel-table">
+            <thead>
+              <tr>
+                <th>Empleado</th>
+                <th>Puesto</th>
+                <th>Estado</th>
+                <th>Asignación</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={5} />)}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
   if (!personnel || personnel.length === 0) {
     return (
       <div className="personnel-table-container">
-        <div className="empty-state">
-          <div className="empty-icon"><Users size={48} /></div>
-          <h4>No hay personal registrado</h4>
-          <p>Comienza agregando empleados al sistema</p>
-        </div>
+        <EmptyState
+          icon={Users}
+          title="No hay personal registrado"
+          description="Comienza agregando empleados al sistema."
+        />
       </div>
     );
   }

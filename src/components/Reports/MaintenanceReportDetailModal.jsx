@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import {
   X, Download, MapPin, Calendar, FileText, Wrench, UserCheck, Truck, DollarSign,
   Clock, CheckCircle, AlertTriangle, Camera, Image as ImageIcon
 } from '../Icons';
-import { MapLibreComponent } from '../Map';
 import { generateMantenimientoPDFComplete } from '../../utils/lazyPdf';
 import './StandardReportModal.css';
+
+const MapLibreComponent = lazy(() => import('../Map/MapLibreComponent'));
 
 // Helper para parsear fechas sin problemas de timezone
 const parseLocalDate = (dateStr) => {

@@ -11,6 +11,7 @@ import {
 } from '../Icons';
 import { CustomSelect, EmptyState, StatusBadge } from '../UI';
 import notify from '../../utils/notify';
+import useRequireOrg from '../../hooks/useRequireOrg';
 import PhotoUploadField from '../Cleaning/PhotoUploadField';
 import HelperManager from './HelperManager';
 import WeekdayPicker from './WeekdayPicker';
@@ -30,6 +31,8 @@ const formatTime12h = (time24) => {
 };
 
 const ScheduleComponent = ({ viewerMode = false }) => {
+  const { canCreate, blockReason } = useRequireOrg();
+
   const {
     assignments: scheduleAssignments,
     loading: scheduleLoading,
@@ -671,17 +674,32 @@ const ScheduleComponent = ({ viewerMode = false }) => {
         </div>
 
         <div className="schedule-header-actions">
-          <button className="btn-add-v2" onClick={() => handleOpenRouteModal()}>
+          <button
+            className="btn-add-v2"
+            onClick={() => handleOpenRouteModal()}
+            disabled={!canCreate}
+            title={blockReason || ''}
+          >
             <Plus size={16} />
             Ruta
           </button>
           {!viewerMode && (
             <>
-              <button className="btn-add-v2 secondary" onClick={handleOpenCleaningModal}>
+              <button
+                className="btn-add-v2 secondary"
+                onClick={handleOpenCleaningModal}
+                disabled={!canCreate}
+                title={blockReason || ''}
+              >
                 <Plus size={16} />
                 Limpieza
               </button>
-              <button className="btn-add-v2 secondary" onClick={handleOpenFumigationModal}>
+              <button
+                className="btn-add-v2 secondary"
+                onClick={handleOpenFumigationModal}
+                disabled={!canCreate}
+                title={blockReason || ''}
+              >
                 <Plus size={16} />
                 Fumigación
               </button>

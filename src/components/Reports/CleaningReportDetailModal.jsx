@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { X, Download, MapPin, Clock, Calendar, FileText, Sparkles, User, Camera, CheckCircle, Wrench } from '../Icons';
-import { MapLibreComponent } from '../Map';
 import { generateLimpiezaPDFComplete } from '../../utils/lazyPdf';
 import './RouteReportDetailModal.css';
+
+const MapLibreComponent = lazy(() => import('../Map/MapLibreComponent'));
 
 // Helper para parsear fechas sin problemas de timezone
 const parseLocalDate = (dateStr) => {
@@ -119,14 +120,16 @@ const CleaningReportDetailModal = ({ report, onClose }) => {
             <h3><MapPin size={20} /> Ubicación de Limpieza</h3>
             {salaParaMapa.length > 0 ? (
               <div className="route-map-container">
-                <MapLibreComponent
-                  key={`map-${report._id}`}
-                  camiones={[]}
-                  rutas={[]}
-                  personnel={[]}
-                  lugares={salaParaMapa}
-                  showRealTime={false}
-                />
+                <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Cargando mapa...</div>}>
+                  <MapLibreComponent
+                    key={`map-${report._id}`}
+                    camiones={[]}
+                    rutas={[]}
+                    personnel={[]}
+                    lugares={salaParaMapa}
+                    showRealTime={false}
+                  />
+                </Suspense>
               </div>
             ) : (
               <div className="route-map-container" style={{

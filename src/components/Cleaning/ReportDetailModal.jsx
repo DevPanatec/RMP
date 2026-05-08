@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { X, Calendar, MapPin, Clock, Building, FileText, Image as ImageIcon, Camera, CheckCircle, Wrench } from '../Icons';
-import { MapLibreComponent } from '../Map';
 import '../Reports/StandardReportModal.css';
+
+const MapLibreComponent = lazy(() => import('../Map/MapLibreComponent'));
 
 const ReportDetailModal = ({ isOpen, onClose, report, location }) => {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
@@ -74,14 +75,16 @@ const ReportDetailModal = ({ isOpen, onClose, report, location }) => {
             <div className="report-section__body" style={{ padding: 0 }}>
               {lugarParaMapa.length > 0 ? (
                 <div className="report-map-container">
-                  <MapLibreComponent
-                    key={`map-cleaning-${report.fecha}`}
-                    camiones={[]}
-                    rutas={[]}
-                    personnel={[]}
-                    lugares={lugarParaMapa}
-                    showRealTime={false}
-                  />
+                  <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Cargando mapa...</div>}>
+                    <MapLibreComponent
+                      key={`map-cleaning-${report.fecha}`}
+                      camiones={[]}
+                      rutas={[]}
+                      personnel={[]}
+                      lugares={lugarParaMapa}
+                      showRealTime={false}
+                    />
+                  </Suspense>
                 </div>
               ) : (
                 <div className="report-map-empty">

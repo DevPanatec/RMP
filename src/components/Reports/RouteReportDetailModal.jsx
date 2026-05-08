@@ -1,10 +1,12 @@
+import { lazy, Suspense } from 'react';
 import { X, MapPin, Truck, Clock, UserCheck, Package, Calendar, FileText, AlertTriangle, Wrench, AlertOctagon, Camera } from '../Icons';
-import { MapLibreComponent } from '../Map';
 import { StorageImage } from '../UI';
 import { useRiskReports } from '../../context/RiskReportsContext';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import './RouteReportDetailModal.css';
+
+const MapLibreComponent = lazy(() => import('../Map/MapLibreComponent'));
 
 // Helper para parsear fechas sin problemas de timezone
 const parseLocalDate = (dateStr) => {
@@ -143,16 +145,18 @@ const RouteReportDetailModal = ({ report, onClose }) => {
             <h3><MapPin size={20} /> Mapa de Ruta ({rutaParaMapa[0]?.paradas?.length || 0} paradas)</h3>
             {rutaParaMapa[0]?.paradas?.length > 0 ? (
               <div className="route-map-container">
-                <MapLibreComponent
-                  key={`map-${report._id}`}
-                  camiones={[]}
-                  rutas={rutaParaMapa}
-                  personnel={[]}
-                  lugares={[]}
-                  showRealTime={false}
-                  gpsTrail={gpsTrailData}
-                  showMapboxRoute={false}
-                />
+                <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Cargando mapa...</div>}>
+                  <MapLibreComponent
+                    key={`map-${report._id}`}
+                    camiones={[]}
+                    rutas={rutaParaMapa}
+                    personnel={[]}
+                    lugares={[]}
+                    showRealTime={false}
+                    gpsTrail={gpsTrailData}
+                    showMapboxRoute={false}
+                  />
+                </Suspense>
               </div>
             ) : (
               <div className="route-map-container" style={{

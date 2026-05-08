@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { X, Download, Calendar, MapPin, Clock, Spray, FileText, UserCheck, Image as ImageIcon, CheckCircle, Camera, Wrench } from '../Icons';
-import { MapLibreComponent } from '../Map';
 import '../Reports/StandardReportModal.css';
+
+const MapLibreComponent = lazy(() => import('../Map/MapLibreComponent'));
 
 const FumigationReportDetailModal = ({ isOpen, onClose, assignment, location, onDownload }) => {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
@@ -105,14 +106,16 @@ const FumigationReportDetailModal = ({ isOpen, onClose, assignment, location, on
             <div className="report-section__body" style={{ padding: 0 }}>
               {lugarParaMapa.length > 0 ? (
                 <div className="report-map-container">
-                  <MapLibreComponent
-                    key={`map-fumigation-${assignment.fecha}`}
-                    camiones={[]}
-                    rutas={[]}
-                    personnel={[]}
-                    lugares={lugarParaMapa}
-                    showRealTime={false}
-                  />
+                  <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Cargando mapa...</div>}>
+                    <MapLibreComponent
+                      key={`map-fumigation-${assignment.fecha}`}
+                      camiones={[]}
+                      rutas={[]}
+                      personnel={[]}
+                      lugares={lugarParaMapa}
+                      showRealTime={false}
+                    />
+                  </Suspense>
                 </div>
               ) : (
                 <div className="report-map-empty">

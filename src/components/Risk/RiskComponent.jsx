@@ -5,7 +5,8 @@ import {
   Eye, CheckCircle, FolderOpen, FileText, Users, Truck,
   MapPin, Calendar, BarChart3, X, Shield, Package, Camera
 } from '../Icons';
-import { StorageImage } from '../UI';
+import { StorageImage, EmptyState } from '../UI';
+import { formatShort } from '../../utils/dates';
 import './RiskComponent.css';
 
 const RiskComponent = ({ userType = 'admin' }) => {
@@ -112,11 +113,11 @@ const RiskComponent = ({ userType = 'admin' }) => {
             </div>
             
             {reports.length === 0 ? (
-              <div className="no-reports">
-                <div className="no-reports-icon"><ClipboardList size={48} /></div>
-                <h4>No hay reportes de riesgo</h4>
-                <p>Los conductores no han creado reportes de riesgo aún</p>
-              </div>
+              <EmptyState
+                icon={ClipboardList}
+                title="No hay reportes de riesgo"
+                description="Los conductores no han creado reportes de riesgo aún."
+              />
             ) : (
               <div className="reports-responsive-grid">
                 {reports.map(risk => (
@@ -133,7 +134,7 @@ const RiskComponent = ({ userType = 'admin' }) => {
                       </span>
                     </div>
                     <span className="report-date-compact">
-                      {new Date(risk.fechaCreacion).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      {formatShort(risk.fechaCreacion)}
                     </span>
                   </div>
 
