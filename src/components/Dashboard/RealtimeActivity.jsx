@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Truck, MapPin, Clock, CheckCircle, Radio, Navigation, Wrench, ChevronRight } from '../Icons';
+import { formatRelative, formatTime as formatTimeUtil } from '../../utils/dates';
 import './RealtimeActivity.css';
 
 const PREVIEW_LIMIT = 6;
@@ -162,26 +163,8 @@ const ActivityItem = ({ activity, delay, isNew }) => {
     }
   };
 
-  const formatTime = (timestamp) => {
-    const now = new Date();
-    const activityTime = new Date(timestamp);
-    const diffMs = now - activityTime;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-
-    if (diffMins < 1) return 'Hace menos de 1 min';
-    if (diffMins < 60) return `Hace ${diffMins} min`;
-    if (diffHours < 24) return `Hace ${diffHours}h`;
-    return activityTime.toLocaleDateString('es-PA', { month: 'short', day: 'numeric' });
-  };
-
-  const formatTimeExact = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString('es-PA', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    }).toUpperCase();
-  };
+  const formatTime = formatRelative;
+  const formatTimeExact = formatTimeUtil;
 
   const config = getActivityConfig(activity.tipo);
 

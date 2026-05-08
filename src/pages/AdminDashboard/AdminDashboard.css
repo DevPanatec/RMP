@@ -197,6 +197,33 @@
   overflow-x: auto;
   position: relative;
   border-top: 1px solid var(--color-divider);
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  /* Fade en bordes para indicar overflow */
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black var(--space-16),
+    black calc(100% - var(--space-16)),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    black var(--space-16),
+    black calc(100% - var(--space-16)),
+    transparent 100%
+  );
+}
+
+.top-nav::-webkit-scrollbar {
+  height: 4px;
+}
+
+.top-nav::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: var(--radius-full);
 }
 
 .top-nav::after {
@@ -226,6 +253,8 @@
   border-radius: 0;
   margin-bottom: -1px;
   font-family: var(--font-family-base);
+  flex-shrink: 0;
+  scroll-snap-align: start;
 }
 
 .top-nav__tab svg {

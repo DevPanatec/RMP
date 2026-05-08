@@ -3,7 +3,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { BarChart3, Wrench, Plus } from '../Icons';
 import { ServiceDownloadSection } from '../shared';
-import { generateMantenimientoPDFComplete } from '../../utils/reportPdfGenerator';
+import { generateMantenimientoPDFComplete } from '../../utils/lazyPdf';
 import MaintenanceDashboard from './MaintenanceDashboard';
 import MaintenanceTasks from './MaintenanceTasks';
 import MaintenanceTaskModal from './MaintenanceTaskModal';

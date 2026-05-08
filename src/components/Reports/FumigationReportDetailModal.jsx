@@ -3,7 +3,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { X, Download, MapPin, Clock, Calendar, FileText, Spray, UserCheck, Camera, CheckCircle, Wrench } from '../Icons';
 import { MapLibreComponent } from '../Map';
-import { generateFumigacionPDFComplete } from '../../utils/reportPdfGenerator';
+import { generateFumigacionPDFComplete } from '../../utils/lazyPdf';
 import './RouteReportDetailModal.css';
 
 // Helper para parsear fechas sin problemas de timezone

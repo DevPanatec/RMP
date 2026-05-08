@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, Clock, MapPin, AlertTriangle, FileText, Download, Package, Trash2, RefreshCw, Truck, X } from '../Icons';
-import { generateSingleRouteReportPDF } from '../../utils/reportPdfGenerator';
+import { generateSingleRouteReportPDF } from '../../utils/lazyPdf';
 import './RouteCompletionModal.css';
 
 const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCancel }) => {

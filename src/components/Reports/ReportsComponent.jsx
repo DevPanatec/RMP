@@ -21,7 +21,7 @@ import {
   generateFumigacionPDFComplete,
   generateLimpiezaPDFComplete,
   generateMantenimientoPDFComplete
-} from '../../utils/reportPdfGenerator';
+} from '../../utils/lazyPdf';
 import './ReportsComponent.css';
 
 // Helper para parsear fechas sin problemas de timezone

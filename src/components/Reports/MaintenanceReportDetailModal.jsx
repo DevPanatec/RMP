@@ -6,7 +6,7 @@ import {
   Clock, CheckCircle, AlertTriangle, Camera, Image as ImageIcon
 } from '../Icons';
 import { MapLibreComponent } from '../Map';
-import { generateMantenimientoPDFComplete } from '../../utils/reportPdfGenerator';
+import { generateMantenimientoPDFComplete } from '../../utils/lazyPdf';
 import './StandardReportModal.css';
 
 // Helper para parsear fechas sin problemas de timezone

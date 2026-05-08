@@ -7,7 +7,7 @@ import { useFumigation } from '../../context/FumigationContext';
 import { useMaintenance } from '../../context/MaintenanceContext';
 import { useReports } from '../../context/ReportsContext';
 import { Truck, Sparkles, Wrench, Bug, Download, ChevronRight, Calendar, BarChart3, CheckSquare } from '../Icons';
-import { generateCombinedPDFComplete } from '../../utils/reportPdfGenerator';
+import { generateCombinedPDFComplete } from '../../utils/lazyPdf';
 import './ReportsDashboard.css';
 
 // Helper para parsear fechas sin problemas de timezone

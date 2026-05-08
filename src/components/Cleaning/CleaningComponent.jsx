@@ -3,7 +3,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Sparkles, BarChart3 } from '../Icons';
 import { ServiceDownloadSection } from '../shared';
-import { generateLimpiezaPDFComplete } from '../../utils/reportPdfGenerator';
+import { generateLimpiezaPDFComplete } from '../../utils/lazyPdf';
 import CleaningAssignments from './CleaningAssignments';
 import './CleaningComponent.css';
 

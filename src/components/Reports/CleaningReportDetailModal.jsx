@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, Download, MapPin, Clock, Calendar, FileText, Sparkles, User, Camera, CheckCircle, Wrench } from '../Icons';
 import { MapLibreComponent } from '../Map';
-import { generateLimpiezaPDFComplete } from '../../utils/reportPdfGenerator';
+import { generateLimpiezaPDFComplete } from '../../utils/lazyPdf';
 import './RouteReportDetailModal.css';
 
 // Helper para parsear fechas sin problemas de timezone

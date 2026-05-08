@@ -3,7 +3,7 @@ import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Bug, BarChart3 } from '../Icons';
 import { ServiceDownloadSection } from '../shared';
-import { generateFumigacionPDFComplete } from '../../utils/reportPdfGenerator';
+import { generateFumigacionPDFComplete } from '../../utils/lazyPdf';
 import FumigationAssignments from './FumigationAssignments';
 import './FumigationComponent.css';
 

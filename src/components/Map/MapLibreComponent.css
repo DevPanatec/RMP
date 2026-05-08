@@ -851,6 +851,13 @@
   display: flex;
   justify-content: flex-end;
   z-index: 2147483000;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+/* Minimizado: sin backdrop oscuro para que veas el mapa */
+.truck-modal-overlay--minimized {
+  background: transparent;
+  pointer-events: none;
 }
 
 .truck-modal-v2 {
@@ -862,6 +869,16 @@
   display: flex;
   flex-direction: column;
   animation: slideInRight 0.25s ease-out;
+  transition: max-width var(--duration-base) var(--ease-out);
+  pointer-events: auto;
+}
+
+.truck-modal-v2--minimized {
+  max-width: 280px;
+}
+
+.truck-modal-v2--minimized .truck-modal-content-v2 {
+  display: none;
 }
 
 .truck-modal-content-v2 {

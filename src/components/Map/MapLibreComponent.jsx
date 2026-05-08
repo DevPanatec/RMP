@@ -4,7 +4,7 @@ import Map, { Marker, Source, Layer, Popup, NavigationControl, ScaleControl } fr
 import maplibregl from 'maplibre-gl';
 import { useAction, useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import { Satellite, Map as MapIcon, MapPin, X, Truck, Navigation, CheckCircle, Clock, Play, Battery, Signal, RefreshCw, Target, Trash2, Gauge, Copy, Radio, Recycle, Spray, Sun, Moon, Route, Calendar, AlertTriangle } from '../Icons';
+import { Satellite, Map as MapIcon, MapPin, X, Truck, Navigation, CheckCircle, Clock, Play, Battery, Signal, RefreshCw, Target, Trash2, Gauge, Copy, Radio, Recycle, Spray, Sun, Moon, Route, Calendar, AlertTriangle, Minimize2, Maximize2 } from '../Icons';
 import GPSPlaybackModal from '../GPS/GPSPlaybackModal';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapLibreComponent.css';
@@ -501,6 +501,7 @@ const TruckModalContent = ({
   onPlayback,
 }) => {
   const [lightboxUrl, setLightboxUrl] = useState(null);
+  const [minimized, setMinimized] = useState(false);
 
   const asignacionId = progress?.asignacion_id;
   const routeEvents = useQuery(
@@ -548,17 +549,30 @@ const TruckModalContent = ({
 
   return createPortal(
     <>
-      <div className="truck-modal-overlay" onClick={onClose}>
-        <div className="truck-modal-v2" onClick={(e) => e.stopPropagation()}>
+      <div className={`truck-modal-overlay${minimized ? ' truck-modal-overlay--minimized' : ''}`} onClick={onClose}>
+        <div
+          className={`truck-modal-v2${minimized ? ' truck-modal-v2--minimized' : ''}`}
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Header */}
           <div className="truck-modal-header-v2">
             <div className="header-top-row">
               <div className="vehicle-badge-large">
                 <Truck size={20} />
               </div>
-              <button className="modal-close-btn-v2" onClick={onClose}>
-                <X size={18} />
-              </button>
+              <div style={{ display: 'flex', gap: 'var(--space-4)' }}>
+                <button
+                  className="modal-close-btn-v2"
+                  onClick={() => setMinimized(!minimized)}
+                  aria-label={minimized ? 'Expandir panel' : 'Minimizar panel'}
+                  title={minimized ? 'Expandir' : 'Minimizar'}
+                >
+                  {minimized ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
+                </button>
+                <button className="modal-close-btn-v2" onClick={onClose} aria-label="Cerrar panel del vehículo">
+                  <X size={18} />
+                </button>
+              </div>
             </div>
             <div className="header-info">
               <h2 className="vehicle-placa">{truck.placa || truck.id}</h2>

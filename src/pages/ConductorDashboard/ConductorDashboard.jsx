@@ -5,6 +5,7 @@ import WeightModal from '../../components/WeightModal/WeightModal';
 import RouteCompletionModal from '../../components/RouteCompletionModal/RouteCompletionModal';
 import MapLibreComponent from '../../components/Map/MapLibreComponent';
 import { useOfflinePhotoQueue } from '../../hooks/useOfflinePhotoQueue';
+import notify from '../../utils/notify';
 import { useRiskReports } from '../../context/RiskReportsContext';
 import { useFleet } from '../../context/FleetContext';
 import { useRoutes } from '../../context/RoutesContext';
@@ -826,6 +827,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
       setRouteProgressId(progressId);
     } catch (error) {
       console.error('❌ Error creando route progress:', error);
+      notify.error('No se pudo iniciar la ruta. Intenta de nuevo.');
     }
 
     // 📊 Registrar evento: Ruta Iniciada
@@ -1007,6 +1009,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
           });
         } catch (error) {
           console.error('❌ Error completando route progress:', error);
+          notify.warning('Error guardando progreso. Verifica tu conexión.');
         }
       }
 
@@ -1202,6 +1205,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
           });
         } catch (error) {
           console.error('❌ Error completando route progress:', error);
+          notify.warning('Error guardando progreso. Verifica tu conexión.');
         }
       }
 
