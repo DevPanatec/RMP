@@ -106,7 +106,10 @@ const RoutesComponent = ({ initialRoutes = [] }) => {
         <div className="routes-grid-v2">
           {routes.map((route, index) => {
             const paradas = route.paradas || route.stops || [];
-            const paradasArray = typeof paradas === 'string' ? JSON.parse(paradas) : paradas;
+            let paradasArray = paradas;
+            if (typeof paradas === 'string') {
+              try { paradasArray = JSON.parse(paradas); } catch { paradasArray = []; }
+            }
             const tipoServicio = route.tipo_servicio || route.tipoServicio || 'recoleccion';
 
             return (

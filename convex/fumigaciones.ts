@@ -90,9 +90,19 @@ export const deleteLugar = mutation({
 export const list = query({
   args: { proyecto_id: v.optional(v.id("proyectos")) },
   handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
     const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
     const allRaw = await ctx.db.query("fumigation_assignments").collect();
-    const assignments = scoped === null ? allRaw : allRaw.filter((a) => a.proyecto_id === scoped);
+    let assignments;
+    if (scoped) {
+      assignments = allRaw.filter((a) => a.proyecto_id === scoped);
+    } else if (scope.isSuperAdmin || scope.isCrossOrgViewer) {
+      assignments = allRaw;
+    } else if (scope.organizacionId) {
+      assignments = allRaw.filter((a) => a.organizacion_id === scope.organizacionId);
+    } else {
+      assignments = [];
+    }
 
     // Join con lugares
     const assignmentsWithLugar = await Promise.all(

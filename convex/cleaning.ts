@@ -147,10 +147,19 @@ export const addArea = mutation({
 export const listAssignments = query({
   args: { proyecto_id: v.optional(v.id("proyectos")) },
   handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
     const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
+    if (scoped) {
+      return await ctx.db
+        .query("cleaning_assignments")
+        .withIndex("by_proyecto_fecha", (q) => q.eq("proyecto_id", scoped))
+        .collect();
+    }
+    // scoped===null: super_admin/cross-org ven todo; admin solo su org.
     const all = await ctx.db.query("cleaning_assignments").collect();
-    if (scoped === null) return all;
-    return all.filter((a) => a.proyecto_id === scoped);
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) return all;
+    if (!scope.organizacionId) return [];
+    return all.filter((a) => a.organizacion_id === scope.organizacionId);
   },
 });
 

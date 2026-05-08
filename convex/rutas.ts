@@ -20,6 +20,12 @@ async function syncParadaGeofences(
   }
   if (!paradas) return;
 
+  // Heredar org/proyecto de la ruta para que geofences auto-generadas sean visibles
+  // por scope.isEnterprise (filter por org+proyecto en geofences.list).
+  const ruta = await ctx.db.get(rutaId);
+  const organizacion_id = ruta?.organizacion_id;
+  const proyecto_id = ruta?.proyecto_id;
+
   for (let i = 0; i < paradas.length; i++) {
     const p = paradas[i] ?? {};
     const lat = typeof p.latitud === "number" ? p.latitud : typeof p.lat === "number" ? p.lat : null;
@@ -39,6 +45,8 @@ async function syncParadaGeofences(
       ruta_id: rutaId,
       parada_index: i,
       auto_generada: true,
+      ...(organizacion_id && { organizacion_id }),
+      ...(proyecto_id && { proyecto_id }),
     });
   }
 }
