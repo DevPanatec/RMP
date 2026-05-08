@@ -40,12 +40,6 @@ export const getVehicleHistory = query({
       })
       .collect();
 
-    console.log(
-      `📊 Historial consultado: ${vehicle.placa} (${locations.length} puntos) [${
-        startDate ? new Date(startDate).toISOString() : "inicio"
-      } → ${endDate ? new Date(endDate).toISOString() : "ahora"}]`
-    );
-
     return {
       vehiculoId,
       placa: vehicle.placa,
@@ -125,8 +119,6 @@ export const getVehicleHistoryByDay = query({
     const endOfDay = new Date(date);
     endOfDay.setHours(23, 59, 59, 999);
 
-    console.log(`📅 Consultando historial del día ${date} para vehículo ${vehiculoId}`);
-
     // Reutilizar la query de rango
     return await ctx.runQuery(internal.vehicleHistory.getVehicleHistoryInternal, {
       vehiculoId,
@@ -159,8 +151,6 @@ export const getRecentHistory = query({
 
     const now = Date.now();
     const startTime = now - hours * 60 * 60 * 1000;
-
-    console.log(`⏰ Consultando últimas ${hours} horas para vehículo ${vehiculoId}`);
 
     return await ctx.runQuery(internal.vehicleHistory.getVehicleHistoryInternal, {
       vehiculoId,

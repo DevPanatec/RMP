@@ -55,6 +55,11 @@ export const add = mutation({
       scope.organizacionId ??
       undefined;
 
+    // Eventos sin org rompen filter downstream (cross-org viewer es excepción).
+    if (!orgId && !scope.isSuperAdmin) {
+      throw new Error("No se puede crear evento sin organización");
+    }
+
     const eventData: any = {
       ...args,
       proyecto_id,

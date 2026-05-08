@@ -1797,7 +1797,11 @@ const MapLibreComponent = ({
               <input
                 type="number"
                 value={newGeofence.radio}
-                onChange={(e) => setNewGeofence(prev => ({ ...prev, radio: parseInt(e.target.value) || 150 }))}
+                onChange={(e) => {
+                  const r = parseInt(e.target.value, 10);
+                  const clamped = Number.isFinite(r) ? Math.min(Math.max(r, 50), 5000) : 150;
+                  setNewGeofence(prev => ({ ...prev, radio: clamped }));
+                }}
                 min="50"
                 max="5000"
               />

@@ -39,7 +39,12 @@ export const getById = query({
   args: { id: v.id("organizaciones") },
   handler: async (ctx, args) => {
     await requireOrgAccess(ctx, args.id);
-    return await ctx.db.get(args.id);
+    const org = await ctx.db.get(args.id);
+    if (!org) return null;
+    // Soft-deleted: solo super_admin lee orgs inactivas (auditoría/restore).
+    const scope = await getAuthScope(ctx);
+    if (org.activo === false && !scope.isSuperAdmin) return null;
+    return org;
   },
 });
 

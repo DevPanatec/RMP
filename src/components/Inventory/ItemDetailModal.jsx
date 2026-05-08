@@ -6,6 +6,12 @@ import { Package, MapPin, Plus, Edit, Trash2, X, Save, AlertTriangle, Building, 
 import toast, { Toaster } from 'react-hot-toast';
 import './ItemDetailModal.css';
 
+// Parsea cantidad numérica positiva finita. Devuelve null si inválido.
+const parsePositiveNumber = (val) => {
+  const n = parseFloat(val);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+
 const ItemDetailModal = ({ item, onClose }) => {
   const { lugares, addToLocation, updateLocationQuantity, removeFromLocation, asignarDesdeAlmacen, registrarCompra, registrarConsumo } = useInventory();
   const stockSinAsignar = useQuery(api.inventario.getStockSinAsignar, item ? { itemId: item._id } : "skip");
@@ -94,8 +100,9 @@ const ItemDetailModal = ({ item, onClose }) => {
       return;
     }
 
-    if (addLocationData.cantidad <= 0) {
-      toast.error('La cantidad debe ser mayor a 0');
+    const cantidad = parsePositiveNumber(addLocationData.cantidad);
+    if (cantidad === null) {
+      toast.error('Cantidad inválida (debe ser número finito > 0)');
       return;
     }
 
@@ -104,7 +111,7 @@ const ItemDetailModal = ({ item, onClose }) => {
       const result = await addToLocation(
         item._id,
         addLocationData.lugar_id,
-        parseFloat(addLocationData.cantidad)
+        cantidad
       );
 
       if (result.success) {
@@ -122,14 +129,15 @@ const ItemDetailModal = ({ item, onClose }) => {
   };
 
   const handleUpdateQuantity = async (ubicacion_id) => {
-    if (editQuantity <= 0) {
-      toast.error('La cantidad debe ser mayor a 0');
+    const cantidad = parsePositiveNumber(editQuantity);
+    if (cantidad === null) {
+      toast.error('Cantidad inválida');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const result = await updateLocationQuantity(ubicacion_id, parseFloat(editQuantity));
+      const result = await updateLocationQuantity(ubicacion_id, cantidad);
 
       if (result.success) {
         toast.success('Cantidad actualizada exitosamente');
@@ -173,12 +181,13 @@ const ItemDetailModal = ({ item, onClose }) => {
       return;
     }
 
-    if (asignarData.cantidad <= 0) {
-      toast.error('La cantidad debe ser mayor a 0');
+    const cantidad = parsePositiveNumber(asignarData.cantidad);
+    if (cantidad === null) {
+      toast.error('Cantidad inválida');
       return;
     }
 
-    if (asignarData.cantidad > (stockSinAsignar || 0)) {
+    if (cantidad > (stockSinAsignar || 0)) {
       toast.error(`No hay suficiente stock sin asignar. Disponible: ${stockSinAsignar || 0} ${item.unidad_medida || 'unidades'}`);
       return;
     }
@@ -188,7 +197,7 @@ const ItemDetailModal = ({ item, onClose }) => {
       const result = await asignarDesdeAlmacen(
         item._id,
         asignarData.lugar_id,
-        parseFloat(asignarData.cantidad)
+        cantidad
       );
 
       if (result.success) {
@@ -208,22 +217,23 @@ const ItemDetailModal = ({ item, onClose }) => {
   const handleNuevaCompra = async (e) => {
     e.preventDefault();
 
-    if (nuevaCompraData.cantidad <= 0) {
-      toast.error('La cantidad debe ser mayor a 0');
+    const cantidadCompra = parsePositiveNumber(nuevaCompraData.cantidad);
+    if (cantidadCompra === null) {
+      toast.error('Cantidad inválida (debe ser número finito > 0)');
       return;
     }
-
-    if (nuevaCompraData.precio_unitario <= 0) {
-      toast.error('El precio unitario debe ser mayor a 0');
+    const precioCompra = parsePositiveNumber(nuevaCompraData.precio_unitario);
+    if (precioCompra === null) {
+      toast.error('Precio unitario inválido (debe ser número finito > 0)');
       return;
     }
 
     // Validar stock máximo si existe
     if (item.cantidad_maxima && item.cantidad_maxima > 0) {
-      const nuevoTotal = (item.cantidad_disponible || 0) + parseFloat(nuevaCompraData.cantidad);
+      const nuevoTotal = (item.cantidad_disponible || 0) + cantidadCompra;
       if (nuevoTotal > item.cantidad_maxima) {
         const disponibleAñadir = item.cantidad_maxima - (item.cantidad_disponible || 0);
-        toast.error(`No puedes añadir ${nuevaCompraData.cantidad} ${item.unidad_medida || 'unidades'}. Solo puedes añadir ${disponibleAñadir} más (máximo: ${item.cantidad_maxima})`);
+        toast.error(`No puedes añadir ${cantidadCompra} ${item.unidad_medida || 'unidades'}. Solo puedes añadir ${disponibleAñadir} más (máximo: ${item.cantidad_maxima})`);
         return;
       }
     }
@@ -232,8 +242,8 @@ const ItemDetailModal = ({ item, onClose }) => {
     try {
       const result = await registrarCompra(
         item._id,
-        parseFloat(nuevaCompraData.cantidad),
-        parseFloat(nuevaCompraData.precio_unitario),
+        cantidadCompra,
+        precioCompra,
         nuevaCompraData.proveedor,
         nuevaCompraData.notas
       );
@@ -265,9 +275,9 @@ const ItemDetailModal = ({ item, onClose }) => {
       toast.error('Selecciona una ubicación');
       return;
     }
-    const cant = parseFloat(consumoData.cantidad);
-    if (!cant || cant <= 0) {
-      toast.error('La cantidad debe ser mayor a 0');
+    const cant = parsePositiveNumber(consumoData.cantidad);
+    if (cant === null) {
+      toast.error('Cantidad inválida (debe ser número finito > 0)');
       return;
     }
 

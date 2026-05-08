@@ -79,6 +79,8 @@ export const getById = query({
     const proyecto = await ctx.db.get(args.id);
     if (!proyecto) return null;
     const scope = await getAuthScope(ctx);
+    // Soft-deleted: solo super_admin puede leerlos (auditoría/restore).
+    if (proyecto.activo === false && !scope.isSuperAdmin) return null;
     if (scope.isSuperAdmin) return proyecto;
     if (!proyecto.organizacion_id) throw new Error("Proyecto sin organización — requiere migración");
     if (!scope.organizacionId || proyecto.organizacion_id !== scope.organizacionId) {

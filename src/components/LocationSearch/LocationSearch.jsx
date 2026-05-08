@@ -27,7 +27,14 @@ const LocationSearch = ({ onLocationSelect, placeholder = "Buscar ubicación..."
       if (!response.ok) throw new Error('Error en la búsqueda');
       
       const data = await response.json();
-      
+
+      // Nominatim normalmente devuelve array; si error/objeto, fallback a vacío para no crashear .map.
+      if (!Array.isArray(data)) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
       const formattedSuggestions = data.map(item => ({
         id: item.place_id,
         display_name: item.display_name,
