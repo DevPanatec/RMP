@@ -60,6 +60,22 @@ export const add = mutation({
       throw new Error("No se puede crear evento sin organización");
     }
 
+    // Idempotency para parada_completada: si ya existe evento mismo asignacion+parada_index,
+    // devolver existing sin insertar (evita doble-click conductor crea duplicados).
+    if (args.tipo_evento === "parada_completada" && args.asignacion_id && args.parada_index !== undefined) {
+      const existing = await ctx.db
+        .query("route_events")
+        .withIndex("by_asignacion", (q) => q.eq("asignacion_id", args.asignacion_id))
+        .filter((q) =>
+          q.and(
+            q.eq(q.field("tipo_evento"), "parada_completada"),
+            q.eq(q.field("parada_index"), args.parada_index)
+          )
+        )
+        .first();
+      if (existing) return existing._id;
+    }
+
     const eventData: any = {
       ...args,
       proyecto_id,

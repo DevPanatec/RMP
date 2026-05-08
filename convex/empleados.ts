@@ -124,15 +124,16 @@ export const add = mutation({
     if (orgId) await requireOrgAccess(ctx, orgId);
     if (args.proyecto_id) await requireProjectAccess(ctx, args.proyecto_id);
 
-    // Cedula uniqueness check (PII collision = identity mix-up). Scope a la org.
+    // Cedula uniqueness scope a la org. Si super_admin sin orgId explícito, no enforce
+    // (puede crear mismo empleado en otra org — caso multi-tenant).
     const cedulaTrim = args.cedula?.trim();
-    if (cedulaTrim) {
+    if (cedulaTrim && orgId) {
       const existing = await ctx.db
         .query("empleados")
         .withIndex("by_cedula", (q) => q.eq("cedula", cedulaTrim))
         .first();
-      if (existing && (!orgId || existing.organizacion_id === orgId)) {
-        throw new Error(`Cédula ${cedulaTrim} ya registrada`);
+      if (existing && existing.organizacion_id === orgId) {
+        throw new Error(`Cédula ${cedulaTrim} ya registrada en esta organización`);
       }
     }
 

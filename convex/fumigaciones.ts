@@ -350,6 +350,57 @@ export const update = mutation({
     else if (assignment.organizacion_id) await requireOrgAccess(ctx, assignment.organizacion_id);
     else throw new Error("Asignación sin proyecto ni organización — requiere migración");
     const { id, ...updates } = args;
+
+    // Si cambia fecha/lugar/tipo, re-enforce frequency rule (interna 1/mes, externa 3/sem).
+    const newTipo = updates.tipo_fumigacion ?? assignment.tipo_fumigacion;
+    const newLugar = updates.lugar_id ?? assignment.lugar_id;
+    const newFecha = updates.fecha ?? assignment.fecha;
+    const fechaChanged = updates.fecha && updates.fecha !== assignment.fecha;
+    const lugarChanged = updates.lugar_id && updates.lugar_id !== assignment.lugar_id;
+    const tipoChanged = updates.tipo_fumigacion && updates.tipo_fumigacion !== assignment.tipo_fumigacion;
+    if (fechaChanged || lugarChanged || tipoChanged) {
+      const targetDate = new Date(newFecha);
+      if (newTipo === "interna") {
+        const mesInicio = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1).toISOString().split("T")[0];
+        const mesFin = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0).toISOString().split("T")[0];
+        const existentes = await ctx.db
+          .query("fumigation_assignments")
+          .withIndex("by_lugar", (q) => q.eq("lugar_id", newLugar))
+          .filter((q) =>
+            q.and(
+              q.eq(q.field("tipo_fumigacion"), "interna"),
+              q.gte(q.field("fecha"), mesInicio),
+              q.lte(q.field("fecha"), mesFin)
+            )
+          )
+          .collect();
+        if (existentes.filter((e) => e._id !== id).length >= 1) {
+          throw new Error("Excede límite mensual: solo 1 fumigación interna por mes en este lugar");
+        }
+      } else {
+        const diaInicio = new Date(targetDate);
+        diaInicio.setDate(targetDate.getDate() - targetDate.getDay());
+        const diaFin = new Date(diaInicio);
+        diaFin.setDate(diaInicio.getDate() + 6);
+        const semanaInicio = diaInicio.toISOString().split("T")[0];
+        const semanaFin = diaFin.toISOString().split("T")[0];
+        const existentes = await ctx.db
+          .query("fumigation_assignments")
+          .withIndex("by_lugar", (q) => q.eq("lugar_id", newLugar))
+          .filter((q) =>
+            q.and(
+              q.eq(q.field("tipo_fumigacion"), "externa"),
+              q.gte(q.field("fecha"), semanaInicio),
+              q.lte(q.field("fecha"), semanaFin)
+            )
+          )
+          .collect();
+        if (existentes.filter((e) => e._id !== id).length >= 3) {
+          throw new Error("Excede límite semanal: máximo 3 fumigaciones externas por semana en este lugar");
+        }
+      }
+    }
+
     return await ctx.db.patch(id, updates);
   },
 });

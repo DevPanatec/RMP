@@ -286,20 +286,21 @@ export const add = mutation({
     const safetag_device_id = args.safetagDeviceId || args.gps_imei;
     const safetag_device_name = args.safetagDeviceName;
 
-    // Placa uniqueness scoped a la org (mismo placa en otra org está OK; mismo placa en mi org NO).
+    // Placa uniqueness scoped a la org. Super_admin (sin org propia) requiere arg explícito;
+    // sin él no enforce uniqueness — multi-org puede tener placas iguales por país.
     const placaTrim = args.placa?.trim();
-    if (placaTrim) {
+    const targetOrg = scope.organizacionId ?? null;
+    if (placaTrim && targetOrg) {
       const existing = await ctx.db
         .query("vehiculos")
         .withIndex("by_placa", (q) => q.eq("placa", placaTrim))
         .first();
-      const targetOrg = scope.organizacionId ?? null;
-      if (existing && (!targetOrg || existing.organizacion_id === targetOrg)) {
-        throw new Error(`Placa ${placaTrim} ya registrada`);
+      if (existing && existing.organizacion_id === targetOrg) {
+        throw new Error(`Placa ${placaTrim} ya registrada en esta organización`);
       }
     }
 
-    // IMEI uniqueness — un device GPS NO puede mapear a 2 vehículos (orphana tracking).
+    // IMEI uniqueness GLOBAL — un device GPS NO puede mapear a 2 vehículos (orphana tracking).
     if (safetag_device_id) {
       const existingDev = await ctx.db
         .query("vehiculos")
@@ -361,6 +362,29 @@ export const update = mutation({
     if (!veh) throw new Error("Vehículo no encontrado");
     if (!veh.organizacion_id) throw new Error("Vehículo sin organización — requiere migración");
     await requireOrgAccess(ctx, veh.organizacion_id);
+
+    // Placa uniqueness en update (scoped a org del vehículo).
+    if (updates.placa && updates.placa.trim() !== veh.placa) {
+      const placaTrim = updates.placa.trim();
+      const existing = await ctx.db
+        .query("vehiculos")
+        .withIndex("by_placa", (q) => q.eq("placa", placaTrim))
+        .first();
+      if (existing && existing._id !== id && existing.organizacion_id === veh.organizacion_id) {
+        throw new Error(`Placa ${placaTrim} ya registrada en esta organización`);
+      }
+    }
+    // IMEI uniqueness en update (global).
+    const newImei = updates.safetag_device_id ?? updates.gps_imei;
+    if (newImei && newImei !== veh.safetag_device_id && newImei !== veh.gps_imei) {
+      const existingDev = await ctx.db
+        .query("vehiculos")
+        .withIndex("by_safetag_device", (q) => q.eq("safetag_device_id", newImei))
+        .first();
+      if (existingDev && existingDev._id !== id) {
+        throw new Error(`IMEI ${newImei} ya asignado a otro vehículo`);
+      }
+    }
 
     // Filtrar campos undefined para no sobreescribir con undefined
     const cleanUpdates: Record<string, unknown> = {};
@@ -428,7 +452,8 @@ export const updateKilometraje = mutation({
   },
 });
 
-// Delete vehicle
+// Delete vehicle. Block-if-children: refs activos en asignaciones/route_progress lo bloquean.
+// Vehículos eliminados con assignments dejan FKs colgantes — admin debe limpiar primero.
 export const remove = mutation({
   args: { id: v.id("vehiculos") },
   handler: async (ctx, args) => {
@@ -437,6 +462,38 @@ export const remove = mutation({
     if (!veh) throw new Error("Vehículo no encontrado");
     if (!veh.organizacion_id) throw new Error("Vehículo sin organización — requiere migración");
     await requireOrgAccess(ctx, veh.organizacion_id);
+
+    // Block-if-children: asignaciones/progress activos previenen delete.
+    const activeAsign = await ctx.db
+      .query("asignaciones_rutas")
+      .withIndex("by_vehiculo", (q) => q.eq("vehiculo_id", args.id))
+      .filter((q) => q.or(q.eq(q.field("estado"), "asignada"), q.eq(q.field("estado"), "en_progreso"), q.eq(q.field("estado"), "programada")))
+      .take(1);
+    if (activeAsign.length > 0) {
+      throw new Error("No se puede eliminar: vehículo tiene asignaciones activas. Cancélalas primero.");
+    }
+    const activeProg = await ctx.db
+      .query("route_progress")
+      .withIndex("by_estado", (q) => q.eq("estado", "en_progreso"))
+      .filter((q) => q.eq(q.field("vehiculo_id"), args.id))
+      .take(1);
+    if (activeProg.length > 0) {
+      throw new Error("No se puede eliminar: vehículo tiene ruta en progreso. Espera o termina la ruta.");
+    }
+
+    // Cascade cleanup: borrar GPS history + geofence_state + alerts antiguas (audit trail
+    // se preserva en route_events que tienen denormalizado vehiculo_placa).
+    const history = await ctx.db
+      .query("vehicle_location_history")
+      .withIndex("by_vehiculo", (q) => q.eq("vehiculo_id", args.id))
+      .collect();
+    for (const h of history) await ctx.db.delete(h._id);
+    const states = await ctx.db
+      .query("vehicle_geofence_state")
+      .withIndex("by_vehiculo", (q) => q.eq("vehiculo_id", args.id))
+      .collect();
+    for (const s of states) await ctx.db.delete(s._id);
+
     return await ctx.db.delete(args.id);
   },
 });
