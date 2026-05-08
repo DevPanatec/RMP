@@ -1,6 +1,6 @@
-const CACHE_NAME = 'rmp-conductor-v8.1';
-const STATIC_CACHE = 'rmp-static-v8.1';
-const DYNAMIC_CACHE = 'rmp-dynamic-v8.1';
+const CACHE_NAME = 'rmp-conductor-v8.2';
+const STATIC_CACHE = 'rmp-static-v8.2';
+const DYNAMIC_CACHE = 'rmp-dynamic-v8.2';
 
 const urlsToCache = [
   '/',
@@ -55,16 +55,14 @@ self.addEventListener('activate', (event) => {
     }).then(() => {
       console.log('SW: Activado correctamente');
 
-      // Invalidación automática de cache en desarrollo cada 5 minutos
+      // Invalidación automática de cache en desarrollo cada 5 minutos.
+      // Guardar handle en self para clear en re-activate (evita stack de intervals).
       if (isDevelopment()) {
-        setInterval(() => {
-          console.log('SW Dev: Limpiando cache automáticamente...');
+        if (self.__rmpDevCacheInterval) clearInterval(self.__rmpDevCacheInterval);
+        self.__rmpDevCacheInterval = setInterval(() => {
           caches.keys().then(names => {
             names.forEach(name => {
-              if (name === DYNAMIC_CACHE) {
-                caches.delete(name);
-                console.log('SW Dev: Cache dinámico eliminado:', name);
-              }
+              if (name === DYNAMIC_CACHE) caches.delete(name);
             });
           });
         }, 5 * 60 * 1000);
@@ -188,38 +186,32 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network First para API y datos dinámicos
-  if (url.pathname.includes('/api/') || request.method === 'POST') {
+  // Network First para API GET. POST/PUT/DELETE NO se cachean (mutations no son
+  // idempotentes — servir cache stale puede crear datos inconsistentes).
+  if (url.pathname.includes('/api/')) {
     event.respondWith(
       fetch(request)
         .then(response => {
-          if (response.status === 200) {
+          if (response.status === 200 && request.method === 'GET') {
             const responseClone = response.clone();
             caches.open(DYNAMIC_CACHE)
-              .then(cache => {
-                cache.put(request, responseClone);
-              });
+              .then(cache => cache.put(request, responseClone));
           }
           return response;
         })
         .catch(() => {
-          // Fallback al cache si no hay red
+          if (request.method !== 'GET') {
+            return new Response(
+              JSON.stringify({ error: 'Sin conexión', offline: true, timestamp: Date.now() }),
+              { status: 503, headers: { 'Content-Type': 'application/json' } }
+            );
+          }
           return caches.match(request)
             .then(response => {
-              if (response) {
-                return response;
-              }
-              // Respuesta offline por defecto
+              if (response) return response;
               return new Response(
-                JSON.stringify({
-                  error: 'Sin conexión',
-                  offline: true,
-                  timestamp: Date.now()
-                }),
-                {
-                  status: 503,
-                  headers: { 'Content-Type': 'application/json' }
-                }
+                JSON.stringify({ error: 'Sin conexión', offline: true, timestamp: Date.now() }),
+                { status: 503, headers: { 'Content-Type': 'application/json' } }
               );
             });
         })

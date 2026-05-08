@@ -120,6 +120,9 @@ export function useOfflinePhotoQueue({ generateUploadUrl, attachPhotoToParada, a
 
           // Adjuntar foto al evento parada_completada existente para que el admin
           // la vea en tiempo real SIN duplicar el evento.
+          // Si attach falla, mantenemos item en queue con storage_id para retry — sino
+          // perdemos el link y la foto queda colgante en storage (leak).
+          let attachOk = true;
           if (attachPhotoToParadaRef.current && item.asignacionId && item.paradaIndex != null) {
             try {
               await attachPhotoToParadaRef.current({
@@ -128,18 +131,29 @@ export function useOfflinePhotoQueue({ generateUploadUrl, attachPhotoToParada, a
                 foto_storage_id: storageId,
               });
             } catch (evErr) {
-              console.warn('[OfflineQueue] No se pudo adjuntar foto al evento:', evErr);
+              attachOk = false;
+              const newRetries = item.retries + 1;
+              const failed = newRetries >= item.maxRetries;
+              await idbPut(db, {
+                ...item,
+                uploadedStorageId: storageId,
+                status: failed ? 'error' : 'pending',
+                retries: newRetries,
+                errorMsg: failed ? `Attach falló: ${evErr.message}` : null,
+              });
+              await refreshQueue();
             }
           }
 
-          await idbPut(db, { ...item, status: 'uploaded', uploadedStorageId: storageId });
-          await refreshQueue();
-
-          // Auto-remove after 3s so banner disappears
-          setTimeout(async () => {
-            await idbDelete(db, item.id);
+          if (attachOk) {
+            await idbPut(db, { ...item, status: 'uploaded', uploadedStorageId: storageId });
             await refreshQueue();
-          }, 3000);
+            // Auto-remove after 3s so banner disappears
+            setTimeout(async () => {
+              await idbDelete(db, item.id);
+              await refreshQueue();
+            }, 3000);
+          }
         } catch (err) {
           const newRetries = item.retries + 1;
           const failed = newRetries >= item.maxRetries;

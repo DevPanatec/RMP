@@ -74,6 +74,14 @@ export const AuthProvider = ({ children }) => {
     try {
       await clerkSignOut();
       setUser(null);
+      // Limpiar datos PWA del conductor anterior: localStorage state + IndexedDB queue.
+      // Sino el siguiente login en mismo device hereda fotos pendientes y route state.
+      try {
+        localStorage.removeItem('conductorRouteState');
+        const req = indexedDB.deleteDatabase('rmp-offline');
+        req.onerror = () => {};
+        req.onsuccess = () => {};
+      } catch { /* device storage no accesible — ignorar */ }
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };
