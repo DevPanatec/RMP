@@ -9,7 +9,7 @@ import {
   Calendar, Plus, Edit, Trash2, AlertTriangle, CheckCircle,
   Truck, Users, Map, Clock, X, Sparkles, Camera, Info, Bug, CalendarCheck
 } from '../Icons';
-import { CustomSelect, EmptyState } from '../UI';
+import { CustomSelect, EmptyState, StatusBadge } from '../UI';
 import notify from '../../utils/notify';
 import PhotoUploadField from '../Cleaning/PhotoUploadField';
 import HelperManager from './HelperManager';
@@ -841,9 +841,7 @@ const ScheduleComponent = ({ viewerMode = false }) => {
                           <td className="cell-meta">{formatDate(assignment.fecha)}</td>
                           <td className="cell-meta">{formatTime12h(assignment.hora)}</td>
                           <td>
-                            <span className={`cell-badge ${assignment.estado === 'completada' ? 'success' : 'info'}`}>
-                              {assignment.estado}
-                            </span>
+                            <StatusBadge status={assignment.estado} size="sm" />
                           </td>
                           <td className="cell-meta">
                             {assignment.fotos && assignment.fotos.length > 0 ? (

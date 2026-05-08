@@ -1,10 +1,25 @@
+import { lazy, Suspense } from 'react';
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ClerkProvider, useAuth as useClerkAuth } from "@clerk/clerk-react";
 import Login from './components/Login/Login';
-import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
-import ConductorDashboard from './pages/ConductorDashboard/ConductorDashboard';
 import { AuthProvider, useAuth } from './context/AuthContext';
+
+// Lazy load dashboards: cada uno entra en su propio chunk.
+// Reduce el bundle inicial y permite que el conductor PWA cargue solo lo suyo.
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard/AdminDashboard'));
+const ConductorDashboard = lazy(() => import('./pages/ConductorDashboard/ConductorDashboard'));
+
+const DashboardFallback = () => (
+  <div className="loading-container">
+    <div className="loading-spinner">
+      <div className="rmp-logo">
+        <img src="/icons/modules/Logo principal.png" alt="" style={{ width: '120px', height: 'auto', marginBottom: '20px' }} />
+        <p>Cargando dashboard...</p>
+      </div>
+    </div>
+  </div>
+);
 import { OrganizationProvider } from './context/OrganizationContext';
 import { ProjectProvider } from './context/ProjectContext';
 import { RiskReportsProvider } from './context/RiskReportsContext';
@@ -85,7 +100,9 @@ const AppContent = () => {
                       <CleaningProvider>
                         <FumigationProvider>
                           <MaintenanceProvider>
-                            {renderDashboard()}
+                            <Suspense fallback={<DashboardFallback />}>
+                              {renderDashboard()}
+                            </Suspense>
                           </MaintenanceProvider>
                         </FumigationProvider>
                       </CleaningProvider>
