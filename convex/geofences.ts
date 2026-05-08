@@ -108,8 +108,6 @@ export const create = mutation({
     if (scope.organizacionId) payload.organizacion_id = scope.organizacionId;
     const geofenceId = await ctx.db.insert("geofences", payload);
 
-    console.log(`✅ Geofence creado: ${args.nombre} (radio: ${args.radio}m)`);
-
     return { success: true, geofenceId };
   },
 });
@@ -374,16 +372,10 @@ export const checkVehicleGeofences = internalMutation({
             viewed: false,
           });
 
-          console.log(
-            `🚨 [Geofence] ${vehicle.placa} ${tipoEvento.toUpperCase()} → ${geofence.nombre}`
-          );
-
           alerts.push({
             alertId,
             geofenceId: geofence._id,
-            geofenceName: geofence.nombre,
             tipoEvento,
-            vehiculoPlaca: vehicle.placa,
           });
         }
       }

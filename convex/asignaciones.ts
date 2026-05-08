@@ -232,6 +232,16 @@ export const update = mutation({
   },
 });
 
+// State machine válido. completada/cancelada son terminales (no se reabren via update).
+// Para corregir errores de admin, usar mutation directa solo super_admin.
+const ESTADO_TRANSITIONS: Record<string, string[]> = {
+  asignada: ["en_progreso", "cancelada", "programada"],
+  programada: ["en_progreso", "cancelada", "asignada"],
+  en_progreso: ["completada", "cancelada"],
+  completada: [], // terminal
+  cancelada: [], // terminal
+};
+
 export const updateEstado = mutation({
   args: {
     id: v.id("asignaciones_rutas"),
@@ -244,10 +254,19 @@ export const updateEstado = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    await requireWriteRole(ctx);
+    const scope = await requireWriteRole(ctx);
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Asignación no encontrada");
     if (existing.proyecto_id) await requireProjectAccess(ctx, existing.proyecto_id);
+
+    // State machine guard. Super_admin puede saltar (corrección manual emergencia).
+    const current = existing.estado;
+    if (!scope.isSuperAdmin && current !== args.estado) {
+      const allowed = ESTADO_TRANSITIONS[current] ?? [];
+      if (!allowed.includes(args.estado)) {
+        throw new Error(`Transición inválida: ${current} → ${args.estado}`);
+      }
+    }
     return await ctx.db.patch(args.id, { estado: args.estado });
   },
 });

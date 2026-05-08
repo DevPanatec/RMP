@@ -26,7 +26,7 @@ const CleaningReports = ({ userRole }) => {
   };
 
   const handleDeleteReport = async (reportId) => {
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'super_admin') {
       alert('No tienes permisos para eliminar reportes');
       return;
     }
@@ -249,7 +249,7 @@ const CleaningReports = ({ userRole }) => {
                         >
                           <Eye size={16} />
                         </button>
-                        {userRole === 'admin' && (
+                        {(userRole === 'admin' || userRole === 'super_admin') && (
                           <button
                             className="cleaning-table__action cleaning-table__action--delete"
                             onClick={() => handleDeleteReport(report.id)}

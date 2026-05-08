@@ -703,7 +703,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
       case 'reportes':
         return <ReportsComponent userType={user.tipo} preSelectedLocationId={selectedLocationId} onClearSelection={handleClearLocationSelection} />;
       case 'costos':
-        return userRole === 'admin' ? <CostosComponent /> : null;
+        return (userRole === 'admin' || isSuperAdmin) ? <CostosComponent /> : null;
       case 'proyectos':
         return (userRole === 'admin' || isSuperAdmin) ? <ProyectosComponent /> : null;
       case 'organizaciones':
@@ -791,7 +791,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             <span>Inventario</span>
             {isViewer && <Lock strokeWidth={2} size={12} />}
           </button>
-          {userRole === 'admin' && (
+          {(userRole === 'admin' || isSuperAdmin) && (
             <button
               className={`top-nav__tab ${activeTab === 'costos' ? 'active' : ''}`}
               onClick={() => handleTabChange('costos')}

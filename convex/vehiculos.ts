@@ -286,6 +286,30 @@ export const add = mutation({
     const safetag_device_id = args.safetagDeviceId || args.gps_imei;
     const safetag_device_name = args.safetagDeviceName;
 
+    // Placa uniqueness scoped a la org (mismo placa en otra org está OK; mismo placa en mi org NO).
+    const placaTrim = args.placa?.trim();
+    if (placaTrim) {
+      const existing = await ctx.db
+        .query("vehiculos")
+        .withIndex("by_placa", (q) => q.eq("placa", placaTrim))
+        .first();
+      const targetOrg = scope.organizacionId ?? null;
+      if (existing && (!targetOrg || existing.organizacion_id === targetOrg)) {
+        throw new Error(`Placa ${placaTrim} ya registrada`);
+      }
+    }
+
+    // IMEI uniqueness — un device GPS NO puede mapear a 2 vehículos (orphana tracking).
+    if (safetag_device_id) {
+      const existingDev = await ctx.db
+        .query("vehiculos")
+        .withIndex("by_safetag_device", (q) => q.eq("safetag_device_id", safetag_device_id))
+        .first();
+      if (existingDev) {
+        throw new Error(`IMEI ${safetag_device_id} ya asignado a otro vehículo`);
+      }
+    }
+
     return await ctx.db.insert("vehiculos", {
       nombre: args.nombre,
       placa: args.placa,
@@ -441,19 +465,3 @@ export const getStats = query({
   },
 });
 
-// One-shot migration: backfill organizacion_id en vehículos huérfanos.
-// Asigna a la organización default de RMP (q17ab6eqe73bvp7c75kyh5avdd85rrn2).
-export const _migrationBackfillOrganizacionIdRMP = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const RMP_ORG_ID = "q17ab6eqe73bvp7c75kyh5avdd85rrn2";
-    const all = await ctx.db.query("vehiculos").collect();
-    let fixed = 0;
-    for (const veh of all) {
-      if (veh.organizacion_id != null) continue;
-      await ctx.db.patch(veh._id, { organizacion_id: RMP_ORG_ID as any });
-      fixed++;
-    }
-    return { fixed, total: all.length };
-  },
-});

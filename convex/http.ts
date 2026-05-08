@@ -73,19 +73,15 @@ http.route({
     const sigHeader = request.headers.get("x-webhook-signature");
     const tsHeader = request.headers.get("x-webhook-timestamp");
 
-    // HMAC-firmado preferido. Fallback legacy: token estático en x-webhook-token (SOLO si no hay firma).
-    let authed = false;
-    if (sigHeader && tsHeader) {
-      const verify = await verifySignature(rawBody, sigHeader, tsHeader, secret);
-      authed = verify.ok;
-    } else {
-      const legacyToken =
-        request.headers.get("x-webhook-token") ||
-        request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-      authed = legacyToken === secret;
+    // HMAC-only. Eliminado fallback legacy de plaintext token (vector de injection si secret leak en logs).
+    if (!sigHeader || !tsHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized: missing signature" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
     }
-
-    if (!authed) {
+    const verify = await verifySignature(rawBody, sigHeader, tsHeader, secret);
+    if (!verify.ok) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json" },

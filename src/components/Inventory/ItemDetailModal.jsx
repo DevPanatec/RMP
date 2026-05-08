@@ -36,8 +36,21 @@ const ItemDetailModal = ({ item, onClose }) => {
   const [filtroMovimiento, setFiltroMovimiento] = useState('todos');
   const [validationErrors, setValidationErrors] = useState({});
 
-  // Actualizar nuevaCompraData cuando cambia el item
+  // Resetear todo cuando cambia el item (incluido a null en cierre del modal).
+  // Evita bleed entre items distintos: sub-forms abiertos, datos del form previo.
   useEffect(() => {
+    setShowAddLocation(false);
+    setShowAsignarDesdeAlmacen(false);
+    setShowNuevaCompra(false);
+    setShowConsumo(false);
+    setEditingLocation(null);
+    setAddLocationData({ lugar_id: '', cantidad: 0 });
+    setAsignarData({ lugar_id: '', cantidad: 0 });
+    setConsumoData({ lugar_id: '', cantidad: 0, notas: '' });
+    setValidationErrors({});
+    setEditQuantity(0);
+    setIsSubmitting(false);
+    setFiltroMovimiento('todos');
     if (item) {
       setNuevaCompraData({
         cantidad: 0,
@@ -45,6 +58,8 @@ const ItemDetailModal = ({ item, onClose }) => {
         proveedor: item.proveedor || '',
         notas: ''
       });
+    } else {
+      setNuevaCompraData({ cantidad: 0, precio_unitario: 0, proveedor: '', notas: '' });
     }
   }, [item]);
 

@@ -30,7 +30,6 @@ export const updateConnectionStatus = internalMutation({
 
         if (!isConnected) {
           disconnectedCount++;
-          console.log(`⚠️ GPS desconectado: ${vehicle.placa} (IMEI ${vehicle.gps_imei})`);
         }
       }
     }

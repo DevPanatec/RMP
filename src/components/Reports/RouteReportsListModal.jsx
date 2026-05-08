@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { X, Calendar, Eye, FileText, Truck, Clock, Package } from '../Icons';
 import { Badge } from '../UI';
 import './LocationReportsModal.css';
@@ -23,6 +23,15 @@ const RouteReportsListModal = ({ card, onClose, onSelectReport, getStatusVariant
     fin: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
   });
   const [showFilters, setShowFilters] = useState(false);
+
+  // Reset filtros al cambiar de card (rota target).
+  useEffect(() => {
+    setShowFilters(false);
+    setDateRange({
+      inicio: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      fin: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    });
+  }, [card?._id ?? card]);
 
   const filteredReports = useMemo(() => {
     if (!card.reports || card.reports.length === 0) return [];

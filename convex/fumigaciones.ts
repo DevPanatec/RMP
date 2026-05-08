@@ -646,8 +646,6 @@ export const createReport = mutation({
       if (fotosLegacy.length > 0) {
         fotosDuranteIds = [...fotosDuranteIds, ...fotosLegacy];
       }
-
-      console.log(`📸 Fumigación: encontradas ${allPhotos.length} fotos del assignment (antes: ${fotosAntesIds.length}, durante: ${fotosDuranteIds.length}, después: ${fotosDespuesIds.length})`);
     }
 
     const { fotos_antes_ids, fotos_durante_ids, fotos_despues_ids, ...restArgs } = args;

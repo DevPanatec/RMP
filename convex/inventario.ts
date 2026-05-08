@@ -10,6 +10,20 @@ async function scopeItems(ctx: any, items: any[]) {
   return items.filter((i) => i.organizacion_id === scope.organizacionId);
 }
 
+// Devuelve items pre-filtrados por org via index (evita full scan + filter in-memory).
+// Para super_admin/cross-org sigue full collect (es por diseño).
+async function loadScopedItems(ctx: any) {
+  const scope = await getAuthScope(ctx);
+  if (scope.isSuperAdmin || scope.isCrossOrgViewer) {
+    return await ctx.db.query("inventario").collect();
+  }
+  if (!scope.organizacionId) return [];
+  return await ctx.db
+    .query("inventario")
+    .withIndex("by_organizacion", (q: any) => q.eq("organizacion_id", scope.organizacionId))
+    .collect();
+}
+
 // Generar código único para items de inventario (scoped)
 export const generateCodigo = query({
   handler: async (ctx) => {
@@ -23,11 +37,10 @@ export const generateCodigo = query({
 // Listar todos los items con cantidad total y ubicaciones (scoped)
 export const list = query({
   handler: async (ctx) => {
-    const allItems = await ctx.db.query("inventario").collect();
-    const items = await scopeItems(ctx, allItems);
+    const items: any[] = await loadScopedItems(ctx);
 
     const itemsWithLocations = await Promise.all(
-      items.map(async (item) => {
+      items.map(async (item: any) => {
         // Obtener todas las ubicaciones de este item
         const ubicaciones = await ctx.db
           .query("inventario_ubicaciones")

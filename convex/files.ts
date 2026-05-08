@@ -1,6 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { requireWriteRole } from "./lib/auth";
+import { requireUser, requireWriteRole } from "./lib/auth";
 
 // Generate upload URL for file uploads
 export const generateUploadUrl = mutation({
@@ -10,10 +10,12 @@ export const generateUploadUrl = mutation({
   },
 });
 
-// Get file URL from storage ID
+// Get file URL from storage ID. Auth-gated: requiere usuario autenticado.
+// Storage IDs son opacos pero accesibles a cualquiera con el ID — al menos exigir sesión.
 export const getUrl = query({
   args: { storageId: v.id("_storage") },
   handler: async (ctx, args) => {
+    await requireUser(ctx);
     return await ctx.storage.getUrl(args.storageId);
   },
 });
@@ -31,6 +33,7 @@ export const deleteFile = mutation({
 export const getUrlBatch = query({
   args: { storageIds: v.array(v.id("_storage")) },
   handler: async (ctx, args) => {
+    await requireUser(ctx);
     const urls: Record<string, string | null> = {};
     for (const id of args.storageIds) {
       urls[id] = await ctx.storage.getUrl(id);

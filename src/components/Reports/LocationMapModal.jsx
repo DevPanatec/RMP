@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { X, Calendar, Download, Search, Camera, Clock, FileText } from '../Icons';
 import { Badge } from '../UI';
 import './LocationMapModal.css';
@@ -16,6 +16,15 @@ const LocationMapModal = ({ location, onClose, getPhotoUrl, getStatusVariant }) 
     inicio: new Date(Date.now() - 365*24*60*60*1000).toISOString().split('T')[0],
     fin: new Date().toISOString().split('T')[0]
   });
+
+  // Reset filtros al cambiar de location (evita bleed entre ubicaciones).
+  useEffect(() => {
+    setSearchTerm('');
+    setDateRange({
+      inicio: new Date(Date.now() - 365*24*60*60*1000).toISOString().split('T')[0],
+      fin: new Date().toISOString().split('T')[0],
+    });
+  }, [location?._id ?? location]);
 
   const filteredReports = useMemo(() => {
     if (!location.assignments || location.assignments.length === 0) return [];

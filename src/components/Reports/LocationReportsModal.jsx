@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { X, Calendar, Download, FileText, Camera, Check, Eye, Truck, Zap, Sparkles, Wrench } from '../Icons';
 import { Card, Badge } from '../UI';
 import ReportDetailModal from '../Cleaning/ReportDetailModal';
@@ -35,6 +35,17 @@ const LocationReportsModal = ({ location, onClose, getStatusVariant, modalType =
   const [selectedReports, setSelectedReports] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
+
+  // Reset state al cambiar de location (evita persistir selección y filtros).
+  useEffect(() => {
+    setSelectedReports([]);
+    setShowFilters(false);
+    setSelectedReport(null);
+    setDateRange({
+      inicio: new Date(Date.now() - 365*24*60*60*1000).toISOString().split('T')[0],
+      fin: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0],
+    });
+  }, [location?._id ?? location]);
 
   // Filtrar reportes por rango de fechas
   const filteredReports = useMemo(() => {

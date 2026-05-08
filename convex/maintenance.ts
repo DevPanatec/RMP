@@ -8,19 +8,66 @@ export const listTasks = query({
   args: { proyecto_id: v.optional(v.id("proyectos")) },
   handler: async (ctx, args) => {
     const scope = await getAuthScope(ctx);
-    const all = await ctx.db.query("maintenance_tasks").collect();
     if (scope.isSuperAdmin || scope.isCrossOrgViewer) {
-      if (args.proyecto_id) return all.filter((t) => t.proyecto_id === args.proyecto_id);
-      return all;
+      if (args.proyecto_id) {
+        return await ctx.db
+          .query("maintenance_tasks")
+          .withIndex("by_proyecto", (q) => q.eq("proyecto_id", args.proyecto_id))
+          .collect();
+      }
+      return await ctx.db.query("maintenance_tasks").collect();
     }
     if (scope.isAdmin) {
       if (!scope.organizacionId) return [];
-      const orgTasks = all.filter((t) => t.organizacion_id === scope.organizacionId);
+      const orgTasks = await ctx.db
+        .query("maintenance_tasks")
+        .withIndex("by_organizacion", (q) => q.eq("organizacion_id", scope.organizacionId!))
+        .collect();
       if (args.proyecto_id) return orgTasks.filter((t) => t.proyecto_id === args.proyecto_id);
       return orgTasks;
     }
-    if (!scope.proyectoId) return all.filter((t) => !t.proyecto_id);
-    return all.filter((t) => !t.proyecto_id || t.proyecto_id === scope.proyectoId);
+    // Enterprise/conductor/viewer: scoped a su proyecto + globales (sin proyecto_id) de su org.
+    if (!scope.organizacionId) return [];
+    const orgTasks = await ctx.db
+      .query("maintenance_tasks")
+      .withIndex("by_organizacion", (q) => q.eq("organizacion_id", scope.organizacionId!))
+      .collect();
+    if (!scope.proyectoId) return orgTasks.filter((t) => !t.proyecto_id);
+    return orgTasks.filter((t) => !t.proyecto_id || t.proyecto_id === scope.proyectoId);
+  },
+});
+
+// Tareas atrasadas (overdue): fecha_programada pasada y estado != completada/cancelada.
+// Server-side computa, así UI y backend no divergen.
+export const getOverdueTasks = query({
+  args: { proyecto_id: v.optional(v.id("proyectos")) },
+  handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    if (!scope.perfil) return [];
+    const today = new Date().toISOString().split("T")[0];
+
+    let tasks: any[] = [];
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) {
+      tasks = args.proyecto_id
+        ? await ctx.db
+            .query("maintenance_tasks")
+            .withIndex("by_proyecto", (q) => q.eq("proyecto_id", args.proyecto_id))
+            .collect()
+        : await ctx.db.query("maintenance_tasks").collect();
+    } else if (scope.organizacionId) {
+      tasks = await ctx.db
+        .query("maintenance_tasks")
+        .withIndex("by_organizacion", (q) => q.eq("organizacion_id", scope.organizacionId!))
+        .collect();
+      if (args.proyecto_id) tasks = tasks.filter((t) => t.proyecto_id === args.proyecto_id);
+    }
+    return tasks.filter(
+      (t) =>
+        t.fecha_programada &&
+        t.fecha_programada < today &&
+        t.estado !== "completada" &&
+        t.estado !== "cancelada"
+    );
   },
 });
 
@@ -546,8 +593,6 @@ export const createReport = mutation({
       fotosAntesIds = allPhotos.filter((p) => p.etapa === "antes").map((p) => p._id);
       fotosDuranteIds = allPhotos.filter((p) => p.etapa === "durante").map((p) => p._id);
       fotosDespuesIds = allPhotos.filter((p) => p.etapa === "despues").map((p) => p._id);
-
-      console.log(`📸 Mantenimiento: encontradas ${allPhotos.length} fotos de la tarea`);
     }
 
     const reportPayload: any = {

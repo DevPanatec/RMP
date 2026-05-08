@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { X, Upload, Trash2, Check, Camera } from '../Icons';
 import { Button } from '../UI';
 import { useCleaning } from '../../context/CleaningContext';
@@ -29,6 +29,16 @@ const PhotosModal = ({ isOpen, onClose, onComplete, assignmentId, assignmentData
     durante: useRef(null),
     despues: useRef(null),
   };
+
+  // Reset state on close para evitar bleed entre asignaciones.
+  useEffect(() => {
+    if (!isOpen) {
+      setPhotos({ antes: [], durante: [], despues: [] });
+      setErrors({});
+      setDragOver(null);
+      setUploading(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -135,8 +145,6 @@ const PhotosModal = ({ isOpen, onClose, onComplete, assignmentId, assignmentData
           }
         }
       }
-
-      console.log('📸 Fotos subidas por etapa:', photoIds);
 
       // Retornar estructura con IDs de fotos agrupados por etapa
       onComplete({

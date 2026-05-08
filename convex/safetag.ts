@@ -43,8 +43,6 @@ export const fetchDevices = internalAction({
       );
     }
 
-    console.log("🔑 Calling SafeTag API for user:", username);
-
     const response = await fetch(`${SAFETAG_API_BASE}/devices/${username}`, {
       method: "GET",
       headers: {
@@ -54,50 +52,22 @@ export const fetchDevices = internalAction({
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      console.error("❌ SafeTag API error:", response.status, error);
-      throw new Error(`SafeTag API error: ${response.status} ${error}`);
+      throw new Error(`SafeTag API error: ${response.status}`);
     }
 
     const data = await response.json();
-
-    console.log("📦 Raw API response type:", typeof data);
-    console.log("📦 Is array?", Array.isArray(data));
-    console.log("📦 Raw data keys:", data ? Object.keys(data).join(", ") : "null");
-    console.log("📦 Full response (first 500 chars):", JSON.stringify(data).substring(0, 500));
-
-    // SafeTag API puede devolver un objeto o un array
     let devices: SafeTagDevice[] = [];
-
     if (Array.isArray(data)) {
-      // Si es un array, usar directamente
       devices = data;
-      console.log("✅ Parseado como array");
-    } else if (data && typeof data === 'object') {
-      // Si es un objeto único, ponerlo en array
+    } else if (data && typeof data === "object") {
       if (data._id) {
-        // Es un dispositivo único
-        console.log("✅ Parseado como dispositivo único");
         devices = [data];
       } else {
-        // Es un objeto con múltiples dispositivos, convertir a array
-        console.log("✅ Parseado como objeto con múltiples devices");
-        const values = Object.values(data);
-        console.log("   Valores encontrados:", values.length);
-        devices = values.filter(v => v && typeof v === 'object' && '_id' in v);
-        console.log("   Devices válidos después de filtrar:", devices.length);
+        devices = Object.values(data).filter(
+          (v): v is SafeTagDevice => !!v && typeof v === "object" && "_id" in v
+        );
       }
     }
-
-    console.log("✅ SafeTag devices fetched:", devices.length);
-
-    if (devices.length > 0) {
-      console.log("📋 Device IDs:", devices.map(d => d._id).join(", "));
-      console.log("📍 First device:", devices[0]._id, "-", devices[0].prefs?.name);
-    } else {
-      console.error("❌ NO SE ENCONTRARON DEVICES. Revisa el formato de respuesta arriba.");
-    }
-
     return devices;
   },
 });
@@ -126,10 +96,7 @@ export const updateVehicleFromSafeTag = internalMutation({
 
     // Obtener datos actuales del vehículo
     const currentVehicle = await ctx.db.get(vehiculoId);
-    if (!currentVehicle) {
-      console.error("❌ Vehículo no encontrado:", vehiculoId);
-      return;
-    }
+    if (!currentVehicle) return;
 
     const currentLat = currentVehicle.gps_latitud;
     const currentLng = currentVehicle.gps_longitud;
@@ -147,13 +114,6 @@ export const updateVehicleFromSafeTag = internalMutation({
 
     // Solo actualizar timestamp si el vehículo SE MOVIÓ
     const timestamp = hasMoved ? Date.now() : (currentVehicle.gps_ultima_actualizacion || Date.now());
-    
-    // Log para debug
-    if (hasMoved) {
-      console.log(`🚗 ${deviceData.name} SE MOVIÓ - Actualizando timestamp`);
-    } else {
-      console.log(`⏸️  ${deviceData.name} SIN MOVIMIENTO - Manteniendo timestamp anterior`);
-    }
 
     // Timestamp original de SafeTag
     const safetagTimestamp = new Date(deviceData.last_updated).getTime();
@@ -190,9 +150,6 @@ export const updateVehicleFromSafeTag = internalMutation({
         source: "safetag",
         safetag_timestamp: safetagTimestamp,
       });
-      console.log(`✅ Vehículo ${vehiculoId} actualizado + historial guardado`);
-    } else {
-      console.log(`✅ Vehículo ${vehiculoId} actualizado (sin movimiento, sin historial)`);
     }
 
     // Verificar geofences (se hace siempre, no solo cuando hay movimiento)
@@ -209,8 +166,6 @@ export const updateVehicleFromSafeTag = internalMutation({
 export const syncAllVehicles = action({
   args: {},
   handler: async (ctx) => {
-    console.log("🔄 Iniciando sincronización SafeTag...");
-
     try {
       // 1. Obtener devices desde SafeTag API
       const devices = await ctx.runAction(internal.safetag.fetchDevices);
@@ -219,35 +174,20 @@ export const syncAllVehicles = action({
       const vehiculos = await ctx.runQuery(api.safetag.getVehiclesWithSafeTag);
 
       if (vehiculos.length === 0) {
-        console.log(
-          "⚠️ No hay vehículos con SafeTag configurado. Vincular devices primero."
-        );
         return [];
       }
-
-      console.log(`📋 Vehículos a sincronizar: ${vehiculos.length}`);
-      console.log(`🛰️ Devices disponibles en SafeTag: ${devices.length}`);
 
       const results = [];
 
       // 3. Actualizar cada vehículo
       for (const vehiculo of vehiculos) {
         try {
-          console.log(`🔍 Buscando device ${vehiculo.safetag_device_id} para vehículo ${vehiculo.placa}`);
-
           // Buscar device correspondiente
           const device = devices.find(
             (d) => d._id === vehiculo.safetag_device_id
           );
 
           if (!device) {
-            console.warn(
-              `⚠️ Device ${vehiculo.safetag_device_id} NOT found in SafeTag`
-            );
-            console.warn(
-              `🔍 Devices disponibles:`,
-              devices.map(d => `${d._id} (${d.prefs?.name})`).join(", ")
-            );
             results.push({
               vehiculoId: vehiculo._id,
               placa: vehiculo.placa,
@@ -280,8 +220,8 @@ export const syncAllVehicles = action({
               latitud: device.status.coords.lat,
               longitud: device.status.coords.lon,
             });
-          } catch (geoError) {
-            console.warn(`⚠️ Error verificando geofences para ${vehiculo.placa}:`, geoError);
+          } catch {
+            // No bloquear sync por error en geofence — silently continuar.
           }
 
           results.push({
@@ -294,10 +234,6 @@ export const syncAllVehicles = action({
             },
           });
         } catch (error: any) {
-          console.error(
-            `❌ Error actualizando vehículo ${vehiculo.placa}:`,
-            error
-          );
           results.push({
             vehiculoId: vehiculo._id,
             placa: vehiculo.placa,
@@ -307,14 +243,8 @@ export const syncAllVehicles = action({
         }
       }
 
-      const successful = results.filter((r) => r.success).length;
-      console.log(
-        `✅ Sincronización completa: ${successful}/${results.length} exitosos`
-      );
-
       return results;
     } catch (error: any) {
-      console.error("❌ Error en sincronización SafeTag:", error);
       throw error;
     }
   },
@@ -412,18 +342,9 @@ export const fetchLocationHistory = action({
     const apiKey = process.env.SAFETAG_API_KEY;
     const username = process.env.SAFETAG_USERNAME;
 
-    console.log("🔧 fetchLocationHistory called with:", {
-      deviceId: args.deviceId,
-      startDate: args.startDate,
-      endDate: args.endDate,
-    });
-
     if (!apiKey || !username) {
-      console.error("❌ SafeTag credentials missing!");
       throw new Error("SafeTag API credentials not configured");
     }
-
-    console.log("🔑 Using credentials - Username:", username, "API Key length:", apiKey.length);
 
     // Construir URL con parámetros opcionales
     let url = `${SAFETAG_API_BASE}/locations/range/${username}/${args.deviceId}`;
@@ -440,8 +361,6 @@ export const fetchLocationHistory = action({
       url += `?${params.toString()}`;
     }
 
-    console.log("📍 Fetching location history:", url);
-
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -451,30 +370,11 @@ export const fetchLocationHistory = action({
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("❌ SafeTag history error:", {
-        status: response.status,
-        statusText: response.statusText,
-        body: errorText
-      });
-      throw new Error(`Error SafeTag API (${response.status}): ${errorText || response.statusText}`);
+      throw new Error(`SafeTag API error: ${response.status}`);
     }
 
     const locations = await response.json();
     const distance = response.headers.get("Distance"); // Total KM
-
-    console.log(`✅ Fetched ${Array.isArray(locations) ? locations.length : 0} location points`);
-
-    if (!Array.isArray(locations)) {
-      console.error("❌ Response is not an array:", typeof locations, JSON.stringify(locations).substring(0, 200));
-    }
-
-    if (Array.isArray(locations) && locations.length > 0) {
-      console.log("📍 First location point:", locations[0]);
-      console.log("📍 Last location point:", locations[locations.length - 1]);
-    } else {
-      console.warn("⚠️ No location points returned for device", args.deviceId);
-    }
 
     return {
       locations: Array.isArray(locations) ? locations : [],
@@ -503,12 +403,6 @@ export const fetchTodayHistory = action({
 
     const endOfDay = new Date(now);
     endOfDay.setHours(23, 59, 59, 999);
-
-    console.log("📅 Fetching today's history:", {
-      deviceId: args.deviceId,
-      start: startOfDay.toISOString(),
-      end: endOfDay.toISOString(),
-    });
 
     return await ctx.runAction(api.safetag.fetchLocationHistory, {
       deviceId: args.deviceId,

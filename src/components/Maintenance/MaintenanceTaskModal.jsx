@@ -12,7 +12,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
   const { addTask, updateTask, deleteTask, completeTask } = useMaintenance();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const isAdmin = userRole === 'admin';
+  const isAdmin = userRole === 'admin' || userRole === 'super_admin';
   const isEnterprise = userRole === 'enterprise';
 
   // Convex mutations y queries para fotos

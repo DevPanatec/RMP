@@ -123,7 +123,20 @@ export const add = mutation({
     }
     if (orgId) await requireOrgAccess(ctx, orgId);
     if (args.proyecto_id) await requireProjectAccess(ctx, args.proyecto_id);
-    const data: any = { ...args, activo: true };
+
+    // Cedula uniqueness check (PII collision = identity mix-up). Scope a la org.
+    const cedulaTrim = args.cedula?.trim();
+    if (cedulaTrim) {
+      const existing = await ctx.db
+        .query("empleados")
+        .withIndex("by_cedula", (q) => q.eq("cedula", cedulaTrim))
+        .first();
+      if (existing && (!orgId || existing.organizacion_id === orgId)) {
+        throw new Error(`Cédula ${cedulaTrim} ya registrada`);
+      }
+    }
+
+    const data: any = { ...args, cedula: cedulaTrim, activo: true };
     if (orgId) data.organizacion_id = orgId;
     return await ctx.db.insert("empleados", data);
   },
@@ -237,18 +250,3 @@ export const _migrationBackfillOrganizacionId = mutation({
   },
 });
 
-// One-shot: backfill empleados huérfanos a org RMP default.
-export const _migrationBackfillOrganizacionIdRMP = mutation({
-  args: {},
-  handler: async (ctx) => {
-    const RMP_ORG_ID = "q17ab6eqe73bvp7c75kyh5avdd85rrn2";
-    const empleados = await ctx.db.query("empleados").collect();
-    let fixed = 0;
-    for (const e of empleados) {
-      if (e.organizacion_id != null) continue;
-      await ctx.db.patch(e._id, { organizacion_id: RMP_ORG_ID as any });
-      fixed++;
-    }
-    return { fixed, total: empleados.length };
-  },
-});

@@ -1,9 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Filter } from '../Icons';
 import ActivityIcon from './ActivityIcon';
 
 const DayDetailsModal = ({ date, activities, onClose, filters, onFilterChange }) => {
   const [localFilters, setLocalFilters] = useState(filters);
+
+  // Sync con parent filters cuando se reabra el modal o cambien los filtros del padre.
+  useEffect(() => {
+    setLocalFilters(filters);
+  }, [filters, date]);
 
   const getDayName = (date) => {
     const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];

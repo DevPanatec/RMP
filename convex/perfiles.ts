@@ -542,8 +542,6 @@ export const createUserWithClerk = action({
       };
 
     } catch (error: any) {
-      console.error("❌ Error creating user:", error);
-
       // Parse Clerk API errors and provide user-friendly messages
       const errorMessage = error.message || "";
 
