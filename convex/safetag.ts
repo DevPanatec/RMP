@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation, action, internalAction, internalMutation } from "./_generated/server";
+import { query, mutation, action, internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { getAuthScope, requireAdminWrite, requireOrgAccess } from "./lib/auth";
 
@@ -103,18 +103,6 @@ export const updateVehicleFromSafeTag = internalMutation({
     const newLat = deviceData.latitude;
     const newLng = deviceData.longitude;
 
-    // Calcular si el vehículo se movió (diferencia > 0.0001 grados ≈ 11 metros)
-    const MOVEMENT_THRESHOLD = 0.0001;
-    const hasMoved = 
-      currentLat === undefined || 
-      currentLng === undefined ||
-      Math.abs(newLat - currentLat) > MOVEMENT_THRESHOLD ||
-      Math.abs(newLng - currentLng) > MOVEMENT_THRESHOLD ||
-      deviceData.speed > 0;
-
-    // Solo actualizar timestamp si el vehículo SE MOVIÓ
-    const timestamp = hasMoved ? Date.now() : (currentVehicle.gps_ultima_actualizacion || Date.now());
-
     // Timestamp original de SafeTag
     const safetagTimestamp = new Date(deviceData.last_updated).getTime();
 
@@ -122,6 +110,25 @@ export const updateVehicleFromSafeTag = internalMutation({
     const now = Date.now();
     const TIMEOUT_MS = 5 * 60 * 1000; // 5 minutos
     const isConnected = (now - safetagTimestamp) < TIMEOUT_MS;
+
+    // Calcular si el vehículo se movió (diferencia > 0.0001 grados ≈ 11 metros)
+    const MOVEMENT_THRESHOLD = 0.0001;
+    const hasMoved =
+      currentLat === undefined ||
+      currentLng === undefined ||
+      Math.abs(newLat - currentLat) > MOVEMENT_THRESHOLD ||
+      Math.abs(newLng - currentLng) > MOVEMENT_THRESHOLD ||
+      deviceData.speed > 0;
+
+    // gps_ultima_actualizacion:
+    // - SafeTag conectado + movimiento → Date.now() (push fresco al mapa)
+    // - SafeTag conectado + parado → preserva timestamp anterior
+    // - SafeTag DESCONECTADO → safetag_timestamp (cuando pingó por última vez)
+    // Esto garantiza que devices muertos queden offline en el mapa por el threshold
+    // de 10 min, en vez de quedar "frescos" porque SafeTag devuelve speed cacheada.
+    const timestamp = isConnected
+      ? (hasMoved ? Date.now() : (currentVehicle.gps_ultima_actualizacion ?? Date.now()))
+      : safetagTimestamp;
 
     await ctx.db.patch(vehiculoId, {
       safetag_device_id: deviceData._id,
@@ -138,8 +145,9 @@ export const updateVehicleFromSafeTag = internalMutation({
       gps_conectado: isConnected, // ← Ahora depende de si el dato es fresco
     });
 
-    // Solo guardar en historial si el vehículo SE MOVIÓ (evitar duplicados)
-    if (hasMoved) {
+    // Solo guardar historial si SafeTag está conectado Y se movió.
+    // Sin isConnected, devices muertos generan filas duplicadas con coords cacheadas.
+    if (isConnected && hasMoved) {
       await ctx.db.insert("vehicle_location_history", {
         vehiculo_id: vehiculoId,
         timestamp, // ← Timestamp NUESTRO para orden correcto
@@ -170,8 +178,10 @@ export const syncAllVehicles = action({
       // 1. Obtener devices desde SafeTag API
       const devices = await ctx.runAction(internal.safetag.fetchDevices);
 
-      // 2. Obtener vehículos con SafeTag configurado
-      const vehiculos = await ctx.runQuery(api.safetag.getVehiclesWithSafeTag);
+      // 2. Obtener vehículos con SafeTag configurado.
+      // Usar internalQuery porque el cron corre sin identity y el query público
+      // gateado por org devolvía [] (scope.organizacionId === null) → cron no-op.
+      const vehiculos = await ctx.runQuery(internal.safetag._getAllVehiclesWithSafeTagInternal);
 
       if (vehiculos.length === 0) {
         return [];
@@ -247,6 +257,20 @@ export const syncAllVehicles = action({
     } catch (error: any) {
       throw error;
     }
+  },
+});
+
+/**
+ * Internal query para el cron sync — sin auth scope.
+ * El cron corre como system (sin identity), por eso el query público gateado
+ * devolvía [] y rompía la sincronización GPS.
+ */
+export const _getAllVehiclesWithSafeTagInternal = internalQuery({
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("vehiculos")
+      .filter((q) => q.neq(q.field("safetag_device_id"), undefined))
+      .collect();
   },
 });
 
