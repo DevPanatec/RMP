@@ -38,7 +38,6 @@ import {
 } from '../../components/Icons';
 import { Badge, ProgressBar } from '../../components/UI';
 import { AlertCard, PersonnelTable, HeroStats, RealtimeActivity, RiskAlerts, UpcomingRoutes } from '../../components/Dashboard';
-import { MonitoringV2 } from '../../components/Monitoring';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
@@ -511,83 +510,103 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
     }
     switch (activeTab) {
       case 'dashboard':
+        const activeCount = normalizedCamiones.filter(c => c.estado === 'En ruta' || c.estado === 'en_ruta').length;
+        const personnelCount = displayPersonnel?.length || 0;
+
+        const heroStatsData = [
+          {
+            id: 'active',
+            icon: <TrendingUp strokeWidth={1.5} size={24} />,
+            value: activeCount,
+            label: 'En Ruta',
+          },
+          {
+            id: 'personnel',
+            icon: <Briefcase strokeWidth={1.5} size={24} />,
+            value: personnelCount,
+            label: 'Personal',
+          }
+        ];
+
         return (
           <div className="monitoring-layout">
-            {/* Desktop: Mission Control layout (Variante A handoff) */}
+            {/* Desktop: Side panel with KPIs, Activity, Alerts */}
             {!isMobileView && (
-              <div className="monitoring-mission-control" style={{ flex: 1, padding: '20px 24px', overflow: 'auto' }}>
-                <MonitoringV2
-                  user={user}
+              <div className="monitoring-side-panel">
+                <HeroStats stats={heroStatsData} />
+                {userRole === 'enterprise' && <UpcomingRoutes limit={6} />}
+                <RealtimeActivity
                   vehicles={normalizedCamiones}
-                  routes={displayRoutes || []}
-                  personnel={displayPersonnel || []}
-                  routeEvents={routeEvents}
-                  displayAlerts={displayAlerts}
-                  geofences={geofences}
-                  allRouteProgress={allRouteProgress}
-                  selectedTruck={selectedTruck}
-                  onViewLocationReports={handleViewLocationReports}
-                  onTabChange={setActiveTab}
-                  onMaximizeMap={() => setIsMapMaximized(true)}
-                  isViewer={isViewer}
+                  routes={displayRoutes}
+                  personnel={displayPersonnel}
+                  recentActivity={recentActivity}
+                  newEventIds={newEventIds}
+                  onViewAll={() => setActiveTab('reportes')}
+                />
+                <RiskAlerts
+                  alerts={displayAlerts}
+                  onViewDetails={(alert) => {
+                    setActiveTab('riesgos');
+                  }}
+                  onViewAll={() => setActiveTab('riesgos')}
+                  newAlertIds={newAlertIds}
                 />
               </div>
             )}
 
-            {/* Mobile: keep existing map + bottom sheet */}
-            {isMobileView && (
-              <div
-                className="monitoring-map-area"
-                onTouchStart={triggerShowHeader}
-                onClick={triggerShowHeader}
-              >
-                <div className="map-section">
-                  <div className="monitoring-map-fabs">
-                    <button
-                      className="monitoring-fab"
-                      onClick={() => {
-                        const v = normalizedCamiones.find(c => c.gps_latitud && c.gps_longitud);
-                        const lat = v?.gps_latitud || 8.983333;
-                        const lng = v?.gps_longitud || -79.516670;
-                        window.dispatchEvent(new CustomEvent('recenterMap', { detail: { lat, lng, zoom: 13 } }));
-                      }}
-                      title="Centrar mapa"
-                    >
-                      <MapPin size={16} />
-                    </button>
-                    <button
-                      className="monitoring-fab"
-                      onClick={() => setIsMapMaximized(true)}
-                      title="Maximizar mapa"
-                    >
-                      <Maximize2 size={16} />
-                    </button>
-                    <button
-                      className="monitoring-fab"
-                      onClick={() => window.dispatchEvent(new CustomEvent('toggleGeofenceMode'))}
-                      title="Crear zona de alerta (geofence)"
-                    >
-                      <Target size={16} />
-                    </button>
-                  </div>
-                  <div className="map-container-modern">
-                    <MapLibreComponent
-                      key="map-main"
-                      camiones={normalizedCamiones}
-                      rutas={isViewer ? [] : (displayRoutes || [])}
-                      personnel={isViewer ? [] : (displayPersonnel || [])}
-                      lugares={isViewer ? [] : (lugares || [])}
-                      geofences={isViewer ? [] : geofences}
-                      allRouteProgress={isViewer ? [] : allRouteProgress}
-                      userType={user.tipo}
-                      showRealTime={true}
-                      selectedTruck={selectedTruck}
-                      onViewLocationReports={handleViewLocationReports}
-                    />
-                  </div>
+            {/* Map area - full height */}
+            <div
+              className="monitoring-map-area"
+              onTouchStart={isMobileView ? triggerShowHeader : undefined}
+              onClick={isMobileView ? triggerShowHeader : undefined}
+            >
+              <div className="map-section">
+                <div className="monitoring-map-fabs">
+                  <button
+                    className="monitoring-fab"
+                    onClick={() => {
+                      const v = normalizedCamiones.find(c => c.gps_latitud && c.gps_longitud);
+                      const lat = v?.gps_latitud || 8.983333;
+                      const lng = v?.gps_longitud || -79.516670;
+                      window.dispatchEvent(new CustomEvent('recenterMap', { detail: { lat, lng, zoom: 13 } }));
+                    }}
+                    title="Centrar mapa"
+                  >
+                    <MapPin size={16} />
+                  </button>
+                  <button
+                    className="monitoring-fab"
+                    onClick={() => setIsMapMaximized(true)}
+                    title="Maximizar mapa"
+                  >
+                    <Maximize2 size={16} />
+                  </button>
+                  <button
+                    className="monitoring-fab"
+                    onClick={() => window.dispatchEvent(new CustomEvent('toggleGeofenceMode'))}
+                    title="Crear zona de alerta (geofence)"
+                  >
+                    <Target size={16} />
+                  </button>
+                </div>
+                <div className="map-container-modern">
+                  <MapLibreComponent
+                    key="map-main"
+                    camiones={normalizedCamiones}
+                    rutas={isViewer ? [] : (displayRoutes || [])}
+                    personnel={isViewer ? [] : (displayPersonnel || [])}
+                    lugares={isViewer ? [] : (lugares || [])}
+                    geofences={isViewer ? [] : geofences}
+                    allRouteProgress={isViewer ? [] : allRouteProgress}
+                    userType={user.tipo}
+                    showRealTime={true}
+                    selectedTruck={selectedTruck}
+                    onViewLocationReports={handleViewLocationReports}
+                  />
                 </div>
               </div>
-            )}
+
+            </div>
 
             {/* Mobile: Bottom sheet with tabbed Activity/Alerts */}
             {isMobileView && (
