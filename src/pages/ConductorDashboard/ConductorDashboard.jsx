@@ -535,39 +535,37 @@ const ConductorDashboard = ({ user, onLogout }) => {
     }
   }, [currentGPS.lat, currentGPS.lng, routeStarted, completedStops.length, assignedRoute?._id, assignedRoute?.id, isModalOpen]);
 
-  const handleCompleteStop = async (stopIndex) => {
+  const handleCompleteStop = (stopIndex) => {
     const paradas = getParadasArray(assignedRoute.paradas);
     const parada = paradas[stopIndex];
 
-    // 📊 Registrar evento: Llegada a Parada
-    try {
-      const eventData = {
-        ruta_id: assignedRoute._id || assignedRoute.id,
-        asignacion_id: todayAssignment._id || todayAssignment.id,
-        conductor_id: user._id || user.id,
-        conductor_nombre: user.nombre || user.nombre_completo,
-        vehiculo_id: userTruck._id || userTruck.id,
-        vehiculo_placa: userTruck.placa,
-        ruta_nombre: assignedRoute.nombre,
-        tipo_evento: "parada_llegada",
-        parada_nombre: parada.direccion || parada.nombre,
-        parada_orden: parada.orden,
-        parada_index: stopIndex,
-      };
-
-      // Solo agregar GPS si tiene valores válidos (no null)
-      if (currentGPS.lat != null && currentGPS.lng != null) {
-        eventData.gps_latitud = currentGPS.lat;
-        eventData.gps_longitud = currentGPS.lng;
-      }
-
-      await addRouteEvent(eventData);
-    } catch (error) {
-      console.error('❌ Error registrando evento de llegada:', error);
-    }
-
+    // Abrir modal de inmediato. Si dejamos esto detrás de un await offline,
+    // la mutation queda colgando hasta reconectar y el modal nunca abre.
     setPendingStopIndex(stopIndex);
     setIsModalOpen(true);
+
+    // Fire-and-forget: el evento parada_llegada se cola en Convex offline-queue
+    // y se replay al reconectar. No bloquea la UI.
+    const eventData = {
+      ruta_id: assignedRoute._id || assignedRoute.id,
+      asignacion_id: todayAssignment._id || todayAssignment.id,
+      conductor_id: user._id || user.id,
+      conductor_nombre: user.nombre || user.nombre_completo,
+      vehiculo_id: userTruck._id || userTruck.id,
+      vehiculo_placa: userTruck.placa,
+      ruta_nombre: assignedRoute.nombre,
+      tipo_evento: "parada_llegada",
+      parada_nombre: parada.direccion || parada.nombre,
+      parada_orden: parada.orden,
+      parada_index: stopIndex,
+    };
+    if (currentGPS.lat != null && currentGPS.lng != null) {
+      eventData.gps_latitud = currentGPS.lat;
+      eventData.gps_longitud = currentGPS.lng;
+    }
+    addRouteEvent(eventData).catch((err) =>
+      console.error('❌ Error registrando evento de llegada:', err)
+    );
   };
 
   const handleCloseModal = () => {
