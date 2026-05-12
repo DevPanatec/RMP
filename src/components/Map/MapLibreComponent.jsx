@@ -103,41 +103,40 @@ const formatTimeAgo = (timestamp) => {
 };
 
 /**
- * Vehicle movement status — basado en último ping GPS Y velocidad.
- * - 'offline': sin ping reciente (>10 min) o nunca → datos cacheados no son confiables
- * - 'moving': ping reciente Y speed > 0
- * - 'stopped': ping reciente, sin movimiento (1-3 min sin update)
- * - 'parked': ping algo viejo (3-10 min)
+ * Vehicle movement status — derivado del backend (`gps_state`).
+ * Backend computa en `convex/lib/gps.ts:getMotionState` usando `gps_ultima_motion`
+ * (timestamp del último ping con speed > 2 kph). Frontend solo mapea:
+ *   - en_movimiento → moving (verde)
+ *   - parado → stopped (amarillo, parada técnica < 5min)
+ *   - estacionado → parked (gris, sin moverse > 5min o GPS desconectado)
+ *
+ * Fallback local: si `gps_state` no viene (data legacy o query distinta),
+ * derivar de speed + gps_ultima_motion. Pa' que nada explote en mid-deploy.
  */
 const getVehicleMovementStatus = (vehicle) => {
+  const backendState = vehicle.gps_state;
+  if (backendState === 'en_movimiento') return 'moving';
+  if (backendState === 'parado') return 'stopped';
+  if (backendState === 'estacionado') return 'parked';
+
+  // Fallback (data legacy sin gps_state). Si el último ping es viejo > 5min,
+  // la speed cacheada miente — caer a evaluación por motion timestamp.
   const now = Date.now();
-  const lastUpdate = vehicle.gps_ultima_actualizacion || vehicle.ultimaActualizacion;
-  if (!lastUpdate) return 'offline';
-  const lastUpdateTime = typeof lastUpdate === 'number' ? lastUpdate : new Date(lastUpdate).getTime();
-  if (Number.isNaN(lastUpdateTime)) return 'offline';
-  const timeSinceUpdate = now - lastUpdateTime;
-
-  const ONE_MINUTE = 60 * 1000;
-  const THREE_MINUTES = 3 * 60 * 1000;
-  const TEN_MINUTES = 10 * 60 * 1000;
-
-  // Ping viejo → offline. Ignoramos velocidad cacheada (puede ser de hace días).
-  if (timeSinceUpdate > TEN_MINUTES) return 'offline';
-
+  const STALE_MS = 5 * 60 * 1000;
+  const ultimaActualizacion = vehicle.gps_ultima_actualizacion;
+  const isFresh = ultimaActualizacion && (now - ultimaActualizacion) < STALE_MS;
   const speed = vehicle.gps_velocidad || vehicle.velocidad || 0;
-
-  if (speed > 0) return 'moving';
-  if (timeSinceUpdate > THREE_MINUTES) return 'parked';
-  if (timeSinceUpdate > ONE_MINUTE) return 'stopped';
-  return 'stopped';
+  if (isFresh && speed > 2) return 'moving';
+  const ultimaMotion = vehicle.gps_ultima_motion;
+  if (!ultimaMotion) return 'parked';
+  return (now - ultimaMotion) < STALE_MS ? 'stopped' : 'parked';
 };
 
 // Colors by movement status
 const movementColors = {
   moving: { primary: '#10b981', glow: 'rgba(16, 185, 129, 0.5)', label: 'En movimiento' },
-  stopped: { primary: '#f59e0b', glow: 'rgba(245, 158, 11, 0.5)', label: 'Detenido' },
-  parked: { primary: '#6b7280', glow: 'rgba(107, 114, 128, 0.4)', label: 'Parqueado' },
-  offline: { primary: '#9ca3af', glow: 'rgba(156, 163, 175, 0.3)', label: 'Sin señal' }
+  stopped: { primary: '#f59e0b', glow: 'rgba(245, 158, 11, 0.5)', label: 'Parado' },
+  parked: { primary: '#6b7280', glow: 'rgba(107, 114, 128, 0.4)', label: 'Estacionado' },
 };
 
 /**
@@ -177,29 +176,51 @@ const createCircleGeoJSON = (center, radiusMeters, points = 32) => {
 
 /**
  * Hook: Smooth GPS position interpolation (Uber-style)
- * Animates lat/lng/rotation from old to new over ~1.5s
+ *
+ * Anima lat/lng/rotation entre updates GPS. Duración dinámica = tiempo real
+ * entre updates (clamped 1.5s - 30s). Easing lineal → velocidad constante
+ * todo el segmento, evita el efecto "frena al final" de las curvas cubic.
+ *
+ * Con gaps de 30s (cron) el marker se desliza durante 30s completos en vez
+ * de saltar en 1.5s y quedarse quieto. Con webhook (10s) auto-ajusta.
  */
-const useAnimatedPosition = (targetLat, targetLng, targetRotation, duration = 1500) => {
+const MIN_ANIM_MS = 1500;
+const MAX_ANIM_MS = 30000;
+
+const useAnimatedPosition = (targetLat, targetLng, targetRotation) => {
   const animRef = useRef(null);
-  const prevRef = useRef({ lat: targetLat, lng: targetLng, rotation: targetRotation });
+  // posRef = posición que SE RENDERIZA AHORA — se actualiza en cada frame.
+  // Crítico: si una animación nueva arranca mid-camino, debe partir de la posición
+  // visual actual, NO de la última posición target. Sin esto, el marker brincaba
+  // de vuelta al inicio del segmento anterior cada vez que llegaba GPS nuevo.
+  const posRef = useRef({ lat: targetLat, lng: targetLng, rotation: targetRotation });
+  const lastUpdateTimeRef = useRef(performance.now());
   const [pos, setPos] = useState({ lat: targetLat, lng: targetLng, rotation: targetRotation });
 
   useEffect(() => {
-    // Skip if no real change (same position)
-    if (targetLat === prevRef.current.lat && targetLng === prevRef.current.lng && targetRotation === prevRef.current.rotation) {
+    // Skip if no real change (same position as currently rendered)
+    if (
+      targetLat === posRef.current.lat &&
+      targetLng === posRef.current.lng &&
+      targetRotation === posRef.current.rotation
+    ) {
       return;
     }
 
-    const startLat = prevRef.current.lat;
-    const startLng = prevRef.current.lng;
-    const startRot = prevRef.current.rotation;
+    // Start from CURRENT rendered position (not from a stale "prev target")
+    const startLat = posRef.current.lat;
+    const startLng = posRef.current.lng;
+    const startRot = posRef.current.rotation;
+    const startTime = performance.now();
+
+    // Duración = tiempo real desde el último update GPS (clamped 1.5s - 30s).
+    const realGap = startTime - lastUpdateTimeRef.current;
+    const duration = Math.min(Math.max(realGap, MIN_ANIM_MS), MAX_ANIM_MS);
 
     // Normalize rotation difference to shortest path (-180 to 180)
     let rotDiff = targetRotation - startRot;
     if (rotDiff > 180) rotDiff -= 360;
     if (rotDiff < -180) rotDiff += 360;
-
-    const startTime = performance.now();
 
     // Cancel any running animation
     if (animRef.current) cancelAnimationFrame(animRef.current);
@@ -207,37 +228,28 @@ const useAnimatedPosition = (targetLat, targetLng, targetRotation, duration = 15
     const animate = (now) => {
       const elapsed = now - startTime;
       const t = Math.min(elapsed / duration, 1);
-      // Ease-out cubic for smooth deceleration
-      const ease = 1 - Math.pow(1 - t, 3);
+      // Linear: velocidad constante entre pings GPS.
+      const lat = startLat + (targetLat - startLat) * t;
+      const lng = startLng + (targetLng - startLng) * t;
+      const rotation = startRot + rotDiff * t;
 
-      const lat = startLat + (targetLat - startLat) * ease;
-      const lng = startLng + (targetLng - startLng) * ease;
-      const rotation = startRot + rotDiff * ease;
-
+      posRef.current = { lat, lng, rotation }; // track current rendered pos
       setPos({ lat, lng, rotation });
 
       if (t < 1) {
         animRef.current = requestAnimationFrame(animate);
       } else {
-        prevRef.current = { lat: targetLat, lng: targetLng, rotation: targetRotation };
         animRef.current = null;
       }
     };
 
     animRef.current = requestAnimationFrame(animate);
+    lastUpdateTimeRef.current = startTime;
 
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-  }, [targetLat, targetLng, targetRotation, duration]);
-
-  // Update prevRef on unmount-free initial render
-  useEffect(() => {
-    if (prevRef.current.lat === undefined) {
-      prevRef.current = { lat: targetLat, lng: targetLng, rotation: targetRotation };
-      setPos({ lat: targetLat, lng: targetLng, rotation: targetRotation });
-    }
-  }, []);
+  }, [targetLat, targetLng, targetRotation]);
 
   return pos;
 };
@@ -952,9 +964,10 @@ const MapLibreComponent = ({
   }, []);
 
   // Normalize vehicles data
-  // Solo mostrar vehículos con GPS activo (ping reciente). Sin esto, los carros desconectados
-  // aparecen pegados en su última ubicación cacheada — ubicación fantasma.
-  // offlineTick fuerza re-evaluación cada 30s aunque Convex no envíe datos nuevos.
+  // Mostramos TODOS los vehículos con GPS, incluso si están desconectados.
+  // El estado físico (en_movimiento/parado/estacionado) se deriva de gps_state del backend.
+  // offlineTick fuerza re-evaluación cada 30s pa' que parado→estacionado se actualice
+  // sin esperar nuevos datos de Convex.
   const normalizedVehicles = useMemo(() => {
     return camiones.map(c => ({
       ...c,
@@ -962,11 +975,9 @@ const MapLibreComponent = ({
       lng: c.gps_longitud || c.lng,
       id: c.id || c._id,
       placa: c.placa || c.vehiculo_placa
-    })).filter(v => {
-      if (!v.lat || !v.lng) return false;
-      return getVehicleMovementStatus(v) !== 'offline';
-    });
-  }, [camiones, offlineTick]); // offlineTick incluido para detectar offline sin nuevos datos
+    })).filter(v => !!(v.lat && v.lng));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [camiones, offlineTick]);
 
   // Calculate initial view state
   const initialViewState = useMemo(() => {
@@ -1871,7 +1882,9 @@ const MapLibreComponent = ({
       {/* GPS Playback Modal */}
       {playbackMode && playbackVehicle && (
         <GPSPlaybackModal
-          vehicle={playbackVehicle}
+          isOpen={playbackMode}
+          vehicleData={playbackVehicle}
+          vehiculoId={playbackVehicle._id || playbackVehicle.id}
           onClose={() => {
             setPlaybackMode(false);
             setPlaybackVehicle(null);

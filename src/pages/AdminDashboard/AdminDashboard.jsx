@@ -46,6 +46,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1025);
   const [monitoringSheetExpanded, setMonitoringSheetExpanded] = useState(false);
   const [monitoringSheetTab, setMonitoringSheetTab] = useState('activity');
+  const [sidePanelTab, setSidePanelTab] = useState('activity');
   const [showMobileHeader, setShowMobileHeader] = useState(true);
   const headerTimeoutRef = useRef(null);
   const [selectedTruck, setSelectedTruck] = useState(null);
@@ -535,22 +536,50 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
               <div className="monitoring-side-panel">
                 <HeroStats stats={heroStatsData} />
                 {userRole === 'enterprise' && <UpcomingRoutes limit={6} />}
-                <RealtimeActivity
-                  vehicles={normalizedCamiones}
-                  routes={displayRoutes}
-                  personnel={displayPersonnel}
-                  recentActivity={recentActivity}
-                  newEventIds={newEventIds}
-                  onViewAll={() => setActiveTab('reportes')}
-                />
-                <RiskAlerts
-                  alerts={displayAlerts}
-                  onViewDetails={(alert) => {
-                    setActiveTab('riesgos');
-                  }}
-                  onViewAll={() => setActiveTab('riesgos')}
-                  newAlertIds={newAlertIds}
-                />
+                <div className="side-panel-tabs" role="tablist">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={sidePanelTab === 'activity'}
+                    className={`side-panel-tab side-panel-tab--activity ${sidePanelTab === 'activity' ? 'side-panel-tab--active' : ''}`}
+                    onClick={() => setSidePanelTab('activity')}
+                  >
+                    <Radio size={14} />
+                    Actividades
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={sidePanelTab === 'alerts'}
+                    className={`side-panel-tab side-panel-tab--alerts ${sidePanelTab === 'alerts' ? 'side-panel-tab--active' : ''}`}
+                    onClick={() => setSidePanelTab('alerts')}
+                  >
+                    <AlertTriangle size={14} />
+                    Alertas
+                    {displayAlerts.length > 0 && (
+                      <span className="side-panel-tab__badge">{displayAlerts.length}</span>
+                    )}
+                  </button>
+                </div>
+                {sidePanelTab === 'activity' ? (
+                  <RealtimeActivity
+                    vehicles={normalizedCamiones}
+                    routes={displayRoutes}
+                    personnel={displayPersonnel}
+                    recentActivity={recentActivity}
+                    newEventIds={newEventIds}
+                    onViewAll={() => setActiveTab('reportes')}
+                  />
+                ) : (
+                  <RiskAlerts
+                    alerts={displayAlerts}
+                    onViewDetails={(alert) => {
+                      setActiveTab('riesgos');
+                    }}
+                    onViewAll={() => setActiveTab('riesgos')}
+                    newAlertIds={newAlertIds}
+                  />
+                )}
               </div>
             )}
 

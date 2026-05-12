@@ -76,6 +76,7 @@ export default defineSchema({
     gps_imei: v.optional(v.string()), // IMEI único del dispositivo GPS (15 dígitos)
     gps_protocolo: v.optional(v.string()), // "GT06", "H02", "TK103", etc.
     gps_ultima_actualizacion: v.optional(v.number()), // Timestamp última posición recibida (number para consistencia)
+    gps_ultima_motion: v.optional(v.number()), // Timestamp último ping con speed > 2 kph (pa' diferenciar parado/estacionado)
     safetag_timestamp: v.optional(v.number()), // Timestamp original de SafeTag (para referencia)
     gps_conectado: v.optional(v.boolean()), // Estado de conexión GPS (true si reportó en últimos 5 min)
     gps_velocidad: v.optional(v.number()), // Velocidad actual en km/h

@@ -19,16 +19,17 @@ const crons = cronJobs();
  * solo en eventos "significativos" (paradas, cambios de estado).
  *
  * Ajustar intervalo según necesidades:
- * - { seconds: 10 } → Cada 10 segundos (actual - máxima frecuencia)
- * - { seconds: 30 } → Cada 30 segundos (menos frecuente)
- * - { minutes: 1 } → Cada 1 minuto (muy poco frecuente)
+ * - { seconds: 10 } → Cada 10 segundos (matches SafeTag plan)
+ * - { seconds: 11 } → Cada 11s — offset intencional pa' no chocar con SafeTag cycle
+ * - { seconds: 30 } → Cada 30 segundos (ahorra quota Convex)
+ * - { minutes: 1 } → Cada 1 minuto (fallback puro, depende de webhook)
  */
-// Bajado de 10s a 30s para no quemar Convex free tier (~520k mutations/día → ~170k).
-// SafeTag reporta cada 10s pero el path principal de GPS es webhook real-time.
-// Este cron es fallback por si el webhook falla o vehículo no está suscrito.
+// 11s para acercarse al plan SafeTag (10s) sin alinearse exacto.
+// Cuesta ~3x más mutations que 30s. Considerar bajar a 60s una vez que webhook funcione
+// — el webhook hace el trabajo real-time y cron es solo fallback.
 crons.interval(
   "sync-safetag-devices",
-  { seconds: 30 },
+  { seconds: 11 },
   api.safetag.syncAllVehicles
 );
 

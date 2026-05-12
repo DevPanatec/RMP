@@ -417,9 +417,51 @@
 }
 
 /* Vehicle Marker - Estilo ultra profesional */
+/* Marker del vehículo en playback — mismo SVG que monitoring */
 .playback-vehicle-marker {
-  background: transparent !important;
-  border: none !important;
+  position: relative;
+  width: 36px;
+  height: 52px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  will-change: transform;
+}
+
+.playback-vehicle-marker:hover {
+  transform: scale(1.1);
+}
+
+.playback-vehicle-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+/* Pulso sutil cuando está reproduciendo */
+.playback-vehicle-marker.moving::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 56px;
+  height: 56px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, rgba(16, 185, 129, 0) 70%);
+  animation: playbackMarkerPulse 1.6s ease-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes playbackMarkerPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.7);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.6);
+    opacity: 0;
+  }
 }
 
 .playback-marker-container {
@@ -601,9 +643,45 @@
   text-align: center;
 }
 
+.timeline-text--time {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.02em;
+  min-width: 80px;
+  font-variant-numeric: tabular-nums;
+}
+
 .timeline-slider-wrapper {
   flex: 1;
   position: relative;
+}
+
+.timeline-slider-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-family-mono, monospace);
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.timeline-slider-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.85);
 }
 
 .timeline-slider-input {

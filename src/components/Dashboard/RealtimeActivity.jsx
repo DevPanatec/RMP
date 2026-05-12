@@ -171,7 +171,10 @@ const ActivityItem = ({ activity, delay, isNew }) => {
   return (
     <div className={`activity-item ${isNew ? 'activity-item--new' : ''}`}>
       <div className="activity-timeline">
-        <div className="activity-icon">
+        <div
+          className="activity-icon"
+          style={{ background: config.bgColor, color: config.color, borderColor: config.color }}
+        >
           {config.icon}
         </div>
         <div className="activity-line"></div>

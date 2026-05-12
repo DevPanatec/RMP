@@ -19,6 +19,7 @@ import type * as gps from "../gps.js";
 import type * as http from "../http.js";
 import type * as inventario from "../inventario.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_gps from "../lib/gps.js";
 import type * as maintenance from "../maintenance.js";
 import type * as organizaciones from "../organizaciones.js";
 import type * as perfiles from "../perfiles.js";
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   inventario: typeof inventario;
   "lib/auth": typeof lib_auth;
+  "lib/gps": typeof lib_gps;
   maintenance: typeof maintenance;
   organizaciones: typeof organizaciones;
   perfiles: typeof perfiles;

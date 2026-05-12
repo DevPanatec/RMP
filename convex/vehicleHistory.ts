@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { internal, api } from "./_generated/api";
 import { getAuthScope } from "./lib/auth";
+import { MOTION_SPEED_THRESHOLD } from "./lib/gps";
 
 /**
  * Query: Obtener historial de ubicaciones de un vehículo en un rango de fechas
@@ -323,12 +324,16 @@ export const createFromWebhook = internalMutation({
       source: "safetag",
     });
 
+    const speed = gps_velocidad || 0;
+    const isMoving = speed > MOTION_SPEED_THRESHOLD;
+
     await ctx.db.patch(vehicle._id, {
       gps_latitud,
       gps_longitud,
-      gps_velocidad: gps_velocidad || 0,
+      gps_velocidad: speed,
       gps_rumbo: gps_rumbo || 0,
       gps_ultima_actualizacion: timestamp_ms,
+      gps_ultima_motion: isMoving ? timestamp_ms : (vehicle.gps_ultima_motion ?? undefined),
       safetag_timestamp: timestamp_ms,
       gps_conectado: true,
     });

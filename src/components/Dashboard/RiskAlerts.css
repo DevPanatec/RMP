@@ -6,22 +6,53 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: var(--space-20);
+  padding: 0;
   margin-bottom: 0;
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   position: relative;
   min-width: 0;
+  overflow: hidden;
+}
+
+/* Accent stripe izquierda — identidad visual sección "Alertas".
+   Rojo si hay alertas, verde si no (variante via clase parent o estado interno). */
+.risk-alerts::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--color-error);
+  z-index: 1;
+}
+
+.risk-alerts:has(.alerts-count.safe)::before,
+.risk-alerts:has(.no-alerts)::before {
+  background: var(--color-success);
 }
 
 .alerts-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-16);
-  padding-bottom: var(--space-12);
+  padding: var(--space-16) var(--space-20);
+  background: linear-gradient(180deg, var(--color-error-light) 0%, var(--color-surface) 100%);
   border-bottom: 1px solid var(--color-border);
+  position: relative;
+}
+
+/* Cuando no hay alertas, header verde — refuerza "todo OK" */
+.risk-alerts:has(.alerts-count.safe) .alerts-header,
+.risk-alerts:has(.no-alerts) .alerts-header {
+  background: linear-gradient(180deg, var(--color-success-light) 0%, var(--color-surface) 100%);
+}
+
+/* Cuando solo hay warning (sin alertas altas), header ambar */
+.risk-alerts:has(.alerts-count.warning) .alerts-header {
+  background: linear-gradient(180deg, var(--color-warning-light) 0%, var(--color-surface) 100%);
 }
 
 .alerts-header h3 {
@@ -32,7 +63,29 @@
   margin: 0;
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--space-10);
+}
+
+.alerts-header h3 svg {
+  padding: var(--space-6);
+  background: var(--color-surface);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-base);
+  width: 32px;
+  height: 32px;
+  box-sizing: content-box;
+}
+
+.risk-alerts:has(.alerts-count.safe) .alerts-header h3 svg,
+.risk-alerts:has(.no-alerts) .alerts-header h3 svg {
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.risk-alerts:has(.alerts-count.warning) .alerts-header h3 svg {
+  color: var(--color-warning-dark, #92400e);
+  border-color: var(--color-warning);
 }
 
 .alerts-count {
@@ -88,13 +141,14 @@
 }
 
 .alerts-grid {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: var(--space-8);
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-10);
+  padding: var(--space-12) var(--space-20) var(--space-20);
 }
 
 .panel-view-all {
-  margin-top: var(--space-12);
+  margin: 0 var(--space-20) var(--space-20);
   padding: var(--space-10) var(--space-12);
   background: var(--color-surface-secondary);
   color: var(--color-text-secondary);
@@ -139,13 +193,32 @@
 .alert-risk-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-border-strong);
   border-radius: var(--radius-base);
-  transition: border-color 200ms ease, box-shadow 200ms ease;
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
   position: relative;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   min-width: 0;
+}
+
+/* Border-left thick por severidad — identidad cromática real */
+.alert-risk-card.priority-high {
+  border-left-color: var(--color-error);
+}
+
+.alert-risk-card.priority-medium {
+  border-left-color: var(--color-warning);
+}
+
+.alert-risk-card.priority-low {
+  border-left-color: var(--color-text-tertiary);
+}
+
+.alert-risk-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 .alert-risk-body h4,
@@ -154,10 +227,6 @@
   word-break: break-word;
 }
 
-.alert-risk-card:hover {
-  border-color: var(--color-border-strong);
-  box-shadow: var(--shadow-sm);
-}
 
 .alert-risk-header {
   display: flex;
@@ -186,9 +255,9 @@
 }
 
 .priority-badge.priority-medium {
-  background: var(--color-info-light);
-  color: var(--color-info);
-  border: 1px solid var(--color-info);
+  background: var(--color-warning-light);
+  color: var(--color-warning-dark, #92400e);
+  border: 1px solid var(--color-warning);
 }
 
 .priority-badge.priority-low {
@@ -302,7 +371,7 @@
 
 .no-alerts {
   text-align: center;
-  padding: var(--space-48) var(--space-32);
+  padding: var(--space-32) var(--space-20);
 }
 
 .no-alerts-icon {
@@ -336,21 +405,38 @@
 
 @media (max-width: 768px) {
   .risk-alerts {
-    padding: var(--space-16);
+    padding: 0;
   }
 
   .alerts-header {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-8);
+    padding: var(--space-12) var(--space-16);
   }
 
   .alerts-header h3 {
     font-size: var(--font-size-base);
   }
 
+  .alerts-header h3 svg {
+    width: 28px;
+    height: 28px;
+    padding: var(--space-4);
+  }
+
   .alerts-grid {
+    grid-template-columns: 1fr;
     gap: var(--space-8);
+    padding: var(--space-12) var(--space-16) var(--space-16);
+  }
+
+  .panel-view-all {
+    margin: 0 var(--space-16) var(--space-16);
+  }
+
+  .no-alerts {
+    padding: var(--space-24) var(--space-16);
   }
 
   .alert-risk-header {

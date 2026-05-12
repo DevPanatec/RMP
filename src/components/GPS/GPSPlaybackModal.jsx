@@ -28,10 +28,10 @@ import './GPSPlaybackModal.css';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
-// Stadia Maps style URLs
+// OpenFreeMap — mismo provider que MapLibreComponent (monitoreo) pa' look consistente
 const MAP_STYLES = {
-  light: 'https://tiles.stadiamaps.com/styles/alidade_smooth.json',
-  dark: 'https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json'
+  light: 'https://tiles.openfreemap.org/styles/positron',
+  dark: 'https://tiles.openfreemap.org/styles/dark'
 };
 
 /**
@@ -55,6 +55,7 @@ const GPSPlaybackModal = ({
   const mapRef = useRef(null);
   const [snappedRoute, setSnappedRoute] = useState(null);
   const [isSnapping, setIsSnapping] = useState(false);
+  const [hoverTooltip, setHoverTooltip] = useState(null);
   const [viewState, setViewState] = useState({
     longitude: -79.51667,
     latitude: 8.983333,
@@ -240,6 +241,15 @@ const GPSPlaybackModal = ({
     }
   }, [playback.routeData]);
 
+  // === HOOKS ANTES DE EARLY RETURN ===
+  // Coordenadas raw del GPS (siempre disponibles si hay data)
+  const rawCoordinates = useMemo(() => {
+    return (playback.routeData?.locations?.map(loc => [
+      loc.coords?.lon || loc.status?.coords?.lon,
+      loc.coords?.lat || loc.status?.coords?.lat,
+    ]).filter(pos => pos[0] && pos[1] && !isNaN(pos[0]) && !isNaN(pos[1])) || []);
+  }, [playback.routeData]);
+
   if (!isOpen) return null;
 
   // Formatear timestamp
@@ -304,60 +314,34 @@ const GPSPlaybackModal = ({
     playback.changeSpeed(nextSpeed);
   };
 
-  // Preparar datos de la ruta
-  // GeoJSON format: [lng, lat]
-  const routeCoordinates = snappedRoute || (playback.routeData?.locations?.map(loc => [
-    loc.coords?.lon || loc.status?.coords?.lon,
-    loc.coords?.lat || loc.status?.coords?.lat,
-  ]).filter(pos => pos[0] && pos[1] && !isNaN(pos[0]) && !isNaN(pos[1])) || []);
+  // Línea VISUAL del trayecto — usa snapped si está disponible, si no raw.
+  // Una sola línea uniforme. El marker (pulsante cuando reproduce) es la única
+  // indicación de "estoy aquí ahora". Revisitas a la misma calle no confunden
+  // porque la línea no acumula color — siempre es la misma.
+  const routeCoordinates = snappedRoute || rawCoordinates;
+  const isAtEnd = playback.endTime != null && playback.currentTime != null && playback.currentTime >= playback.endTime;
 
-  // Para la ruta ajustada, mapear el índice de playback
-  const totalOriginalPoints = playback.routeData?.locations?.length || 1;
-  const totalSnappedPoints = routeCoordinates.length;
-  const snappedIndex = snappedRoute
-    ? Math.round((playback.currentIndex / totalOriginalPoints) * totalSnappedPoints)
-    : playback.currentIndex;
-
-  const traveledRoute = routeCoordinates.slice(0, snappedIndex + 1);
-  const pendingRoute = routeCoordinates.slice(snappedIndex);
-
-  // Calcular la posición actual del vehículo
+  // MARKER: en raw GPS interpolado por TIEMPO. Al final, usar el último snapped
+  // point pa' que matchee visualmente con el final de la línea.
   const currentVehiclePosition = (() => {
-    if (snappedRoute && snappedRoute.length > 0 && snappedIndex < snappedRoute.length) {
-      return snappedRoute[snappedIndex];
-    } else if (playback.currentPoint?.coords) {
+    if (isAtEnd && routeCoordinates.length > 0) {
+      return routeCoordinates[routeCoordinates.length - 1];
+    }
+    if (playback.currentPoint?.coords) {
       return [playback.currentPoint.coords.lon, playback.currentPoint.coords.lat];
     }
     return null;
   })();
 
-  // Calcular la dirección del vehículo
-  const vehicleCourse = (() => {
-    if (snappedRoute && snappedIndex > 0 && snappedIndex < snappedRoute.length) {
-      const prev = snappedRoute[snappedIndex - 1];
-      const curr = snappedRoute[snappedIndex];
-      const deltaLat = curr[1] - prev[1];
-      const deltaLng = curr[0] - prev[0];
-      return Math.atan2(deltaLng, deltaLat) * (180 / Math.PI);
-    }
-    return playback.currentPoint?.course || 0;
-  })();
+  const vehicleCourse = playback.currentPoint?.course ?? 0;
 
-  // GeoJSON para las rutas
-  const traveledRouteGeoJSON = {
+  // GeoJSON del trayecto completo del día — una sola línea uniforme.
+  const fullRouteGeoJSON = {
     type: 'Feature',
     geometry: {
       type: 'LineString',
-      coordinates: traveledRoute
-    }
-  };
-
-  const pendingRouteGeoJSON = {
-    type: 'Feature',
-    geometry: {
-      type: 'LineString',
-      coordinates: pendingRoute
-    }
+      coordinates: routeCoordinates,
+    },
   };
 
   // Estadísticas
@@ -534,45 +518,30 @@ const GPSPlaybackModal = ({
             >
               <NavigationControl position="top-right" />
 
-              {/* Ruta pendiente (gris) */}
-              {pendingRoute.length > 1 && (
-                <Source id="pending-route" type="geojson" data={pendingRouteGeoJSON}>
-                  <Layer
-                    id="pending-route-layer"
-                    type="line"
-                    paint={{
-                      'line-color': '#6b7280',
-                      'line-width': 5,
-                      'line-opacity': 0.4,
-                      'line-dasharray': [2, 2]
-                    }}
-                  />
-                </Source>
-              )}
-
-              {/* Ruta recorrida (verde) - Glow */}
-              {traveledRoute.length > 1 && (
+              {/* Trayecto del día — una sola línea uniforme.
+                  El marker pulsante (encima) es la única indicación de "estoy aquí". */}
+              {routeCoordinates.length > 1 && (
                 <>
-                  <Source id="traveled-route-glow" type="geojson" data={traveledRouteGeoJSON}>
+                  <Source id="full-route-glow" type="geojson" data={fullRouteGeoJSON}>
                     <Layer
-                      id="traveled-route-glow-layer"
+                      id="full-route-glow-layer"
                       type="line"
                       paint={{
                         'line-color': '#3D5229',
-                        'line-width': 12,
-                        'line-opacity': 0.2,
+                        'line-width': 10,
+                        'line-opacity': 0.20,
                         'line-blur': 2
                       }}
                     />
                   </Source>
-                  <Source id="traveled-route" type="geojson" data={traveledRouteGeoJSON}>
+                  <Source id="full-route" type="geojson" data={fullRouteGeoJSON}>
                     <Layer
-                      id="traveled-route-layer"
+                      id="full-route-layer"
                       type="line"
                       paint={{
-                        'line-color': '#10b981',
+                        'line-color': '#3D5229',
                         'line-width': 5,
-                        'line-opacity': 0.9
+                        'line-opacity': 0.75
                       }}
                     />
                   </Source>
@@ -605,22 +574,61 @@ const GPSPlaybackModal = ({
                 </Marker>
               )}
 
-              {/* Marcador del vehículo */}
-              {currentVehiclePosition && (
-                <Marker
-                  longitude={currentVehiclePosition[0]}
-                  latitude={currentVehiclePosition[1]}
-                  anchor="center"
-                  onClick={() => setShowPopup(true)}
-                >
-                  <div
-                    className={`playback-vehicle-marker ${playback.isPlaying ? 'moving' : 'stopped'}`}
-                    style={{ transform: `rotate(${vehicleCourse}deg)` }}
+              {/* Marker del vehículo — mismo SVG que monitoring pa' look consistente.
+                  Color verde si playing, gris si pausado. Rotación = rumbo GPS interpolado. */}
+              {currentVehiclePosition && (() => {
+                const markerColor = playback.isPlaying ? '#10b981' : '#6b7280';
+                const isMovingMarker = playback.isPlaying;
+                const gradId = 'pb-car-gradient';
+                return (
+                  <Marker
+                    longitude={currentVehiclePosition[0]}
+                    latitude={currentVehiclePosition[1]}
+                    anchor="center"
+                    rotation={vehicleCourse}
+                    onClick={() => setShowPopup(true)}
                   >
-                    <Navigation size={24} strokeWidth={2.5} />
-                  </div>
-                </Marker>
-              )}
+                    <div className={`playback-vehicle-marker ${isMovingMarker ? 'moving' : 'stopped'}`}>
+                      <svg viewBox="0 0 28 40" className="playback-vehicle-svg">
+                        <defs>
+                          <linearGradient id={gradId} x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor={markerColor} stopOpacity={1} />
+                            <stop offset="100%" stopColor={markerColor} stopOpacity={0.85} />
+                          </linearGradient>
+                          <filter id="pb-car-shadow">
+                            <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodOpacity="0.4" />
+                          </filter>
+                        </defs>
+                        <ellipse cx="14" cy="38" rx="10" ry="2" fill="rgba(0,0,0,0.2)" />
+                        <path d="M 8 10 L 8 6 Q 8 4 10 4 L 18 4 Q 20 4 20 6 L 20 10 L 20 32 L 20 34 Q 20 36 18 36 L 10 36 Q 8 36 8 34 L 8 32 Z"
+                              fill={`url(#${gradId})`} filter="url(#pb-car-shadow)" />
+                        <rect x="9" y="3" width="10" height="6" rx="2" fill={markerColor} />
+                        <path d="M 10 8 Q 10 7 11 7 L 17 7 Q 18 7 18 8 L 18 12 L 10 12 Z" fill="rgba(135,206,250,0.75)" />
+                        <rect x="11" y="8" width="6" height="3" rx="1" fill="rgba(255,255,255,0.3)" />
+                        <rect x="9" y="13" width="10" height="10" rx="2" fill={`${markerColor}dd`} />
+                        <rect x="9.5" y="14" width="4" height="8" rx="1" fill="rgba(135,206,250,0.6)" />
+                        <rect x="14.5" y="14" width="4" height="8" rx="1" fill="rgba(135,206,250,0.6)" />
+                        <rect x="9" y="24" width="10" height="9" rx="2" fill={`${markerColor}cc`} />
+                        <rect x="11" y="29" width="6" height="3" rx="1" fill="rgba(135,206,250,0.5)" />
+                        <circle cx="10.5" cy="5" r="1.2" fill={isMovingMarker ? '#FFC107' : '#FFF8DC'} />
+                        <circle cx="17.5" cy="5" r="1.2" fill={isMovingMarker ? '#FFC107' : '#FFF8DC'} />
+                        <rect x="9.5" y="33" width="3" height="1.5" rx="0.5" fill="#EF4444" />
+                        <rect x="15.5" y="33" width="3" height="1.5" rx="0.5" fill="#EF4444" />
+                        <ellipse cx="6" cy="12" rx="2.5" ry="4" fill="#1a1a1a" />
+                        <ellipse cx="22" cy="12" rx="2.5" ry="4" fill="#1a1a1a" />
+                        <ellipse cx="6" cy="28" rx="2.5" ry="4" fill="#1a1a1a" />
+                        <ellipse cx="22" cy="28" rx="2.5" ry="4" fill="#1a1a1a" />
+                        <ellipse cx="6" cy="12" rx="1.2" ry="2" fill="#6b7280" />
+                        <ellipse cx="22" cy="12" rx="1.2" ry="2" fill="#6b7280" />
+                        <ellipse cx="6" cy="28" rx="1.2" ry="2" fill="#6b7280" />
+                        <ellipse cx="22" cy="28" rx="1.2" ry="2" fill="#6b7280" />
+                        <circle cx="5" cy="17" r="1.5" fill={`${markerColor}aa`} />
+                        <circle cx="23" cy="17" r="1.5" fill={`${markerColor}aa`} />
+                      </svg>
+                    </div>
+                  </Marker>
+                );
+              })()}
 
               {/* Popup del vehículo */}
               {showPopup && currentVehiclePosition && (
@@ -688,25 +696,44 @@ const GPSPlaybackModal = ({
               </div>
             )}
 
-            {/* Timeline */}
+            {/* Timeline — driven por TIEMPO real */}
             <div className="timeline-section">
-              <span className="timeline-text">
-                {playback.currentIndex + 1} / {playback.totalPoints}
+              <span className="timeline-text timeline-text--time">
+                {formatTime(playback.currentTime)}
               </span>
-              <div className="timeline-slider-wrapper">
+              <div
+                className="timeline-slider-wrapper"
+                onMouseMove={(e) => {
+                  if (!playback.startTime || !playback.endTime) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                  const hoverTime = playback.startTime + (playback.endTime - playback.startTime) * pct;
+                  setHoverTooltip({ x: e.clientX - rect.left, time: hoverTime });
+                }}
+                onMouseLeave={() => setHoverTooltip(null)}
+              >
                 <input
                   type="range"
                   min="0"
-                  max={Math.max(0, playback.totalPoints - 1)}
-                  value={playback.currentIndex}
-                  onChange={(e) => playback.seekTo(parseInt(e.target.value, 10))}
+                  max="1000"
+                  step="1"
+                  value={Math.round(playback.progress * 10)}
+                  onChange={(e) => playback.seekToProgress(parseInt(e.target.value, 10) / 10)}
                   className="timeline-slider-input"
-                  style={{
-                    '--progress': `${playback.progress}%`
-                  }}
+                  style={{ '--progress': `${playback.progress}%` }}
                 />
+                {hoverTooltip && (
+                  <div
+                    className="timeline-slider-tooltip"
+                    style={{ left: `${hoverTooltip.x}px` }}
+                  >
+                    {formatTime(hoverTooltip.time)}
+                  </div>
+                )}
               </div>
-              <span className="timeline-text">{playback.progress.toFixed(0)}%</span>
+              <span className="timeline-text timeline-text--time">
+                {formatTime(playback.endTime)}
+              </span>
             </div>
 
             {/* Controles principales */}
@@ -737,8 +764,8 @@ const GPSPlaybackModal = ({
 
                 <button
                   className="control-button"
-                  onClick={() => playback.seekTo(Math.max(0, playback.currentIndex - 10))}
-                  title="Retroceder 10 puntos"
+                  onClick={() => playback.seekToTime((playback.currentTime || playback.startTime) - 30000)}
+                  title="Retroceder 30s"
                 >
                   <SkipBack size={16} />
                 </button>
@@ -753,8 +780,8 @@ const GPSPlaybackModal = ({
 
                 <button
                   className="control-button"
-                  onClick={() => playback.seekTo(Math.min(playback.currentIndex + 10, playback.totalPoints - 1))}
-                  title="Avanzar 10 puntos"
+                  onClick={() => playback.seekToTime((playback.currentTime || playback.startTime) + 30000)}
+                  title="Avanzar 30s"
                 >
                   <SkipForward size={16} />
                 </button>

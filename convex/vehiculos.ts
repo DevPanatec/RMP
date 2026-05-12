@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getScopedProjectId, getScopedOrgId, getAuthScope, requireOrgAccess, requireWriteRole } from "./lib/auth";
+import { getMotionState } from "./lib/gps";
 
 // List all vehicles.
 // - Super_admin: ve todos (o filtra si pasa organizacion_id).
@@ -65,6 +66,9 @@ export const listMinimal = query({
       tipo_servicio: v.tipo_servicio,
       gps_latitud: v.gps_latitud,
       gps_longitud: v.gps_longitud,
+      gps_velocidad: v.gps_velocidad,
+      gps_ultima_motion: v.gps_ultima_motion,
+      gps_state: getMotionState(v.gps_velocidad, v.gps_ultima_motion, v.gps_ultima_actualizacion),
     }));
   },
 });
@@ -132,6 +136,8 @@ export const listWithAssignments = query({
           _id: v._id,
           placa: v.placa,
           nombre: v.nombre,
+          marca: v.marca,
+          modelo: v.modelo,
           estado: v.estado,
           tipo_servicio: v.tipo_servicio,
           tipo_vehiculo: v.tipo_vehiculo,
@@ -140,8 +146,12 @@ export const listWithAssignments = query({
           gps_velocidad: v.gps_velocidad,
           gps_rumbo: v.gps_rumbo,
           gps_ultima_actualizacion: v.gps_ultima_actualizacion,
+          gps_ultima_motion: v.gps_ultima_motion,
           gps_conectado: v.gps_conectado,
           gps_en_linea: v.gps_en_linea,
+          gps_state: getMotionState(v.gps_velocidad, v.gps_ultima_motion, v.gps_ultima_actualizacion),
+          safetag_device_id: v.safetag_device_id,
+          safetag_device_name: v.safetag_device_name,
           conductor_nombre: rp.conductor_nombre,
           ruta_id: rp.ruta_id,
           asignacion_id: rp.asignacion_id,
@@ -218,6 +228,8 @@ export const listWithAssignments = query({
         _id: v._id,
         placa: v.placa,
         nombre: v.nombre,
+        marca: v.marca,
+        modelo: v.modelo,
         estado: v.estado,
         tipo_servicio: v.tipo_servicio,
         tipo_vehiculo: v.tipo_vehiculo,
@@ -226,8 +238,12 @@ export const listWithAssignments = query({
         gps_velocidad: v.gps_velocidad,
         gps_rumbo: v.gps_rumbo,
         gps_ultima_actualizacion: v.gps_ultima_actualizacion,
+        gps_ultima_motion: v.gps_ultima_motion,
         gps_conectado: v.gps_conectado,
         gps_en_linea: v.gps_en_linea,
+        gps_state: getMotionState(v.gps_velocidad, v.gps_ultima_motion, v.gps_ultima_actualizacion),
+        safetag_device_id: v.safetag_device_id,
+        safetag_device_name: v.safetag_device_name,
         conductor_nombre: assignment?.conductor_nombre,
         ruta_id: assignment?.ruta_id,
         asignacion_id: assignment?._id,

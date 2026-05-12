@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, mutation, action, internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { getAuthScope, requireAdminWrite, requireOrgAccess } from "./lib/auth";
+import { MOTION_SPEED_THRESHOLD } from "./lib/gps";
 
 // Configuración
 const SAFETAG_API_BASE = "https://api.safetagtracking.com/api/v1";
@@ -130,6 +131,12 @@ export const updateVehicleFromSafeTag = internalMutation({
       ? (hasMoved ? Date.now() : (currentVehicle.gps_ultima_actualizacion ?? Date.now()))
       : safetagTimestamp;
 
+    // gps_ultima_motion: solo refresca cuando el device REPORTA movimiento real
+    // (conectado + speed > threshold). Si está parado o desconectado, preserva
+    // el último valor — eso permite que el helper getMotionState distinga
+    // "parado hace 2 min" (parado) vs "parado hace 1 semana" (estacionado).
+    const isMoving = isConnected && deviceData.speed > MOTION_SPEED_THRESHOLD;
+
     await ctx.db.patch(vehiculoId, {
       safetag_device_id: deviceData._id,
       safetag_device_name: deviceData.name,
@@ -138,6 +145,7 @@ export const updateVehicleFromSafeTag = internalMutation({
       gps_velocidad: deviceData.speed,
       gps_rumbo: deviceData.course,
       gps_ultima_actualizacion: timestamp, // ← SOLO actualiza si se movió
+      gps_ultima_motion: isMoving ? now : (currentVehicle.gps_ultima_motion ?? undefined),
       safetag_timestamp: safetagTimestamp, // Timestamp original de SafeTag
       gps_bateria: deviceData.battery,
       gps_senal: deviceData.signal,
