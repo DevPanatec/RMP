@@ -61,5 +61,17 @@ jspm_packages/
 *.tgz
 
 # Yarn Integrity file
-.yarn-integrity 
+.yarn-integrity
 .vercel
+
+# E2E / Playwright
+.e2e/
+audit/
+test-results/
+playwright-report/
+tests/auth/*.cookies.json
+playwright/.cache/
+
+# Troops audit state — current run is gitignored, history is committed
+.audit-state/current/
+!.audit-state/history/

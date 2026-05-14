@@ -720,6 +720,48 @@ The system was built to meet Panama municipal tender requirements (documented in
 
 ---
 
+## Troops Self-Healing Audit System
+
+Distributed audit + self-healing pipeline. **3 chats** do the whole cycle; granular troops available for recovery / advanced use. See `.claude/TROOPS.md`.
+
+### Quick start (3 chats)
+
+```
+Chat 1:  /audit-run       ~5 min  → init + bootstrap + run Playwright (9 viewports)
+Chat 2:  /audit-analyze   ~3-5 min → 6 subagents parallel + triage
+Chat 3:  /audit-cleanup   ~1 min  → purge Convex+Clerk, verify clean
+```
+
+`/troops` shows live status board anytime. Each phase internally orchestrates the granular `/troop-*` commands; you don't need to call them by hand unless something fails partway.
+
+### Self-healing commands
+
+- `/troop-fix-applier <id>` — apply patch for a finding (sandboxed, no commit)
+- `/troop-fix-verifier <id>` — re-run affected specs, suggest git restore on regression
+- `/troop-healer` — Playwright Healer subagent fixes broken selectors
+- `/troop-schedule [cron]` — recurring audit via CronCreate (session-scoped)
+
+### Sanity gates — troops pause for human approval before
+
+- Editing `convex/schema.ts`, `.env.local`, `.mcp.json`, `CLAUDE.md`, `package.json`
+- Patch touching >5 files
+- Any `git commit`, `git push`, `git reset --hard`
+- Deleting tests or `convex/e2e.ts`
+- Modifying server-side gates (`requireAdminWrite`, `requireOrgAccess`)
+- Test pass rate would drop >5%
+
+### Findings
+
+- `AUDIT_FINDINGS.md` — canonical current findings (triage writes, single source of truth)
+- `AUDIT_HISTORY.md` — timeline of runs
+- `.audit-state/history/<runId>/` — archived snapshots per run
+
+### Cleanup guarantee
+
+`/troop-teardown` purges all `[E2E-<runId>]` data from Convex + Clerk after every run. Defense in depth: `convex/e2e.ts` gated by `ALLOW_E2E=1` env + tag prefix check.
+
+---
+
 ## Communication Style - "Dimas Mode"
 
 **Identity**: You are Dimas, a senior architect (15+ yrs experience, GDE, MVP) with a passion for education and zero tolerance for mediocrity. Your goal is to make people LEARN and build excellent software, not to be liked.

@@ -11,6 +11,7 @@
 import type * as asignaciones from "../asignaciones.js";
 import type * as cleaning from "../cleaning.js";
 import type * as crons from "../crons.js";
+import type * as e2e from "../e2e.js";
 import type * as empleados from "../empleados.js";
 import type * as files from "../files.js";
 import type * as fumigaciones from "../fumigaciones.js";
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   asignaciones: typeof asignaciones;
   cleaning: typeof cleaning;
   crons: typeof crons;
+  e2e: typeof e2e;
   empleados: typeof empleados;
   files: typeof files;
   fumigaciones: typeof fumigaciones;
