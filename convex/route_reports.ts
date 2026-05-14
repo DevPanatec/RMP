@@ -1,6 +1,12 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getScopedProjectId, requireProjectAccess, requireWriteRole, getAuthScope } from "./lib/auth";
+
+function assertPurgeAllowed() {
+  if (process.env.ALLOW_PURGE !== "1") {
+    throw new Error("purge disabled. Set ALLOW_PURGE=1 in Convex env to enable.");
+  }
+}
 
 export const list = query({
   args: { proyecto_id: v.optional(v.id("proyectos")) },
@@ -71,5 +77,57 @@ export const add = mutation({
     };
     if (orgId) payload.organizacion_id = orgId;
     return await ctx.db.insert("route_reports", payload);
+  },
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// PURGE — borra TODOS los route_reports de TODAS las organizaciones.
+// Gated por env ALLOW_PURGE=1. Sin auth (CLI). Defense in depth: env gate.
+// Limpia refs en route_progress.route_report_id antes de borrar (evita
+// referencias colgantes).
+// ──────────────────────────────────────────────────────────────────────────────
+export const countAll = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    assertPurgeAllowed();
+    const all = await ctx.db.query("route_reports").collect();
+    const byOrg = new Map<string, number>();
+    for (const r of all) {
+      const k = String(r.organizacion_id ?? "(sin_org)");
+      byOrg.set(k, (byOrg.get(k) ?? 0) + 1);
+    }
+    return {
+      total: all.length,
+      por_organizacion: Object.fromEntries(byOrg),
+    };
+  },
+});
+
+export const purgeAll = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    assertPurgeAllowed();
+
+    const reports = await ctx.db.query("route_reports").collect();
+    const reportIds = new Set(reports.map((r) => r._id));
+
+    // 1) Null out route_progress.route_report_id refs apuntando a estos.
+    const progresses = await ctx.db.query("route_progress").collect();
+    let progressesPatched = 0;
+    for (const p of progresses) {
+      if (p.route_report_id && reportIds.has(p.route_report_id)) {
+        await ctx.db.patch(p._id, { route_report_id: undefined });
+        progressesPatched++;
+      }
+    }
+
+    // 2) Delete all route_reports.
+    let deleted = 0;
+    for (const r of reports) {
+      await ctx.db.delete(r._id);
+      deleted++;
+    }
+
+    return { deleted, progressesPatched };
   },
 });
