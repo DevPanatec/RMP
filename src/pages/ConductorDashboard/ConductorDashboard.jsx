@@ -22,6 +22,10 @@ import {
 import { Badge, ProgressBar, ConfirmDialog } from '../../components/UI';
 import { RouteTimeline } from '../../components/Dashboard';
 import BottomSheet from '../../components/BottomSheet';
+// AdminDashboard.css contiene los estilos compartidos (.app-bar, .dashboard-container,
+// .top-nav, .main-content) que ConductorDashboard usa. Lazy-loaded en App.jsx
+// significa que sin este import los estilos no llegan al conductor.
+import '../AdminDashboard/AdminDashboard.css';
 import './ConductorDashboard.css';
 
 // Hook para PWA
