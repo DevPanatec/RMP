@@ -45,6 +45,14 @@
   --color-info-light: #dbeafe;        /* Blue 100 - light bg */
   --color-info-dark: #2563eb;         /* Blue 600 - dark variant */
 
+  /* Escala de plan (PlataformaPanel) - tiers S/M/L/XL/XXL */
+  --color-escala-s: var(--color-success);          /* Small - green */
+  --color-escala-m: #0078D4;                       /* Medium - Fluent blue */
+  --color-escala-l: #5C2D91;                       /* Large - Fluent purple */
+  --color-escala-xl: #B4009E;                      /* XL - Fluent magenta */
+  --color-escala-xxl: var(--color-error);          /* XXL - red */
+  --color-alert-critical: #FF8C00;                 /* Critical pct (90-99%) - Fluent dark orange */
+
   /* Categorías de carga (WeightModal) - solid tokens, no gradients */
   --color-cat-baja: #16a34a;          /* Green 600 - low weight */
   --color-cat-baja-light: #dcfce7;    /* Green 100 - bg */
@@ -103,6 +111,12 @@
   --gradient-info: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   --gradient-text-dark: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   --gradient-text-accent: linear-gradient(135deg, #1e293b 0%, #1e40af 100%);
+
+  /* Historical-only banner — banner global para mostrar cuando un módulo está
+     desactivado pero hay data histórica visible. Usar con clase .historical-only-banner */
+  --historical-banner-bg: var(--color-warning-light);
+  --historical-banner-fg: var(--color-warning-dark);
+  --historical-banner-border: var(--color-warning);
 
   /* Additional semantic colors - Updated for Slate palette */
   --color-text-primary: var(--color-text);  /* Reuse Slate 900 */
@@ -3192,4 +3206,27 @@ select.form-control:focus {
     flex-direction: column;
     gap: var(--space-2);
   }
+}
+
+/* Banner global: módulo desactivado pero data histórica visible */
+.historical-only-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  margin: var(--space-12) var(--space-20);
+  padding: var(--space-8) var(--space-12);
+  background: var(--historical-banner-bg);
+  color: var(--historical-banner-fg);
+  border: 1px solid var(--historical-banner-border);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+.historical-only-banner strong {
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.historical-only-banner svg {
+  flex-shrink: 0;
 } 

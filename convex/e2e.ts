@@ -189,12 +189,14 @@ export const _bootstrapData = internalMutation({
     assertAllowed();
     const tag = `${TAG_PREFIX}${runId}]`;
 
-    // Org
+    // Org — modulos_activos cubre todo para que cualquier rol/módulo
+    // funcione bajo el gating de OrganizationContext.hasModulo().
     const orgId = await ctx.db.insert("organizaciones", {
       nombre: `${tag} Test Org`,
       slug: `e2e-${runId}-org`,
       descripcion: "E2E test organization — auto-purged",
       activo: true,
+      modulos_activos: ["REC", "FUM", "LIM", "MTO", "INV", "PER", "BI"],
       fecha_creacion: new Date().toISOString(),
     });
 
@@ -275,6 +277,8 @@ export const _bootstrapData = internalMutation({
     }
 
     // Asignación de la ruta al conductor + vehículo
+    // dias_semana cubre toda la semana para que el conductor dashboard
+    // siempre muestre la asignación como "para hoy" sin importar el día.
     const conductorPerfilId = perfiles.conductor as any;
     const asignacionId = await ctx.db.insert("asignaciones_rutas", {
       ruta_id: rutaId,
@@ -283,11 +287,119 @@ export const _bootstrapData = internalMutation({
       vehiculo_id: vehicleId,
       proyecto_id: proyectoId,
       fecha_asignacion: new Date().toISOString().slice(0, 10),
+      dias_semana: ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"],
+      hora_inicio: "06:00",
       estado: "asignada",
       organizacion_id: orgId,
     });
 
     return { orgId, proyectoId, perfiles, vehicleId, rutaId, asignacionId };
+  },
+});
+
+// Reset conductor route state without re-bootstrapping users.
+// Useful between test runs to clear route_progress / events / risk reports
+// so the conductor sees "Iniciar Ruta" again.
+export const resetRouteState = action({
+  args: { runId: v.string() },
+  handler: async (ctx, { runId }): Promise<{ reset: Record<string, number> }> => {
+    assertAllowed();
+    const reset = await ctx.runMutation(internal.e2e._resetRouteState, { runId });
+    return { reset };
+  },
+});
+
+export const _resetRouteState = internalMutation({
+  args: { runId: v.string() },
+  handler: async (ctx, { runId }) => {
+    assertAllowed();
+    const tag = `${TAG_PREFIX}${runId}]`;
+    const counts: Record<string, number> = {
+      route_progress: 0,
+      route_events: 0,
+      route_reports: 0,
+      reportes_riesgo: 0,
+      asignaciones_reset: 0,
+      vehiculos_reset: 0,
+    };
+
+    // Find tagged asignaciones
+    const asigs = (await ctx.db.query("asignaciones_rutas").collect()).filter(
+      (a) => a.conductor_nombre?.includes(tag),
+    );
+    const asigIds = asigs.map((a) => a._id);
+
+    // Find tagged vehiculos
+    const vehs = (await ctx.db.query("vehiculos").collect()).filter((v) =>
+      v.nombre?.includes(tag),
+    );
+    const vehIds = vehs.map((v) => v._id);
+
+    // Find tagged perfiles (for empleado_reporta_id linkage)
+    const perfiles = (await ctx.db.query("perfiles_usuarios").collect()).filter(
+      (p) => p.nombre_completo?.includes(tag),
+    );
+    const perfilIds = perfiles.map((p) => p._id);
+
+    // route_progress — by asignacion_id
+    const progs = await ctx.db.query("route_progress").collect();
+    for (const p of progs) {
+      if (asigIds.includes(p.asignacion_id)) {
+        await ctx.db.delete(p._id);
+        counts.route_progress++;
+      }
+    }
+
+    // route_events — by asignacion_id or vehiculo_id
+    const events = await ctx.db.query("route_events").collect();
+    for (const e of events) {
+      if (
+        (e.asignacion_id && asigIds.includes(e.asignacion_id)) ||
+        (e.vehiculo_id && vehIds.includes(e.vehiculo_id))
+      ) {
+        await ctx.db.delete(e._id);
+        counts.route_events++;
+      }
+    }
+
+    // route_reports — by asignacion_id
+    const reports = await ctx.db.query("route_reports").collect();
+    for (const r of reports) {
+      if (r.asignacion_id && asigIds.includes(r.asignacion_id)) {
+        await ctx.db.delete(r._id);
+        counts.route_reports++;
+      }
+    }
+
+    // reportes_riesgo — by empleado_reporta_id (perfil) or vehiculo_id
+    const riesgos = await ctx.db.query("reportes_riesgo").collect();
+    for (const r of riesgos) {
+      const matchPerfil = r.empleado_reporta_id && perfilIds.includes(r.empleado_reporta_id);
+      const matchVeh = r.vehiculo_id && vehIds.includes(r.vehiculo_id);
+      if (matchPerfil || matchVeh) {
+        await ctx.db.delete(r._id);
+        counts.reportes_riesgo++;
+      }
+    }
+
+    // Reset asignaciones estado
+    for (const a of asigs) {
+      await ctx.db.patch(a._id, {
+        estado: "asignada",
+        paradas_completadas: undefined,
+        fecha_inicio: undefined,
+        fecha_completacion: undefined,
+      });
+      counts.asignaciones_reset++;
+    }
+
+    // Reset vehiculos estado
+    for (const v of vehs) {
+      await ctx.db.patch(v._id, { estado: "disponible" });
+      counts.vehiculos_reset++;
+    }
+
+    return counts;
   },
 });
 

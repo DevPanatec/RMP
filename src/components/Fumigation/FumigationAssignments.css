@@ -157,7 +157,7 @@
 .fumigation-card__footer {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 6px;
   padding-top: 12px;
   border-top: 1px solid var(--color-border);
@@ -165,6 +165,65 @@
   font-weight: 500;
   color: var(--color-primary);
 }
+
+.fumigation-card__footer-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Estado badge on card header */
+.fumigation-card__estado {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.fumigation-card__estado--programada {
+  background: var(--color-info-light);
+  color: var(--color-info);
+}
+
+.fumigation-card__estado--realizada {
+  background: rgba(255, 159, 10, 0.1);
+  color: #FF9F0A;
+}
+
+.fumigation-card__estado--reportada {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+/* Action buttons */
+.fumigation-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fumigation-card__action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  background: var(--color-surface);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+
+.fumigation-card__action-btn--realizada { color: var(--color-success); }
+.fumigation-card__action-btn--realizada:hover { background: var(--color-success-light); border-color: var(--color-success); }
+
+.fumigation-card__action-btn--edit { color: var(--color-info); }
+.fumigation-card__action-btn--edit:hover { background: var(--color-info-light); border-color: var(--color-info); }
+
+.fumigation-card__action-btn--delete { color: var(--color-error); }
+.fumigation-card__action-btn--delete:hover { background: var(--color-error-light); border-color: var(--color-error); }
 
 /* Estados */
 .assignment-card__status {

@@ -22,6 +22,19 @@ export const PARADO_WINDOW_MS = 5 * 60 * 1000;
 // muerto con `speed=30` cached aparecería como "en movimiento" eternamente.
 export const STALE_PING_WINDOW_MS = 5 * 60 * 1000;
 
+// Haversine distance in km between two GPS coordinates.
+export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+    Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export function getMotionState(
   speed?: number | null,
   ultimaMotion?: number | null,

@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useMaintenance } from '../../context/MaintenanceContext';
 import { Plus, Eye, Trash2, CheckCircle, Calendar, Clock, Edit, FileText } from '../Icons';
+import { ConfirmDialog } from '../UI';
 
 const MaintenanceTasks = ({ userRole, isAdmin: isAdminProp, onCreate, onView, onEdit }) => {
   const { tasks, deleteTask } = useMaintenance();
   const [filter, setFilter] = useState('all');
+  const [taskToDelete, setTaskToDelete] = useState(null);
 
   // Backwards-compat: si el parent no pasa isAdmin, derivarlo aquí
   const isAdmin = typeof isAdminProp === 'boolean'
@@ -15,9 +17,16 @@ const MaintenanceTasks = ({ userRole, isAdmin: isAdminProp, onCreate, onView, on
     ? tasks
     : tasks.filter(t => t.estado === filter);
 
-  const handleDelete = async (id) => {
-    if (window.confirm('¿Estás seguro de eliminar esta tarea?')) {
-      await deleteTask(id);
+  const handleDelete = (task) => {
+    setTaskToDelete(task);
+  };
+
+  const confirmDeleteTask = async () => {
+    if (!taskToDelete) return;
+    try {
+      await deleteTask(taskToDelete._id || taskToDelete.id);
+    } finally {
+      setTaskToDelete(null);
     }
   };
 
@@ -240,7 +249,7 @@ const MaintenanceTasks = ({ userRole, isAdmin: isAdminProp, onCreate, onView, on
                                 </button>
                               )}
                               <button
-                                onClick={() => handleDelete(task._id)}
+                                onClick={() => handleDelete(task)}
                                 className="maint-tasks-action-btn maint-tasks-action-btn--delete"
                                 title="Eliminar"
                               >
@@ -258,6 +267,19 @@ const MaintenanceTasks = ({ userRole, isAdmin: isAdminProp, onCreate, onView, on
           )}
         </div>
       </div>
+
+      {taskToDelete && (
+        <ConfirmDialog
+          open
+          destructive
+          title="¿Eliminar tarea de mantenimiento?"
+          message={`Vas a eliminar "${taskToDelete.titulo || 'esta tarea'}". Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          onConfirm={confirmDeleteTask}
+          onCancel={() => setTaskToDelete(null)}
+        />
+      )}
     </div>
   );
 };

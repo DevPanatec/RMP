@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Search, Eye, Trash2, Filter, FileText } from '../Icons';
-import { Button, Card } from '../UI';
+import { Button, Card, ConfirmDialog } from '../UI';
 import { useCleaning } from '../../context/CleaningContext';
 import ReportDetailModal from './ReportDetailModal';
+import toast from 'react-hot-toast';
 import './CleaningReports.css';
 
 const CleaningReports = ({ userRole }) => {
@@ -15,6 +16,7 @@ const CleaningReports = ({ userRole }) => {
   });
   const [selectedReport, setSelectedReport] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [reportToDelete, setReportToDelete] = useState(null);
 
   const handleFilterChange = (key, value) => {
     setFilters({ ...filters, [key]: value });
@@ -25,20 +27,23 @@ const CleaningReports = ({ userRole }) => {
     setShowDetailModal(true);
   };
 
-  const handleDeleteReport = async (reportId) => {
+  const handleDeleteReport = (report) => {
     if (userRole !== 'admin' && userRole !== 'super_admin') {
-      alert('No tienes permisos para eliminar reportes');
+      toast.error('No tienes permisos para eliminar reportes');
       return;
     }
+    setReportToDelete(report);
+  };
 
-    if (window.confirm('¿Estás seguro de eliminar este reporte?')) {
-      const result = await deleteAssignment(reportId);
-      if (result.success) {
-        alert('Reporte eliminado con éxito');
-      } else {
-        alert(`Error al eliminar: ${result.error}`);
-      }
+  const confirmDeleteReport = async () => {
+    if (!reportToDelete) return;
+    const result = await deleteAssignment(reportToDelete.id);
+    if (result.success) {
+      toast.success('Reporte eliminado con éxito');
+    } else {
+      toast.error(`Error al eliminar: ${result.error}`);
     }
+    setReportToDelete(null);
   };
 
   // Preparar reportes con conteo de fotos
@@ -252,7 +257,7 @@ const CleaningReports = ({ userRole }) => {
                         {(userRole === 'admin' || userRole === 'super_admin') && (
                           <button
                             className="cleaning-table__action cleaning-table__action--delete"
-                            onClick={() => handleDeleteReport(report.id)}
+                            onClick={() => handleDeleteReport(report)}
                             title="Eliminar reporte"
                           >
                             <Trash2 size={16} />
@@ -274,6 +279,19 @@ const CleaningReports = ({ userRole }) => {
           isOpen={showDetailModal}
           onClose={() => setShowDetailModal(false)}
           report={selectedReport}
+        />
+      )}
+
+      {reportToDelete && (
+        <ConfirmDialog
+          open
+          destructive
+          title="¿Eliminar reporte de limpieza?"
+          message={`Vas a eliminar el reporte de ${reportToDelete.lugar} · ${reportToDelete.area}. Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          onConfirm={confirmDeleteReport}
+          onCancel={() => setReportToDelete(null)}
         />
       )}
     </div>

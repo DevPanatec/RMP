@@ -346,7 +346,8 @@
 
   .btn-complete-compact {
     padding: 10px;
-    min-width: 40px;
+    min-width: 44px; /* WCAG touch target */
+    min-height: 44px;
   }
 
   .bottom-sheet-header {

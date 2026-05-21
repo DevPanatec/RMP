@@ -1,0 +1,1 @@
+Full repo audit: backend convex/ (schemas/mutations/auth gates), frontend src/ (gating/mock data/design system), integration (env vars/migrations/build). Severity P0+P1+P2. Max 5 cycles.

@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthScope, getScopedProjectId, getScopedOrgId, requireProjectAccess, requireWriteRole } from "./lib/auth";
+import { requireModulo } from "./lib/modules";
 
 // Create route event
 export const add = mutation({
@@ -34,6 +35,7 @@ export const add = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "REC");
     const scope = await getAuthScope(ctx);
     if (!scope.perfil) throw new Error("No autenticado");
     let proyecto_id;
@@ -99,6 +101,7 @@ export const attachPhotoToParada = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "REC");
     const scope = await getAuthScope(ctx);
     if (!scope.perfil) throw new Error("No autenticado");
 

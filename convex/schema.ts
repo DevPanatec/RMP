@@ -12,9 +12,53 @@ export default defineSchema({
     logo_url: v.optional(v.string()),
     activo: v.boolean(),
     fecha_creacion: v.string(),
+    // ---- Plan / Billing (super_admin manages via Plataforma panel) ----
+    escala: v.optional(
+      v.union(
+        v.literal("S"),
+        v.literal("M"),
+        v.literal("L"),
+        v.literal("XL"),
+        v.literal("XXL"),
+      ),
+    ),
+    modulos_activos: v.optional(v.array(v.string())), // Producción: ["REC","FUM","LIM","MTO","INV","PER","BI"] · Roadmap: ["PER-full"]
+    custom_caps: v.optional(
+      v.object({
+        camiones: v.optional(v.number()),
+        proyectos: v.optional(v.number()),
+        usuarios: v.optional(v.number()),
+        storage_gb: v.optional(v.number()),
+      }),
+    ),
+    fecha_inicio_plan: v.optional(v.number()), // ms epoch
+    fecha_renovacion_plan: v.optional(v.number()), // ms epoch
+    setup_status: v.optional(
+      v.union(v.literal("pendiente"), v.literal("pagado"), v.literal("waived")),
+    ),
+    discount_pct: v.optional(v.number()), // 0-15
+    // ---- Storage counter (delta-tracked in photo mutations) ----
+    storage_bytes_used: v.optional(v.number()),
+    storage_last_recompute: v.optional(v.number()), // ms epoch — última vez que se re-sumó todo
   })
     .index("by_slug", ["slug"])
     .index("by_activo", ["activo"]),
+
+  // 0.1 Org audit log — trazabilidad de cambios de plan/módulos/caps por super_admin
+  org_audit_log: defineTable({
+    organizacion_id: v.id("organizaciones"),
+    changed_by_user_id: v.string(), // Clerk tokenIdentifier
+    changed_by_email: v.optional(v.string()),
+    action: v.string(), // "set_escala", "toggle_modulo", "set_custom_cap", "set_discount", "set_setup_status", "set_plan_fechas", "set_activo", "recompute_storage", "waive_overflow"
+    field: v.optional(v.string()),
+    before_value: v.optional(v.any()),
+    after_value: v.optional(v.any()),
+    notas: v.optional(v.string()),
+    timestamp: v.number(),
+  })
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_org_timestamp", ["organizacion_id", "timestamp"]),
 
   // 1. Perfiles de Usuarios (Auth)
   perfiles_usuarios: defineTable({
@@ -92,6 +136,7 @@ export default defineSchema({
     gps_en_linea: v.optional(v.boolean()), // Online status
     proyecto_asignado_id: v.optional(v.id("proyectos")),
     organizacion_id: v.optional(v.id("organizaciones")),
+    km_acumulado: v.optional(v.number()), // Km totales acumulados vía GPS (Haversine delta por ping)
   })
     .index("by_estado", ["estado"])
     .index("by_placa", ["placa"])
@@ -678,4 +723,205 @@ export default defineSchema({
     .index("by_vehiculo", ["vehiculo_id"])
     .index("by_timestamp", ["timestamp"])
     .index("by_vehiculo_timestamp", ["vehiculo_id", "timestamp"]),
+
+  // 23. Componentes de Vehículos/Máquinas (Fleet Inventory — módulo INV)
+  vehicle_components: defineTable({
+    vehiculo_id: v.id("vehiculos"),
+    nombre: v.string(),
+    tipo: v.string(),                          // "llanta", "bateria", "cepillo", etc. (free-text)
+    posicion: v.optional(v.string()),          // "delantera_izq", "trasera_der", etc. para diagrama 2D
+    marca: v.optional(v.string()),
+    numero_serie: v.optional(v.string()),
+    fecha_instalacion: v.number(),             // ms epoch
+    km_instalacion: v.optional(v.number()),    // snapshot km_acumulado al instalar
+    vida_util_km: v.optional(v.number()),      // ej: 40000
+    vida_util_dias: v.optional(v.number()),    // ej: 90
+    estado: v.union(v.literal("activo"), v.literal("reemplazado"), v.literal("vencido")),
+    costo: v.optional(v.number()),
+    notas: v.optional(v.string()),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  })
+    .index("by_vehiculo", ["vehiculo_id"])
+    .index("by_estado", ["estado"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 23b. Historial de reemplazos de componentes de vehículos
+  vehicle_components_history: defineTable({
+    vehiculo_id: v.id("vehiculos"),
+    componente_id: v.id("vehicle_components"),
+    tipo: v.string(),
+    km_al_cambio: v.optional(v.number()),
+    dias_uso: v.number(),
+    motivo: v.union(v.literal("preventivo"), v.literal("desgaste"), v.literal("falla")),
+    tecnico: v.optional(v.string()),
+    costo: v.optional(v.number()),
+    notas: v.optional(v.string()),
+    fecha_cambio: v.number(),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  })
+    .index("by_vehiculo", ["vehiculo_id"])
+    .index("by_componente", ["componente_id"])
+    .index("by_fecha", ["fecha_cambio"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 24. Activos Standalone de Flota (lámparas, mangueras, generadores — módulo INV)
+  fleet_assets: defineTable({
+    nombre: v.string(),
+    tipo: v.string(),                          // "manguera", "lampara", "generador", etc.
+    descripcion: v.optional(v.string()),
+    fecha_adquisicion: v.number(),             // ms epoch — cuando se puso en servicio
+    vida_util_dias: v.optional(v.number()),    // ej: 1000
+    estado: v.union(v.literal("activo"), v.literal("vencido"), v.literal("dado_de_baja")),
+    tiene_componentes: v.boolean(),            // si true → fleet_asset_components
+    costo: v.optional(v.number()),
+    notas: v.optional(v.string()),
+    proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  })
+    .index("by_estado", ["estado"])
+    .index("by_tipo", ["tipo"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 24b. Componentes de Activos Standalone (solo días, sin km)
+  fleet_asset_components: defineTable({
+    asset_id: v.id("fleet_assets"),
+    nombre: v.string(),
+    tipo: v.string(),
+    marca: v.optional(v.string()),
+    fecha_instalacion: v.number(),
+    vida_util_dias: v.number(),
+    estado: v.union(v.literal("activo"), v.literal("reemplazado"), v.literal("vencido")),
+    costo: v.optional(v.number()),
+    notas: v.optional(v.string()),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  })
+    .index("by_asset", ["asset_id"])
+    .index("by_estado", ["estado"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 24c. Historial de reemplazos de componentes de activos
+  fleet_asset_components_history: defineTable({
+    asset_id: v.id("fleet_assets"),
+    componente_id: v.id("fleet_asset_components"),
+    tipo: v.string(),
+    dias_uso: v.number(),
+    motivo: v.union(v.literal("preventivo"), v.literal("desgaste"), v.literal("falla")),
+    tecnico: v.optional(v.string()),
+    costo: v.optional(v.number()),
+    notas: v.optional(v.string()),
+    fecha_cambio: v.number(),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  })
+    .index("by_asset", ["asset_id"])
+    .index("by_componente", ["componente_id"])
+    .index("by_fecha", ["fecha_cambio"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 25. Componentes de Lugar (Mantenimiento — módulo MTO)
+  location_components: defineTable({
+    lugar_id: v.id("lugares"),
+    nombre: v.string(),
+    tipo: v.string(),
+    marca: v.optional(v.string()),
+    fecha_instalacion: v.number(),
+    vida_util_dias: v.number(),
+    estado: v.union(v.literal("activo"), v.literal("reemplazado"), v.literal("vencido")),
+    costo: v.optional(v.number()),
+    notas: v.optional(v.string()),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  })
+    .index("by_lugar", ["lugar_id"])
+    .index("by_estado", ["estado"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 25b. Historial de reemplazos de componentes de lugar
+  location_components_history: defineTable({
+    lugar_id: v.id("lugares"),
+    componente_id: v.id("location_components"),
+    tipo: v.string(),
+    dias_uso: v.number(),
+    motivo: v.union(v.literal("preventivo"), v.literal("desgaste"), v.literal("falla")),
+    tecnico: v.optional(v.string()),
+    costo: v.optional(v.number()),
+    notas: v.optional(v.string()),
+    fecha_cambio: v.number(),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  })
+    .index("by_lugar", ["lugar_id"])
+    .index("by_componente", ["componente_id"])
+    .index("by_fecha", ["fecha_cambio"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 26. Diagram Templates — render genérico por clase de equipo (Motor de Diagramas, Fase 2)
+  diagram_templates: defineTable({
+    equipment_class: v.string(),   // "barredora", "compactador", "fumigadora", "cisterna"
+    view_type: v.string(),         // "top" (vista superior) — "side" en el futuro
+    render_path: v.string(),       // "/renders/barredora.svg" — asset estático
+    image_width: v.number(),
+    image_height: v.number(),
+    label: v.string(),             // "Barredora Vial"
+    is_generic: v.boolean(),       // true = render de clase, false = específico de modelo
+    validated: v.boolean(),
+    make: v.optional(v.string()),       // Para plantillas específicas de modelo (Fase 3)
+    model_name: v.optional(v.string()),
+    model_year: v.optional(v.number()),
+  })
+    .index("by_class", ["equipment_class"])
+    .index("by_class_view", ["equipment_class", "view_type"])
+    .index("by_make_model", ["make", "model_name"]),
+
+  // 27. Diagram Zones — hotspots (polígonos transparentes sobre el render)
+  diagram_zones: defineTable({
+    template_id: v.id("diagram_templates"),
+    nombre: v.string(),                   // "Motor", "Cepillos Laterales"
+    system_key: v.string(),               // llave lógica ("motor", "tren_rodaje")
+    tipo_patterns: v.array(v.string()),   // patrones de tipo de componente que pertenecen a esta zona
+    polygon_points: v.string(),           // "x1% y1%, x2% y2%..." — CSS clip-path format
+    display_order: v.number(),
+    color_hint: v.optional(v.string()),   // color sugerido cuando no hay componentes
+  })
+    .index("by_template", ["template_id"]),
+
+  // 28. PM Schedules — planes de mantenimiento preventivo recurrentes
+  // Regla "cada X km / horas / dias" por vehiculo (asset)
+  pm_schedules: defineTable({
+    vehiculo_id: v.id("vehiculos"),
+    titulo: v.string(),                       // "Cambio aceite motor"
+    descripcion: v.optional(v.string()),
+    categoria: v.optional(v.string()),        // "motor", "neumaticos", "frenos", etc
+    tipo_intervalo: v.string(),               // "km" | "horas" | "dias"
+    intervalo_valor: v.number(),              // cada cuanto (10000 km, 250 horas, 90 dias)
+    advertencia_anticipada: v.optional(v.number()), // alertar X antes (km/horas/dias)
+    // Base de referencia (ultima ejecucion o instalacion)
+    referencia_km: v.optional(v.number()),    // km al ultimo servicio
+    referencia_horas: v.optional(v.number()), // horas al ultimo servicio
+    referencia_fecha: v.number(),             // timestamp ms del ultimo servicio o creacion
+    ultima_task_id: v.optional(v.id("maintenance_tasks")),
+    prioridad: v.optional(v.string()),        // "baja" | "media" | "alta" | "urgente"
+    activo: v.boolean(),
+    proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  })
+    .index("by_vehiculo", ["vehiculo_id"])
+    .index("by_activo", ["activo"])
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_proyecto", ["proyecto_id"]),
+
+  // 29. Meter Readings — lecturas manuales de odometro/horometro
+  // Alimentan el calculo de vida util independiente del GPS
+  meter_readings: defineTable({
+    vehiculo_id: v.id("vehiculos"),
+    tipo: v.string(),                         // "odometro" | "horometro"
+    valor: v.number(),                        // km o horas
+    fecha: v.number(),                        // ms epoch
+    fuente: v.string(),                       // "manual" | "gps" | "obd" | "workorder"
+    usuario_id: v.optional(v.string()),       // Clerk tokenIdentifier
+    task_id: v.optional(v.id("maintenance_tasks")), // si se capturo en una OT
+    notas: v.optional(v.string()),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  })
+    .index("by_vehiculo", ["vehiculo_id"])
+    .index("by_vehiculo_tipo", ["vehiculo_id", "tipo"])
+    .index("by_fecha", ["fecha"])
+    .index("by_organizacion", ["organizacion_id"]),
 });

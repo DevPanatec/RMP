@@ -2,6 +2,35 @@
    INVENTORY COMPONENT V2 - ENTERPRISE STYLE
    ============================================ */
 
+/* ── Inventory sub-tabs (Materiales / Flota) ── */
+.inv-subtabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 16px 0;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+}
+
+.inv-subtab {
+  padding: 6px 14px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.inv-subtab:hover { color: var(--color-text); }
+
+.inv-subtab--active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
 /* Variables de color - mapped to design system */
 :root {
   --inventory-primary: var(--color-primary);

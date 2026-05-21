@@ -11,6 +11,7 @@ import { Satellite } from '../Icons';
  * - size: 'small' | 'medium' | 'large' - Tamaño del indicador (default: 'medium')
  * - showLabel: boolean - Mostrar etiqueta de texto (default: false)
  * - showTimestamp: boolean - Mostrar timestamp de última actualización (default: false)
+ * - hideWhenUnconfigured: boolean - Si true, no renderiza cuando falta IMEI (default: false para mostrar estado en conductor)
  */
 const GPSStatusIndicator = ({
   gps_conectado,
@@ -18,11 +19,28 @@ const GPSStatusIndicator = ({
   gps_imei,
   size = 'medium',
   showLabel = false,
-  showTimestamp = false
+  showTimestamp = false,
+  hideWhenUnconfigured = false
 }) => {
-  // Si no tiene IMEI configurado, no mostrar nada
-  if (!gps_imei) {
+  // Solo esconder si el caller lo pide explícitamente
+  if (!gps_imei && hideWhenUnconfigured) {
     return null;
+  }
+
+  // GPS sin configurar — mostrar estado claro al conductor
+  if (!gps_imei) {
+    return (
+      <div
+        className={`gps-status-indicator gps-status-indicator--${size} gps-status--unconfigured`}
+        title="Este vehículo no tiene GPS configurado"
+      >
+        <div className="gps-status-icon">
+          <Satellite size={size === 'small' ? 12 : size === 'medium' ? 14 : 16} strokeWidth={2} />
+          <span className="gps-status-badge">✗</span>
+        </div>
+        {showLabel && <span className="gps-status-label">GPS No Configurado</span>}
+      </div>
+    );
   }
 
   // Calcular tiempo transcurrido desde última actualización

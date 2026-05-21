@@ -1,0 +1,501 @@
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
+import { X, Save, RefreshCw, AlertTriangle, CheckCircle, Clock } from '../../components/Icons';
+
+// Safe JSON stringify para audit log values (maneja circular refs + truncate)
+function safeStringify(value) {
+  if (value === null || value === undefined) return '—';
+  try {
+    const s = JSON.stringify(value);
+    if (s === undefined) return String(value);
+    return s.length > 200 ? s.slice(0, 197) + '…' : s;
+  } catch {
+    return '[object]';
+  }
+}
+
+const BYTES_PER_GB_DRAWER = 1024 ** 3;
+function fmtBytesGB(bytes) {
+  if (!bytes || bytes <= 0) return '0';
+  return (bytes / BYTES_PER_GB_DRAWER).toFixed(2);
+}
+
+const ESCALAS = ['S', 'M', 'L', 'XL', 'XXL'];
+const ESCALA_BASE_USD = { S: 299, M: 1199, L: 2499, XL: 4499, XXL: 8999 };
+
+const MODULOS_PRODUCCION = [
+  { code: 'REC', name: 'Recolección', price: 500 },
+  { code: 'FUM', name: 'Fumigación', price: 500 },
+  { code: 'LIM', name: 'Limpieza', price: 400 },
+  { code: 'MTO', name: 'Mantenimiento general', price: 400 },
+  { code: 'INV', name: 'Inventario', price: 300 },
+  { code: 'PER', name: 'Empleados básico', price: 200 },
+];
+const MODULOS_ROADMAP = [
+  { code: 'BI', name: 'Reportes avanzados', price: 600 },
+  { code: 'API', name: 'REST pública', price: 800 },
+  { code: 'SSO', name: 'Clerk Enterprise SSO', price: 400 },
+  { code: 'WL', name: 'White-Label', price: 500 },
+  { code: 'PER-full', name: 'RRHH completo', price: 500 },
+];
+
+const BYTES_PER_GB = 1024 ** 3;
+
+function fmtUsd(n) {
+  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+}
+
+function fmtDate(ms) {
+  if (!ms) return '—';
+  return new Date(ms).toLocaleDateString('es-PA', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function fmtDateTime(ms) {
+  if (!ms) return '—';
+  return new Date(ms).toLocaleString('es-PA', {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function OrgDetailDrawer({ orgId, onClose }) {
+  const [activeTab, setActiveTab] = useState('uso');
+  const stats = useQuery(api.organizaciones.getOrgStats, { id: orgId });
+
+  const setEscala = useMutation(api.organizaciones.setEscala);
+  const toggleModulo = useMutation(api.organizaciones.toggleModulo);
+  const setCustomCap = useMutation(api.organizaciones.setCustomCap);
+  const setDiscount = useMutation(api.organizaciones.setDiscount);
+  const setSetupStatus = useMutation(api.organizaciones.setSetupStatus);
+  const setPlanFechas = useMutation(api.organizaciones.setPlanFechas);
+  const setActive = useMutation(api.organizaciones.setActive);
+  const recomputeStorage = useMutation(api.organizaciones.recomputeStorage);
+
+  const [feedback, setFeedback] = useState(null); // { type: 'success'|'error', msg }
+  const [busy, setBusy] = useState(false);
+  const [lastDrift, setLastDrift] = useState(null); // {before, after, drift}
+
+  // Escape closes drawer (keyboard accessibility)
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  if (stats === undefined) {
+    return (
+      <div className="drawer-overlay" onClick={onClose}>
+        <div className="drawer" onClick={(e) => e.stopPropagation()}>
+          <div className="drawer__loading">Cargando…</div>
+        </div>
+      </div>
+    );
+  }
+  if (stats === null) return null;
+
+  const { org, usage, audit_log, mrr_usd, modulos_usd, base_usd, escala_effective, modulos_effective } = stats;
+
+  async function withFeedback(fn, successMsg) {
+    setBusy(true);
+    setFeedback(null);
+    try {
+      await fn();
+      setFeedback({ type: 'success', msg: successMsg });
+      setTimeout(() => setFeedback(null), 2500);
+    } catch (e) {
+      setFeedback({ type: 'error', msg: e?.message ?? 'Error' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="drawer-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+      <div className="drawer" onClick={(e) => e.stopPropagation()}>
+        <header className="drawer__header">
+          <div>
+            <h2 id="drawer-title">{org.nombre}</h2>
+            <span className="drawer__slug">{org.slug}</span>
+          </div>
+          <button className="drawer__close" onClick={onClose} aria-label="Cerrar (Esc)">
+            <X size={20} />
+          </button>
+        </header>
+
+        <div className="drawer__summary">
+          <div className="drawer-kpi">
+            <div className="drawer-kpi__label">Escala</div>
+            <div className="drawer-kpi__value">{escala_effective}</div>
+          </div>
+          <div className="drawer-kpi">
+            <div className="drawer-kpi__label">Base</div>
+            <div className="drawer-kpi__value">{fmtUsd(base_usd)}</div>
+          </div>
+          <div className="drawer-kpi">
+            <div className="drawer-kpi__label">+ Módulos</div>
+            <div className="drawer-kpi__value">{fmtUsd(modulos_usd)}</div>
+          </div>
+          <div className="drawer-kpi">
+            <div className="drawer-kpi__label">+ Overflow</div>
+            <div className="drawer-kpi__value" style={{ color: usage.overflow_total_usd > 0 ? 'var(--color-error)' : 'inherit' }}>
+              {fmtUsd(usage.overflow_total_usd)}
+            </div>
+          </div>
+          <div className="drawer-kpi drawer-kpi--accent">
+            <div className="drawer-kpi__label">MRR total</div>
+            <div className="drawer-kpi__value">{fmtUsd(mrr_usd)}</div>
+          </div>
+        </div>
+
+        <nav className="drawer__tabs">
+          {['uso', 'plan', 'modulos', 'caps', 'fechas', 'audit'].map((t) => (
+            <button
+              key={t}
+              className={`drawer__tab ${activeTab === t ? 'active' : ''}`}
+              onClick={() => setActiveTab(t)}
+            >
+              {t === 'uso' && 'Uso'}
+              {t === 'plan' && 'Plan'}
+              {t === 'modulos' && 'Módulos'}
+              {t === 'caps' && 'Caps custom'}
+              {t === 'fechas' && 'Fechas / Setup'}
+              {t === 'audit' && 'Audit log'}
+            </button>
+          ))}
+        </nav>
+
+        {feedback && (
+          <div className={`drawer__feedback drawer__feedback--${feedback.type}`}>
+            {feedback.type === 'success' ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+            <span>{feedback.msg}</span>
+          </div>
+        )}
+
+        <div className="drawer__body">
+          {activeTab === 'uso' && (
+            <div className="drawer__section">
+              <h3>Uso vs Límites</h3>
+              <table className="usage-table">
+                <thead>
+                  <tr><th>Recurso</th><th>Actual</th><th>Cap</th><th>%</th><th>Overflow</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Camiones</td>
+                    <td>{usage.counts.camiones}</td>
+                    <td>{usage.caps.camiones === Infinity ? '∞' : usage.caps.camiones}</td>
+                    <td>{usage.pct.camiones.toFixed(0)}%</td>
+                    <td>{usage.overflow.camiones.extras > 0 ? `+${usage.overflow.camiones.extras} · ${fmtUsd(usage.overflow.camiones.total_usd)}` : '—'}</td>
+                  </tr>
+                  <tr>
+                    <td>Proyectos</td>
+                    <td>{usage.counts.proyectos}</td>
+                    <td>{usage.caps.proyectos === Infinity ? '∞' : usage.caps.proyectos}</td>
+                    <td>{usage.pct.proyectos.toFixed(0)}%</td>
+                    <td>{usage.overflow.proyectos.extras > 0 ? `+${usage.overflow.proyectos.extras} · ${fmtUsd(usage.overflow.proyectos.total_usd)}` : '—'}</td>
+                  </tr>
+                  <tr>
+                    <td>Usuarios</td>
+                    <td>{usage.counts.usuarios}</td>
+                    <td>{usage.caps.usuarios === Infinity ? '∞' : usage.caps.usuarios}</td>
+                    <td>{usage.pct.usuarios.toFixed(0)}%</td>
+                    <td>{usage.overflow.usuarios.extras > 0 ? `+${usage.overflow.usuarios.extras} · ${fmtUsd(usage.overflow.usuarios.total_usd)}` : '—'}</td>
+                  </tr>
+                  <tr>
+                    <td>Storage</td>
+                    <td>{(usage.counts.storage_bytes / BYTES_PER_GB).toFixed(2)} GB</td>
+                    <td>{usage.caps.storage_gb === Infinity ? '∞' : `${usage.caps.storage_gb} GB`}</td>
+                    <td>{usage.pct.storage.toFixed(0)}%</td>
+                    <td>{usage.overflow.storage_gb_extras > 0 ? `+${usage.overflow.storage_gb_extras.toFixed(2)} GB` : '—'}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div className="drawer__section-footer">
+                <span>
+                  <Clock size={14} /> Último recompute storage: {fmtDateTime(org.storage_last_recompute)}
+                </span>
+                <button
+                  className="btn btn-secondary"
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    setFeedback(null);
+                    try {
+                      const r = await recomputeStorage({ id: orgId });
+                      setLastDrift(r);
+                      const driftGB = (r.drift / BYTES_PER_GB_DRAWER).toFixed(2);
+                      const sign = r.drift >= 0 ? '+' : '';
+                      setFeedback({
+                        type: 'success',
+                        msg: `Storage recalculado. Drift: ${sign}${driftGB} GB (${fmtBytesGB(r.before)} → ${fmtBytesGB(r.after)} GB)`,
+                      });
+                      setTimeout(() => setFeedback(null), 5000);
+                    } catch (e) {
+                      setFeedback({ type: 'error', msg: e?.message ?? 'Error' });
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                >
+                  <RefreshCw size={14} /> Recomputar storage
+                </button>
+              </div>
+              {lastDrift && Math.abs(lastDrift.drift) > BYTES_PER_GB_DRAWER && (
+                <div style={{
+                  marginTop: 'var(--space-12)',
+                  padding: 'var(--space-12)',
+                  background: 'var(--color-warning-light, #FFF4CE)',
+                  border: '1px solid var(--color-warning)',
+                  borderRadius: 'var(--radius-base)',
+                  fontSize: 'var(--font-size-sm)',
+                }}>
+                  ⚠ Drift detectado &gt; 1 GB. El counter delta tenía desincronización significativa.
+                  Considerá revisar si hay mutations cascade que no decrementen.
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'plan' && (
+            <div className="drawer__section">
+              <h3>Escala</h3>
+              <div className="escala-grid">
+                {ESCALAS.map((e) => (
+                  <button
+                    key={e}
+                    className={`escala-option ${escala_effective === e ? 'selected' : ''}`}
+                    disabled={busy}
+                    onClick={() => {
+                      if (escala_effective === e) return;
+                      const confirmed = window.confirm(`Cambiar escala de ${escala_effective} a ${e}?\n\nMRR base: ${fmtUsd(ESCALA_BASE_USD[escala_effective])} → ${fmtUsd(ESCALA_BASE_USD[e])}`);
+                      if (!confirmed) return;
+                      withFeedback(() => setEscala({ id: orgId, escala: e }), `Escala cambiada a ${e}`);
+                    }}
+                  >
+                    <div className="escala-option__code">{e}</div>
+                    <div className="escala-option__price">{fmtUsd(ESCALA_BASE_USD[e])}/mes</div>
+                  </button>
+                ))}
+              </div>
+
+              <h3 style={{ marginTop: 24 }}>Descuento (%)</h3>
+              <div className="inline-form">
+                <input
+                  type="number"
+                  min={0}
+                  max={15}
+                  step={1}
+                  defaultValue={org.discount_pct ?? 0}
+                  onBlur={(e) => {
+                    const raw = e.target.value.trim();
+                    const pct = Number(raw);
+                    if (raw === '' || isNaN(pct)) {
+                      setFeedback({ type: 'error', msg: 'Descuento debe ser un número entre 0 y 15' });
+                      e.target.value = String(org.discount_pct ?? 0);
+                      return;
+                    }
+                    if (pct < 0 || pct > 15) {
+                      setFeedback({ type: 'error', msg: 'Descuento fuera de rango (0-15)' });
+                      e.target.value = String(org.discount_pct ?? 0);
+                      return;
+                    }
+                    if (pct === (org.discount_pct ?? 0)) return;
+                    withFeedback(() => setDiscount({ id: orgId, pct }), `Descuento actualizado a ${pct}%`);
+                  }}
+                />
+                <span className="hint">Máximo 15% (pilots, año 1)</span>
+              </div>
+
+              <h3 style={{ marginTop: 24 }}>Estado</h3>
+              <div className="inline-form">
+                <button
+                  className={`btn ${org.activo ? 'btn-danger' : 'btn-primary'}`}
+                  disabled={busy}
+                  onClick={() => {
+                    const next = !org.activo;
+                    const msg = next ? 'Reactivar' : 'Suspender';
+                    if (!window.confirm(`${msg} organización "${org.nombre}"?`)) return;
+                    withFeedback(() => setActive({ id: orgId, activo: next }), `Org ${next ? 'reactivada' : 'suspendida'}`);
+                  }}
+                >
+                  {org.activo ? 'Suspender organización' : 'Reactivar organización'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'modulos' && (
+            <div className="drawer__section">
+              <h3>Módulos en Producción</h3>
+              <p className="hint">Activar/desactivar oculta tabs en dashboards de la org y bloquea mutations server-side.</p>
+              <div className="modulos-list">
+                {MODULOS_PRODUCCION.map((m) => {
+                  const active = (modulos_effective || []).includes(m.code);
+                  return (
+                    <div key={m.code} className="modulo-row">
+                      <div className="modulo-row__info">
+                        <span className="modulo-row__code">{m.code}</span>
+                        <span className="modulo-row__name">{m.name}</span>
+                        <span className="modulo-row__price">+{fmtUsd(m.price)}/mes</span>
+                      </div>
+                      <button
+                        className={`toggle ${active ? 'toggle--on' : ''}`}
+                        disabled={busy}
+                        onClick={() => withFeedback(
+                          () => toggleModulo({ id: orgId, codigo: m.code, activar: !active }),
+                          `${m.name} ${!active ? 'activado' : 'desactivado'}`
+                        )}
+                      >
+                        <span className="toggle__knob" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <h3 style={{ marginTop: 24 }}>Roadmap (no construidos)</h3>
+              <div className="modulos-list">
+                {MODULOS_ROADMAP.map((m) => {
+                  const active = (modulos_effective || []).includes(m.code);
+                  return (
+                    <div key={m.code} className="modulo-row modulo-row--roadmap">
+                      <div className="modulo-row__info">
+                        <span className="modulo-row__code">{m.code}</span>
+                        <span className="modulo-row__name">{m.name}</span>
+                        <span className="modulo-row__price">+{fmtUsd(m.price)}/mes</span>
+                        <span className="badge badge-warning">Roadmap</span>
+                      </div>
+                      <button
+                        className={`toggle ${active ? 'toggle--on' : ''}`}
+                        disabled={busy}
+                        title="Roadmap — activar solo con discount 30% o contrato firmado"
+                        onClick={() => withFeedback(
+                          () => toggleModulo({ id: orgId, codigo: m.code, activar: !active }),
+                          `${m.name} ${!active ? 'activado' : 'desactivado'}`
+                        )}
+                      >
+                        <span className="toggle__knob" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'caps' && (
+            <div className="drawer__section">
+              <h3>Caps personalizados</h3>
+              <p className="hint">Dejá vacío para usar el cap default de la escala. Override solo para casos puntuales.</p>
+              <div className="caps-form">
+                {['camiones', 'proyectos', 'usuarios', 'storage_gb'].map((key) => {
+                  const current = (org.custom_caps || {})[key];
+                  const placeholder = `Default escala ${escala_effective}: ${usage.caps[key === 'storage_gb' ? 'storage_gb' : key] === Infinity ? '∞' : usage.caps[key === 'storage_gb' ? 'storage_gb' : key]}${key === 'storage_gb' ? ' GB' : ''}`;
+                  return (
+                    <div key={key} className="caps-form__row">
+                      <label>{key === 'storage_gb' ? 'Storage (GB)' : key}</label>
+                      <input
+                        type="number"
+                        min={0}
+                        defaultValue={current ?? ''}
+                        placeholder={placeholder}
+                        onBlur={(e) => {
+                          const raw = e.target.value.trim();
+                          const value = raw === '' ? undefined : Number(raw);
+                          if ((current ?? null) === (value ?? null)) return;
+                          withFeedback(
+                            () => setCustomCap({ id: orgId, key, value }),
+                            value === undefined ? `Cap ${key} reset a default` : `Cap ${key} = ${value}`
+                          );
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'fechas' && (
+            <div className="drawer__section">
+              <h3>Setup fee</h3>
+              <div className="inline-form">
+                {['pendiente', 'pagado', 'waived'].map((s) => (
+                  <button
+                    key={s}
+                    className={`btn-pill ${(org.setup_status ?? 'pendiente') === s ? 'active' : ''}`}
+                    disabled={busy}
+                    onClick={() => withFeedback(() => setSetupStatus({ id: orgId, status: s }), `Setup status: ${s}`)}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+
+              <h3 style={{ marginTop: 24 }}>Fecha inicio plan</h3>
+              <input
+                type="date"
+                defaultValue={org.fecha_inicio_plan ? new Date(org.fecha_inicio_plan).toISOString().slice(0, 10) : ''}
+                onBlur={(e) => {
+                  const raw = e.target.value;
+                  if (!raw) return;
+                  const ms = new Date(raw).getTime();
+                  withFeedback(() => setPlanFechas({ id: orgId, fecha_inicio_plan: ms }), 'Fecha inicio actualizada');
+                }}
+              />
+
+              <h3 style={{ marginTop: 16 }}>Fecha renovación</h3>
+              <input
+                type="date"
+                defaultValue={org.fecha_renovacion_plan ? new Date(org.fecha_renovacion_plan).toISOString().slice(0, 10) : ''}
+                onBlur={(e) => {
+                  const raw = e.target.value;
+                  if (!raw) return;
+                  const ms = new Date(raw).getTime();
+                  withFeedback(() => setPlanFechas({ id: orgId, fecha_renovacion_plan: ms }), 'Fecha renovación actualizada');
+                }}
+              />
+
+              <div className="drawer__section-footer">
+                <span><Clock size={14} /> Plan inicio: {fmtDate(org.fecha_inicio_plan)}</span>
+                <span><Clock size={14} /> Renovación: {fmtDate(org.fecha_renovacion_plan)}</span>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'audit' && (
+            <div className="drawer__section">
+              <h3>Audit log · últimos 50</h3>
+              {audit_log.length === 0 ? (
+                <p className="hint">Sin cambios registrados.</p>
+              ) : (
+                <table className="audit-table">
+                  <thead>
+                    <tr><th>Fecha</th><th>Acción</th><th>Campo</th><th>Antes</th><th>Después</th><th>Por</th></tr>
+                  </thead>
+                  <tbody>
+                    {audit_log.map((entry) => (
+                      <tr key={entry._id}>
+                        <td>{fmtDateTime(entry.timestamp)}</td>
+                        <td><code>{entry.action}</code></td>
+                        <td>{entry.field ?? '—'}</td>
+                        <td className="audit-table__val">{safeStringify(entry.before_value)}</td>
+                        <td className="audit-table__val">{safeStringify(entry.after_value)}</td>
+                        <td>{entry.changed_by_email ?? entry.changed_by_user_id}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default OrgDetailDrawer;

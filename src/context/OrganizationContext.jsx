@@ -35,6 +35,32 @@ export const OrganizationProvider = ({ children }) => {
     setCurrentOrgIdState(orgId);
   };
 
+  // Módulos activos de la org actual.
+  // - super_admin sin org seleccionada → todos los módulos (puede ver todo)
+  // - cualquier otro → modulos_activos literal del backend (sin fallback).
+  //   Backend garantiza ≥1 módulo via toggleModulo invariant + default REC en
+  //   `add`. Una org con modulos_activos vacío/undefined es un dato corrupto
+  //   que el frontend debe reflejar honestamente, no enmascarar.
+  const currentOrgModulos = useMemo(() => {
+    if (isSuperAdmin && !currentOrg) {
+      return ['REC', 'FUM', 'LIM', 'MTO', 'INV', 'BI', 'ASI', 'RRHH'];
+    }
+    return currentOrg?.modulos_activos ?? [];
+  }, [isSuperAdmin, currentOrg]);
+
+  const hasModulo = useMemo(
+    () => (codigo) => {
+      // PER ya no es módulo comprable — se desbloquea con cualquier módulo operacional.
+      // Backward-compat: orgs antiguas con "PER" en el array también pasan.
+      if (codigo === 'PER') {
+        return ['REC', 'FUM', 'LIM', 'MTO'].some((m) => currentOrgModulos.includes(m))
+          || currentOrgModulos.includes('PER');
+      }
+      return currentOrgModulos.includes(codigo);
+    },
+    [currentOrgModulos]
+  );
+
   const loading = availableOrgs === undefined;
 
   const value = useMemo(
@@ -44,9 +70,11 @@ export const OrganizationProvider = ({ children }) => {
       availableOrgs,
       isSuperAdmin,
       setCurrentOrg,
+      currentOrgModulos,
+      hasModulo,
       loading,
     }),
-    [currentOrg, currentOrgId, availableOrgs, isSuperAdmin, loading]
+    [currentOrg, currentOrgId, availableOrgs, isSuperAdmin, currentOrgModulos, hasModulo, loading]
   );
 
   return <OrganizationContext.Provider value={value}>{children}</OrganizationContext.Provider>;

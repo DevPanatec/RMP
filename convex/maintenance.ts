@@ -1,6 +1,8 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getScopedProjectId, getAuthScope, requireOrgAccess, requireProjectAccess, requireWriteRole } from "./lib/auth";
+import { incrementOrgStorage } from "./organizaciones";
+import { requireModulo } from "./lib/modules";
 
 // ========== MAINTENANCE TASKS ==========
 // Admin: ve todas. Enterprise: ve las de su proyecto + las globales (proyecto_id null).
@@ -132,6 +134,7 @@ export const addTask = mutation({
   },
   handler: async (ctx, args) => {
     const scope = await requireWriteRole(ctx);
+    await requireModulo(ctx, "MTO");
     if (args.proyecto_id) await requireProjectAccess(ctx, args.proyecto_id);
     if (!scope.isSuperAdmin && !scope.organizacionId) {
       throw new Error("Sin organización asignada");
@@ -180,6 +183,7 @@ export const updateTask = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "MTO");
     const task = await ctx.db.get(args.id);
     if (!task) throw new Error("Tarea no encontrada");
     if (task.organizacion_id) await requireOrgAccess(ctx, task.organizacion_id);
@@ -194,6 +198,7 @@ export const deleteTask = mutation({
   args: { id: v.id("maintenance_tasks") },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "MTO");
     const task = await ctx.db.get(args.id);
     if (!task) throw new Error("Tarea no encontrada");
     if (task.organizacion_id) await requireOrgAccess(ctx, task.organizacion_id);
@@ -256,6 +261,7 @@ export const addAlert = mutation({
   },
   handler: async (ctx, args) => {
     const scope = await requireWriteRole(ctx);
+    await requireModulo(ctx, "MTO");
     if (!scope.isSuperAdmin && !scope.organizacionId) {
       throw new Error("Sin organización asignada");
     }
@@ -273,6 +279,7 @@ export const markAsRead = mutation({
   args: { id: v.id("maintenance_alerts") },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "MTO");
     const alert = await ctx.db.get(args.id);
     if (!alert) throw new Error("Alerta no encontrada");
     if (!alert.organizacion_id) throw new Error("Alerta sin organización — requiere migración");
@@ -285,6 +292,7 @@ export const deleteAlert = mutation({
   args: { id: v.id("maintenance_alerts") },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "MTO");
     const alert = await ctx.db.get(args.id);
     if (!alert) throw new Error("Alerta no encontrada");
     if (!alert.organizacion_id) throw new Error("Alerta sin organización — requiere migración");
@@ -312,12 +320,18 @@ export const savePhoto = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "MTO");
     const task = await ctx.db.get(args.task_id);
     if (!task) throw new Error("Tarea no encontrada");
     if (task.organizacion_id) await requireOrgAccess(ctx, task.organizacion_id);
     else if (task.proyecto_id) await requireProjectAccess(ctx, task.proyecto_id);
     else throw new Error("Tarea sin proyecto ni organización — requiere migración");
-    return await ctx.db.insert("maintenance_photos", args);
+    const photoId = await ctx.db.insert("maintenance_photos", args);
+    const orgId = task.organizacion_id;
+    if (orgId && args.file_size && args.file_size > 0) {
+      await incrementOrgStorage(ctx, orgId, args.file_size);
+    }
+    return photoId;
   },
 });
 
@@ -380,6 +394,9 @@ export const getPhotosByEtapa = query({
   },
 });
 
+// NOTA: deletePhoto NO está gateado por requireModulo("MTO").
+// Cleanup debe funcionar aunque MTO esté apagado para evitar drift en
+// storage_bytes_used (counter delta queda inflado hasta el cron diario).
 export const deletePhoto = mutation({
   args: { id: v.id("maintenance_photos") },
   handler: async (ctx, args) => {
@@ -396,6 +413,12 @@ export const deletePhoto = mutation({
 
     // Eliminar del storage
     await ctx.storage.delete(photo.storage_id);
+
+    // Storage counter — decrement por org
+    const orgId = task.organizacion_id;
+    if (orgId && photo.file_size && photo.file_size > 0) {
+      await incrementOrgStorage(ctx, orgId, -photo.file_size);
+    }
 
     // Eliminar del DB
     return await ctx.db.delete(args.id);
@@ -572,6 +595,7 @@ export const createReport = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "MTO");
     const task = await ctx.db.get(args.task_id);
     if (!task) throw new Error("Tarea no encontrada");
     if (task.organizacion_id) await requireOrgAccess(ctx, task.organizacion_id);

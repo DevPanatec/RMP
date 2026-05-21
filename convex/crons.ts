@@ -63,4 +63,19 @@ crons.interval(
   internal.gps.updateConnectionStatus
 );
 
+/**
+ * Cron Job: Recomputar storage_bytes_used por org (diario 4:00 UTC)
+ *
+ * El contador delta (incrementOrgStorage en cada subida/borrado de foto) puede
+ * driftear si alguna mutation cascade se olvida del decrement. Este cron re-suma
+ * los file_size de cleaning_photos/fumigation_photos/maintenance_photos por org
+ * y corrige el contador. Procesa CHUNK=5 orgs por ejecución y se reagenda hasta
+ * vaciar la cola de stale. Resultados parciales NO persisten (ver helper).
+ */
+crons.daily(
+  "recompute-org-storage",
+  { hourUTC: 4, minuteUTC: 0 },
+  internal.organizaciones.recomputeStorageDaily
+);
+
 export default crons;

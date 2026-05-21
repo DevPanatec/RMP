@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { X, Filter } from '../Icons';
+import { Calendar as CalendarIcon, Filter } from '../Icons';
+import { Modal } from '../UI';
+import { useOrganization } from '../../context/OrganizationContext';
 import ActivityIcon from './ActivityIcon';
 
 const DayDetailsModal = ({ date, activities, onClose, filters, onFilterChange }) => {
+  const { hasModulo } = useOrganization();
   const [localFilters, setLocalFilters] = useState(filters);
 
   // Sync con parent filters cuando se reabra el modal o cambien los filtros del padre.
@@ -85,60 +88,56 @@ const DayDetailsModal = ({ date, activities, onClose, filters, onFilterChange })
     }
   };
 
-  const handleOverlayClick = (e) => {
-    if (e.target.classList.contains('modal-overlay')) {
-      onClose();
-    }
-  };
-
   return (
-    <div className="modal-overlay" onClick={handleOverlayClick}>
-      <div className="modal-content modal-large day-details-modal">
-        <div className="modal-header">
-          <div className="modal-header-content">
-            <h3>
-              {getDayName(date)}, {date.getDate()} de {getMonthName(date)} {date.getFullYear()}
-            </h3>
-            <p className="modal-subtitle">{activities.length} actividad{activities.length !== 1 ? 'es' : ''} programada{activities.length !== 1 ? 's' : ''}</p>
-          </div>
-          <button className="modal-close" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
+    <Modal open onClose={onClose} size="lg" variant="detail" className="day-details-modal">
+      <Modal.Header icon={<CalendarIcon size={18} />} onClose={onClose} id="day-details-title">
+        {getDayName(date)}, {date.getDate()} de {getMonthName(date)} {date.getFullYear()}
+        <span className="day-details-modal__count">
+          · {activities.length} actividad{activities.length !== 1 ? 'es' : ''}
+        </span>
+      </Modal.Header>
 
-        <div className="modal-filters">
+      <div className="modal-filters">
           <div className="filters-label">
             <Filter size={16} /> Filtrar:
           </div>
           <div className="filter-buttons-inline">
-            <button
-              className={`filter-btn-sm ${localFilters.recoleccion ? 'active' : ''}`}
-              onClick={() => toggleLocalFilter('recoleccion')}
-            >
-              🚛 Recolección
-            </button>
-            <button
-              className={`filter-btn-sm ${localFilters.fumigacion ? 'active' : ''}`}
-              onClick={() => toggleLocalFilter('fumigacion')}
-            >
-              🦟 Fumigación
-            </button>
-            <button
-              className={`filter-btn-sm ${localFilters.limpieza ? 'active' : ''}`}
-              onClick={() => toggleLocalFilter('limpieza')}
-            >
-              🧹 Limpieza
-            </button>
-            <button
-              className={`filter-btn-sm ${localFilters.mantenimiento ? 'active' : ''}`}
-              onClick={() => toggleLocalFilter('mantenimiento')}
-            >
-              🔧 Mantenimiento
-            </button>
+            {hasModulo('REC') && (
+              <button
+                className={`filter-btn-sm ${localFilters.recoleccion ? 'active' : ''}`}
+                onClick={() => toggleLocalFilter('recoleccion')}
+              >
+                🚛 Recolección
+              </button>
+            )}
+            {hasModulo('FUM') && (
+              <button
+                className={`filter-btn-sm ${localFilters.fumigacion ? 'active' : ''}`}
+                onClick={() => toggleLocalFilter('fumigacion')}
+              >
+                🦟 Fumigación
+              </button>
+            )}
+            {hasModulo('LIM') && (
+              <button
+                className={`filter-btn-sm ${localFilters.limpieza ? 'active' : ''}`}
+                onClick={() => toggleLocalFilter('limpieza')}
+              >
+                🧹 Limpieza
+              </button>
+            )}
+            {hasModulo('MTO') && (
+              <button
+                className={`filter-btn-sm ${localFilters.mantenimiento ? 'active' : ''}`}
+                onClick={() => toggleLocalFilter('mantenimiento')}
+              >
+                🔧 Mantenimiento
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="modal-body day-details-body">
+      <Modal.Body className="day-details-body">
           {filteredActivities.length === 0 ? (
             <div className="no-activities-modal">
               <p>No hay actividades que coincidan con los filtros seleccionados</p>
@@ -197,15 +196,14 @@ const DayDetailsModal = ({ date, activities, onClose, filters, onFilterChange })
               ))}
             </div>
           )}
-        </div>
+      </Modal.Body>
 
-        <div className="modal-footer">
-          <button className="btn btn--outline" onClick={onClose}>
-            Cerrar
-          </button>
-        </div>
-      </div>
-    </div>
+      <Modal.Footer>
+        <button type="button" className="btn btn--outline" onClick={onClose} data-autofocus>
+          Cerrar
+        </button>
+      </Modal.Footer>
+    </Modal>
   );
 };
 

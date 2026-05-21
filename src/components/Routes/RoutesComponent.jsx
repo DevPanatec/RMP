@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useRoutes } from '../../context/RoutesContext';
 import RouteModal from '../RouteModal/RouteModal';
 import { Map, Edit, Trash2, MapPin, Clock, Truck, Plus, Route } from '../Icons';
+import { ConfirmDialog } from '../UI';
+import { handleMutationError } from '../../utils/mutationError';
 import './RoutesComponent.css';
 
 // Helper para convertir formato 24h a 12h (AM/PM)
@@ -14,11 +16,13 @@ const formatTime12h = (time24) => {
   return `${hour12}:${minutes} ${period}`;
 };
 
-const RoutesComponent = ({ initialRoutes = [] }) => {
+const RoutesComponent = ({ initialRoutes = [], userRole = 'admin' }) => {
   const { routes, loading, addRoute, updateRoute, deleteRoute } = useRoutes();
+  const canWrite = userRole === 'admin' || userRole === 'super_admin';
   const [showModal, setShowModal] = useState(false);
   const [editingRoute, setEditingRoute] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [routeToDelete, setRouteToDelete] = useState(null);
 
   const handleOpenNew = () => {
     setEditingRoute(null);
@@ -32,13 +36,18 @@ const RoutesComponent = ({ initialRoutes = [] }) => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm('¿Eliminar esta ruta?')) {
-      try {
-        await deleteRoute(id);
-      } catch (error) {
-        alert('Error al eliminar la ruta: ' + error.message);
-      }
+  const handleDelete = (route) => {
+    setRouteToDelete(route);
+  };
+
+  const confirmDeleteRoute = async () => {
+    if (!routeToDelete) return;
+    try {
+      await deleteRoute(routeToDelete._id || routeToDelete.id);
+    } catch (error) {
+      handleMutationError(error, 'Error al eliminar la ruta');
+    } finally {
+      setRouteToDelete(null);
     }
   };
 
@@ -53,7 +62,7 @@ const RoutesComponent = ({ initialRoutes = [] }) => {
       setEditingRoute(null);
     } catch (error) {
       console.error('Error completo:', error);
-      alert('Error al guardar la ruta: ' + error.message);
+      handleMutationError(error, 'Error al guardar la ruta');
     }
   };
 
@@ -90,10 +99,12 @@ const RoutesComponent = ({ initialRoutes = [] }) => {
           </div>
         </div>
 
-        <button className="btn-add-v2" onClick={handleOpenNew}>
-          <Plus size={18} />
-          Nueva Ruta
-        </button>
+        {canWrite && (
+          <button className="btn-add-v2" onClick={handleOpenNew}>
+            <Plus size={18} />
+            Nueva Ruta
+          </button>
+        )}
       </div>
 
       {/* Content */}
@@ -118,22 +129,26 @@ const RoutesComponent = ({ initialRoutes = [] }) => {
                   <div className={`route-card-icon ${tipoServicio}`}>
                     {tipoServicio === 'recoleccion' ? <Truck size={22} /> : <Map size={22} />}
                   </div>
-                  <div className="route-card-actions">
-                    <button 
-                      className="btn-icon-action"
-                      onClick={() => handleEdit(route)}
-                      title="Editar"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      className="btn-icon-action danger"
-                      onClick={() => handleDelete(route._id || route.id)}
-                      title="Eliminar"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+                  {canWrite && (
+                    <div className="route-card-actions">
+                      <button
+                        className="btn-icon-action"
+                        onClick={() => handleEdit(route)}
+                        title="Editar"
+                        aria-label="Editar ruta"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        className="btn-icon-action danger"
+                        onClick={() => handleDelete(route)}
+                        title="Eliminar"
+                        aria-label="Eliminar ruta"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="route-card-body">
@@ -196,6 +211,19 @@ const RoutesComponent = ({ initialRoutes = [] }) => {
         onSave={handleSave}
         isEditing={isEditing}
       />
+
+      {routeToDelete && (
+        <ConfirmDialog
+          open
+          destructive
+          title="¿Eliminar ruta?"
+          message={`Vas a eliminar la ruta "${routeToDelete.name || routeToDelete.nombre || ''}". Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          onConfirm={confirmDeleteRoute}
+          onCancel={() => setRouteToDelete(null)}
+        />
+      )}
     </div>
   );
 };

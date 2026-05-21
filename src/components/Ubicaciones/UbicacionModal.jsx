@@ -5,6 +5,7 @@ import MapLocationPicker from '../MapLocationPicker/MapLocationPicker';
 import {
   X, Plus, Edit, Save, Camera, MapPin, AlertTriangle, FileText,
 } from '../Icons';
+import { Modal } from '../UI';
 import './UbicacionModal.css';
 
 const MAX_NOMBRE = 100;
@@ -122,20 +123,18 @@ const UbicacionModal = ({ isOpen, tipo, item, onClose, onSave }) => {
   };
 
   return (
-    <div className="ubic-modal-overlay" onClick={onClose}>
-      <div className="ubic-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="ubic-modal-header">
-          <div className="ubic-modal-header-left">
-            <h4>
-              {isEditing ? <><Edit size={20} /> Editar {tipoLabel}</> : <><Plus size={20} /> Nueva {tipoLabel}</>}
-            </h4>
-            <p>Foto + ubicación GPS opcionales — se mostrarán en los reportes.</p>
-          </div>
-          <button className="ubic-modal-close" onClick={onClose}><X size={20} /></button>
-        </div>
+    <Modal open onClose={onClose} size="lg" variant="form">
+      <Modal.Header
+        icon={isEditing ? <Edit size={18} /> : <Plus size={18} />}
+        onClose={onClose}
+        id="ubicacion-modal-title"
+      >
+        {isEditing ? `Editar ${tipoLabel}` : `Nueva ${tipoLabel}`}
+      </Modal.Header>
+      <Modal.Body>
+        <p className="ubic-modal-hint">Foto + ubicación GPS opcionales — se mostrarán en los reportes.</p>
 
-        <div className="ubic-modal-body">
-          <div className="ubic-form-grid">
+        <div className="ubic-form-grid">
             <div className="ubic-form-section">
               <h5><FileText size={16} /> Información Básica</h5>
 
@@ -240,26 +239,26 @@ const UbicacionModal = ({ isOpen, tipo, item, onClose, onSave }) => {
               </div>
             )}
           </div>
+      </Modal.Body>
+      <Modal.Footer align="between">
+        <span className={`ubic-validation ${nombre.trim() ? 'ubic-validation--ok' : 'ubic-validation--err'}`}>
+          <AlertTriangle size={14} />
+          {nombre.trim() ? 'Listo para guardar' : 'Falta el nombre'}
+        </span>
+        <div className="ubic-modal-actions">
+          <button type="button" className="btn btn--secondary" onClick={onClose}>Cancelar</button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={handleSave}
+            disabled={!nombre.trim()}
+            data-autofocus
+          >
+            {isEditing ? <><Save size={16} /> Actualizar</> : <><Plus size={16} /> Crear</>}
+          </button>
         </div>
-
-        <div className="ubic-modal-footer">
-          <span className={`ubic-validation ${nombre.trim() ? 'ubic-validation--ok' : 'ubic-validation--err'}`}>
-            <AlertTriangle size={14} />
-            {nombre.trim() ? 'Listo para guardar' : 'Falta el nombre'}
-          </span>
-          <div className="ubic-modal-actions">
-            <button className="btn btn--secondary" onClick={onClose}>Cancelar</button>
-            <button
-              className="btn btn--primary"
-              onClick={handleSave}
-              disabled={!nombre.trim()}
-            >
-              {isEditing ? <><Save size={16} /> Actualizar</> : <><Plus size={16} /> Crear</>}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+      </Modal.Footer>
+    </Modal>
   );
 };
 

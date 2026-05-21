@@ -79,6 +79,22 @@
   color: white;
 }
 
+/* GPS sin configurar — visual distinto a "desconectado" */
+.gps-status-indicator.gps-status--unconfigured {
+  background-color: var(--color-warning-light);
+  color: var(--color-warning-dark, var(--color-warning));
+  border: 1px solid var(--color-warning);
+}
+
+.gps-status--unconfigured .gps-status-icon {
+  color: var(--color-warning-dark, var(--color-warning));
+}
+
+.gps-status--unconfigured .gps-status-badge {
+  background-color: var(--color-warning);
+  color: white;
+}
+
 /* Animación de pulso para GPS conectado */
 .gps-status--connected .gps-status-icon::before {
   content: '';

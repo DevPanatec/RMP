@@ -1,20 +1,21 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import MapLibreComponent from '../../components/Map/MapLibreComponent';
-import InventoryComponent from '../../components/Inventory/InventoryComponent';
 import RoutesComponent from '../../components/Routes/RoutesComponent';
 import ServiciosComponent from '../../components/Servicios';
-import RiskComponent from '../../components/Risk/RiskComponent';
-import ReportsComponent from '../../components/Reports/ReportsComponent';
 import ScheduleComponent from '../../components/Schedule/ScheduleComponent';
 import FleetManagement from '../../components/Fleet/FleetManagement';
 import CalendarComponent from '../../components/Calendar/CalendarComponent';
 import MaintenanceComponent from '../../components/Maintenance/MaintenanceComponent';
-import CostosComponent from '../../components/Costos/CostosComponent';
+import InventoryComponent from '../../components/Inventory/InventoryComponent';
+import RiskComponent from '../../components/Risk/RiskComponent';
+import ReportsComponent from '../../components/Reports/ReportsComponent';
+import RRHHComponent from '../../components/RRHH/RRHHComponent';
+import AsistenciaComponent from '../../components/Asistencia/AsistenciaComponent';
 import GeofenceAlertPopup from '../../components/GeofenceAlert/GeofenceAlertPopup';
 import { ProjectSwitcher } from '../../components/Project';
 import { OrganizationSwitcher } from '../../components/Organization';
 import ProyectosComponent from '../../components/Proyectos';
-import OrganizacionesComponent from '../../components/Organizaciones';
+import { PlataformaGroup } from '../../components/SuperAdmin';
 import { useOrganization } from '../../context/OrganizationContext';
 
 import { usePersonnel } from '../../context/PersonnelContext';
@@ -36,7 +37,8 @@ import {
   Satellite, Briefcase, Sparkles, Plus, X, Maximize2, Minimize2, DollarSign,
   UserPlus, Shield, Lock, Mail, Phone, Target, Layers
 } from '../../components/Icons';
-import { Badge, ProgressBar } from '../../components/UI';
+import { Badge, ProgressBar, ConfirmDialog } from '../../components/UI';
+import { useSafeTabNav } from '../../hooks/useModuleAccess';
 import { AlertCard, PersonnelTable, HeroStats, RealtimeActivity, RiskAlerts, UpcomingRoutes } from '../../components/Dashboard';
 import './AdminDashboard.css';
 
@@ -72,6 +74,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
     cargo: ''
   });
   const [personnelPage, setPersonnelPage] = useState(1);
+  const [confirmDelete, setConfirmDelete] = useState(null); // { type, id, label }
 
   // Responsive breakpoint listener
   useEffect(() => {
@@ -103,7 +106,11 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   }, [isMobileView, activeTab]);
 
   // Org context (super_admin can switch / admin locked)
-  const { currentOrgId, availableOrgs } = useOrganization();
+  const { currentOrgId, availableOrgs, hasModulo, currentOrgModulos } = useOrganization();
+
+  // Tabs derivadas: ocultas si org no tiene ningún módulo que las alimente.
+  // Org sin módulos → solo dashboard (mapa GPS) + vehiculos + riesgos + admin tabs.
+  const hasAnyOperacional = hasModulo('REC') || hasModulo('FUM') || hasModulo('LIM') || hasModulo('MTO');
   const isSuperAdmin = userRole === 'super_admin' || user?.tipo === 'super_admin';
 
   // Profile creation states
@@ -260,6 +267,8 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   const { newEventIds, newAlertIds } = useMonitoringNotifications(recentActivity, displayAlerts);
 
   const isViewer = userRole === 'viewer' || user?.tipo === 'viewer';
+  // viewer ve dashboard + operaciones (read-only) + riesgos.
+  // Layout flat: riesgos vive como tab top-nav propio, gated por REC.
   const VIEWER_ALLOWED_TABS = ['dashboard', 'operaciones', 'riesgos'];
 
   // Cliente con operaciones bloqueadas — controlado por flag `restricted_operations`
@@ -273,6 +282,56 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
     setActiveTab(newTab);
     setActiveSubTab(defaultSubTab);
   };
+
+  // Map de tabs → módulo(s) requeridos. Si el activeTab actual deja de cumplir
+  // (super_admin desactivó un módulo, OrgSwitcher cambió a una org sin el módulo,
+  // viewer/restricted cambió de permisos) → redirige a dashboard.
+  // Crítico para que el usuario no quede atrapado en una pantalla huérfana.
+  const isTabAvailable = (tab) => {
+    if (tab === 'dashboard') return true;
+    if (tab === 'operaciones') {
+      if (isRestrictedClient) return false;
+      return hasModulo('REC') || hasModulo('FUM') || hasModulo('LIM') || hasModulo('MTO') || hasModulo('PER');
+    }
+    if (tab === 'calendario') return hasAnyOperacional;
+    if (tab === 'riesgos') return hasModulo('REC');
+    if (tab === 'inventario') return hasModulo('INV');
+    if (tab === 'mantenimiento') return hasModulo('MTO');
+    if (tab === 'reportes') return hasModulo('BI');
+    if (tab === 'asistencia') return hasModulo('ASI');
+    if (tab === 'rrhh') return hasModulo('RRHH') || hasModulo('PER-full');
+    if (tab === 'plataforma') return isSuperAdmin;
+    if (tab === 'proyectos') return userRole === 'admin' && !isSuperAdmin;
+    return false;
+  };
+
+  // safeNav genera callbacks que validan isTabAvailable antes de navegar.
+  // Si target no está disponible, callback es undefined → el caller no renderiza el botón.
+  // Layout flat: Reportes y Riesgos son tabs top-nav independientes.
+  const safeNav = useSafeTabNav(isTabAvailable, setActiveTab);
+  const navToReportes = safeNav('reportes');
+  const navToRiesgos = safeNav('riesgos');
+
+  useEffect(() => {
+    // Si la tab activa ya no es accesible (módulo desactivado, org switch, etc.),
+    // redirige automáticamente a dashboard sin perder el flujo del usuario.
+    if (!isTabAvailable(activeTab)) {
+      setActiveTab('dashboard');
+      setActiveSubTab('');
+    }
+    // viewer extra-check: si su tab no está en el allowlist, redirige
+    if (isViewer && !VIEWER_ALLOWED_TABS.includes(activeTab)) {
+      setActiveTab('dashboard');
+    }
+    if (isRestrictedClient && RESTRICTED_BLOCKED_TABS.includes(activeTab)) {
+      setActiveTab('dashboard');
+    }
+    // Operaciones sub-tab: si activeSubTab='personal' pero PER se desactivó, saltar a flota
+    if (activeTab === 'operaciones' && activeSubTab === 'personal' && !hasModulo('PER')) {
+      setActiveSubTab('flota');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, activeSubTab, currentOrgId, currentOrgModulos, isViewer, isRestrictedClient, userRole, isSuperAdmin]);
 
   const handleViewLocationReports = (locationId) => {
     setSelectedLocationId(locationId);
@@ -406,8 +465,11 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   };
 
   const renderOperationsContent = () => {
-    const currentSubTab = activeSubTab || 'personal';
-    switch (currentSubTab) {
+    // Si activeSubTab='personal' pero PER está off, usar 'flota' sin esperar el useEffect
+    const defaultSub = hasModulo('PER') ? 'personal' : 'flota';
+    const currentSubTab = activeSubTab || defaultSub;
+    const effectiveSub = currentSubTab === 'personal' && !hasModulo('PER') ? 'flota' : currentSubTab;
+    switch (effectiveSub) {
       case 'personal':
         return (
           <div className="operations-content-modern">
@@ -419,22 +481,24 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                   <p>Administra conductores, ayudantes y supervisores</p>
                 </div>
               </div>
-              <div className="ops-header-buttons">
-                <button
-                  className="btn-add-personnel"
-                  onClick={() => setShowAddPersonnelModal(true)}
-                >
-                  <Plus size={18} />
-                  Agregar Personal
-                </button>
-                <button
-                  className="btn-create-profile"
-                  onClick={() => setShowProfileModal(true)}
-                >
-                  <UserPlus size={18} />
-                  Crear Perfil
-                </button>
-              </div>
+              {(userRole === 'admin' || isSuperAdmin) && hasModulo('PER') && (
+                <div className="ops-header-buttons">
+                  <button
+                    className="btn-add-personnel"
+                    onClick={() => setShowAddPersonnelModal(true)}
+                  >
+                    <Plus size={18} />
+                    Agregar Personal
+                  </button>
+                  <button
+                    className="btn-create-profile"
+                    onClick={() => setShowProfileModal(true)}
+                  >
+                    <UserPlus size={18} />
+                    Crear Perfil
+                  </button>
+                </div>
+              )}
               <div className="ops-header-stats">
                 <div className="stat-pill">
                   <span className="stat-value">{displayPersonnel?.filter(p => p.activo !== false).length || 0}</span>
@@ -457,6 +521,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             <div className="ops-content-wrapper">
               <PersonnelTable
                 personnel={displayPersonnel}
+                userRole={userRole}
                 onEdit={(employee) => {
                   setSelectedEmployee(employee);
                   setPersonnelFormData({
@@ -467,9 +532,12 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                   setShowEditPersonnelModal(true);
                 }}
                 onDelete={(employeeId) => {
-                  if (window.confirm('¿Estás seguro de que quieres desactivar este empleado?')) {
-                    deleteEmployee(employeeId);
-                  }
+                  const emp = displayPersonnel?.find((p) => (p._id || p.id) === employeeId);
+                  setConfirmDelete({
+                    type: 'employee',
+                    id: employeeId,
+                    label: emp ? `${emp.nombre || ''} ${emp.apellido || ''}`.trim() : 'este empleado',
+                  });
                 }}
                 currentPage={personnelPage}
                 totalPages={Math.ceil((displayPersonnel?.length || 0) / 8)}
@@ -479,20 +547,21 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
           </div>
         );
       case 'flota':
-        return <FleetManagement />;
+        return <FleetManagement userRole={userRole} />;
 
       case 'servicios':
         return (
           <div className="operations-content-modern">
             <ServiciosComponent
               initialRoutes={displayRoutes}
+              userRole={userRole}
             />
           </div>
         );
       case 'programacion':
         return (
           <div className="operations-content-modern">
-            <ScheduleComponent viewerMode={isViewer} />
+            <ScheduleComponent viewerMode={isViewer} userRole={userRole} />
           </div>
         );
       default:
@@ -514,20 +583,24 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
         const activeCount = normalizedCamiones.filter(c => c.estado === 'En ruta' || c.estado === 'en_ruta').length;
         const personnelCount = displayPersonnel?.length || 0;
 
+        // KPIs en vivo — solo módulos activos (regla EN VIVO del Sprint H).
+        // Cada item lleva requiredModulo opcional; null = sin gating.
         const heroStatsData = [
           {
             id: 'active',
             icon: <TrendingUp strokeWidth={1.5} size={24} />,
             value: activeCount,
             label: 'En Ruta',
+            requiredModulo: 'REC',
           },
           {
             id: 'personnel',
             icon: <Briefcase strokeWidth={1.5} size={24} />,
             value: personnelCount,
             label: 'Personal',
+            requiredModulo: 'PER',
           }
-        ];
+        ].filter((s) => !s.requiredModulo || hasModulo(s.requiredModulo));
 
         return (
           <div className="monitoring-layout">
@@ -535,7 +608,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             {!isMobileView && (
               <div className="monitoring-side-panel">
                 <HeroStats stats={heroStatsData} />
-                {userRole === 'enterprise' && <UpcomingRoutes limit={6} />}
+                {userRole === 'enterprise' && hasModulo('REC') && <UpcomingRoutes limit={6} />}
                 <div className="side-panel-tabs" role="tablist">
                   <button
                     type="button"
@@ -566,17 +639,15 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                     vehicles={normalizedCamiones}
                     routes={displayRoutes}
                     personnel={displayPersonnel}
-                    recentActivity={recentActivity}
+                    recentActivity={hasModulo('REC') ? recentActivity : []}
                     newEventIds={newEventIds}
-                    onViewAll={() => setActiveTab('reportes')}
+                    onViewAll={navToReportes}
                   />
                 ) : (
                   <RiskAlerts
                     alerts={displayAlerts}
-                    onViewDetails={(alert) => {
-                      setActiveTab('riesgos');
-                    }}
-                    onViewAll={() => setActiveTab('riesgos')}
+                    onViewDetails={navToRiesgos ? () => navToRiesgos() : undefined}
+                    onViewAll={navToRiesgos}
                     newAlertIds={newAlertIds}
                   />
                 )}
@@ -622,11 +693,11 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                   <MapLibreComponent
                     key="map-main"
                     camiones={normalizedCamiones}
-                    rutas={isViewer ? [] : (displayRoutes || [])}
-                    personnel={isViewer ? [] : (displayPersonnel || [])}
-                    lugares={isViewer ? [] : (lugares || [])}
+                    rutas={isViewer || !hasModulo('REC') ? [] : (displayRoutes || [])}
+                    personnel={isViewer || !hasModulo('PER') ? [] : (displayPersonnel || [])}
+                    lugares={isViewer || !(hasModulo('LIM') || hasModulo('FUM')) ? [] : (lugares || [])}
                     geofences={isViewer ? [] : geofences}
-                    allRouteProgress={isViewer ? [] : allRouteProgress}
+                    allRouteProgress={isViewer || !hasModulo('REC') ? [] : allRouteProgress}
                     userType={user.tipo}
                     showRealTime={true}
                     selectedTruck={selectedTruck}
@@ -666,17 +737,15 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                       vehicles={normalizedCamiones}
                       routes={displayRoutes}
                       personnel={displayPersonnel}
-                      recentActivity={recentActivity}
+                      recentActivity={hasModulo('REC') ? recentActivity : []}
                       newEventIds={newEventIds}
-                      onViewAll={() => setActiveTab('reportes')}
+                      onViewAll={navToReportes}
                     />
                   ) : (
                     <RiskAlerts
                       alerts={displayAlerts}
-                      onViewDetails={(alert) => {
-                        setActiveTab('riesgos');
-                      }}
-                      onViewAll={() => setActiveTab('riesgos')}
+                      onViewDetails={navToRiesgos ? () => navToRiesgos() : undefined}
+                      onViewAll={navToRiesgos}
                       newAlertIds={newAlertIds}
                     />
                   )}
@@ -689,14 +758,17 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
         return (
           <div className="operations-section">
             <div className="operations-tabs">
-              <button 
-                className={`ops-tab ${(!activeSubTab || activeSubTab === 'personal') ? 'ops-tab-active' : ''}`}
-                onClick={() => setActiveSubTab('personal')}
-              >
-                <Briefcase strokeWidth={1.5} size={20} />
-                <span>Personal</span>
-              </button>
-              <button 
+              {hasModulo('PER') && (
+                <button
+                  className={`ops-tab ${(!activeSubTab || activeSubTab === 'personal') ? 'ops-tab-active' : ''}`}
+                  onClick={() => setActiveSubTab('personal')}
+                  title="Módulo PER"
+                >
+                  <Briefcase strokeWidth={1.5} size={20} />
+                  <span>Personal</span>
+                </button>
+              )}
+              <button
                 className={`ops-tab ${activeSubTab === 'flota' ? 'ops-tab-active' : ''}`}
                 onClick={() => setActiveSubTab('flota')}
               >
@@ -706,16 +778,18 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
               <button
                 className={`ops-tab ${activeSubTab === 'servicios' ? 'ops-tab-active' : ''}`}
                 onClick={() => setActiveSubTab('servicios')}
+                title="Catálogo de servicios: rutas, lugares de fumigación, salas de limpieza"
               >
                 <Layers strokeWidth={1.5} size={20} />
-                <span>Servicios</span>
+                <span>Catálogo</span>
               </button>
               <button
                 className={`ops-tab ${activeSubTab === 'programacion' ? 'ops-tab-active' : ''}`}
                 onClick={() => setActiveSubTab('programacion')}
+                title="Asignar servicios del catálogo a conductores y fechas"
               >
                 <Calendar strokeWidth={1.5} size={20} />
-                <span>Asignación</span>
+                <span>Asignaciones</span>
               </button>
             </div>
             {renderOperationsContent()}
@@ -723,20 +797,29 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
         );
       case 'calendario':
         return <CalendarComponent />;
-      case 'mantenimiento':
-        return <MaintenanceComponent userRole={user.tipo} />;
-      case 'riesgos':
-        return <RiskComponent userType={user.tipo} />;
       case 'inventario':
         return <InventoryComponent userType={user.tipo} />;
+      case 'mantenimiento':
+        return <MaintenanceComponent userRole={user.tipo} />;
       case 'reportes':
-        return <ReportsComponent userType={user.tipo} preSelectedLocationId={selectedLocationId} onClearSelection={handleClearLocationSelection} />;
-      case 'costos':
-        return (userRole === 'admin' || isSuperAdmin) ? <CostosComponent /> : null;
+        return (
+          <ReportsComponent
+            preSelectedLocationId={selectedLocationId}
+            onClearSelection={handleClearLocationSelection}
+          />
+        );
+      case 'riesgos':
+        return <RiskComponent userType={user.tipo} />;
+      case 'asistencia':
+        return <AsistenciaComponent />;
+      case 'rrhh':
+        return <RRHHComponent />;
+      // admin (no super): Proyectos standalone
       case 'proyectos':
-        return (userRole === 'admin' || isSuperAdmin) ? <ProyectosComponent /> : null;
-      case 'organizaciones':
-        return isSuperAdmin ? <OrganizacionesComponent /> : null;
+        return !isSuperAdmin ? <ProyectosComponent /> : null;
+      // super_admin: PlataformaGroup agrupa Organizaciones + Proyectos
+      case 'plataforma':
+        return isSuperAdmin ? <PlataformaGroup /> : null;
       default:
         return null;
     }
@@ -754,6 +837,12 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
           <div className="app-bar__actions">
             <OrganizationSwitcher />
             <ProjectSwitcher />
+            {(isViewer || userRole === 'enterprise') && (
+              <div className="app-bar__role-badge" title="Solo puedes consultar información — no se permiten cambios">
+                <Lock strokeWidth={2} size={12} />
+                <span>Modo Lectura</span>
+              </div>
+            )}
             <div className="app-bar__status">
               <Activity size={16} />
               <span>Sistema en Tiempo Real</span>
@@ -774,62 +863,116 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             <LayoutDashboard strokeWidth={1.5} size={18} />
             <span>Monitoreo</span>
           </button>
-          {!isRestrictedClient && (
+          {!isRestrictedClient && (hasModulo('REC') || hasModulo('FUM') || hasModulo('LIM') || hasModulo('MTO') || hasModulo('PER')) && (
             <button
               className={`top-nav__tab ${activeTab === 'operaciones' ? 'active' : ''}`}
-              onClick={() => handleTabChange('operaciones', 'personal')}
+              onClick={() => handleTabChange('operaciones', hasModulo('PER') ? 'personal' : 'flota')}
             >
               <Truck strokeWidth={1.5} size={18} />
               <span>Operaciones</span>
             </button>
           )}
-          <button
-            className={`top-nav__tab ${activeTab === 'calendario' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
-            onClick={() => handleTabChange('calendario')}
-            disabled={isViewer}
-            title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
-          >
-            <Calendar strokeWidth={1.5} size={18} />
-            <span>Calendario</span>
-            {isViewer && <Lock strokeWidth={2} size={12} />}
-          </button>
-          <button
-            className={`top-nav__tab ${activeTab === 'mantenimiento' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
-            onClick={() => handleTabChange('mantenimiento')}
-            disabled={isViewer}
-            title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
-          >
-            <Wrench strokeWidth={1.5} size={18} />
-            <span>Mantenimiento</span>
-            {isViewer && <Lock strokeWidth={2} size={12} />}
-          </button>
-          <button
-            className={`top-nav__tab ${activeTab === 'riesgos' ? 'active' : ''}`}
-            onClick={() => handleTabChange('riesgos')}
-          >
-            <AlertTriangle strokeWidth={1.5} size={18} />
-            <span>Riesgos</span>
-          </button>
-          <button
-            className={`top-nav__tab ${activeTab === 'inventario' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
-            onClick={() => handleTabChange('inventario')}
-            disabled={isViewer}
-            title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
-          >
-            <Package strokeWidth={1.5} size={18} />
-            <span>Inventario</span>
-            {isViewer && <Lock strokeWidth={2} size={12} />}
-          </button>
-          {(userRole === 'admin' || isSuperAdmin) && (
+          {hasAnyOperacional && (
             <button
-              className={`top-nav__tab ${activeTab === 'costos' ? 'active' : ''}`}
-              onClick={() => handleTabChange('costos')}
+              className={`top-nav__tab ${activeTab === 'calendario' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
+              onClick={() => handleTabChange('calendario')}
+              disabled={isViewer}
+              title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
             >
-              <DollarSign strokeWidth={1.5} size={18} />
-              <span>Costos</span>
+              <Calendar strokeWidth={1.5} size={18} />
+              <span>Calendario</span>
+              {isViewer && <Lock strokeWidth={2} size={12} />}
             </button>
           )}
-          {(userRole === 'admin' || isSuperAdmin) && (
+          {/* Layout flat: cada módulo es su propio tab top-nav.
+              Orden visual: CORE primero (Monitoreo, Operaciones, Calendario, Riesgos),
+              después módulos pagos (Inventario, Mantenimiento, Reportes, Asistencia, RRHH),
+              después rol-only (Proyectos, Plataforma). */}
+
+          {/* Riesgos: CORE gated por REC (incidentes de recolección) */}
+          {hasModulo('REC') && (
+            <button
+              className={`top-nav__tab ${activeTab === 'riesgos' ? 'active' : ''}`}
+              onClick={() => handleTabChange('riesgos')}
+              title="Riesgos — reportes de incidentes operacionales"
+            >
+              <AlertTriangle strokeWidth={1.5} size={18} />
+              <span>Riesgos</span>
+            </button>
+          )}
+
+          {/* Inventario: módulo INV (incluye Costos como sub-tab interno) */}
+          {hasModulo('INV') && (
+            <button
+              className={`top-nav__tab ${activeTab === 'inventario' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
+              onClick={() => handleTabChange('inventario')}
+              disabled={isViewer}
+              title={isViewer ? 'Sección bloqueada para tu cuenta' : 'Inventario — materiales, flota y costos'}
+            >
+              <Package strokeWidth={1.5} size={18} />
+              <span>Inventario</span>
+              {isViewer && <Lock strokeWidth={2} size={12} />}
+            </button>
+          )}
+
+          {/* Mantenimiento: módulo MTO */}
+          {hasModulo('MTO') && (
+            <button
+              className={`top-nav__tab ${activeTab === 'mantenimiento' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
+              onClick={() => handleTabChange('mantenimiento')}
+              disabled={isViewer}
+              title={isViewer ? 'Sección bloqueada para tu cuenta' : 'Mantenimiento — tareas técnicas de vehículos y equipos'}
+            >
+              <Wrench strokeWidth={1.5} size={18} />
+              <span>Mantenimiento</span>
+              {isViewer && <Lock strokeWidth={2} size={12} />}
+            </button>
+          )}
+
+          {/* Reportes: módulo BI (histórico avanzado) */}
+          {hasModulo('BI') && (
+            <button
+              className={`top-nav__tab ${activeTab === 'reportes' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
+              onClick={() => handleTabChange('reportes')}
+              disabled={isViewer}
+              title={isViewer ? 'Sección bloqueada para tu cuenta' : 'Reportes — histórico consolidado'}
+            >
+              <BarChart3 strokeWidth={1.5} size={18} />
+              <span>Reportes</span>
+              {isViewer && <Lock strokeWidth={2} size={12} />}
+            </button>
+          )}
+
+          {/* Asistencia: módulo ASI (roadmap, placeholder) */}
+          {hasModulo('ASI') && (
+            <button
+              className={`top-nav__tab ${activeTab === 'asistencia' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
+              onClick={() => handleTabChange('asistencia')}
+              disabled={isViewer}
+              title={isViewer ? 'Sección bloqueada para tu cuenta' : 'Asistencia — control de jornadas (próximamente)'}
+            >
+              <Clock strokeWidth={1.5} size={18} />
+              <span>Asistencia</span>
+              {isViewer && <Lock strokeWidth={2} size={12} />}
+            </button>
+          )}
+
+          {/* RRHH: módulo RRHH / PER-full (roadmap, placeholder) */}
+          {(hasModulo('RRHH') || hasModulo('PER-full')) && (
+            <button
+              className={`top-nav__tab ${activeTab === 'rrhh' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
+              onClick={() => handleTabChange('rrhh')}
+              disabled={isViewer}
+              title={isViewer ? 'Sección bloqueada para tu cuenta' : 'RRHH — contratos, payroll, documentos (próximamente)'}
+            >
+              <Users strokeWidth={1.5} size={18} />
+              <span>RRHH</span>
+              {isViewer && <Lock strokeWidth={2} size={12} />}
+            </button>
+          )}
+
+          {/* Proyectos: solo para admin (no super_admin — super ve Plataforma que lo incluye) */}
+          {!isSuperAdmin && (userRole === 'admin') && (
             <button
               className={`top-nav__tab ${activeTab === 'proyectos' ? 'active' : ''}`}
               onClick={() => handleTabChange('proyectos')}
@@ -838,25 +981,18 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
               <span>Proyectos</span>
             </button>
           )}
+
+          {/* Plataforma: consolida Organizaciones + Proyectos para super_admin */}
           {isSuperAdmin && (
             <button
-              className={`top-nav__tab ${activeTab === 'organizaciones' ? 'active' : ''}`}
-              onClick={() => handleTabChange('organizaciones')}
+              className={`top-nav__tab ${activeTab === 'plataforma' ? 'active' : ''}`}
+              onClick={() => handleTabChange('plataforma')}
+              title="Plataforma — Organizaciones y Proyectos (super_admin)"
             >
               <Shield strokeWidth={1.5} size={18} />
-              <span>Organizaciones</span>
+              <span>Plataforma</span>
             </button>
           )}
-          <button
-            className={`top-nav__tab ${activeTab === 'reportes' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
-            onClick={() => handleTabChange('reportes')}
-            disabled={isViewer}
-            title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
-          >
-            <BarChart3 strokeWidth={1.5} size={18} />
-            <span>Reportes</span>
-            {isViewer && <Lock strokeWidth={2} size={12} />}
-          </button>
         </nav>
       </div>
 
@@ -887,11 +1023,11 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                 <MapLibreComponent
                   key="map-maximized"
                   camiones={normalizedCamiones}
-                  rutas={isViewer ? [] : (displayRoutes || [])}
-                  personnel={isViewer ? [] : (displayPersonnel || [])}
-                  lugares={isViewer ? [] : (lugares || [])}
+                  rutas={isViewer || !hasModulo('REC') ? [] : (displayRoutes || [])}
+                  personnel={isViewer || !hasModulo('PER') ? [] : (displayPersonnel || [])}
+                  lugares={isViewer || !(hasModulo('LIM') || hasModulo('FUM')) ? [] : (lugares || [])}
                   geofences={isViewer ? [] : geofences}
-                  allRouteProgress={isViewer ? [] : allRouteProgress}
+                  allRouteProgress={isViewer || !hasModulo('REC') ? [] : allRouteProgress}
                   userType={user.tipo}
                   showRealTime={true}
                   selectedTruck={selectedTruck}
@@ -907,20 +1043,17 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                     vehicles={normalizedCamiones}
                     routes={displayRoutes}
                     personnel={displayPersonnel}
-                    recentActivity={recentActivity}
+                    recentActivity={hasModulo('REC') ? recentActivity : []}
                     newEventIds={newEventIds}
-                    onViewAll={() => { setIsMapMaximized(false); setActiveTab('reportes'); }}
+                    onViewAll={navToReportes ? () => { setIsMapMaximized(false); navToReportes(); } : undefined}
                   />
                 </div>
 
                 <div className="map-floating-alerts">
                   <RiskAlerts
                     alerts={displayAlerts}
-                    onViewDetails={(alert) => {
-                      setIsMapMaximized(false);
-                      setActiveTab('riesgos');
-                    }}
-                    onViewAll={() => { setIsMapMaximized(false); setActiveTab('riesgos'); }}
+                    onViewDetails={navToRiesgos ? () => { setIsMapMaximized(false); navToRiesgos(); } : undefined}
+                    onViewAll={navToRiesgos ? () => { setIsMapMaximized(false); navToRiesgos(); } : undefined}
                     newAlertIds={newAlertIds}
                   />
                 </div>
@@ -928,6 +1061,25 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Confirm dialog (delete employee, etc.) */}
+      {confirmDelete && (
+        <ConfirmDialog
+          open
+          destructive
+          title="¿Desactivar empleado?"
+          message={`Vas a desactivar a ${confirmDelete.label || 'este empleado'}. Esta acción se puede revertir desde el panel de personal.`}
+          confirmLabel="Desactivar"
+          cancelLabel="Cancelar"
+          onConfirm={() => {
+            if (confirmDelete.type === 'employee') {
+              deleteEmployee(confirmDelete.id);
+            }
+            setConfirmDelete(null);
+          }}
+          onCancel={() => setConfirmDelete(null)}
+        />
       )}
 
       {/* Alertas de Geofence - Pop-ups flotantes */}

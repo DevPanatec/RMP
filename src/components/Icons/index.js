@@ -97,7 +97,10 @@ export {
   Moon,
   Globe,
   Power,
-  Inbox
+  Inbox,
+  HardDrive,
+  ToggleLeft,
+  ToggleRight
 } from 'lucide-react';
 
 // Alias para Spray

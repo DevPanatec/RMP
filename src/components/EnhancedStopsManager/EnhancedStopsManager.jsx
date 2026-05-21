@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import MapLocationPicker from '../MapLocationPicker/MapLocationPicker';
 import { Map, MapPin, Plus, X, Edit, Trash2, ClipboardList, AlertTriangle, Ruler, ChevronUp, ChevronDown } from '../Icons';
+import { ConfirmDialog } from '../UI';
 import './EnhancedStopsManager.css';
 
 const EnhancedStopsManager = ({ stops = [], onStopsChange, showHeader = true }) => {
   const [mapMode, setMapMode] = useState('add'); // 'add' or 'edit'
   const [editingStop, setEditingStop] = useState(null);
+  const [stopToDelete, setStopToDelete] = useState(null);
 
   const handleLocationSelect = (locationData) => {
     if (mapMode === 'edit' && editingStop) {
@@ -39,15 +41,19 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange, showHeader = true }) 
   };
 
   const handleRemoveStop = (stopId) => {
-    if (window.confirm('¿Eliminar esta parada?')) {
-      const updatedStops = stops.filter(stop => stop.id !== stopId);
-      // Reordenar
-      const reorderedStops = updatedStops.map((stop, index) => ({
-        ...stop,
-        orden: index + 1
-      }));
-      onStopsChange && onStopsChange(reorderedStops);
-    }
+    const stop = stops.find(s => s.id === stopId);
+    setStopToDelete(stop || { id: stopId });
+  };
+
+  const confirmRemoveStop = () => {
+    if (!stopToDelete) return;
+    const updatedStops = stops.filter(stop => stop.id !== stopToDelete.id);
+    const reorderedStops = updatedStops.map((stop, index) => ({
+      ...stop,
+      orden: index + 1
+    }));
+    onStopsChange && onStopsChange(reorderedStops);
+    setStopToDelete(null);
   };
 
   const handleMoveStop = (stopId, direction) => {
@@ -258,6 +264,19 @@ const EnhancedStopsManager = ({ stops = [], onStopsChange, showHeader = true }) 
           )}
         </div>
       </div>
+
+      {stopToDelete && (
+        <ConfirmDialog
+          open
+          destructive
+          title="¿Eliminar parada?"
+          message={`Vas a eliminar la parada #${stopToDelete.orden || ''}${stopToDelete.direccion ? ` (${stopToDelete.direccion})` : ''}.`}
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          onConfirm={confirmRemoveStop}
+          onCancel={() => setStopToDelete(null)}
+        />
+      )}
     </div>
   );
 };

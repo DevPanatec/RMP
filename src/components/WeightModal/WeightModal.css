@@ -565,9 +565,23 @@
 }
 
 .weight-sheet__cat-desc {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--color-text-secondary);
-  line-height: 1;
+  line-height: 1.1;
+}
+
+/* Sección "no puedo completar" — antes era style inline con #e5e7eb / #6b7280 */
+.weight-sheet__skip-section {
+  margin-top: var(--space-16);
+  padding-top: var(--space-16);
+  border-top: 1px solid var(--color-border);
+}
+
+.weight-sheet__skip-hint {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin: var(--space-8) 0 0;
 }
 
 .weight-sheet__loading {

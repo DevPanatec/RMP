@@ -1,11 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useInventory } from '../../context/InventoryContext';
-import { Package, FileText, AlertTriangle, X, Loader, CheckCircle, Search, Filter, LayoutGrid, List, Eye, Edit, Trash2, TrendingUp, TrendingDown, Plus } from '../Icons';
+import { Package, FileText, AlertTriangle, X, Loader, CheckCircle, Search, Filter, LayoutGrid, List, Eye, Edit, Trash2, TrendingUp, TrendingDown, Plus, Truck, DollarSign } from '../Icons';
 import ItemDetailModal from './ItemDetailModal';
+import { ConfirmDialog } from '../UI';
+import { handleMutationError } from '../../utils/mutationError';
+import FleetInventoryComponent from '../FleetInventory/FleetInventoryComponent';
+import CostosComponent from '../Costos/CostosComponent';
 import './InventoryComponent.css';
 
-const InventoryComponent = ({ userType = 'admin' }) => {
+const InventoryMaterials = ({ userType = 'admin' }) => {
   const { materials, lugares, codigoSugerido, loading, error, getInventoryStats, searchMaterials, addMaterial, updateMaterial, deleteMaterial } = useInventory();
+  const canWrite = userType === 'admin' || userType === 'super_admin';
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -33,6 +38,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
     cantidad_maxima: '',
     proveedor: ''
   });
+  const [materialToDelete, setMaterialToDelete] = useState(null);
 
   // Filtrar y buscar materiales
   const filteredMaterials = useMemo(() => {
@@ -191,7 +197,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
       setShowMaterialModal(false);
     } catch (error) {
       console.error('Error al agregar item:', error);
-      alert('Error al agregar el item: ' + error.message);
+      handleMutationError(error, 'Error al agregar el item');
     } finally {
       setIsSubmitting(false);
     }
@@ -230,20 +236,24 @@ const InventoryComponent = ({ userType = 'admin' }) => {
       setShowEditModal(false);
       setSelectedMaterial(null);
     } catch (error) {
-      alert('Error al actualizar: ' + error.message);
+      handleMutationError(error, 'Error al actualizar');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDeleteMaterial = async (material) => {
-    if (window.confirm(`¿Estás seguro de eliminar "${material.nombre}"?`)) {
-      try {
-        await deleteMaterial(material._id);
-        alert('Material eliminado exitosamente');
-      } catch (error) {
-        alert('Error al eliminar: ' + error.message);
-      }
+  const handleDeleteMaterial = (material) => {
+    setMaterialToDelete(material);
+  };
+
+  const confirmDeleteMaterial = async () => {
+    if (!materialToDelete) return;
+    try {
+      await deleteMaterial(materialToDelete._id);
+    } catch (error) {
+      handleMutationError(error, 'Error al eliminar');
+    } finally {
+      setMaterialToDelete(null);
     }
   };
 
@@ -260,17 +270,19 @@ const InventoryComponent = ({ userType = 'admin' }) => {
               <p>Control integral de items, materiales e insumos</p>
             </div>
           </div>
-          <div className="inventory-actions-modern">
-            <button className="btn-modern btn-secondary">
-              <FileText size={18} /> Importar
-            </button>
-            <button
-              className="btn-modern btn-primary"
-              onClick={() => setShowMaterialModal(true)}
-            >
-              <Package size={18} /> Nuevo Item
-            </button>
-          </div>
+          {canWrite && (
+            <div className="inventory-actions-modern">
+              <button className="btn-modern btn-secondary">
+                <FileText size={18} /> Importar
+              </button>
+              <button
+                className="btn-modern btn-primary"
+                onClick={() => setShowMaterialModal(true)}
+              >
+                <Package size={18} /> Nuevo Item
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Barra de búsqueda y filtros */}
@@ -487,23 +499,30 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                           className="action-btn-modern action-view"
                           onClick={() => handleViewMaterial(material)}
                           title="Ver detalles y ubicaciones"
+                          aria-label="Ver detalles del material"
                         >
                           <Eye size={16} />
                         </button>
-                        <button
-                          className="action-btn-modern action-edit"
-                          onClick={() => handleEditMaterial(material)}
-                          title="Editar material"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          className="action-btn-modern action-delete"
-                          onClick={() => handleDeleteMaterial(material)}
-                          title="Eliminar material"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {canWrite && (
+                          <>
+                            <button
+                              className="action-btn-modern action-edit"
+                              onClick={() => handleEditMaterial(material)}
+                              title="Editar material"
+                              aria-label="Editar material"
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button
+                              className="action-btn-modern action-delete"
+                              onClick={() => handleDeleteMaterial(material)}
+                              title="Eliminar material"
+                              aria-label="Eliminar material"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -580,18 +599,23 @@ const InventoryComponent = ({ userType = 'admin' }) => {
                   >
                     <Eye size={16} /> Ver
                   </button>
-                  <button
-                    className="card-btn card-btn-edit"
-                    onClick={() => handleEditMaterial(material)}
-                  >
-                    <Edit size={16} /> Editar
-                  </button>
-                  <button
-                    className="card-btn card-btn-delete"
-                    onClick={() => handleDeleteMaterial(material)}
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  {canWrite && (
+                    <>
+                      <button
+                        className="card-btn card-btn-edit"
+                        onClick={() => handleEditMaterial(material)}
+                      >
+                        <Edit size={16} /> Editar
+                      </button>
+                      <button
+                        className="card-btn card-btn-delete"
+                        onClick={() => handleDeleteMaterial(material)}
+                        aria-label="Eliminar material"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             );
@@ -651,10 +675,12 @@ const InventoryComponent = ({ userType = 'admin' }) => {
           </div>
         </div>
 
-        <button className="btn-add-v2" onClick={() => setShowMaterialModal(true)}>
-          <Plus size={18} />
-          Nuevo Item
-        </button>
+        {canWrite && (
+          <button className="btn-add-v2" onClick={() => setShowMaterialModal(true)}>
+            <Plus size={18} />
+            Nuevo Item
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -874,6 +900,7 @@ const InventoryComponent = ({ userType = 'admin' }) => {
       {showDetailModal && selectedMaterial && (
         <ItemDetailModal
           item={selectedMaterial}
+          canWrite={canWrite}
           onClose={() => {
             setShowDetailModal(false);
             setSelectedMaterial(null);
@@ -992,6 +1019,57 @@ const InventoryComponent = ({ userType = 'admin' }) => {
           </div>
         </div>
       )}
+
+      {materialToDelete && (
+        <ConfirmDialog
+          open
+          destructive
+          title="¿Eliminar item de inventario?"
+          message={`Vas a eliminar "${materialToDelete.nombre}". Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          onConfirm={confirmDeleteMaterial}
+          onCancel={() => setMaterialToDelete(null)}
+        />
+      )}
+    </div>
+  );
+};
+
+const InventoryComponent = ({ userType = 'admin' }) => {
+  const [invTab, setInvTab] = useState('materiales');
+  const canSeeCostos = userType === 'admin' || userType === 'super_admin';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div className="inv-subtabs">
+        <button
+          className={`inv-subtab${invTab === 'materiales' ? ' inv-subtab--active' : ''}`}
+          onClick={() => setInvTab('materiales')}
+        >
+          <Package size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+          Materiales
+        </button>
+        <button
+          className={`inv-subtab${invTab === 'flota' ? ' inv-subtab--active' : ''}`}
+          onClick={() => setInvTab('flota')}
+        >
+          <Truck size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+          Inventario de Flota
+        </button>
+        {canSeeCostos && (
+          <button
+            className={`inv-subtab${invTab === 'costos' ? ' inv-subtab--active' : ''}`}
+            onClick={() => setInvTab('costos')}
+            title="Análisis financiero del inventario y mantenimiento"
+          >
+            <DollarSign size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
+            Costos
+          </button>
+        )}
+      </div>
+      {invTab === 'materiales' && <InventoryMaterials userType={userType} />}
+      {invTab === 'flota' && <FleetInventoryComponent userRole={userType} />}
+      {invTab === 'costos' && canSeeCostos && <CostosComponent />}
     </div>
   );
 };

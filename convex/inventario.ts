@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthScope, requireOrgAccess, requireWriteRole } from "./lib/auth";
+import { requireModulo } from "./lib/modules";
 
 // Filtra items por scope: super_admin/cross-org ven todos; demás solo su org (estricta).
 async function scopeItems(ctx: any, items: any[]) {
@@ -112,6 +113,7 @@ export const add = mutation({
   },
   handler: async (ctx, args) => {
     const scope = await requireWriteRole(ctx);
+    await requireModulo(ctx, "INV");
     if (!scope.isSuperAdmin && !scope.organizacionId) {
       throw new Error("Sin organización asignada");
     }
@@ -183,6 +185,7 @@ export const addToLocation = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "INV");
     const item = await ctx.db.get(args.item_id);
     if (!item) throw new Error("Item no encontrado");
     if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
@@ -220,6 +223,7 @@ export const updateLocationQuantity = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "INV");
     const ub = await ctx.db.get(args.ubicacion_id);
     if (!ub) throw new Error("Ubicación no encontrada");
     const item = await ctx.db.get(ub.item_id);
@@ -235,6 +239,7 @@ export const removeFromLocation = mutation({
   args: { ubicacion_id: v.id("inventario_ubicaciones") },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "INV");
     const ub = await ctx.db.get(args.ubicacion_id);
     if (!ub) throw new Error("Ubicación no encontrada");
     const item = await ctx.db.get(ub.item_id);
@@ -260,6 +265,7 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "INV");
     const item = await ctx.db.get(args.id);
     if (!item) throw new Error("Item no encontrado");
     if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
@@ -274,6 +280,7 @@ export const remove = mutation({
   args: { id: v.id("inventario") },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "INV");
     const item = await ctx.db.get(args.id);
     if (!item) throw new Error("Item no encontrado");
     if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
@@ -375,6 +382,7 @@ export const asignarDesdeAlmacen = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "INV");
     const item = await ctx.db.get(args.item_id);
     if (!item) throw new Error("Item no encontrado");
     if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
@@ -545,6 +553,7 @@ export const registrarCompra = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "INV");
     const item = await ctx.db.get(args.item_id);
     if (!item) {
       throw new Error("Item no encontrado");
@@ -756,6 +765,7 @@ export const registrarConsumo = mutation({
     if (args.cantidad <= 0) throw new Error("Cantidad debe ser positiva");
 
     const scope = await requireWriteRole(ctx);
+    await requireModulo(ctx, "INV");
     const item = await ctx.db.get(args.item_id);
     if (!item) throw new Error("Item no encontrado");
     if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");

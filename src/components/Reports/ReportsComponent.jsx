@@ -7,6 +7,7 @@ import { useMaintenance } from '../../context/MaintenanceContext';
 import { useReports } from '../../context/ReportsContext';
 import { useRoutes } from '../../context/RoutesContext';
 import { useAuth } from '../../context/AuthContext';
+import { useOrganization } from '../../context/OrganizationContext';
 import { BarChart3, Truck, Bug, Sparkles, Wrench, MapPin, Download, Calendar } from '../Icons';
 import { EmptyState } from '../UI';
 import ReportsDashboard from './ReportsDashboard';
@@ -68,6 +69,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
   });
 
   const { user } = useAuth();
+  const { hasModulo } = useOrganization();
   const { assignments, loading: cleaningLoading, lugares } = useCleaning();
   const {
     assignments: fumigationAssignments,
@@ -141,13 +143,26 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     }
   }, [preSelectedLocationId, fumigationLugares, displayLugares, displayAssignments]);
 
-  const categories = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'recoleccion', label: 'Recolección', icon: Truck },
-    { id: 'fumigacion', label: 'Fumigación', icon: Bug },
-    { id: 'limpieza', label: 'Limpieza', icon: Sparkles },
-    { id: 'mantenimiento', label: 'Mantenimiento', icon: Wrench }
-  ];
+  // Filtrar tabs según módulos activos en la org. Dashboard siempre visible
+  // (agrega across modules, su contenido ya se autoadapta a lo que hay).
+  const categories = useMemo(() => {
+    const all = [
+      { id: 'dashboard', label: 'Dashboard', icon: BarChart3, modulo: null },
+      { id: 'recoleccion', label: 'Recolección', icon: Truck, modulo: 'REC' },
+      { id: 'fumigacion', label: 'Fumigación', icon: Bug, modulo: 'FUM' },
+      { id: 'limpieza', label: 'Limpieza', icon: Sparkles, modulo: 'LIM' },
+      { id: 'mantenimiento', label: 'Mantenimiento', icon: Wrench, modulo: 'MTO' },
+    ];
+    return all.filter((c) => c.modulo === null || hasModulo(c.modulo));
+  }, [hasModulo]);
+
+  // Si el tab activo ya no está disponible (módulo desactivado mid-session),
+  // saltar a dashboard.
+  useEffect(() => {
+    if (!categories.find((c) => c.id === activeCategory)) {
+      setActiveCategory('dashboard');
+    }
+  }, [categories, activeCategory]);
 
   const getStatusVariant = (estado) => {
     switch (estado) {

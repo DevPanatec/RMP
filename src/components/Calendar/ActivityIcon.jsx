@@ -7,6 +7,8 @@ const ActivityIcon = ({ activity, size = 'md' }) => {
         return '🦟';
       case 'limpieza':
         return '🧹';
+      case 'mantenimiento':
+        return '🔧';
       default:
         return '📌';
     }
@@ -20,6 +22,8 @@ const ActivityIcon = ({ activity, size = 'md' }) => {
         return 'activity-icon-fumigacion';
       case 'limpieza':
         return 'activity-icon-limpieza';
+      case 'mantenimiento':
+        return 'activity-icon-mantenimiento';
       default:
         return 'activity-icon-default';
     }

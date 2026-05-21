@@ -5,6 +5,7 @@ import { useCleaning } from '../../context/CleaningContext';
 import { useAuth } from '../../context/AuthContext';
 import PhotosModal from './PhotosModal';
 import CleaningModal from './CleaningModal';
+import { handleMutationError } from '../../utils/mutationError';
 import './CleaningAssignments.css';
 
 const CleaningAssignments = ({ userRole }) => {
@@ -31,7 +32,7 @@ const CleaningAssignments = ({ userRole }) => {
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al crear la asignación');
+      handleMutationError(error, 'Error al crear la asignación');
       return { success: false, error: error.message };
     }
   };
@@ -86,7 +87,7 @@ const CleaningAssignments = ({ userRole }) => {
       }
     } catch (error) {
       console.error('Error al completar asignación:', error);
-      alert('Error al completar la asignación');
+      handleMutationError(error, 'Error al completar la asignación');
     }
 
     setShowPhotosModal(false);

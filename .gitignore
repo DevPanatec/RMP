@@ -75,3 +75,13 @@ playwright/.cache/
 # Troops audit state — current run is gitignored, history is committed
 .audit-state/current/
 !.audit-state/history/
+
+# Playwright MCP session data (local)
+.playwright-mcp/
+
+# Claude Code local state
+.claude/scheduled_tasks.lock
+.claude/projects/
+
+# Test screenshots in repo root (use audit/ instead)
+conductor-iphone14pro-mobile.png

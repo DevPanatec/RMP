@@ -4,6 +4,7 @@ import { useCleaning } from '../../context/CleaningContext';
 import { useFumigation } from '../../context/FumigationContext';
 import { useSchedule } from '../../context/ScheduleContext';
 import { useMaintenance } from '../../context/MaintenanceContext';
+import { useOrganization } from '../../context/OrganizationContext';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter } from '../Icons';
 import CalendarDay from './CalendarDay';
 import DayDetailsModal from './DayDetailsModal';
@@ -23,6 +24,15 @@ const CalendarComponent = () => {
   const { assignments: fumigationAssignments, loading: fumigationLoading } = useFumigation();
   const { assignments: scheduleAssignments, loading: scheduleLoading, getDayNameFromDate, getStartOfWeekFromDate } = useSchedule();
   const { tasks: maintenanceTasks, loading: maintenanceLoading } = useMaintenance();
+  const { hasModulo } = useOrganization();
+
+  // Gates por módulo. Si org no tiene el módulo, ocultar filtro + skip activities.
+  const enabledModules = useMemo(() => ({
+    recoleccion: hasModulo('REC'),
+    fumigacion: hasModulo('FUM'),
+    limpieza: hasModulo('LIM'),
+    mantenimiento: hasModulo('MTO'),
+  }), [hasModulo]);
 
   const [viewMode, setViewMode] = useState('month');
   const [selectedDate, setSelectedDate] = useState(new Date()); // Default to current date
@@ -75,7 +85,7 @@ const CalendarComponent = () => {
       const routeType = assignment.ruta?.tipo_servicio || 'recoleccion';
       const timeDisplay = assignment.hora_inicio || assignment.ruta?.hora_inicio || '08:00';
 
-      if (filters.recoleccion && routeType === 'recoleccion') {
+      if (enabledModules.recoleccion && filters.recoleccion && routeType === 'recoleccion') {
         activities.push({
           id: `route-rec-${assignment.id}`,
           type: 'recoleccion',
@@ -92,7 +102,7 @@ const CalendarComponent = () => {
       }
     });
 
-    if (filters.limpieza) {
+    if (enabledModules.limpieza && filters.limpieza) {
       const cleaningForDate = cleaningAssignments.filter(
         a => a.fecha === dateStr
       );
@@ -113,7 +123,7 @@ const CalendarComponent = () => {
     }
 
     // Fumigaciones
-    if (filters.fumigacion && fumigationAssignments) {
+    if (enabledModules.fumigacion && filters.fumigacion && fumigationAssignments) {
       const fumigationsForDate = fumigationAssignments.filter(
         f => f.fecha === dateStr
       );
@@ -133,7 +143,7 @@ const CalendarComponent = () => {
       });
     }
 
-    if (filters.mantenimiento) {
+    if (enabledModules.mantenimiento && filters.mantenimiento) {
       const maintenanceForDate = maintenanceTasks.filter(
         task => task.fecha_programada === dateStr
       );
@@ -297,22 +307,30 @@ const CalendarComponent = () => {
         </div>
 
         <div className="calendar-header-stats">
-          <div className="calendar-stat-pill success">
-            <span className="stat-number">{totalRecoleccion}</span>
-            <span className="stat-label">Recolección</span>
-          </div>
-          <div className="calendar-stat-pill info">
-            <span className="stat-number">{totalFumigacion}</span>
-            <span className="stat-label">Fumigación</span>
-          </div>
-          <div className="calendar-stat-pill warning">
-            <span className="stat-number">{totalLimpieza}</span>
-            <span className="stat-label">Limpieza</span>
-          </div>
-          <div className="calendar-stat-pill">
-            <span className="stat-number">{totalMantenimiento}</span>
-            <span className="stat-label">Mantenimiento</span>
-          </div>
+          {enabledModules.recoleccion && (
+            <div className="calendar-stat-pill success">
+              <span className="stat-number">{totalRecoleccion}</span>
+              <span className="stat-label">Recolección</span>
+            </div>
+          )}
+          {enabledModules.fumigacion && (
+            <div className="calendar-stat-pill info">
+              <span className="stat-number">{totalFumigacion}</span>
+              <span className="stat-label">Fumigación</span>
+            </div>
+          )}
+          {enabledModules.limpieza && (
+            <div className="calendar-stat-pill warning">
+              <span className="stat-number">{totalLimpieza}</span>
+              <span className="stat-label">Limpieza</span>
+            </div>
+          )}
+          {enabledModules.mantenimiento && (
+            <div className="calendar-stat-pill">
+              <span className="stat-number">{totalMantenimiento}</span>
+              <span className="stat-label">Mantenimiento</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -361,30 +379,38 @@ const CalendarComponent = () => {
             <Filter size={16} /> Filtrar por:
           </div>
           <div className="filter-buttons">
-            <button
-              className={`filter-btn ${filters.recoleccion ? 'active' : ''}`}
-              onClick={() => toggleFilter('recoleccion')}
-            >
-              🚛 Recolección
-            </button>
-            <button
-              className={`filter-btn ${filters.fumigacion ? 'active' : ''}`}
-              onClick={() => toggleFilter('fumigacion')}
-            >
-              🦟 Fumigación
-            </button>
-            <button
-              className={`filter-btn ${filters.limpieza ? 'active' : ''}`}
-              onClick={() => toggleFilter('limpieza')}
-            >
-              🧹 Limpieza
-            </button>
-            <button
-              className={`filter-btn ${filters.mantenimiento ? 'active' : ''}`}
-              onClick={() => toggleFilter('mantenimiento')}
-            >
-              🔧 Mantenimiento
-            </button>
+            {enabledModules.recoleccion && (
+              <button
+                className={`filter-btn ${filters.recoleccion ? 'active' : ''}`}
+                onClick={() => toggleFilter('recoleccion')}
+              >
+                🚛 Recolección
+              </button>
+            )}
+            {enabledModules.fumigacion && (
+              <button
+                className={`filter-btn ${filters.fumigacion ? 'active' : ''}`}
+                onClick={() => toggleFilter('fumigacion')}
+              >
+                🦟 Fumigación
+              </button>
+            )}
+            {enabledModules.limpieza && (
+              <button
+                className={`filter-btn ${filters.limpieza ? 'active' : ''}`}
+                onClick={() => toggleFilter('limpieza')}
+              >
+                🧹 Limpieza
+              </button>
+            )}
+            {enabledModules.mantenimiento && (
+              <button
+                className={`filter-btn ${filters.mantenimiento ? 'active' : ''}`}
+                onClick={() => toggleFilter('mantenimiento')}
+              >
+                🔧 Mantenimiento
+              </button>
+            )}
           </div>
         </div>
       )}

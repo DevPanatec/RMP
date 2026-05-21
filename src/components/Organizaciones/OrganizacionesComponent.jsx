@@ -5,6 +5,7 @@ import {
   Building, Plus, Edit3, X, Save, CheckCircle, AlertTriangle,
   Mail, Phone, Globe, Power
 } from '../Icons';
+import { ConfirmDialog } from '../UI';
 import './OrganizacionesComponent.css';
 
 const initialForm = {
@@ -34,6 +35,7 @@ const OrganizacionesComponent = () => {
   const [form, setForm] = useState(initialForm);
   const [feedback, setFeedback] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [orgToToggle, setOrgToToggle] = useState(null);
 
   const orgsOrdenadas = useMemo(
     () => [...orgs].sort((a, b) => a.nombre.localeCompare(b.nombre)),
@@ -105,14 +107,19 @@ const OrganizacionesComponent = () => {
     }
   };
 
-  const toggleActivo = async (o) => {
-    const action = o.activo ? 'desactivar' : 'reactivar';
-    if (!window.confirm(`¿Seguro que deseas ${action} "${o.nombre}"?`)) return;
+  const toggleActivo = (o) => {
+    setOrgToToggle(o);
+  };
+
+  const confirmToggleActivo = async () => {
+    if (!orgToToggle) return;
     try {
-      await setActiveOrg({ id: o._id, activo: !o.activo });
-      flash('ok', `Organización ${o.activo ? 'desactivada' : 'reactivada'}`);
+      await setActiveOrg({ id: orgToToggle._id, activo: !orgToToggle.activo });
+      flash('ok', `Organización ${orgToToggle.activo ? 'desactivada' : 'reactivada'}`);
     } catch (err) {
       flash('error', err.message);
+    } finally {
+      setOrgToToggle(null);
     }
   };
 
@@ -267,6 +274,19 @@ const OrganizacionesComponent = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {orgToToggle && (
+        <ConfirmDialog
+          open
+          destructive={orgToToggle.activo}
+          title={orgToToggle.activo ? '¿Desactivar organización?' : '¿Reactivar organización?'}
+          message={`${orgToToggle.activo ? 'Vas a desactivar' : 'Vas a reactivar'} "${orgToToggle.nombre}". ${orgToToggle.activo ? 'Los usuarios no podrán acceder.' : 'Los usuarios recuperarán acceso.'}`}
+          confirmLabel={orgToToggle.activo ? 'Desactivar' : 'Reactivar'}
+          cancelLabel="Cancelar"
+          onConfirm={confirmToggleActivo}
+          onCancel={() => setOrgToToggle(null)}
+        />
       )}
     </div>
   );

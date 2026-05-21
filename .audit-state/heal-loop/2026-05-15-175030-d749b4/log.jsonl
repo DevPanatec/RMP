@@ -1,0 +1,5 @@
+{"t":1778885431049,"type":"init","scope":"C:\\Users\\Usuario\\OneDrive\\Documents\\RMP\\rmp\\.audit-state\\heal-loop\\2026-05-15-175030-d749b4\\scope.md"}
+{"t":1778885439197,"type":"update","patch":{"cycle":1,"state":"audit"}}
+{"t":1778885740737,"type":"update","patch":{"state":"worker","p0_history":[7],"p1_history":[14]}}
+{"t":1778886473771,"type":"update","patch":{"cycle":2,"state":"audit","cycles_completed":1}}
+{"t":1779109721397,"type":"update","patch":{"state":"done","p0_history":[7,0],"p1_history":[14,0],"cycles_completed":2,"finished_at":1779109721000,"final_state":"clean"}}

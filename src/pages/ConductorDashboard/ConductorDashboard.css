@@ -143,23 +143,56 @@
   top: 0;
   left: 0;
   right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-12);
   background: var(--color-warning);
   color: white;
-  padding: 12px 20px;
-  text-align: center;
-  font-weight: 600;
-  font-size: 14px;
+  padding: calc(var(--space-8) + env(safe-area-inset-top, 0)) calc(var(--space-16) + env(safe-area-inset-right, 0)) var(--space-8) calc(var(--space-16) + env(safe-area-inset-left, 0));
+  font-weight: var(--font-weight-semibold, 600);
+  font-size: var(--font-size-sm, 13px);
   z-index: 1000;
   animation: slideDown 0.3s var(--ease-out);
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(10px);
+  flex-wrap: wrap;
+}
+
+.offline-banner__icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.offline-banner__text {
+  flex-shrink: 0;
+}
+
+.offline-banner__queue {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px var(--space-8);
+  border-radius: var(--radius-full, 9999px);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium, 500);
+}
+
+@media (max-width: 480px) {
+  .offline-banner {
+    font-size: 12px;
+    padding: var(--space-8) var(--space-12);
+  }
+  .offline-banner__text {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+  }
 }
 
 .install-banner {
   position: fixed;
-  bottom: 20px;
-  left: 20px;
-  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0));
+  left: calc(20px + env(safe-area-inset-left, 0));
+  right: calc(20px + env(safe-area-inset-right, 0));
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   padding: 16px;
@@ -220,6 +253,7 @@
 /* Dashboard Container */
 .conductor-dashboard {
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--color-background);
   padding: 0;
 }
@@ -228,7 +262,7 @@
 .conductor-header {
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-divider);
-  padding: 20px 24px;
+  padding: calc(20px + env(safe-area-inset-top, 0)) calc(24px + env(safe-area-inset-right, 0)) 20px calc(24px + env(safe-area-inset-left, 0));
   position: sticky;
   top: 0;
   z-index: 100;
@@ -538,6 +572,7 @@
   flex-direction: column !important;
   align-items: stretch !important;
   min-height: 100vh !important;
+  min-height: 100dvh !important;
   background: var(--color-background) !important;
 }
 
@@ -661,7 +696,7 @@
   justify-content: space-between;
   align-items: center;
   margin: 0 !important;
-  padding: 20px 24px !important;
+  padding: calc(20px + env(safe-area-inset-top, 0)) calc(24px + env(safe-area-inset-right, 0)) 20px calc(24px + env(safe-area-inset-left, 0)) !important;
   flex-shrink: 0 !important;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
@@ -1470,17 +1505,23 @@
   box-shadow: var(--shadow-md);
   width: 100%;
   max-width: 300px;
+  min-height: 44px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.btn-start-route:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  background: var(--color-primary-hover);
+@media (hover: hover) {
+  .btn-start-route:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    background: var(--color-primary-hover);
+  }
 }
 
 .btn-start-route:active {
   transform: translateY(0);
   box-shadow: var(--shadow-sm);
+  background: var(--color-primary-hover);
 }
 
 .start-route-hint {
@@ -2450,7 +2491,9 @@
   /* Dashboard container must fill viewport as column */
   .conductor-dashboard.dashboard-container {
     height: 100vh !important;
+    height: 100dvh !important;
     max-height: 100vh !important;
+    max-height: 100dvh !important;
     overflow: hidden !important;
   }
 
@@ -3272,6 +3315,7 @@
     inset: 0 !important;
     overflow: hidden !important;
     height: 100vh !important;
+    height: 100dvh !important;
     width: 100vw !important;
   }
 
@@ -3283,6 +3327,7 @@
     margin: 0 !important;
     overflow: hidden !important;
     height: 100vh !important;
+    height: 100dvh !important;
     width: 100vw !important;
     z-index: 1;
   }
@@ -3294,13 +3339,16 @@
     padding: 0 !important;
     margin: 0 !important;
     height: 100vh !important;
+    height: 100dvh !important;
     width: 100vw !important;
   }
 
   .conductor-dashboard--map-fullscreen .map-container-large {
     width: 100vw !important;
     height: 100vh !important;
+    height: 100dvh !important;
     min-height: 100vh !important;
+    min-height: 100dvh !important;
     max-height: none !important;
     border-radius: 0 !important;
     overflow: visible !important;
@@ -3309,7 +3357,9 @@
   /* Force MapLibre wrapper and canvas to fill viewport */
   .conductor-dashboard--map-fullscreen .maplibre-component-wrapper {
     min-height: 100vh !important;
+    min-height: 100dvh !important;
     height: 100vh !important;
+    height: 100dvh !important;
     width: 100vw !important;
     border-radius: 0 !important;
   }
@@ -3320,7 +3370,9 @@
   .conductor-dashboard--map-fullscreen .maplibregl-canvas-container,
   .conductor-dashboard--map-fullscreen .maplibregl-canvas {
     height: 100vh !important;
+    height: 100dvh !important;
     min-height: 100vh !important;
+    min-height: 100dvh !important;
     width: 100vw !important;
   }
 
@@ -3491,13 +3543,20 @@
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 10;
+    z-index: 12;
     padding: 16px 16px max(16px, env(safe-area-inset-bottom)) 16px;
     background: transparent;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
+    pointer-events: none;
+  }
+
+  .map-overlay-start__btn,
+  .map-overlay-start__info,
+  .map-overlay-start__chip {
+    pointer-events: auto;
   }
 
   /* Hide MapLibre attribution info button in fullscreen mode */
@@ -3546,9 +3605,14 @@
     border-radius: var(--radius-full);
     font-size: 17px;
     font-weight: 600;
+    min-height: 48px;
     cursor: pointer;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     transition: transform 0.15s ease, opacity 0.15s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    z-index: 1;
   }
 
   .map-overlay-start__btn:active {
@@ -3904,6 +3968,7 @@
   justify-content: center;
   gap: 8px;
   width: 100%;
+  min-height: 44px; /* WCAG touch target mínimo */
   padding: 14px;
   border-radius: 12px;
   font-size: 15px;

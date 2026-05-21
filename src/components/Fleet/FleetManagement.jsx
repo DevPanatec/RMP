@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { useFleet } from '../../context/FleetContext';
 import { Truck, Plus, X, Play, Satellite, Edit3, Trash2, MapPin, Clock } from '../Icons';
 import RoutePlayback from '../SafeTag/RoutePlayback';
+import { ConfirmDialog } from '../UI';
 import './FleetManagement.css';
 
-const FleetManagement = () => {
+const FleetManagement = ({ userRole = 'admin' }) => {
   const { vehicles, addVehicle, updateVehicle, deleteVehicle } = useFleet();
+  const canWrite = userRole === 'admin' || userRole === 'super_admin';
 
   // Estados del modal
   const [showModal, setShowModal] = useState(false);
@@ -14,6 +16,8 @@ const FleetManagement = () => {
   
   // Estado para reproducción GPS
   const [playbackVehicle, setPlaybackVehicle] = useState(null);
+  // Confirm dialog para delete
+  const [vehicleToDelete, setVehicleToDelete] = useState(null);
 
   // Estado del formulario - MINIMALISTA
   const [formData, setFormData] = useState({
@@ -117,17 +121,19 @@ const FleetManagement = () => {
     }
   };
 
-  // Eliminar vehículo
-  const handleDelete = async (vehicle) => {
-    if (!window.confirm(`¿Estás seguro de eliminar el vehículo "${vehicle.nombre || vehicle.placa}"?`)) {
-      return;
-    }
+  // Eliminar vehículo — abre ConfirmDialog
+  const handleDelete = (vehicle) => {
+    setVehicleToDelete(vehicle);
+  };
 
+  const confirmDeleteVehicle = async () => {
+    if (!vehicleToDelete) return;
     try {
-      await deleteVehicle(vehicle._id || vehicle.id);
+      await deleteVehicle(vehicleToDelete._id || vehicleToDelete.id);
     } catch (error) {
       console.error('Error eliminando vehículo:', error);
-      alert('Error al eliminar el vehículo');
+    } finally {
+      setVehicleToDelete(null);
     }
   };
 
@@ -174,10 +180,12 @@ const FleetManagement = () => {
           </div>
         </div>
 
-        <button className="btn-add-v2" onClick={handleOpenAddModal}>
-          <Plus size={20} />
-          <span>Agregar Vehículo</span>
-        </button>
+        {canWrite && (
+          <button className="btn-add-v2" onClick={handleOpenAddModal}>
+            <Plus size={20} />
+            <span>Agregar Vehículo</span>
+          </button>
+        )}
       </div>
 
       {/* Grid de vehículos */}
@@ -188,11 +196,13 @@ const FleetManagement = () => {
               <Truck size={48} />
             </div>
             <h3>No hay vehículos registrados</h3>
-            <p>Agrega tu primer vehículo para comenzar a monitorear tu flota</p>
-            <button className="btn-add-v2" onClick={handleOpenAddModal}>
-              <Plus size={20} />
-              <span>Agregar Vehículo</span>
-            </button>
+            <p>{canWrite ? 'Agrega tu primer vehículo para comenzar a monitorear tu flota' : 'No tienes vehículos asignados en este proyecto.'}</p>
+            {canWrite && (
+              <button className="btn-add-v2" onClick={handleOpenAddModal}>
+                <Plus size={20} />
+                <span>Agregar Vehículo</span>
+              </button>
+            )}
           </div>
         ) : (
           vehicles.map(vehicle => (
@@ -202,22 +212,26 @@ const FleetManagement = () => {
                 <div className="vehicle-card-icon">
                   <Truck size={24} />
                 </div>
-                <div className="vehicle-card-actions">
-                  <button 
-                    className="btn-icon-action"
-                    onClick={() => handleOpenEditModal(vehicle)}
-                    title="Editar vehículo"
-                  >
-                    <Edit3 size={16} />
-                  </button>
-                  <button 
-                    className="btn-icon-action danger"
-                    onClick={() => handleDelete(vehicle)}
-                    title="Eliminar vehículo"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
+                {canWrite && (
+                  <div className="vehicle-card-actions">
+                    <button
+                      className="btn-icon-action"
+                      onClick={() => handleOpenEditModal(vehicle)}
+                      title="Editar vehículo"
+                      aria-label="Editar vehículo"
+                    >
+                      <Edit3 size={16} />
+                    </button>
+                    <button
+                      className="btn-icon-action danger"
+                      onClick={() => handleDelete(vehicle)}
+                      title="Eliminar vehículo"
+                      aria-label="Eliminar vehículo"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Info del vehículo */}
@@ -270,7 +284,7 @@ const FleetManagement = () => {
                     <Play size={16} />
                     <span>Ver Historial GPS</span>
                   </button>
-                ) : (
+                ) : canWrite ? (
                   <button
                     className="btn-configure-gps"
                     onClick={() => handleOpenEditModal(vehicle)}
@@ -278,6 +292,11 @@ const FleetManagement = () => {
                     <Satellite size={16} />
                     <span>Configurar GPS</span>
                   </button>
+                ) : (
+                  <div className="gps-badge no-gps" style={{ width: '100%', justifyContent: 'center' }}>
+                    <Satellite size={14} />
+                    <span>Sin GPS configurado</span>
+                  </div>
                 )}
               </div>
             </div>
@@ -390,6 +409,20 @@ const FleetManagement = () => {
           placa={playbackVehicle.placa}
           vehicleId={playbackVehicle.vehicleId}
           onClose={() => setPlaybackVehicle(null)}
+        />
+      )}
+
+      {/* Confirm delete vehículo */}
+      {vehicleToDelete && (
+        <ConfirmDialog
+          open
+          destructive
+          title="¿Eliminar vehículo?"
+          message={`Vas a eliminar "${vehicleToDelete.nombre || vehicleToDelete.placa}". Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          onConfirm={confirmDeleteVehicle}
+          onCancel={() => setVehicleToDelete(null)}
         />
       )}
     </div>

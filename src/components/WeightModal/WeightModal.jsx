@@ -5,11 +5,12 @@ import { FileText, Trash2, RefreshCw, Truck, Package, MapPin, ClipboardList, Ale
 import useFocusTrap from '../../hooks/useFocusTrap';
 import './WeightModal.css';
 
+// Color usa tokens var(--color-cat-*) definidos en styles/index.css
 const CATEGORIES = [
-  { key: 'baja', label: 'Baja', desc: 'Livianos', color: '#6b9656' },
-  { key: 'intermedia', label: 'Media', desc: 'Mixtos', color: '#9b8456' },
-  { key: 'alta', label: 'Alta', desc: 'Pesados', color: '#0078D4' },
-  { key: 'muy alta', label: 'Muy Alta', desc: 'Gran vol.', color: '#a85a52' },
+  { key: 'baja', label: 'Baja', desc: 'Livianos', color: 'var(--color-cat-baja)' },
+  { key: 'intermedia', label: 'Media', desc: 'Mixtos', color: 'var(--color-cat-intermedia)' },
+  { key: 'alta', label: 'Alta', desc: 'Pesados', color: 'var(--color-cat-alta)' },
+  { key: 'muy alta', label: 'Muy Alta', desc: 'Gran vol.', color: 'var(--color-cat-muy-alta)' },
 ];
 
 const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop, isOnline = true, onQueuePhoto }) => {
@@ -314,7 +315,7 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop, isOnline
           {renderExtras()}
 
           {onSkip && !submitting && (
-            <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
+            <div className="weight-sheet__skip-section">
               <button
                 type="button"
                 className="skip-stop-btn"
@@ -323,7 +324,7 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop, isOnline
                 <AlertTriangle size={18} />
                 No puedo completar esta parada
               </button>
-              <p style={{ fontSize: '12px', color: '#6b7280', textAlign: 'center', marginTop: '8px', marginBottom: 0 }}>
+              <p className="weight-sheet__skip-hint">
                 Se creará un reporte de riesgo y avanzarás a la siguiente parada
               </p>
             </div>

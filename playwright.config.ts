@@ -44,13 +44,13 @@ export default defineConfig({
 
     {
       name: "audit-headless",
-      testMatch: /audit\/.*\.spec\.ts/,
+      testMatch: /(audit|admin)\/.*\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], headless: true },
       dependencies: ["setup"],
     },
     {
       name: "audit-headed",
-      testMatch: /audit\/.*\.spec\.ts/,
+      testMatch: /(audit|admin)\/.*\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], headless: false, launchOptions: { slowMo: 250 } },
       dependencies: ["setup"],
     },
@@ -58,19 +58,19 @@ export default defineConfig({
     // ---------------- MOBILE (force chromium engine, only viewport+touch matters)
     {
       name: "audit-iphone-se",
-      testMatch: /audit\/.*\.spec\.ts/,
+      testMatch: /(audit|admin)\/.*\.spec\.ts/,
       use: { ...devices["iPhone SE"], browserName: "chromium" },
       dependencies: ["setup"],
     },
     {
       name: "audit-iphone-14",
-      testMatch: /audit\/.*\.spec\.ts/,
+      testMatch: /(audit|admin)\/.*\.spec\.ts/,
       use: { ...devices["iPhone 14"], browserName: "chromium" },
       dependencies: ["setup"],
     },
     {
       name: "audit-pixel",
-      testMatch: /audit\/.*\.spec\.ts/,
+      testMatch: /(audit|admin)\/.*\.spec\.ts/,
       use: { ...devices["Pixel 7"], browserName: "chromium" },
       dependencies: ["setup"],
     },
@@ -78,13 +78,13 @@ export default defineConfig({
     // ---------------- TABLET
     {
       name: "audit-ipad-mini",
-      testMatch: /audit\/.*\.spec\.ts/,
+      testMatch: /(audit|admin)\/.*\.spec\.ts/,
       use: { ...devices["iPad Mini"], browserName: "chromium" },
       dependencies: ["setup"],
     },
     {
       name: "audit-ipad-pro",
-      testMatch: /audit\/.*\.spec\.ts/,
+      testMatch: /(audit|admin)\/.*\.spec\.ts/,
       use: { ...devices["iPad Pro 11"], browserName: "chromium" },
       dependencies: ["setup"],
     },
@@ -92,13 +92,13 @@ export default defineConfig({
     // ---------------- LAPTOP / DESKTOP
     {
       name: "audit-laptop",
-      testMatch: /audit\/.*\.spec\.ts/,
+      testMatch: /(audit|admin)\/.*\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 720 } },
       dependencies: ["setup"],
     },
     {
       name: "audit-desktop",
-      testMatch: /audit\/.*\.spec\.ts/,
+      testMatch: /(audit|admin)\/.*\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], viewport: { width: 1920, height: 1080 } },
       dependencies: ["setup"],
     },

@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import {
-  X, CheckCircle, AlertTriangle, Bug
+  CheckCircle, AlertTriangle, Bug
 } from '../Icons';
+import { Modal } from '../UI';
 import { useFumigation } from '../../context/FumigationContext';
+import { handleMutationError } from '../../utils/mutationError';
 import SimplePhotoSlots from '../Cleaning/SimplePhotoSlots';
 import './FumigationModal.css';
 
@@ -179,7 +181,8 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
       }
     } catch (error) {
       console.error('❌ Error al registrar fumigación:', error);
-      setErrors({ submit: 'Error al registrar la fumigación' });
+      const userMsg = handleMutationError(error, 'Error al registrar la fumigación');
+      setErrors({ submit: userMsg });
     } finally {
       setSubmitting(false);
     }
@@ -201,19 +204,11 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
   const validationStatus = getValidationStatus();
 
   return (
-    <div className="fumigation-modal-overlay" onClick={onClose}>
-      <div className="fumigation-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="fumigation-modal-header">
-          <div className="modal-header-content">
-            <h4>
-              <Bug size={20} /> Registrar Fumigación
-            </h4>
-            <p>Registra la fumigación realizada con evidencias fotográficas</p>
-          </div>
-          <button className="modal-close" onClick={onClose}><X size={18} /></button>
-        </div>
-
-        <div className="fumigation-modal-body">
+    <Modal open onClose={onClose} size="lg" variant="form">
+      <Modal.Header icon={<Bug size={18} />} onClose={onClose} id="fumigation-modal-title">
+        Registrar Fumigación
+      </Modal.Header>
+      <Modal.Body className="fumigation-modal-body">
           <div className="form-grid">
             {/* Tipo de Fumigación */}
             <div className="form-group">
@@ -334,34 +329,33 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
               </div>
             )}
           </div>
-        </div>
+      </Modal.Body>
 
-        <div className="fumigation-modal-footer">
-          <div className="footer-info">
-            <span className={`validation-info ${validationStatus.type}`}>
-              <validationStatus.icon size={16} />
-              <span>{validationStatus.text}</span>
-            </span>
-          </div>
-          <div className="footer-actions">
-            <button className="btn btn--secondary" onClick={onClose} disabled={submitting}>
-              Cancelar
-            </button>
-            <button
-              className="btn btn--primary"
-              onClick={handleSave}
-              disabled={validationStatus.type === 'error' || submitting}
-            >
-              {submitting ? (
-                <>Guardando...</>
-              ) : (
-                <><CheckCircle size={16} /> Registrar Fumigación</>
-              )}
-            </button>
-          </div>
+      <Modal.Footer align="between">
+        <span className={`validation-info ${validationStatus.type}`}>
+          <validationStatus.icon size={16} />
+          <span>{validationStatus.text}</span>
+        </span>
+        <div className="footer-actions">
+          <button type="button" className="btn btn--secondary" onClick={onClose} disabled={submitting}>
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={handleSave}
+            disabled={validationStatus.type === 'error' || submitting}
+            data-autofocus
+          >
+            {submitting ? (
+              <>Guardando...</>
+            ) : (
+              <><CheckCircle size={16} /> Registrar Fumigación</>
+            )}
+          </button>
         </div>
-      </div>
-    </div>
+      </Modal.Footer>
+    </Modal>
   );
 };
 

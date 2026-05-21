@@ -6,6 +6,7 @@ import { api } from "../../../convex/_generated/api";
 import { X, Upload, Image as ImageIcon, Check, Trash2, Save } from '../Icons';
 import { MAINTENANCE_PRESETS } from '../../constants/maintenancePresets';
 import toast from 'react-hot-toast';
+import { handleMutationError } from '../../utils/mutationError';
 import './MaintenanceTaskModal.css';
 
 const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
@@ -14,6 +15,8 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
   const [loading, setLoading] = useState(false);
   const isAdmin = userRole === 'admin' || userRole === 'super_admin';
   const isEnterprise = userRole === 'enterprise';
+  // readOnly = vista de detalle O usuario sin permisos de escritura (defense-in-depth)
+  const readOnly = viewMode || !isAdmin;
 
   // Convex mutations y queries para fotos
   const generateUploadUrl = useMutation(api.maintenance.generateUploadUrl);
@@ -35,6 +38,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
   const [formData, setFormData] = useState({
     titulo: task?.titulo || '',
     tipo: task?.tipo || 'preventivo',
+    prioridad: task?.prioridad || 'media',
     fecha_programada: task?.fecha_programada || '',
     scheduled_time: task?.scheduled_time || '',
     descripcion: task?.descripcion || '',
@@ -215,6 +219,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
       const taskData = {
         titulo: formData.titulo || 'Tarea de Mantenimiento',
         tipo: formData.tipo,
+        prioridad: formData.prioridad || 'media',
         fecha_programada: formData.fecha_programada,
         descripcion: formData.descripcion,
         costo: operationalData.total_estimated_cost || 0,
@@ -250,8 +255,14 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
       else {
         const result = await addTask(taskData);
 
+        if (!result.success) {
+          toast.error(result.error || 'Error al crear la tarea');
+          setLoading(false);
+          return;
+        }
+
         // Si se creó exitosamente y hay fotos locales, subirlas
-        if (result.success && result._id) {
+        if (result._id) {
           const newTaskId = result._id;
           const localPhotos = {
             before: photos.before.filter(p => p.isLocal),
@@ -310,12 +321,14 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
             console.log('✅ Reporte creado exitosamente');
           }
         }
+
+        toast.success('Tarea creada exitosamente');
       }
 
       onClose();
     } catch (error) {
       console.error('Error saving task:', error);
-      alert('Error al guardar la tarea');
+      handleMutationError(error, 'Error al guardar la tarea');
     } finally {
       setLoading(false);
     }
@@ -355,7 +368,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
         console.log(`✅ Foto ${etapaMap[stage]} subida exitosamente:`, photoId);
       } catch (error) {
         console.error('❌ Error uploading photo:', error);
-        alert('Error al subir la foto: ' + error.message);
+        handleMutationError(error, 'Error al subir la foto');
       } finally {
         setUploadingPhotos(false);
       }
@@ -482,7 +495,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
         console.log('✅ Foto eliminada exitosamente');
       } catch (error) {
         console.error('❌ Error deleting photo:', error);
-        alert('Error al eliminar la foto: ' + error.message);
+        handleMutationError(error, 'Error al eliminar la foto');
       }
     }
   };
@@ -506,7 +519,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
         {/* Content */}
         <form onSubmit={handleSubmit} className="maintenance-task-modal__form">
           {/* Paquete de Mantenimiento - Compacto */}
-          {!viewMode && (
+          {!readOnly && (
             <div className="maintenance-task-modal__field-group">
               <label className="maintenance-task-modal__label">
                 Paquete de Mantenimiento (Opcional)
@@ -540,7 +553,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
               type="text"
               value={formData.titulo}
               onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
-              disabled={viewMode}
+              disabled={readOnly}
               placeholder="Ej: Mantenimiento preventivo mensual"
               className="maintenance-task-modal__input"
               required
@@ -557,7 +570,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
               <select
                 value={formData.tipo}
                 onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-                disabled={viewMode}
+                disabled={readOnly}
                 className="maintenance-task-modal__select"
                 required
               >
@@ -578,7 +591,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                 type="date"
                 value={formData.fecha_programada}
                 onChange={(e) => setFormData({ ...formData, fecha_programada: e.target.value })}
-                disabled={viewMode}
+                disabled={readOnly}
                 className="maintenance-task-modal__input"
                 required
               />
@@ -593,9 +606,8 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                 type="time"
                 value={formData.scheduled_time}
                 onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
-                disabled={viewMode}
+                disabled={readOnly}
                 className="maintenance-task-modal__input"
-                required
               />
             </div>
 
@@ -607,7 +619,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
               <select
                 value={formData.estado}
                 onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
-                disabled={viewMode}
+                disabled={readOnly}
                 className="maintenance-task-modal__select"
                 required
               >
@@ -615,6 +627,25 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                 <option value="en_progreso">En Progreso</option>
                 <option value="completada">Completada</option>
                 <option value="cancelada">Cancelada</option>
+              </select>
+            </div>
+
+            {/* Prioridad */}
+            <div>
+              <label className="maintenance-task-modal__label">
+                Prioridad
+              </label>
+              <select
+                value={formData.prioridad}
+                onChange={(e) => setFormData({ ...formData, prioridad: e.target.value })}
+                disabled={readOnly}
+                className="maintenance-task-modal__select"
+                required
+              >
+                <option value="baja">Baja</option>
+                <option value="media">Media</option>
+                <option value="alta">Alta</option>
+                <option value="urgente">Urgente</option>
               </select>
             </div>
           </div>
@@ -627,7 +658,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
             <textarea
               value={formData.descripcion}
               onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-              disabled={viewMode}
+              disabled={readOnly}
               rows={2}
               className="maintenance-task-modal__textarea"
               placeholder="Descripción general de la tarea..."
@@ -641,7 +672,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
             </h3>
 
             {/* Preset de Volumen - Compacto */}
-            {!viewMode && (
+            {!readOnly && (
               <div className="maintenance-task-modal__field-group--compact">
                 <label className="maintenance-task-modal__label--small">
                   Preset de Volumen (Opcional)
@@ -671,7 +702,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   type="number"
                   value={operationalData.volume_discharged}
                   onChange={(e) => setOperationalData({ ...operationalData, volume_discharged: parseFloat(e.target.value) || 0 })}
-                  disabled={viewMode}
+                  disabled={readOnly}
                   className="maintenance-task-modal__input maintenance-task-modal__input--operational"
                 />
               </div>
@@ -685,7 +716,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   step="0.01"
                   value={operationalData.cost_per_gallon}
                   onChange={(e) => setOperationalData({ ...operationalData, cost_per_gallon: parseFloat(e.target.value) || 0.11 })}
-                  disabled={viewMode}
+                  disabled={readOnly}
                   className="maintenance-task-modal__input maintenance-task-modal__input--operational"
                 />
               </div>
@@ -711,7 +742,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   step="0.5"
                   value={operationalData.work_duration}
                   onChange={(e) => setOperationalData({ ...operationalData, work_duration: parseFloat(e.target.value) || 0 })}
-                  disabled={viewMode}
+                  disabled={readOnly}
                   className="maintenance-task-modal__input maintenance-task-modal__input--operational"
                 />
               </div>
@@ -724,7 +755,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
               <textarea
                 value={operationalData.technical_observations}
                 onChange={(e) => setOperationalData({ ...operationalData, technical_observations: e.target.value })}
-                disabled={viewMode}
+                disabled={readOnly}
                 rows={2}
                 className="maintenance-task-modal__textarea maintenance-task-modal__textarea--small"
                 placeholder="Ej: Succión completa, limpieza de paredes, extracción de grasa..."
@@ -732,7 +763,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
             </div>
 
             {/* Save as Preset Button (only in Manual mode) */}
-            {!viewMode && !selectedPresetId && (
+            {!readOnly && !selectedPresetId && (
               <div className="maintenance-task-modal__save-preset-container">
                 <button
                   type="button"
@@ -1040,8 +1071,8 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
             </div>
           )}
 
-          {/* Botones */}
-          {!viewMode && (
+          {/* Botones — solo admin puede submit */}
+          {!viewMode && isAdmin && (
             <div className="maintenance-task-modal__footer">
               <button
                 type="button"

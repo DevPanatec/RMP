@@ -11,6 +11,7 @@ import { useFleet } from '../../context/FleetContext';
 import { useRoutes } from '../../context/RoutesContext';
 import { useSchedule } from '../../context/ScheduleContext';
 import { useReports } from '../../context/ReportsContext';
+import { useOrganization } from '../../context/OrganizationContext';
 // import supabaseClient from '../../utils/supabaseClient'; // Removed: Migrated to Convex
 import {
   Truck, LogOut, Download, Map, Clock, AlertTriangle,
@@ -18,7 +19,7 @@ import {
   CheckCircle, Calendar, Loader, Wrench, AlertOctagon, X,
   Activity, Navigation, Target, Camera
 } from '../../components/Icons';
-import { Badge, ProgressBar } from '../../components/UI';
+import { Badge, ProgressBar, ConfirmDialog } from '../../components/UI';
 import { RouteTimeline } from '../../components/Dashboard';
 import BottomSheet from '../../components/BottomSheet';
 import './ConductorDashboard.css';
@@ -75,6 +76,10 @@ const ConductorDashboard = ({ user, onLogout }) => {
     addRouteEvent,
   });
 
+  // Module gating per org plan
+  const { hasModulo } = useOrganization();
+  const orgHasRecoleccion = hasModulo('REC');
+
   // Assignment status update
   const updateAssignmentStatus = useMutation(api.asignaciones.updateEstado);
 
@@ -129,6 +134,8 @@ const ConductorDashboard = ({ user, onLogout }) => {
   const [showOfflineBanner, setShowOfflineBanner] = useState(false);
   const [activeTab, setActiveTab] = useState('ruta');
   const [showRiskModal, setShowRiskModal] = useState(false);
+  const [riskLinkPrompt, setRiskLinkPrompt] = useState(null); // { paradaName, idx, parada }
+  const [pendingFinalize, setPendingFinalize] = useState(null); // { faltantes }
   const [restorationAttempted, setRestorationAttempted] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completionReportData, setCompletionReportData] = useState(null);
@@ -470,7 +477,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
     }
   }, [completedStops.length, routeStarted, reportGenerated]); // Solo depender del LENGTH de completedStops, no del array completo
 
-  // Detectar estado de conexión
+  // Detectar estado de conexión — banner persiste mientras offline, se oculta al volver online
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
@@ -480,8 +487,13 @@ const ConductorDashboard = ({ user, onLogout }) => {
     const handleOffline = () => {
       setIsOnline(false);
       setShowOfflineBanner(true);
-      setTimeout(() => setShowOfflineBanner(false), 5000);
     };
+
+    // Sync inicial por si el componente monta ya offline
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setIsOnline(false);
+      setShowOfflineBanner(true);
+    }
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -619,7 +631,12 @@ const ConductorDashboard = ({ user, onLogout }) => {
     const updatedCompletedStops = [...completedStops, newCompletedStop];
     setCompletedStops(updatedCompletedStops);
 
+    // Limpiar pendingStopIndex ANTES de cerrar el modal. Si lo hacemos al final
+    // (tras los awaits) y el efecto de geofence dispara handleCompleteStop para
+    // la siguiente parada, el setPendingStopIndex(null) tardío clobberea el índice
+    // de la nueva parada → handleSkipStop accede a paradas[null] y crashea.
     setCurrentStop(prev => prev + 1);
+    setPendingStopIndex(null);
     setIsModalOpen(false);
 
     // 📍 Actualizar route_progress con la parada completada
@@ -668,8 +685,6 @@ const ConductorDashboard = ({ user, onLogout }) => {
     } catch (error) {
       console.error('❌ Error registrando evento de parada completada:', error);
     }
-
-    setPendingStopIndex(null);
   };
 
   // Handler del botón "Reportar Riesgo" en el header.
@@ -688,21 +703,20 @@ const ConductorDashboard = ({ user, onLogout }) => {
       return;
     }
     const paradaName = parada.direccion || parada.nombre || `Parada ${idx + 1}`;
-    const linkToStop = window.confirm(
-      `¿Este riesgo te impide completar la parada actual?\n\n` +
-      `→ ${paradaName}\n\n` +
-      `ACEPTAR: la parada se marca como NO completada al enviar el reporte.\n` +
-      `CANCELAR: solo se crea el reporte, la parada queda pendiente.`
-    );
-    if (linkToStop) {
+    setRiskLinkPrompt({ paradaName, idx, parada });
+  };
+
+  const resolveRiskLink = (link) => {
+    if (link && riskLinkPrompt) {
       setSkipStopData({
-        index: idx,
-        nombre: paradaName,
-        orden: parada.orden || idx + 1,
+        index: riskLinkPrompt.idx,
+        nombre: riskLinkPrompt.paradaName,
+        orden: riskLinkPrompt.parada.orden || riskLinkPrompt.idx + 1,
         lat: currentGPS.lat,
         lng: currentGPS.lng,
       });
     }
+    setRiskLinkPrompt(null);
     setShowRiskModal(true);
   };
 
@@ -861,15 +875,15 @@ const ConductorDashboard = ({ user, onLogout }) => {
     const faltantes = total - completadas;
 
     if (faltantes > 0) {
-      const confirmar = window.confirm(
-        `⚠️ ATENCIÓN\n\n` +
-        `Faltan ${faltantes} parada(s) por completar.\n\n` +
-        `¿Estás seguro de finalizar la ruta?\n\n` +
-        `NOTA: Si alguna parada no se pudo completar, debes crear un Reporte de Riesgo explicando el motivo.`
-      );
-      if (!confirmar) return;
+      setPendingFinalize({ faltantes });
+      return;
     }
 
+    generateRouteCompletionReport();
+  };
+
+  const confirmFinalize = () => {
+    setPendingFinalize(null);
     generateRouteCompletionReport();
   };
 
@@ -1657,12 +1671,41 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
   const progressPercentage = getProgressPercentage();
 
+  // Module gate: si la org no tiene REC, conductor dashboard no tiene contenido válido.
+  if (!orgHasRecoleccion) {
+    return (
+      <div className="dashboard-container conductor-dashboard">
+        <main className="conductor-empty-state">
+          <AlertOctagon size={48} strokeWidth={1.5} />
+          <h2>Módulo de Recolección no contratado</h2>
+          <p>
+            Tu organización no tiene activo el módulo de Recolección. El dashboard del conductor
+            requiere este módulo para operar. Contactá al super-admin para activarlo.
+          </p>
+          <button className="btn-secondary" onClick={onLogout}>
+            <LogOut size={16} /> Cerrar sesión
+          </button>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className={`dashboard-container conductor-dashboard${isMobileView && activeTab === 'ruta' ? ' conductor-dashboard--map-fullscreen' : ''}`}>
-      {/* Banner de estado offline */}
+      {/* Banner de estado offline — sticky con contador de cola */}
       {showOfflineBanner && (
-        <div className="offline-banner">
-          📱 Modo sin conexión activado - Los datos se sincronizarán cuando regrese la conexión
+        <div className="offline-banner" role="status" aria-live="polite">
+          <span className="offline-banner__icon" aria-hidden="true">📡</span>
+          <span className="offline-banner__text">
+            Sin conexión — los datos se sincronizarán cuando regrese
+          </span>
+          {(offlineQueue.pendingCount > 0 || offlineQueue.syncingCount > 0) && (
+            <span className="offline-banner__queue">
+              {offlineQueue.syncingCount > 0
+                ? `Sincronizando ${offlineQueue.syncingCount}…`
+                : `${offlineQueue.pendingCount} foto${offlineQueue.pendingCount > 1 ? 's' : ''} en cola`}
+            </span>
+          )}
         </div>
       )}
 
@@ -2860,9 +2903,34 @@ const ConductorDashboard = ({ user, onLogout }) => {
             </div>
           </div>
         ))}
+
+        {riskLinkPrompt && (
+          <ConfirmDialog
+            open
+            title="¿El riesgo impide completar la parada?"
+            message={`Parada actual: ${riskLinkPrompt.paradaName}\n\n"Sí" → la parada se marca como NO completada al enviar el reporte.\n"No" → solo se crea el reporte, la parada queda pendiente.`}
+            confirmLabel="Sí, no pude completarla"
+            cancelLabel="No, solo reportar"
+            onConfirm={() => resolveRiskLink(true)}
+            onCancel={() => resolveRiskLink(false)}
+          />
+        )}
+
+        {pendingFinalize && (
+          <ConfirmDialog
+            open
+            destructive
+            title="¿Finalizar ruta con paradas pendientes?"
+            message={`Faltan ${pendingFinalize.faltantes} parada(s) por completar. Si alguna no se pudo completar, debes crear un Reporte de Riesgo explicando el motivo.`}
+            confirmLabel="Finalizar de todas formas"
+            cancelLabel="Cancelar"
+            onConfirm={confirmFinalize}
+            onCancel={() => setPendingFinalize(null)}
+          />
+        )}
       </main>
     </div>
   );
 };
 
-export default ConductorDashboard; 
+export default ConductorDashboard;

@@ -1,0 +1,17 @@
+{
+  "runId": "2026-05-15-175030-d749b4",
+  "cycle": 2,
+  "state": "done",
+  "p0_history": [
+    7,
+    0
+  ],
+  "p1_history": [
+    14,
+    0
+  ],
+  "cycles_completed": 2,
+  "started_at": 1778885431048,
+  "finished_at": 1779109721000,
+  "final_state": "clean"
+}

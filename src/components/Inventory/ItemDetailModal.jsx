@@ -4,6 +4,8 @@ import { api } from '../../../convex/_generated/api';
 import { useInventory } from '../../context/InventoryContext';
 import { Package, MapPin, Plus, Edit, Trash2, X, Save, AlertTriangle, Building, ShoppingCart, Clock, DollarSign, Info, TrendingDown } from '../Icons';
 import toast, { Toaster } from 'react-hot-toast';
+import { ConfirmDialog } from '../UI';
+import { handleMutationError } from '../../utils/mutationError';
 import './ItemDetailModal.css';
 
 // Parsea cantidad numérica positiva finita. Devuelve null si inválido.
@@ -12,7 +14,7 @@ const parsePositiveNumber = (val) => {
   return Number.isFinite(n) && n > 0 ? n : null;
 };
 
-const ItemDetailModal = ({ item, onClose }) => {
+const ItemDetailModal = ({ item, onClose, canWrite = true }) => {
   const { lugares, addToLocation, updateLocationQuantity, removeFromLocation, asignarDesdeAlmacen, registrarCompra, registrarConsumo } = useInventory();
   const stockSinAsignar = useQuery(api.inventario.getStockSinAsignar, item ? { itemId: item._id } : "skip");
   const movimientos = useQuery(api.inventario.getMovimientosByItem, item ? { itemId: item._id } : "skip");
@@ -41,6 +43,7 @@ const ItemDetailModal = ({ item, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [filtroMovimiento, setFiltroMovimiento] = useState('todos');
   const [validationErrors, setValidationErrors] = useState({});
+  const [locationToDelete, setLocationToDelete] = useState(null); // { ubicacion_id, lugar_nombre }
 
   // Resetear todo cuando cambia el item (incluido a null en cierre del modal).
   // Evita bleed entre items distintos: sub-forms abiertos, datos del form previo.
@@ -122,7 +125,7 @@ const ItemDetailModal = ({ item, onClose }) => {
         toast.error('Error al agregar ubicación: ' + result.error);
       }
     } catch (error) {
-      toast.error('Error: ' + error.message);
+      handleMutationError(error, 'Error al procesar la operación');
     } finally {
       setIsSubmitting(false);
     }
@@ -146,20 +149,21 @@ const ItemDetailModal = ({ item, onClose }) => {
         toast.error('Error al actualizar: ' + result.error);
       }
     } catch (error) {
-      toast.error('Error: ' + error.message);
+      handleMutationError(error, 'Error al procesar la operación');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleRemoveLocation = async (ubicacion_id, lugar_nombre) => {
-    if (!window.confirm(`¿Eliminar este item de "${lugar_nombre}"?`)) {
-      return;
-    }
+  const handleRemoveLocation = (ubicacion_id, lugar_nombre) => {
+    setLocationToDelete({ ubicacion_id, lugar_nombre });
+  };
 
+  const confirmRemoveLocation = async () => {
+    if (!locationToDelete) return;
     setIsSubmitting(true);
     try {
-      const result = await removeFromLocation(ubicacion_id);
+      const result = await removeFromLocation(locationToDelete.ubicacion_id);
 
       if (result.success) {
         toast.success('Ubicación eliminada exitosamente');
@@ -167,9 +171,10 @@ const ItemDetailModal = ({ item, onClose }) => {
         toast.error('Error al eliminar: ' + result.error);
       }
     } catch (error) {
-      toast.error('Error: ' + error.message);
+      handleMutationError(error, 'Error al procesar la operación');
     } finally {
       setIsSubmitting(false);
+      setLocationToDelete(null);
     }
   };
 
@@ -208,7 +213,7 @@ const ItemDetailModal = ({ item, onClose }) => {
         toast.error('Error al asignar: ' + result.error);
       }
     } catch (error) {
-      toast.error('Error: ' + error.message);
+      handleMutationError(error, 'Error al procesar la operación');
     } finally {
       setIsSubmitting(false);
     }
@@ -261,7 +266,7 @@ const ItemDetailModal = ({ item, onClose }) => {
         toast.error('Error al registrar compra: ' + result.error);
       }
     } catch (error) {
-      toast.error('Error: ' + error.message);
+      handleMutationError(error, 'Error al procesar la operación');
     } finally {
       setIsSubmitting(false);
     }
@@ -306,7 +311,7 @@ const ItemDetailModal = ({ item, onClose }) => {
         toast.error('Error al registrar consumo: ' + result.error);
       }
     } catch (error) {
-      toast.error('Error: ' + error.message);
+      handleMutationError(error, 'Error al procesar la operación');
     } finally {
       setIsSubmitting(false);
     }
@@ -398,23 +403,27 @@ const ItemDetailModal = ({ item, onClose }) => {
             </div>
           </div>
           <div className="modal-header-actions">
-            <button
-              className="btn-add-stock"
-              onClick={() => setShowNuevaCompra(!showNuevaCompra)}
-              title="Añadir stock (nueva compra)"
-            >
-              <ShoppingCart size={18} /> Añadir Stock
-            </button>
-            <button
-              className="btn-add-stock"
-              onClick={() => setShowConsumo(!showConsumo)}
-              title="Registrar consumo desde ubicación"
-              disabled={ubicacionesConStock.length === 0}
-              style={{ opacity: ubicacionesConStock.length === 0 ? 0.5 : 1 }}
-            >
-              <TrendingDown size={18} /> Registrar consumo
-            </button>
-            <button className="modal-close-detail" onClick={onClose}>
+            {canWrite && (
+              <>
+                <button
+                  className="btn-add-stock"
+                  onClick={() => setShowNuevaCompra(!showNuevaCompra)}
+                  title="Añadir stock (nueva compra)"
+                >
+                  <ShoppingCart size={18} /> Añadir Stock
+                </button>
+                <button
+                  className="btn-add-stock"
+                  onClick={() => setShowConsumo(!showConsumo)}
+                  title="Registrar consumo desde ubicación"
+                  disabled={ubicacionesConStock.length === 0}
+                  style={{ opacity: ubicacionesConStock.length === 0 ? 0.5 : 1 }}
+                >
+                  <TrendingDown size={18} /> Registrar consumo
+                </button>
+              </>
+            )}
+            <button className="modal-close-detail" onClick={onClose} aria-label="Cerrar">
               <X size={24} />
             </button>
           </div>
@@ -668,12 +677,14 @@ const ItemDetailModal = ({ item, onClose }) => {
               </p>
 
               {!showAsignarDesdeAlmacen ? (
-                <button
-                  className="btn-asignar-almacen"
-                  onClick={() => setShowAsignarDesdeAlmacen(true)}
-                >
-                  <MapPin size={16} /> Asignar a Ubicación
-                </button>
+                canWrite && (
+                  <button
+                    className="btn-asignar-almacen"
+                    onClick={() => setShowAsignarDesdeAlmacen(true)}
+                  >
+                    <MapPin size={16} /> Asignar a Ubicación
+                  </button>
+                )
               ) : (
                 <div className="add-location-form">
                   <form onSubmit={handleAsignarDesdeAlmacen}>
@@ -735,7 +746,7 @@ const ItemDetailModal = ({ item, onClose }) => {
           <div className="detail-locations-section">
             <div className="detail-locations-header">
               <h4><MapPin size={20} /> Distribución por Ubicación</h4>
-              {availableLugares.length > 0 && (
+              {canWrite && availableLugares.length > 0 && (
                 <button
                   className="btn-add-location"
                   onClick={() => setShowAddLocation(!showAddLocation)}
@@ -863,7 +874,7 @@ const ItemDetailModal = ({ item, onClose }) => {
                     </div>
 
                     <div className="location-actions">
-                      {editingLocation !== ubicacion._id && (
+                      {canWrite && editingLocation !== ubicacion._id && (
                         <>
                           <button
                             className="btn-icon-action btn-edit-location"
@@ -872,6 +883,7 @@ const ItemDetailModal = ({ item, onClose }) => {
                               setEditQuantity(ubicacion.cantidad);
                             }}
                             title="Editar cantidad"
+                            aria-label="Editar cantidad"
                             disabled={isSubmitting}
                           >
                             <Edit size={16} />
@@ -880,6 +892,7 @@ const ItemDetailModal = ({ item, onClose }) => {
                             className="btn-icon-action btn-delete-location"
                             onClick={() => handleRemoveLocation(ubicacion._id, ubicacion.lugar_nombre)}
                             title="Eliminar ubicación"
+                            aria-label="Eliminar ubicación"
                             disabled={isSubmitting}
                           >
                             <Trash2 size={16} />
@@ -991,6 +1004,19 @@ const ItemDetailModal = ({ item, onClose }) => {
           )}
         </div>
       </div>
+
+      {locationToDelete && (
+        <ConfirmDialog
+          open
+          destructive
+          title="¿Eliminar ubicación?"
+          message={`Vas a quitar este item de "${locationToDelete.lugar_nombre}". El stock se devolverá al almacén principal.`}
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          onConfirm={confirmRemoveLocation}
+          onCancel={() => setLocationToDelete(null)}
+        />
+      )}
     </div>
   );
 };

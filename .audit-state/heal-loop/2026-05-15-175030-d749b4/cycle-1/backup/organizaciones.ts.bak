@@ -1,0 +1,632 @@
+import { query, mutation, MutationCtx, QueryCtx } from "./_generated/server";
+import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
+import { getAuthScope, requireSuperAdmin, requireOrgAccess } from "./lib/auth";
+import {
+  ESCALA_LIMITS,
+  buildUsageReport,
+  calcMRR,
+  type Escala,
+  type CustomCaps,
+} from "./lib/limits";
+import {
+  MODULO_CATALOG,
+  isValidModuloCodigo,
+  sumModulosUsd,
+} from "./lib/modules";
+
+type AnyCtx = QueryCtx | MutationCtx;
+
+// Truncar valores grandes para evitar bloating del audit log.
+const MAX_AUDIT_VALUE_SIZE = 5_000; // ~5KB JSON
+function truncateAuditValue(value: unknown): unknown {
+  if (value === null || value === undefined) return null;
+  try {
+    const json = JSON.stringify(value);
+    if (json.length <= MAX_AUDIT_VALUE_SIZE) return value;
+    return { _truncated: true, _size: json.length, _preview: json.slice(0, 500) };
+  } catch {
+    return { _unserializable: true };
+  }
+}
+
+// Lista todas las orgs activas (solo super_admin)
+export const list = query({
+  args: {},
+  handler: async (ctx) => {
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin) return [];
+    return await ctx.db
+      .query("organizaciones")
+      .withIndex("by_activo", (q) => q.eq("activo", true))
+      .collect();
+  },
+});
+
+// Lista orgs accesibles según el rol del user
+// Super_admin → todas las activas
+// Otros → solo la propia (si tienen)
+export const listAccessible = query({
+  args: {},
+  handler: async (ctx) => {
+    const scope = await getAuthScope(ctx);
+    if (!scope.perfil) return [];
+    if (scope.isSuperAdmin) {
+      return await ctx.db
+        .query("organizaciones")
+        .withIndex("by_activo", (q) => q.eq("activo", true))
+        .collect();
+    }
+    if (!scope.organizacionId) return [];
+    const org = await ctx.db.get(scope.organizacionId);
+    return org ? [org] : [];
+  },
+});
+
+export const getById = query({
+  args: { id: v.id("organizaciones") },
+  handler: async (ctx, args) => {
+    await requireOrgAccess(ctx, args.id);
+    const org = await ctx.db.get(args.id);
+    if (!org) return null;
+    // Soft-deleted: solo super_admin lee orgs inactivas (auditoría/restore).
+    const scope = await getAuthScope(ctx);
+    if (org.activo === false && !scope.isSuperAdmin) return null;
+    return org;
+  },
+});
+
+export const add = mutation({
+  args: {
+    nombre: v.string(),
+    slug: v.string(),
+    descripcion: v.optional(v.string()),
+    contacto_email: v.optional(v.string()),
+    contacto_telefono: v.optional(v.string()),
+    logo_url: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
+    const existing = await ctx.db
+      .query("organizaciones")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first();
+    if (existing) throw new Error(`Ya existe una organización con slug "${args.slug}"`);
+    const newOrgId = await ctx.db.insert("organizaciones", {
+      ...args,
+      activo: true,
+      fecha_creacion: new Date().toISOString(),
+    });
+    await writeAuditLog(ctx, newOrgId, "create_org", undefined, null, { nombre: args.nombre, slug: args.slug });
+    return newOrgId;
+  },
+});
+
+export const update = mutation({
+  args: {
+    id: v.id("organizaciones"),
+    nombre: v.optional(v.string()),
+    slug: v.optional(v.string()),
+    descripcion: v.optional(v.string()),
+    contacto_email: v.optional(v.string()),
+    contacto_telefono: v.optional(v.string()),
+    logo_url: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
+    const { id, ...updates } = args;
+    if (updates.slug) {
+      const existing = await ctx.db
+        .query("organizaciones")
+        .withIndex("by_slug", (q) => q.eq("slug", updates.slug!))
+        .first();
+      if (existing && existing._id !== id) {
+        throw new Error(`Ya existe otra organización con slug "${updates.slug}"`);
+      }
+    }
+    const before = await ctx.db.get(id);
+    const beforeSubset: Record<string, unknown> = {};
+    for (const key of Object.keys(updates)) {
+      beforeSubset[key] = (before as any)?.[key] ?? null;
+    }
+    await ctx.db.patch(id, updates);
+    await writeAuditLog(ctx, id, "update_org", undefined, beforeSubset, updates);
+    return id;
+  },
+});
+
+export const setActive = mutation({
+  args: { id: v.id("organizaciones"), activo: v.boolean() },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
+    const before = await ctx.db.get(args.id);
+    await ctx.db.patch(args.id, { activo: args.activo });
+    await writeAuditLog(ctx, args.id, "set_activo", "activo", before?.activo, args.activo);
+    return args.id;
+  },
+});
+
+// ============================================================
+// Super-Admin Platform Panel — Billing/Plan management
+// ============================================================
+
+const BYTES_PER_GB = 1024 ** 3;
+const DEFAULT_ESCALA: Escala = "S";
+const DEFAULT_MODULOS: string[] = ["REC"];
+
+// ---------- Helpers ----------
+async function writeAuditLog(
+  ctx: MutationCtx,
+  orgId: Id<"organizaciones">,
+  action: string,
+  field: string | undefined,
+  before: unknown,
+  after: unknown,
+  notas?: string,
+): Promise<void> {
+  const scope = await getAuthScope(ctx);
+  await ctx.db.insert("org_audit_log", {
+    organizacion_id: orgId,
+    changed_by_user_id: scope.perfil?.userId ?? "system",
+    changed_by_email: scope.perfil?.email,
+    action,
+    field,
+    before_value: truncateAuditValue(before),
+    after_value: truncateAuditValue(after),
+    notas,
+    timestamp: Date.now(),
+  });
+}
+
+async function countOrgUsage(ctx: AnyCtx, orgId: Id<"organizaciones">) {
+  // Camiones por org
+  const camiones = await ctx.db
+    .query("vehiculos")
+    .withIndex("by_organizacion", (q) => q.eq("organizacion_id", orgId))
+    .collect();
+  // Proyectos por org
+  const proyectos = await ctx.db
+    .query("proyectos")
+    .withIndex("by_organizacion", (q) => q.eq("organizacion_id", orgId))
+    .collect();
+  // Usuarios por org (activos)
+  const usuarios = await ctx.db
+    .query("perfiles_usuarios")
+    .withIndex("by_organizacion", (q) => q.eq("organizacion_id", orgId))
+    .collect();
+  const usuariosActivos = usuarios.filter((u) => u.activo !== false);
+  return {
+    camiones: camiones.length,
+    proyectos: proyectos.length,
+    usuarios: usuariosActivos.length,
+  };
+}
+
+// ---------- listWithStats — main panel feed ----------
+export const listWithStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin) return [];
+    const orgs = await ctx.db.query("organizaciones").collect();
+
+    const results = [] as any[];
+    for (const org of orgs) {
+      const counts = await countOrgUsage(ctx, org._id);
+      const escala: Escala = (org.escala as Escala) ?? DEFAULT_ESCALA;
+      const modulos = org.modulos_activos ?? DEFAULT_MODULOS;
+      const usage = buildUsageReport(escala, org.custom_caps as CustomCaps, {
+        camiones: counts.camiones,
+        proyectos: counts.proyectos,
+        usuarios: counts.usuarios,
+        storage_bytes: org.storage_bytes_used ?? 0,
+      });
+      const modulosUsd = sumModulosUsd(modulos);
+      const mrr = calcMRR(escala, modulosUsd, usage.overflow_total_usd, org.discount_pct ?? 0);
+
+      results.push({
+        _id: org._id,
+        nombre: org.nombre,
+        slug: org.slug,
+        logo_url: org.logo_url,
+        activo: org.activo,
+        fecha_creacion: org.fecha_creacion,
+        escala,
+        modulos_activos: modulos,
+        custom_caps: org.custom_caps ?? null,
+        discount_pct: org.discount_pct ?? 0,
+        setup_status: org.setup_status ?? "pendiente",
+        fecha_inicio_plan: org.fecha_inicio_plan ?? null,
+        fecha_renovacion_plan: org.fecha_renovacion_plan ?? null,
+        storage_bytes_used: org.storage_bytes_used ?? 0,
+        storage_last_recompute: org.storage_last_recompute ?? null,
+        // Usage
+        usage,
+        mrr_usd: mrr,
+        modulos_usd: modulosUsd,
+        base_usd: ESCALA_LIMITS[escala].base_usd,
+      });
+    }
+    return results;
+  },
+});
+
+// ---------- getOrgStats — single org detail ----------
+export const getOrgStats = query({
+  args: { id: v.id("organizaciones") },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
+    const org = await ctx.db.get(args.id);
+    if (!org) return null;
+    const counts = await countOrgUsage(ctx, args.id);
+    const escala: Escala = (org.escala as Escala) ?? DEFAULT_ESCALA;
+    const modulos = org.modulos_activos ?? DEFAULT_MODULOS;
+    const usage = buildUsageReport(escala, org.custom_caps as CustomCaps, {
+      camiones: counts.camiones,
+      proyectos: counts.proyectos,
+      usuarios: counts.usuarios,
+      storage_bytes: org.storage_bytes_used ?? 0,
+    });
+    const modulosUsd = sumModulosUsd(modulos);
+    const mrr = calcMRR(escala, modulosUsd, usage.overflow_total_usd, org.discount_pct ?? 0);
+
+    const auditLog = await ctx.db
+      .query("org_audit_log")
+      .withIndex("by_org_timestamp", (q) => q.eq("organizacion_id", args.id))
+      .order("desc")
+      .take(50);
+
+    return {
+      org,
+      usage,
+      counts,
+      mrr_usd: mrr,
+      modulos_usd: modulosUsd,
+      base_usd: ESCALA_LIMITS[escala].base_usd,
+      escala_effective: escala,
+      modulos_effective: modulos,
+      audit_log: auditLog,
+    };
+  },
+});
+
+// ---------- setEscala ----------
+export const setEscala = mutation({
+  args: {
+    id: v.id("organizaciones"),
+    escala: v.union(
+      v.literal("S"),
+      v.literal("M"),
+      v.literal("L"),
+      v.literal("XL"),
+      v.literal("XXL"),
+    ),
+    notas: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
+    const org = await ctx.db.get(args.id);
+    if (!org) throw new Error("Organización no encontrada");
+    const before = org.escala ?? null;
+
+    // Warning si downgrade deja la org en overflow.
+    const escalaOrder: Escala[] = ["S", "M", "L", "XL", "XXL"];
+    const beforeIdx = before ? escalaOrder.indexOf(before as Escala) : -1;
+    const afterIdx = escalaOrder.indexOf(args.escala);
+    if (beforeIdx >= 0 && afterIdx >= 0 && afterIdx < beforeIdx) {
+      // Es downgrade. Chequear overflow post-downgrade.
+      const counts = await countOrgUsage(ctx, args.id);
+      const usage = buildUsageReport(args.escala, org.custom_caps as CustomCaps, {
+        camiones: counts.camiones,
+        proyectos: counts.proyectos,
+        usuarios: counts.usuarios,
+        storage_bytes: org.storage_bytes_used ?? 0,
+      });
+      if (usage.overflow_total_usd > 0) {
+        // No bloqueo, pero requiero notas explícitas.
+        if (!args.notas || args.notas.trim().length === 0) {
+          throw new Error(
+            `Downgrade de ${before} a ${args.escala} dejará la org en overflow ($${usage.overflow_total_usd}/mes). ` +
+            `Confirmá agregando notas con la justificación.`
+          );
+        }
+      }
+    }
+
+    await ctx.db.patch(args.id, { escala: args.escala });
+    await writeAuditLog(ctx, args.id, "set_escala", "escala", before, args.escala, args.notas);
+    return args.id;
+  },
+});
+
+// ---------- toggleModulo ----------
+export const toggleModulo = mutation({
+  args: {
+    id: v.id("organizaciones"),
+    codigo: v.string(),
+    activar: v.boolean(),
+    notas: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
+    if (!isValidModuloCodigo(args.codigo)) {
+      throw new Error(`Código de módulo inválido: ${args.codigo}`);
+    }
+    // Activar módulo roadmap requiere notas explícitas (anti-overcommit comercial).
+    const spec = MODULO_CATALOG[args.codigo];
+    if (args.activar && spec.estado === "roadmap") {
+      if (!args.notas || args.notas.trim().length === 0) {
+        throw new Error(
+          `Módulo "${spec.nombre}" está en roadmap (no construido). ` +
+          `Activá solo con contrato firmado + descuento 30%. Agregá notas con el motivo.`
+        );
+      }
+    }
+    const org = await ctx.db.get(args.id);
+    if (!org) throw new Error("Organización no encontrada");
+    const before = org.modulos_activos ?? [];
+    const set = new Set(before);
+    if (args.activar) set.add(args.codigo);
+    else set.delete(args.codigo);
+    const after = Array.from(set);
+    await ctx.db.patch(args.id, { modulos_activos: after });
+    await writeAuditLog(
+      ctx,
+      args.id,
+      "toggle_modulo",
+      `modulos_activos:${args.codigo}`,
+      before,
+      after,
+      args.notas,
+    );
+    return args.id;
+  },
+});
+
+// ---------- setCustomCap ----------
+export const setCustomCap = mutation({
+  args: {
+    id: v.id("organizaciones"),
+    key: v.union(
+      v.literal("camiones"),
+      v.literal("proyectos"),
+      v.literal("usuarios"),
+      v.literal("storage_gb"),
+    ),
+    value: v.optional(v.number()), // undefined = clear override
+    notas: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
+    const org = await ctx.db.get(args.id);
+    if (!org) throw new Error("Organización no encontrada");
+    const before = org.custom_caps ?? {};
+    const next: any = { ...before };
+    if (args.value === undefined || args.value === null) {
+      delete next[args.key];
+    } else {
+      if (args.value < 0) throw new Error("Cap no puede ser negativo");
+      // Upper sanity check para evitar valores absurdos.
+      const MAX_CAPS = {
+        camiones: 10_000,
+        proyectos: 100_000,
+        usuarios: 10_000,
+        storage_gb: 10_240, // 10 TB
+      };
+      const max = MAX_CAPS[args.key];
+      if (args.value > max) {
+        throw new Error(`Cap ${args.key} excede el máximo permitido (${max.toLocaleString()})`);
+      }
+      next[args.key] = args.value;
+    }
+    await ctx.db.patch(args.id, { custom_caps: next });
+    await writeAuditLog(
+      ctx,
+      args.id,
+      "set_custom_cap",
+      `custom_caps.${args.key}`,
+      (before as any)[args.key] ?? null,
+      args.value ?? null,
+      args.notas,
+    );
+    return args.id;
+  },
+});
+
+// ---------- setDiscount ----------
+export const setDiscount = mutation({
+  args: {
+    id: v.id("organizaciones"),
+    pct: v.number(),
+    notas: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
+    if (args.pct < 0 || args.pct > 15) {
+      throw new Error("discount_pct debe estar entre 0 y 15");
+    }
+    const org = await ctx.db.get(args.id);
+    if (!org) throw new Error("Organización no encontrada");
+    const before = org.discount_pct ?? 0;
+    await ctx.db.patch(args.id, { discount_pct: args.pct });
+    await writeAuditLog(ctx, args.id, "set_discount", "discount_pct", before, args.pct, args.notas);
+    return args.id;
+  },
+});
+
+// ---------- setSetupStatus ----------
+export const setSetupStatus = mutation({
+  args: {
+    id: v.id("organizaciones"),
+    status: v.union(
+      v.literal("pendiente"),
+      v.literal("pagado"),
+      v.literal("waived"),
+    ),
+    notas: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
+    const org = await ctx.db.get(args.id);
+    if (!org) throw new Error("Organización no encontrada");
+    const before = org.setup_status ?? "pendiente";
+    await ctx.db.patch(args.id, { setup_status: args.status });
+    await writeAuditLog(
+      ctx,
+      args.id,
+      "set_setup_status",
+      "setup_status",
+      before,
+      args.status,
+      args.notas,
+    );
+    return args.id;
+  },
+});
+
+// ---------- setPlanFechas ----------
+export const setPlanFechas = mutation({
+  args: {
+    id: v.id("organizaciones"),
+    fecha_inicio_plan: v.optional(v.number()),
+    fecha_renovacion_plan: v.optional(v.number()),
+    notas: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
+    const org = await ctx.db.get(args.id);
+    if (!org) throw new Error("Organización no encontrada");
+    const before = {
+      fecha_inicio_plan: org.fecha_inicio_plan ?? null,
+      fecha_renovacion_plan: org.fecha_renovacion_plan ?? null,
+    };
+    const patch: any = {};
+    if (args.fecha_inicio_plan !== undefined) patch.fecha_inicio_plan = args.fecha_inicio_plan;
+    if (args.fecha_renovacion_plan !== undefined) patch.fecha_renovacion_plan = args.fecha_renovacion_plan;
+    await ctx.db.patch(args.id, patch);
+    await writeAuditLog(ctx, args.id, "set_plan_fechas", undefined, before, patch, args.notas);
+    return args.id;
+  },
+});
+
+// ---------- recomputeStorage ----------
+// Re-suma todos los file_size de las 3 tablas de fotos para esta org.
+// Útil para detectar/corregir drift del counter delta.
+// Paginated: limita lookup a MAX_PHOTOS_PER_TABLE para evitar timeout.
+// Si org tiene >5000 fotos en una tabla, el resultado será parcial — re-correr o
+// usar migrations/seed_plan_fields.backfillStorageCounters con batchSize mayor.
+const MAX_PHOTOS_PER_TABLE = 5000;
+const MAX_PARENTS_PER_QUERY = 2000;
+
+export const recomputeStorage = mutation({
+  args: { id: v.id("organizaciones") },
+  handler: async (ctx, args) => {
+    await requireSuperAdmin(ctx);
+    const org = await ctx.db.get(args.id);
+    if (!org) throw new Error("Organización no encontrada");
+
+    let total = 0;
+    let partial = false;
+    let cleaningPhotoCount = 0;
+    let fumiPhotoCount = 0;
+    let mtoPhotoCount = 0;
+
+    // Cleaning: photos → assignment → organizacion_id
+    const cleaningAssignments = await ctx.db
+      .query("cleaning_assignments")
+      .withIndex("by_organizacion", (q) => q.eq("organizacion_id", args.id))
+      .take(MAX_PARENTS_PER_QUERY);
+    if (cleaningAssignments.length >= MAX_PARENTS_PER_QUERY) partial = true;
+    for (const a of cleaningAssignments) {
+      if (cleaningPhotoCount >= MAX_PHOTOS_PER_TABLE) { partial = true; break; }
+      const photos = await ctx.db
+        .query("cleaning_photos")
+        .withIndex("by_assignment", (q) => q.eq("assignment_id", a._id))
+        .take(MAX_PHOTOS_PER_TABLE - cleaningPhotoCount);
+      for (const p of photos) {
+        total += p.file_size ?? 0;
+        cleaningPhotoCount++;
+      }
+    }
+
+    // Fumigation: photos → assignment → organizacion_id
+    const fumiAssignments = await ctx.db
+      .query("fumigation_assignments")
+      .withIndex("by_organizacion", (q) => q.eq("organizacion_id", args.id))
+      .take(MAX_PARENTS_PER_QUERY);
+    if (fumiAssignments.length >= MAX_PARENTS_PER_QUERY) partial = true;
+    for (const a of fumiAssignments) {
+      if (fumiPhotoCount >= MAX_PHOTOS_PER_TABLE) { partial = true; break; }
+      const photos = await ctx.db
+        .query("fumigation_photos")
+        .withIndex("by_assignment", (q) => q.eq("assignment_id", a._id))
+        .take(MAX_PHOTOS_PER_TABLE - fumiPhotoCount);
+      for (const p of photos) {
+        total += p.file_size ?? 0;
+        fumiPhotoCount++;
+      }
+    }
+
+    // Maintenance: photos → task → vehiculo → organizacion_id
+    const vehiculos = await ctx.db
+      .query("vehiculos")
+      .withIndex("by_organizacion", (q) => q.eq("organizacion_id", args.id))
+      .take(MAX_PARENTS_PER_QUERY);
+    if (vehiculos.length >= MAX_PARENTS_PER_QUERY) partial = true;
+    outerMto: for (const veh of vehiculos) {
+      const tasks = await ctx.db
+        .query("maintenance_tasks")
+        .withIndex("by_vehiculo", (q) => q.eq("vehiculo_id", veh._id))
+        .take(MAX_PARENTS_PER_QUERY);
+      for (const t of tasks) {
+        if (mtoPhotoCount >= MAX_PHOTOS_PER_TABLE) { partial = true; break outerMto; }
+        const photos = await ctx.db
+          .query("maintenance_photos")
+          .withIndex("by_task", (q) => q.eq("task_id", t._id))
+          .take(MAX_PHOTOS_PER_TABLE - mtoPhotoCount);
+        for (const p of photos) {
+          total += p.file_size ?? 0;
+          mtoPhotoCount++;
+        }
+      }
+    }
+
+    const before = org.storage_bytes_used ?? 0;
+    const now = Date.now();
+    await ctx.db.patch(args.id, {
+      storage_bytes_used: total,
+      storage_last_recompute: now,
+    });
+    await writeAuditLog(
+      ctx,
+      args.id,
+      "recompute_storage",
+      "storage_bytes_used",
+      before,
+      { total, partial, cleaningPhotoCount, fumiPhotoCount, mtoPhotoCount },
+    );
+    return {
+      before,
+      after: total,
+      drift: total - before,
+      timestamp: now,
+      partial,
+      photo_counts: { cleaning: cleaningPhotoCount, fumi: fumiPhotoCount, mto: mtoPhotoCount },
+    };
+  },
+});
+
+// ---------- Helper export: increment/decrement counter from other modules ----------
+// Used by cleaning.ts, fumigaciones.ts, maintenance.ts photo mutations.
+export async function incrementOrgStorage(
+  ctx: MutationCtx,
+  orgId: Id<"organizaciones"> | null | undefined,
+  deltaBytes: number,
+): Promise<void> {
+  if (!orgId || !deltaBytes) return;
+  const org = await ctx.db.get(orgId);
+  if (!org) return;
+  const current = (org.storage_bytes_used as number | undefined) ?? 0;
+  const next = Math.max(0, current + deltaBytes);
+  await ctx.db.patch(orgId, { storage_bytes_used: next });
+}

@@ -799,3 +799,65 @@
   object-fit: cover;
   display: block;
 }
+
+/* Nuevo Reporte button */
+.risk-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+}
+
+.risk-btn-new {
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.risk-btn-delete {
+  color: var(--color-error);
+  margin-left: auto;
+}
+
+.risk-btn-delete:hover {
+  background: var(--color-error-light);
+  border-color: var(--color-error);
+}
+
+/* Create form */
+.risk-form-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.risk-form-input {
+  width: 100%;
+  padding: var(--space-8) var(--space-12);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  box-sizing: border-box;
+}
+
+.risk-form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.risk-form-textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.risk-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12);
+  margin-bottom: var(--space-12);
+}

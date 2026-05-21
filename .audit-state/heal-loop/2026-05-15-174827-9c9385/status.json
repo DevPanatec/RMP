@@ -1,0 +1,18 @@
+{
+  "runId": "2026-05-15-174827-9c9385",
+  "cycle": 1,
+  "state": "audit",
+  "p0_history": [
+    17
+  ],
+  "p1_history": [
+    31
+  ],
+  "cycles_completed": 0,
+  "started_at": 1778885312473,
+  "finished_at": null,
+  "final_state": null,
+  "p2_history": [
+    23
+  ]
+}

@@ -73,7 +73,8 @@
       "Bash(gh repo *)",
       "Bash(gh api *)",
       "Bash(git config *)",
-      "mcp__convex__runOneoffQuery"
+      "mcp__convex__runOneoffQuery",
+      "Bash(node scripts/audit-helpers/state-write.cjs done spec-runner)"
     ],
     "deny": [],
     "ask": [],

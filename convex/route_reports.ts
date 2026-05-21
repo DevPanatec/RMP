@@ -1,6 +1,7 @@
 import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getScopedProjectId, requireProjectAccess, requireWriteRole, getAuthScope } from "./lib/auth";
+import { requireModulo } from "./lib/modules";
 
 function assertPurgeAllowed() {
   if (process.env.ALLOW_PURGE !== "1") {
@@ -48,6 +49,7 @@ export const add = mutation({
   },
   handler: async (ctx, args) => {
     const scope = await requireWriteRole(ctx);
+    await requireModulo(ctx, "REC");
     // Derivar proyecto_id desde la asignación o ruta + denormalizar foto/ubicación de la ruta
     let proyecto_id;
     let ruta = null;

@@ -9,6 +9,7 @@ import {
   Plus, Edit, Trash2, MapPin, Sparkles, Bug, Camera, Search,
 } from '../Icons';
 import UbicacionModal from './UbicacionModal';
+import { ConfirmDialog } from '../UI';
 import './UbicacionesComponent.css';
 
 const UbicacionPhoto = memo(({ storageId, alt }) => {
@@ -40,6 +41,7 @@ const UbicacionesComponent = ({ forceTipo = null, hideHeader = false }) => {
   const [search, setSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   const items = activeTipo === 'lugar' ? lugaresFum : salas;
   const filtered = useMemo(() => {
@@ -92,11 +94,14 @@ const UbicacionesComponent = ({ forceTipo = null, hideHeader = false }) => {
     }
   };
 
-  const handleDelete = async (item) => {
-    const tipoLabel = activeTipo === 'lugar' ? 'lugar' : 'sala';
-    if (!window.confirm(`¿Eliminar este ${tipoLabel}? (se desactivará, no se borra permanentemente)`)) return;
+  const handleDelete = (item) => {
+    setItemToDelete(item);
+  };
+
+  const confirmDeleteItem = async () => {
+    if (!itemToDelete) return;
     try {
-      const id = item._id || item.id;
+      const id = itemToDelete._id || itemToDelete.id;
       if (activeTipo === 'lugar') {
         await deleteLugar(id);
       } else {
@@ -104,7 +109,8 @@ const UbicacionesComponent = ({ forceTipo = null, hideHeader = false }) => {
       }
     } catch (err) {
       console.error('Error eliminando ubicación:', err);
-      alert('No se pudo eliminar: ' + err.message);
+    } finally {
+      setItemToDelete(null);
     }
   };
 
@@ -250,6 +256,19 @@ const UbicacionesComponent = ({ forceTipo = null, hideHeader = false }) => {
         onClose={() => { setModalOpen(false); setEditing(null); }}
         onSave={handleSave}
       />
+
+      {itemToDelete && (
+        <ConfirmDialog
+          open
+          destructive
+          title={`¿Eliminar ${activeTipo === 'lugar' ? 'lugar' : 'sala'}?`}
+          message={`Vas a desactivar "${itemToDelete.nombre || ''}". Se podrá reactivar después; no se borra permanentemente.`}
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          onConfirm={confirmDeleteItem}
+          onCancel={() => setItemToDelete(null)}
+        />
+      )}
     </div>
   );
 };

@@ -1,20 +1,87 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRiskReports } from '../../context/RiskReportsContext';
 import {
-  AlertTriangle, ClipboardList, Wrench, AlertOctagon, Zap,
+  AlertTriangle, ClipboardList, Wrench, AlertOctagon,
   Eye, CheckCircle, FolderOpen, FileText, Users, Truck,
-  MapPin, Calendar, BarChart3, X, Shield, Package, Camera
+  MapPin, Calendar, BarChart3, X, Shield, Package, Camera,
+  Plus, Trash2
 } from '../Icons';
 import { StorageImage, EmptyState } from '../UI';
 import { formatShort } from '../../utils/dates';
+import toast from 'react-hot-toast';
 import './RiskComponent.css';
 
-const RiskComponent = ({ userType = 'admin' }) => {
-  const { reports, loading, updateReportStatus, getReportStats } = useRiskReports();
-  const [selectedReport, setSelectedReport] = useState(null);
+const TIPO_RIESGO_OPTIONS = [
+  { value: 'mecanico',            label: 'Mecánico' },
+  { value: 'combustible',         label: 'Combustible' },
+  { value: 'seguridad',           label: 'Seguridad' },
+  { value: 'mantenimiento',       label: 'Mantenimiento' },
+  { value: 'bloqueo_via',         label: 'Bloqueo de vía' },
+  { value: 'seguridad_ciudadana', label: 'Seguridad ciudadana' },
+  { value: 'climatico',           label: 'Climático' },
+  { value: 'manifestacion',       label: 'Manifestación' },
+  { value: 'accidente',           label: 'Accidente' },
+  { value: 'operacional',         label: 'Operacional' },
+  { value: 'ambiental',           label: 'Ambiental' },
+  { value: 'equipo',              label: 'Equipo' },
+];
 
-  // Los reportes y funciones vienen del contexto
+const BLANK_FORM = {
+  titulo: '',
+  descripcion: '',
+  tipo_riesgo: 'operacional',
+  nivel_severidad: 'medio',
+  ubicacion: '',
+};
+
+const RiskComponent = ({ userType = 'admin' }) => {
+  const { reports, loading, addReport, updateReportStatus, deleteReport, getReportStats } = useRiskReports();
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [formData, setFormData] = useState(BLANK_FORM);
+  const [saving, setSaving] = useState(false);
+  const [filterEstado, setFilterEstado] = useState('todos');
+  const [filterTipo, setFilterTipo] = useState('todos');
+
+  const canUpdateStatus = userType === 'admin' || userType === 'super_admin';
+  const canCreate = canUpdateStatus;
+
   const stats = getReportStats();
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await addReport({
+        titulo: formData.titulo,
+        descripcion: formData.descripcion,
+        tipo_riesgo: formData.tipo_riesgo,
+        nivel_severidad: formData.nivel_severidad,
+        ubicacion: formData.ubicacion || undefined,
+      });
+      toast.success('Reporte creado');
+      setShowCreateModal(false);
+      setFormData(BLANK_FORM);
+    } catch (err) {
+      toast.error(err.message || 'Error al crear reporte');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (e, risk) => {
+    e.stopPropagation();
+    if (!window.confirm(`¿Eliminar reporte "${risk.titulo}"?`)) return;
+    const result = await deleteReport(risk.id);
+    if (result.success) toast.success('Reporte eliminado');
+    else toast.error(result.error || 'Error al eliminar');
+  };
+
+  const filteredReports = reports.filter((r) => {
+    if (filterEstado !== 'todos' && r.estado !== filterEstado) return false;
+    if (filterTipo !== 'todos' && r.tipo !== filterTipo) return false;
+    return true;
+  });
 
   // Stats adicionales
   const pendingCount = reports.filter(r => r.estado === 'reportado').length;
@@ -63,23 +130,34 @@ const RiskComponent = ({ userType = 'admin' }) => {
           </div>
         </div>
 
-        <div className="risk-header-stats">
-          <div className="risk-stat-compact">
-            <span className="stat-value">{pendingCount}</span>
-            <span className="stat-label">Pendientes</span>
+        <div className="risk-header-right">
+          <div className="risk-header-stats">
+            <div className="risk-stat-compact">
+              <span className="stat-value">{pendingCount}</span>
+              <span className="stat-label">Pendientes</span>
+            </div>
+            <div className="risk-stat-compact">
+              <span className="stat-value">{inReviewCount}</span>
+              <span className="stat-label">En Revisión</span>
+            </div>
+            <div className="risk-stat-compact">
+              <span className="stat-value">{resolvedCount}</span>
+              <span className="stat-label">Resueltos</span>
+            </div>
+            <div className="risk-stat-compact total">
+              <span className="stat-value">{stats.total}</span>
+              <span className="stat-label">Total</span>
+            </div>
           </div>
-          <div className="risk-stat-compact">
-            <span className="stat-value">{inReviewCount}</span>
-            <span className="stat-label">En Revisión</span>
-          </div>
-          <div className="risk-stat-compact">
-            <span className="stat-value">{resolvedCount}</span>
-            <span className="stat-label">Resueltos</span>
-          </div>
-          <div className="risk-stat-compact total">
-            <span className="stat-value">{stats.total}</span>
-            <span className="stat-label">Total</span>
-          </div>
+          {canCreate && (
+            <button
+              className="btn btn--sm btn--primary risk-btn-new"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus size={14} />
+              Nuevo Riesgo
+            </button>
+          )}
         </div>
       </div>
 
@@ -98,13 +176,21 @@ const RiskComponent = ({ userType = 'admin' }) => {
             <div className="reports-section-header">
               <h3><ClipboardList size={20} /> Reportes de Conductores</h3>
               <div className="reports-filters">
-                <select className="reports-filter-select">
+                <select
+                  className="reports-filter-select"
+                  value={filterEstado}
+                  onChange={(e) => setFilterEstado(e.target.value)}
+                >
                   <option value="todos">Todos los reportes</option>
                   <option value="reportado">Pendientes</option>
                   <option value="en_revision">En revisión</option>
                   <option value="resuelto">Resueltos</option>
                 </select>
-                <select className="reports-filter-select">
+                <select
+                  className="reports-filter-select"
+                  value={filterTipo}
+                  onChange={(e) => setFilterTipo(e.target.value)}
+                >
                   <option value="todos">Todos los tipos</option>
                   <option value="interno">Internos</option>
                   <option value="externo">Externos</option>
@@ -112,15 +198,15 @@ const RiskComponent = ({ userType = 'admin' }) => {
               </div>
             </div>
             
-            {reports.length === 0 ? (
+            {filteredReports.length === 0 ? (
               <EmptyState
                 icon={ClipboardList}
                 title="No hay reportes de riesgo"
-                description="Los conductores no han creado reportes de riesgo aún."
+                description={reports.length > 0 ? "Ningún reporte coincide con los filtros." : "Los conductores no han creado reportes de riesgo aún."}
               />
             ) : (
               <div className="reports-responsive-grid">
-                {reports.map(risk => (
+                {filteredReports.map(risk => (
                 <div key={risk.id} className={`report-card report-${getPriorityLevel(risk.prioridad)}`}>
                   {/* Header simplificado */}
                   <div className="report-card-header">
@@ -201,7 +287,7 @@ const RiskComponent = ({ userType = 'admin' }) => {
                       <Eye size={14} />
                       Ver Detalles
                     </button>
-                    {risk.estado === 'reportado' && (
+                    {canUpdateStatus && risk.estado === 'reportado' && (
                       <button
                         className="btn btn--sm btn--primary"
                         onClick={() => updateReportStatus(risk.id, 'en_revision')}
@@ -209,7 +295,7 @@ const RiskComponent = ({ userType = 'admin' }) => {
                         Revisar
                       </button>
                     )}
-                    {risk.estado === 'en_revision' && (
+                    {canUpdateStatus && risk.estado === 'en_revision' && (
                       <button
                         className="btn btn--sm btn--success"
                         onClick={() => updateReportStatus(risk.id, 'resuelto')}
@@ -218,11 +304,103 @@ const RiskComponent = ({ userType = 'admin' }) => {
                         Resuelto
                       </button>
                     )}
+                    {canUpdateStatus && (
+                      <button
+                        className="btn btn--sm btn--ghost risk-btn-delete"
+                        onClick={(e) => handleDelete(e, risk)}
+                        title="Eliminar reporte"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal crear reporte */}
+      {showCreateModal && (
+        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="modal-content report-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3><AlertTriangle size={20} /> Nuevo Reporte de Riesgo</h3>
+              <button className="modal-close" onClick={() => setShowCreateModal(false)}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleCreate}>
+              <div className="modal-body">
+                <div className="detail-section">
+                  <label className="risk-form-label">Título *</label>
+                  <input
+                    type="text"
+                    className="risk-form-input"
+                    value={formData.titulo}
+                    onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+                    placeholder="Ej: Falla mecánica en zona norte"
+                    required
+                  />
+                </div>
+                <div className="detail-section">
+                  <label className="risk-form-label">Descripción *</label>
+                  <textarea
+                    className="risk-form-input risk-form-textarea"
+                    rows={3}
+                    value={formData.descripcion}
+                    onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                    placeholder="Describe el riesgo con detalle..."
+                    required
+                  />
+                </div>
+                <div className="risk-form-grid">
+                  <div>
+                    <label className="risk-form-label">Tipo de riesgo *</label>
+                    <select
+                      className="risk-form-input"
+                      value={formData.tipo_riesgo}
+                      onChange={(e) => setFormData({ ...formData, tipo_riesgo: e.target.value })}
+                    >
+                      {TIPO_RIESGO_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="risk-form-label">Nivel de severidad *</label>
+                    <select
+                      className="risk-form-input"
+                      value={formData.nivel_severidad}
+                      onChange={(e) => setFormData({ ...formData, nivel_severidad: e.target.value })}
+                    >
+                      <option value="bajo">Bajo</option>
+                      <option value="medio">Medio</option>
+                      <option value="alto">Alto</option>
+                      <option value="critico">Crítico</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="detail-section">
+                  <label className="risk-form-label">Ubicación (opcional)</label>
+                  <input
+                    type="text"
+                    className="risk-form-input"
+                    value={formData.ubicacion}
+                    onChange={(e) => setFormData({ ...formData, ubicacion: e.target.value })}
+                    placeholder="Ej: Av. Central, Km 4"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn--secondary" onClick={() => setShowCreateModal(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn--primary" disabled={saving}>
+                  {saving ? 'Guardando...' : 'Crear Reporte'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -327,8 +505,8 @@ const RiskComponent = ({ userType = 'admin' }) => {
               >
                 Cerrar
               </button>
-              {selectedReport.estado === 'reportado' && (
-                <button 
+              {canUpdateStatus && selectedReport.estado === 'reportado' && (
+                <button
                   className="btn btn--primary"
                   onClick={() => {
                     updateReportStatus(selectedReport.id, 'en_revision');
@@ -338,8 +516,8 @@ const RiskComponent = ({ userType = 'admin' }) => {
                   <ClipboardList size={16} /> Marcar en Revisión
                 </button>
               )}
-              {selectedReport.estado === 'en_revision' && (
-                <button 
+              {canUpdateStatus && selectedReport.estado === 'en_revision' && (
+                <button
                   className="btn btn--success"
                   onClick={() => {
                     updateReportStatus(selectedReport.id, 'resuelto');

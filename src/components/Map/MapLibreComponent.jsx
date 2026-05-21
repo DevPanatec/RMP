@@ -132,11 +132,26 @@ const getVehicleMovementStatus = (vehicle) => {
   return (now - ultimaMotion) < STALE_MS ? 'stopped' : 'parked';
 };
 
+// MapLibre paint-property values requieren hex literal (no resuelve CSS vars).
+// Cada hex está alineado al token semántico Fluent correspondiente — si actualizas
+// los tokens en src/styles/index.css, actualiza también estos valores.
+const MAP_TOKEN_COLORS = {
+  success: '#10b981',  // var(--color-success) — vehicle en movimiento / ruta activa
+  successLight: '#34d399',
+  warning: '#f59e0b',  // var(--color-warning) — parado / mantenimiento
+  error: '#ef4444',    // var(--color-error) — geofence default
+  info: '#3b82f6',     // var(--color-info) — disponible
+  primary: '#0078D4',  // Fluent primary blue — usuario conductor / geofence
+  primaryLight: '#60a5fa',
+  neutral: '#6b7280',  // grey 500 — estacionado / sin estado
+  accent: '#f97316',   // orange 500 — ruta secundaria
+};
+
 // Colors by movement status
 const movementColors = {
-  moving: { primary: '#10b981', glow: 'rgba(16, 185, 129, 0.5)', label: 'En movimiento' },
-  stopped: { primary: '#f59e0b', glow: 'rgba(245, 158, 11, 0.5)', label: 'Parado' },
-  parked: { primary: '#6b7280', glow: 'rgba(107, 114, 128, 0.4)', label: 'Estacionado' },
+  moving: { primary: MAP_TOKEN_COLORS.success, glow: 'rgba(16, 185, 129, 0.5)', label: 'En movimiento' },
+  stopped: { primary: MAP_TOKEN_COLORS.warning, glow: 'rgba(245, 158, 11, 0.5)', label: 'Parado' },
+  parked: { primary: MAP_TOKEN_COLORS.neutral, glow: 'rgba(107, 114, 128, 0.4)', label: 'Estacionado' },
 };
 
 /**
@@ -1899,9 +1914,9 @@ const MapLibreComponent = ({
                              truck.estado === 'disponible' ? 'Disponible' :
                              truck.estado === 'en_mantenimiento' ? 'En mantenimiento' :
                              truck.estado || 'Sin estado';
-        const estadoColor = truck.estado === 'en_ruta' ? '#10b981' :
-                           truck.estado === 'disponible' ? '#3b82f6' :
-                           truck.estado === 'en_mantenimiento' ? '#f59e0b' : '#6b7280';
+        const estadoColor = truck.estado === 'en_ruta' ? MAP_TOKEN_COLORS.success :
+                           truck.estado === 'disponible' ? MAP_TOKEN_COLORS.info :
+                           truck.estado === 'en_mantenimiento' ? MAP_TOKEN_COLORS.warning : MAP_TOKEN_COLORS.neutral;
 
         return (
           <TruckModalContent

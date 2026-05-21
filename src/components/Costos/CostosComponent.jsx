@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useInventory } from '../../context/InventoryContext';
 import { useMaintenance } from '../../context/MaintenanceContext';
+import { useOrganization } from '../../context/OrganizationContext';
 import {
   DollarSign, TrendingUp, TrendingDown, Package, ShoppingCart,
   Wrench, Shield, Users as UsersIcon, Calendar, PieChart,
@@ -18,6 +19,10 @@ const CostosComponent = () => {
   } = useInventory();
 
   const { tasks, getOperationalStats } = useMaintenance();
+  const { hasModulo } = useOrganization();
+
+  const hasInv = hasModulo('INV');
+  const hasMto = hasModulo('MTO');
 
   const [activeTab, setActiveTab] = useState('resumen');
   const [selectedPeriod, setSelectedPeriod] = useState('12');
@@ -135,13 +140,23 @@ const CostosComponent = () => {
   };
 
   // ========================
-  // TABS CONFIG
+  // TABS CONFIG — filtrar por módulos activos en la org.
+  // Resumen siempre visible (agregado de lo que haya). Tabs específicos
+  // sólo si la org contrató el módulo correspondiente.
   // ========================
-  const tabs = [
-    { id: 'resumen', label: 'Resumen', icon: <PieChart size={16} /> },
-    { id: 'inventario', label: 'Inventario', icon: <Package size={16} /> },
-    { id: 'mantenimiento', label: 'Mantenimiento', icon: <Wrench size={16} /> }
-  ];
+  const tabs = useMemo(() => {
+    const all = [
+      { id: 'resumen', label: 'Resumen', icon: <PieChart size={16} />, modulo: null },
+      { id: 'inventario', label: 'Inventario', icon: <Package size={16} />, modulo: 'INV' },
+      { id: 'mantenimiento', label: 'Mantenimiento', icon: <Wrench size={16} />, modulo: 'MTO' },
+    ];
+    return all.filter((t) => t.modulo === null || hasModulo(t.modulo));
+  }, [hasModulo]);
+
+  // Si el tab activo dejó de estar disponible, volver a resumen.
+  useEffect(() => {
+    if (!tabs.find((t) => t.id === activeTab)) setActiveTab('resumen');
+  }, [tabs, activeTab]);
 
   return (
     <div className="costos-v2">
@@ -162,14 +177,18 @@ const CostosComponent = () => {
             <span className="stat-number">B/. {costoTotalOperacional.toLocaleString()}</span>
             <span className="stat-label">Total</span>
           </div>
-          <div className="costos-stat-pill info">
-            <span className="stat-number">B/. {(valorTotalInventario || 0).toLocaleString()}</span>
-            <span className="stat-label">Inventario</span>
-          </div>
-          <div className="costos-stat-pill warning">
-            <span className="stat-number">B/. {maintCostData.totalCost.toLocaleString()}</span>
-            <span className="stat-label">Mant.</span>
-          </div>
+          {hasInv && (
+            <div className="costos-stat-pill info">
+              <span className="stat-number">B/. {(valorTotalInventario || 0).toLocaleString()}</span>
+              <span className="stat-label">Inventario</span>
+            </div>
+          )}
+          {hasMto && (
+            <div className="costos-stat-pill warning">
+              <span className="stat-number">B/. {maintCostData.totalCost.toLocaleString()}</span>
+              <span className="stat-label">Mant.</span>
+            </div>
+          )}
         </div>
       </div>
 

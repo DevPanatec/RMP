@@ -6,7 +6,7 @@ module.exports = {
     'plugin:react/recommended',
     'plugin:react-hooks/recommended',
   ],
-  ignorePatterns: ['dist', '.eslintrc.cjs', 'convex/_generated', 'node_modules'],
+  ignorePatterns: ['dist', '.eslintrc.cjs', 'convex/_generated', 'node_modules', 'playwright-report', 'audit', 'test-results', 'tests-e2e/**/*.spec.ts'],
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module',

@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSchedule } from '../../context/ScheduleContext';
 import { useRoutes } from '../../context/RoutesContext';
 import { usePersonnel } from '../../context/PersonnelContext';
 import { useFleet } from '../../context/FleetContext';
 import { useCleaning } from '../../context/CleaningContext';
 import { useFumigation } from '../../context/FumigationContext';
+import { useOrganization } from '../../context/OrganizationContext';
+import { useModuleAccess } from '../../hooks/useModuleAccess';
 import {
   Calendar, Plus, Edit, Trash2, AlertTriangle, CheckCircle,
   Truck, Users, Map, Clock, X, Sparkles, Camera, Info, Bug, CalendarCheck
 } from '../Icons';
-import { CustomSelect, EmptyState, StatusBadge } from '../UI';
+import { CustomSelect, EmptyState, StatusBadge, ConfirmDialog } from '../UI';
 import notify from '../../utils/notify';
 import useRequireOrg from '../../hooks/useRequireOrg';
 import PhotoUploadField from '../Cleaning/PhotoUploadField';
@@ -30,8 +32,19 @@ const formatTime12h = (time24) => {
   return `${hour12}:${minutes} ${period}`;
 };
 
-const ScheduleComponent = ({ viewerMode = false }) => {
+const ScheduleComponent = ({ viewerMode = false, userRole = 'admin' }) => {
   const { canCreate, blockReason } = useRequireOrg();
+  const { hasModulo } = useOrganization();
+  // canWrite cubre viewer + enterprise (cualquiera no admin/super_admin es read-only)
+  const canWrite = !viewerMode && (userRole === 'admin' || userRole === 'super_admin');
+  // Sub-tabs internas dependen de módulos: routes(REC), cleaning(LIM), fumigation(FUM)
+  const canRoutes = hasModulo('REC');
+  const canCleaning = hasModulo('LIM');
+  const canFumigation = hasModulo('FUM');
+  // Guards para handlers que abren modales — re-validan al click (cubre race
+  // condition entre render del botón y toggle del módulo).
+  const limAccess = useModuleAccess('LIM');
+  const fumAccess = useModuleAccess('FUM');
 
   const {
     assignments: scheduleAssignments,
@@ -143,6 +156,23 @@ const ScheduleComponent = ({ viewerMode = false }) => {
   const [activeTab, setActiveTab] = useState('routes');
   const [showModal, setShowModal] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
+  const [assignmentToDelete, setAssignmentToDelete] = useState(null);
+
+  // Auto-redirect interno: si el módulo de la sub-tab actual se desactiva,
+  // salta a la primera disponible. Sin esto, el usuario ve contenido vacío
+  // sin manera de navegar fuera.
+  useEffect(() => {
+    if (activeTab === 'routes' && !canRoutes) {
+      if (canCleaning && canWrite) setActiveTab('cleaning');
+      else if (canFumigation && canWrite) setActiveTab('fumigation');
+    } else if (activeTab === 'cleaning' && (!canCleaning || !canWrite)) {
+      if (canRoutes) setActiveTab('routes');
+      else if (canFumigation && canWrite) setActiveTab('fumigation');
+    } else if (activeTab === 'fumigation' && (!canFumigation || !canWrite)) {
+      if (canRoutes) setActiveTab('routes');
+      else if (canCleaning && canWrite) setActiveTab('cleaning');
+    }
+  }, [activeTab, canRoutes, canCleaning, canFumigation, canWrite]);
   const [showRulesBanner, setShowRulesBanner] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -229,7 +259,7 @@ const ScheduleComponent = ({ viewerMode = false }) => {
     setShowModal(true);
   };
 
-  const handleOpenCleaningModal = () => {
+  const handleOpenCleaningModal = limAccess.guard(() => {
     setCleaningFormData({
       lugar_id: '',
       area_id: '',
@@ -241,12 +271,12 @@ const ScheduleComponent = ({ viewerMode = false }) => {
     setErrors({});
     setActiveTab('cleaning');
     setShowModal(true);
-  };
+  });
 
-  const handleOpenFumigationModal = () => {
+  const handleOpenFumigationModal = fumAccess.guard(() => {
     setActiveTab('fumigation');
     setShowFumigationModal(true);
-  };
+  });
 
   const handleFumigationSave = async (assignmentData) => {
     const result = await createFumigationAssignment(assignmentData);
@@ -508,13 +538,17 @@ const ScheduleComponent = ({ viewerMode = false }) => {
     }
   };
 
-  const handleDeleteRoute = async (id) => {
-    if (window.confirm('¿Estás seguro de eliminar esta asignación?')) {
-      const result = await deleteScheduleAssignment(id);
-      if (!result.success) {
-        notify.error(result.error);
-      }
+  const handleDeleteRoute = (id) => {
+    setAssignmentToDelete(id);
+  };
+
+  const confirmDeleteAssignment = async () => {
+    if (!assignmentToDelete) return;
+    const result = await deleteScheduleAssignment(assignmentToDelete);
+    if (!result.success) {
+      notify.error(result.error);
     }
+    setAssignmentToDelete(null);
   };
 
   const handleLugarChange = (e) => {
@@ -674,17 +708,17 @@ const ScheduleComponent = ({ viewerMode = false }) => {
         </div>
 
         <div className="schedule-header-actions">
-          <button
-            className="btn-add-v2"
-            onClick={() => handleOpenRouteModal()}
-            disabled={!canCreate}
-            title={blockReason || ''}
-          >
-            <Plus size={16} />
-            Ruta
-          </button>
-          {!viewerMode && (
+          {canWrite && (
             <>
+              <button
+                className="btn-add-v2"
+                onClick={() => handleOpenRouteModal()}
+                disabled={!canCreate}
+                title={blockReason || ''}
+              >
+                <Plus size={16} />
+                Ruta
+              </button>
               <button
                 className="btn-add-v2 secondary"
                 onClick={handleOpenCleaningModal}
@@ -709,33 +743,35 @@ const ScheduleComponent = ({ viewerMode = false }) => {
       </div>
 
       <div className="schedule-tabs-unified">
-        <button
-          className={`tab-unified ${activeTab === 'routes' ? 'active' : ''}`}
-          onClick={() => setActiveTab('routes')}
-        >
-          <Truck size={16} />
-          Rutas
-          <span className="tab-badge">{scheduleAssignments.length}</span>
-        </button>
-        {!viewerMode && (
-          <>
-            <button
-              className={`tab-unified ${activeTab === 'cleaning' ? 'active' : ''}`}
-              onClick={() => setActiveTab('cleaning')}
-            >
-              <Sparkles size={16} />
-              Limpieza
-              <span className="tab-badge">{cleaningAssignments.length}</span>
-            </button>
-            <button
-              className={`tab-unified ${activeTab === 'fumigation' ? 'active' : ''}`}
-              onClick={() => setActiveTab('fumigation')}
-            >
-              <Bug size={16} />
-              Fumigación
-              <span className="tab-badge">{fumigationAssignments.length}</span>
-            </button>
-          </>
+        {canRoutes && (
+          <button
+            className={`tab-unified ${activeTab === 'routes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('routes')}
+          >
+            <Truck size={16} />
+            Rutas
+            <span className="tab-badge">{scheduleAssignments.length}</span>
+          </button>
+        )}
+        {canWrite && canCleaning && (
+          <button
+            className={`tab-unified ${activeTab === 'cleaning' ? 'active' : ''}`}
+            onClick={() => setActiveTab('cleaning')}
+          >
+            <Sparkles size={16} />
+            Limpieza
+            <span className="tab-badge">{cleaningAssignments.length}</span>
+          </button>
+        )}
+        {canWrite && canFumigation && (
+          <button
+            className={`tab-unified ${activeTab === 'fumigation' ? 'active' : ''}`}
+            onClick={() => setActiveTab('fumigation')}
+          >
+            <Bug size={16} />
+            Fumigación
+            <span className="tab-badge">{fumigationAssignments.length}</span>
+          </button>
         )}
       </div>
 
@@ -752,12 +788,12 @@ const ScheduleComponent = ({ viewerMode = false }) => {
                 <EmptyState
                   icon={Truck}
                   title="No hay rutas programadas"
-                  description="Comienza agregando una nueva asignación de ruta para tu flota."
-                  action={
+                  description={canWrite ? 'Comienza agregando una nueva asignación de ruta para tu flota.' : 'No hay asignaciones de ruta para mostrar.'}
+                  action={canWrite ? (
                     <button className="btn btn--primary btn--sm" onClick={() => handleOpenRouteModal()}>
                       <Plus size={16} /> Nueva Ruta
                     </button>
-                  }
+                  ) : null}
                 />
               ) : (
                 <div className="assignments-table-container">
@@ -800,20 +836,26 @@ const ScheduleComponent = ({ viewerMode = false }) => {
                             <td>{assignment.conductor_nombre}</td>
                             <td className="cell-meta">{vehiculo?.placa || 'N/A'}</td>
                             <td className="cell-actions">
-                              <button
-                                className="btn-icon btn-icon--sm"
-                                onClick={() => handleOpenRouteModal(assignment)}
-                                title="Editar"
-                              >
-                                <Edit size={14} />
-                              </button>
-                              <button
-                                className="btn-icon btn-icon--sm btn-icon--danger"
-                                onClick={() => handleDeleteRoute(assignment._id || assignment.id)}
-                                title="Eliminar"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                              {canWrite && (
+                                <>
+                                  <button
+                                    className="btn-icon btn-icon--sm"
+                                    onClick={() => handleOpenRouteModal(assignment)}
+                                    title="Editar"
+                                    aria-label="Editar asignación"
+                                  >
+                                    <Edit size={14} />
+                                  </button>
+                                  <button
+                                    className="btn-icon btn-icon--sm btn-icon--danger"
+                                    onClick={() => handleDeleteRoute(assignment._id || assignment.id)}
+                                    title="Eliminar"
+                                    aria-label="Eliminar asignación"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </>
+                              )}
                             </td>
                           </tr>
                         );
@@ -880,7 +922,7 @@ const ScheduleComponent = ({ viewerMode = false }) => {
 
           {activeTab === 'fumigation' && (
             <div className="fumigation-embedded-container">
-              <FumigationComponent userRole="admin" embedded={true} />
+              <FumigationComponent userRole={userRole} embedded={true} />
             </div>
           )}
         </div>
@@ -1228,6 +1270,19 @@ const ScheduleComponent = ({ viewerMode = false }) => {
           assignment={null}
           onSave={handleFumigationSave}
           isEditing={false}
+        />
+      )}
+
+      {assignmentToDelete && (
+        <ConfirmDialog
+          open
+          destructive
+          title="¿Eliminar asignación?"
+          message="Vas a eliminar esta asignación de programación. Esta acción no se puede deshacer."
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          onConfirm={confirmDeleteAssignment}
+          onCancel={() => setAssignmentToDelete(null)}
         />
       )}
     </div>

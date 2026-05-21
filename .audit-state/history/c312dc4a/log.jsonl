@@ -1,0 +1,22 @@
+{"ts":"2026-05-14T17:43:02.867Z","kind":"init","runId":"c312dc4a"}
+{"ts":"2026-05-14T17:43:16.516Z","kind":"claim","troop":"bootstrapper"}
+{"ts":"2026-05-14T17:44:02.025Z","kind":"done","troop":"bootstrapper"}
+{"ts":"2026-05-14T17:44:02.085Z","kind":"claim","troop":"spec-runner"}
+{"ts":"2026-05-14T17:45:23.455Z","kind":"init","runId":"11bd1c04"}
+{"ts":"2026-05-14T17:59:32.460Z","kind":"done","troop":"spec-runner"}
+{"ts":"2026-05-14T18:01:20.000Z","kind":"manual-correction","note":"runId restored to c312dc4a after stray init; bootstrapper marked done"}
+{"ts":"2026-05-18T17:49:17.379Z","kind":"claim","troop":"inspector-super-admin"}
+{"ts":"2026-05-18T17:49:22.458Z","kind":"claim","troop":"inspector-admin"}
+{"ts":"2026-05-18T17:49:27.413Z","kind":"claim","troop":"inspector-enterprise"}
+{"ts":"2026-05-18T17:49:29.647Z","kind":"claim","troop":"inspector-viewer"}
+{"ts":"2026-05-18T17:49:38.682Z","kind":"claim","troop":"inspector-conductor"}
+{"ts":"2026-05-18T17:49:40.499Z","kind":"claim","troop":"break-analyzer"}
+{"ts":"2026-05-18T17:50:02.804Z","kind":"done","troop":"inspector-viewer"}
+{"ts":"2026-05-18T17:50:07.622Z","kind":"done","troop":"break-analyzer"}
+{"ts":"2026-05-18T17:50:11.402Z","kind":"done","troop":"inspector-enterprise"}
+{"ts":"2026-05-18T17:50:15.216Z","kind":"done","troop":"inspector-super-admin"}
+{"ts":"2026-05-18T17:50:18.083Z","kind":"done","troop":"inspector-admin"}
+{"ts":"2026-05-18T17:50:33.387Z","kind":"done","troop":"inspector-conductor"}
+{"ts":"2026-05-18T17:50:47.102Z","kind":"claim","troop":"triage"}
+{"ts":"2026-05-18T17:54:29.506Z","kind":"done","troop":"triage"}
+{"ts":"2026-05-18T18:05:50.071Z","kind":"claim","troop":"teardown"}

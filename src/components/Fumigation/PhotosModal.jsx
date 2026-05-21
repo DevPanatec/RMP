@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { X, Image as ImageIcon } from '../Icons';
+import { Modal } from '../UI';
 import './PhotosModal.css';
 
 const PhotosModal = ({ isOpen, onClose, assignmentId }) => {
@@ -22,36 +23,14 @@ const PhotosModal = ({ isOpen, onClose, assignmentId }) => {
     setSelectedPhoto(photo);
   };
 
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) {
-      if (selectedPhoto) {
-        setSelectedPhoto(null);
-      } else {
-        onClose();
-      }
-    }
-  };
-
   return (
-    <div className="photos-modal-overlay" onClick={handleOverlayClick}>
-      <div className="photos-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="photos-modal-header">
-          <div className="modal-header-content">
-            <h4>
-              <ImageIcon size={20} /> Evidencias de Fumigación
-            </h4>
-            {assignment && (
-              <p>
-                {assignment.lugar_nombre} • {new Date(assignment.fecha).toLocaleDateString('es-ES')}
-              </p>
-            )}
-          </div>
-          <button className="modal-close" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
+    <Modal open onClose={onClose} size="lg" variant="detail">
+      <Modal.Header icon={<ImageIcon size={18} />} onClose={onClose} id="fum-photos-title">
+        Evidencias de Fumigación
+        {assignment && <span> · {assignment.lugar_nombre} · {new Date(assignment.fecha).toLocaleDateString('es-ES')}</span>}
+      </Modal.Header>
 
-        <div className="photos-modal-body">
+      <Modal.Body className="photos-modal-body">
           {!photos || photos.length === 0 ? (
             <div className="photos-empty">
               <ImageIcon size={48} color="#ccc" />
@@ -77,27 +56,28 @@ const PhotosModal = ({ isOpen, onClose, assignmentId }) => {
               ))}
             </div>
           )}
-        </div>
+      </Modal.Body>
 
-        {selectedPhoto && (
-          <div className="photo-viewer" onClick={() => setSelectedPhoto(null)}>
-            <div className="photo-viewer-content">
-              <button
-                className="photo-viewer-close"
-                onClick={() => setSelectedPhoto(null)}
-              >
-                <X size={24} />
-              </button>
-              <img
-                src={selectedPhoto.url}
-                alt="Evidencia ampliada"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
+      {selectedPhoto && (
+        <div className="photo-viewer" onClick={() => setSelectedPhoto(null)}>
+          <div className="photo-viewer-content">
+            <button
+              type="button"
+              className="photo-viewer-close"
+              onClick={() => setSelectedPhoto(null)}
+              aria-label="Cerrar foto"
+            >
+              <X size={24} />
+            </button>
+            <img
+              src={selectedPhoto.url}
+              alt="Evidencia ampliada"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </Modal>
   );
 };
 

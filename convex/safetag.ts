@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { query, mutation, action, internalAction, internalMutation, internalQuery } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { getAuthScope, requireAdminWrite, requireOrgAccess } from "./lib/auth";
-import { MOTION_SPEED_THRESHOLD } from "./lib/gps";
+import { MOTION_SPEED_THRESHOLD, haversineKm } from "./lib/gps";
 
 // Configuración
 const SAFETAG_API_BASE = "https://api.safetagtracking.com/api/v1";
@@ -137,6 +137,20 @@ export const updateVehicleFromSafeTag = internalMutation({
     // "parado hace 2 min" (parado) vs "parado hace 1 semana" (estacionado).
     const isMoving = isConnected && deviceData.speed > MOTION_SPEED_THRESHOLD;
 
+    // Acumular km odómetro — solo cuando GPS conectado, speed > umbral y coords previas conocidas.
+    // Sanity cap de 5 km por ping para filtrar saltos GPS erróneos.
+    let km_acumulado = currentVehicle.km_acumulado;
+    if (
+      isConnected &&
+      deviceData.speed > MOTION_SPEED_THRESHOLD &&
+      currentLat !== undefined && currentLng !== undefined
+    ) {
+      const deltaKm = haversineKm(currentLat, currentLng, newLat, newLng);
+      if (deltaKm > 0 && deltaKm < 5) {
+        km_acumulado = (currentVehicle.km_acumulado ?? 0) + deltaKm;
+      }
+    }
+
     await ctx.db.patch(vehiculoId, {
       safetag_device_id: deviceData._id,
       safetag_device_name: deviceData.name,
@@ -144,13 +158,14 @@ export const updateVehicleFromSafeTag = internalMutation({
       gps_longitud: deviceData.longitude,
       gps_velocidad: deviceData.speed,
       gps_rumbo: deviceData.course,
-      gps_ultima_actualizacion: timestamp, // ← SOLO actualiza si se movió
+      gps_ultima_actualizacion: timestamp,
       gps_ultima_motion: isMoving ? now : (currentVehicle.gps_ultima_motion ?? undefined),
-      safetag_timestamp: safetagTimestamp, // Timestamp original de SafeTag
+      safetag_timestamp: safetagTimestamp,
       gps_bateria: deviceData.battery,
       gps_senal: deviceData.signal,
       gps_en_linea: isConnected,
-      gps_conectado: isConnected, // ← Ahora depende de si el dato es fresco
+      gps_conectado: isConnected,
+      km_acumulado,
     });
 
     // Solo guardar historial si SafeTag está conectado Y se movió.

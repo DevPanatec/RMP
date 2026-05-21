@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import { BarChart3, Wrench, Plus } from '../Icons';
+import { BarChart3, Wrench, Plus, MapPin, CalendarCheck } from '../Icons';
 import { ServiceDownloadSection } from '../shared';
+import LocationComponentsView from '../LocationComponents/LocationComponentsView';
 import { generateMantenimientoPDFComplete } from '../../utils/lazyPdf';
 import MaintenanceDashboard from './MaintenanceDashboard';
 import MaintenanceTasks from './MaintenanceTasks';
 import MaintenanceTaskModal from './MaintenanceTaskModal';
+import PMScheduleManager from './PMScheduleManager';
 import './MaintenanceComponent.css';
 
 const MaintenanceComponent = ({ userRole = 'admin' }) => {
@@ -71,7 +73,9 @@ const MaintenanceComponent = ({ userRole = 'admin' }) => {
 
   const categories = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'tareas', label: 'Tareas', icon: Wrench }
+    { id: 'preventivo', label: 'Preventivo', icon: CalendarCheck },
+    { id: 'tareas', label: 'Tareas', icon: Wrench },
+    { id: 'componentes', label: 'Componentes de Lugar', icon: MapPin },
   ];
 
   const renderCategoriesNav = () => (
@@ -99,6 +103,8 @@ const MaintenanceComponent = ({ userRole = 'admin' }) => {
             onSeeAllTasks={() => setActiveView('tareas')}
           />
         );
+      case 'preventivo':
+        return <PMScheduleManager canWrite={isAdmin} />;
       case 'tareas':
         return (
           <MaintenanceTasks
@@ -109,6 +115,8 @@ const MaintenanceComponent = ({ userRole = 'admin' }) => {
             onEdit={handleEdit}
           />
         );
+      case 'componentes':
+        return <LocationComponentsView userRole={userRole} />;
       default:
         return <MaintenanceDashboard userRole={userRole} />;
     }

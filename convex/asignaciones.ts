@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getScopedProjectId, getScopedOrgId, requireProjectAccess, requireWriteRole, requireAdminWrite, getAuthScope } from "./lib/auth";
+import { requireModulo } from "./lib/modules";
 
 export const list = query({
   args: {
@@ -17,10 +18,17 @@ export const list = query({
         .collect();
     } else {
       const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
-      const all = await ctx.db.query("asignaciones_rutas").collect();
-      assignments = scopedOrg
-        ? all.filter((a) => a.organizacion_id === scopedOrg)
-        : all;
+      if (scopedOrg) {
+        const all = await ctx.db.query("asignaciones_rutas").collect();
+        assignments = all.filter((a) => a.organizacion_id === scopedOrg);
+      } else {
+        const scope = await getAuthScope(ctx);
+        if (scope.isSuperAdmin || scope.isCrossOrgViewer) {
+          assignments = await ctx.db.query("asignaciones_rutas").collect();
+        } else {
+          assignments = [];
+        }
+      }
     }
 
     // JOIN con rutas y vehículos
@@ -60,6 +68,7 @@ export const add = mutation({
   handler: async (ctx, args) => {
     // Bloqueo a roles read-only (enterprise/viewer).
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "REC");
     const scope = await getAuthScope(ctx);
 
     // Auto-resolve conductor_id from perfiles_usuarios if not provided
@@ -217,6 +226,7 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const scope = await requireWriteRole(ctx);
+    await requireModulo(ctx, "REC");
     const { id, ...updates } = args;
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Asignación no encontrada");
@@ -255,6 +265,7 @@ export const updateEstado = mutation({
   },
   handler: async (ctx, args) => {
     const scope = await requireWriteRole(ctx);
+    await requireModulo(ctx, "REC");
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Asignación no encontrada");
     if (existing.proyecto_id) await requireProjectAccess(ctx, existing.proyecto_id);
@@ -275,6 +286,7 @@ export const remove = mutation({
   args: { id: v.id("asignaciones_rutas") },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "REC");
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Asignación no encontrada");
     if (existing.proyecto_id) await requireProjectAccess(ctx, existing.proyecto_id);

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
-import { X, Calendar, Download, FileText, Camera, Check, Eye, Truck, Zap, Sparkles, Wrench } from '../Icons';
+import { X, Calendar, Download, FileText, Camera, Check, Eye, Truck, Zap, Sparkles, Wrench, AlertTriangle } from '../Icons';
 import { Card, Badge } from '../UI';
+import { useOrganization } from '../../context/OrganizationContext';
 import ReportDetailModal from '../Cleaning/ReportDetailModal';
 import RouteReportDetailModal from './RouteReportDetailModal';
 import FumigationReportDetailModal from '../Fumigation/FumigationReportDetailModal';
@@ -18,6 +19,12 @@ const parseLocalDate = (dateStr) => {
 };
 
 const LocationReportsModal = ({ location, onClose, getStatusVariant, modalType = 'limpieza' }) => {
+  const { hasModulo } = useOrganization();
+  // Map modalType → módulo correspondiente para detectar histórico-only
+  const moduloMap = { recoleccion: 'REC', fumigacion: 'FUM', limpieza: 'LIM', mantenimiento: 'MTO' };
+  const requiredModulo = moduloMap[modalType];
+  const isHistoricalOnly = requiredModulo && !hasModulo(requiredModulo);
+
   // Determinar el logo según el tipo de modal
   const getModalLogo = () => {
     const logoMap = {
@@ -250,6 +257,16 @@ const LocationReportsModal = ({ location, onClose, getStatusVariant, modalType =
   return (
     <div className="location-modal-overlay-new" onClick={onClose}>
       <div className="location-modal-new" onClick={(e) => e.stopPropagation()}>
+
+        {isHistoricalOnly && (
+          <div className="historical-only-banner" role="status">
+            <AlertTriangle size={16} />
+            <span>
+              <strong>Módulo {modalType.charAt(0).toUpperCase() + modalType.slice(1)} desactivado.</strong>
+              {' '}Vista histórica de solo lectura.
+            </span>
+          </div>
+        )}
 
         {/* Mapa Grande Arriba */}
         {mapEmbedUrl && (

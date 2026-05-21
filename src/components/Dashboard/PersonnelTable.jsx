@@ -9,8 +9,10 @@ export const PersonnelTable = ({
   onDelete,
   currentPage = 1,
   totalPages = 1,
-  onPageChange
+  onPageChange,
+  userRole = 'admin'
 }) => {
+  const canWrite = userRole === 'admin' || userRole === 'super_admin';
   const getStatusColor = (estado) => {
     switch (estado?.toLowerCase()) {
       case 'activo': return 'success';
@@ -70,11 +72,11 @@ export const PersonnelTable = ({
                 <th>Puesto</th>
                 <th>Estado</th>
                 <th>Asignación</th>
-                <th>Acciones</th>
+                {canWrite && <th>Acciones</th>}
               </tr>
             </thead>
             <tbody>
-              {Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={5} />)}
+              {Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={canWrite ? 5 : 4} />)}
             </tbody>
           </table>
         </div>
@@ -104,7 +106,7 @@ export const PersonnelTable = ({
               <th>Puesto</th>
               <th>Estado</th>
               <th>Asignación</th>
-              <th>Acciones</th>
+              {canWrite && <th>Acciones</th>}
             </tr>
           </thead>
           <tbody>
@@ -141,24 +143,28 @@ export const PersonnelTable = ({
                     {employee.asignacion || 'Sin asignar'}
                   </span>
                 </td>
-                <td>
-                  <div className="table-actions">
-                    <button
-                      className="action-btn action-btn--edit"
-                      onClick={() => onEdit(employee)}
-                      title="Editar"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      className="action-btn action-btn--delete"
-                      onClick={() => onDelete(employee._id || employee.id)}
-                      title="Eliminar"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </td>
+                {canWrite && (
+                  <td>
+                    <div className="table-actions">
+                      <button
+                        className="action-btn action-btn--edit"
+                        onClick={() => onEdit(employee)}
+                        title="Editar"
+                        aria-label="Editar empleado"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        className="action-btn action-btn--delete"
+                        onClick={() => onDelete(employee._id || employee.id)}
+                        title="Eliminar"
+                        aria-label="Eliminar empleado"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

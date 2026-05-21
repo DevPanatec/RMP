@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
-import { Calendar, Download, FileText, Eye, X, Spray } from '../Icons';
+import { Calendar, Download, FileText, Eye, X, Spray, AlertTriangle } from '../Icons';
 import { Badge } from '../UI';
+import { useOrganization } from '../../context/OrganizationContext';
 import FumigationReportDetailModal from '../Fumigation/FumigationReportDetailModal';
 import pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
@@ -16,6 +17,8 @@ const parseLocalDate = (dateStr) => {
 };
 
 const FumigationReportsPage = ({ location, onClose, getStatusVariant }) => {
+  const { hasModulo } = useOrganization();
+  const isHistoricalOnly = !hasModulo('FUM');
   const [dateRange, setDateRange] = useState({
     inicio: new Date(Date.now() - 365*24*60*60*1000).toISOString().split('T')[0],
     fin: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0]
@@ -197,6 +200,16 @@ const FumigationReportsPage = ({ location, onClose, getStatusVariant }) => {
           </button>
         )}
       </div>
+
+      {isHistoricalOnly && (
+        <div className="historical-only-banner" role="status">
+          <AlertTriangle size={16} />
+          <span>
+            <strong>Módulo Fumigación desactivado.</strong> Mostrando data histórica de solo lectura.
+            Reactiva el módulo para crear nuevos reportes.
+          </span>
+        </div>
+      )}
 
       {/* Mapa Grande Arriba */}
       {mapEmbedUrl && (

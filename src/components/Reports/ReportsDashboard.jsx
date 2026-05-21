@@ -6,6 +6,7 @@ import { useCleaning } from '../../context/CleaningContext';
 import { useFumigation } from '../../context/FumigationContext';
 import { useMaintenance } from '../../context/MaintenanceContext';
 import { useReports } from '../../context/ReportsContext';
+import { useOrganization } from '../../context/OrganizationContext';
 import { Truck, Sparkles, Wrench, Bug, Download, ChevronRight, Calendar, BarChart3, CheckSquare } from '../Icons';
 import { generateCombinedPDFComplete } from '../../utils/lazyPdf';
 import './ReportsDashboard.css';
@@ -19,6 +20,7 @@ const parseLocalDate = (dateStr) => {
 
 const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
   const { user } = useAuth();
+  const { hasModulo } = useOrganization();
   const { assignments: cleaningAssignments } = useCleaning();
   const { assignments: fumigationAssignments } = useFumigation();
   const { tasks: maintenanceTasks } = useMaintenance();
@@ -43,11 +45,13 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
     hasta: new Date().toISOString().split('T')[0]
   });
 
+  // Default: sólo módulos activos pre-seleccionados (regla CREAR del Sprint H).
+  // Módulos off con histórico pueden seleccionarse manualmente.
   const [selectedModules, setSelectedModules] = useState({
-    recoleccion: true,
-    fumigacion: true,
-    limpieza: true,
-    mantenimiento: false
+    recoleccion: hasModulo('REC'),
+    fumigacion: hasModulo('FUM'),
+    limpieza: hasModulo('LIM'),
+    mantenimiento: hasModulo('MTO'),
   });
 
   const [includeIndex, setIncludeIndex] = useState(true);
@@ -165,8 +169,10 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
     });
   };
 
-  // Configuración de módulos
-  const modules = [
+  // Configuración de módulos — anotados con `requiredModulo` y `isHistorical`
+  // para que el render decida si la card es interactiva (módulo activo) o
+  // sólo histórica (módulo off pero hay data acumulada).
+  const allModules = [
     {
       id: 'recoleccion',
       title: 'Recolección',
@@ -175,7 +181,8 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
       total: rutasRecoleccion.length,
       recent: last7Days.recoleccionRecent,
       image: '/icons/modules/RECOLECCION.png',
-      lastUpdate: lastUpdates.recoleccion
+      lastUpdate: lastUpdates.recoleccion,
+      requiredModulo: 'REC',
     },
     {
       id: 'fumigacion',
@@ -185,7 +192,8 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
       total: fumigacionTotal,
       recent: last7Days.fumigacionRecent,
       image: '/icons/modules/FUMIGACION.png',
-      lastUpdate: lastUpdates.fumigacion
+      lastUpdate: lastUpdates.fumigacion,
+      requiredModulo: 'FUM',
     },
     {
       id: 'limpieza',
@@ -195,7 +203,8 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
       total: limpiezaTotal,
       recent: last7Days.limpiezaRecent,
       image: '/icons/modules/limpieza.png',
-      lastUpdate: lastUpdates.limpieza
+      lastUpdate: lastUpdates.limpieza,
+      requiredModulo: 'LIM',
     },
     {
       id: 'mantenimiento',
@@ -205,9 +214,19 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
       total: mantenimientoTotal,
       recent: last7Days.mantenimientoRecent,
       image: '/icons/modules/mantenimiento.png',
-      lastUpdate: lastUpdates.mantenimiento
-    }
+      lastUpdate: lastUpdates.mantenimiento,
+      requiredModulo: 'MTO',
+    },
   ];
+
+  // Cards visibles: módulo activo OR data histórica > 0.
+  const modules = allModules
+    .map((m) => ({
+      ...m,
+      isActive: hasModulo(m.requiredModulo),
+      isHistoricalOnly: !hasModulo(m.requiredModulo) && m.total > 0,
+    }))
+    .filter((m) => m.isActive || m.total > 0);
 
   return (
     <div className="reports-dashboard-v2">

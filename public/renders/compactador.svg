@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 180" width="400" height="180">
+  <rect width="400" height="180" fill="#ECEEF2"/>
+
+  <!-- FRONT WHEELS (zone: tren_rodaje, x 0-10%) -->
+  <rect x="8" y="20" width="28" height="48" rx="7" fill="#282828" stroke="#111" stroke-width="1.5"/>
+  <rect x="13" y="26" width="18" height="36" rx="4" fill="#3C3C3C"/>
+  <rect x="8" y="112" width="28" height="48" rx="7" fill="#282828" stroke="#111" stroke-width="1.5"/>
+  <rect x="13" y="118" width="18" height="36" rx="4" fill="#3C3C3C"/>
+
+  <!-- TANDEM REAR WHEELS (3 per side) -->
+  <rect x="256" y="13" width="20" height="37" rx="4" fill="#282828" stroke="#111" stroke-width="1.5"/>
+  <rect x="280" y="13" width="20" height="37" rx="4" fill="#282828" stroke="#111" stroke-width="1.5"/>
+  <rect x="306" y="13" width="20" height="37" rx="4" fill="#282828" stroke="#111" stroke-width="1.5"/>
+  <rect x="256" y="130" width="20" height="37" rx="4" fill="#282828" stroke="#111" stroke-width="1.5"/>
+  <rect x="280" y="130" width="20" height="37" rx="4" fill="#282828" stroke="#111" stroke-width="1.5"/>
+  <rect x="306" y="130" width="20" height="37" rx="4" fill="#282828" stroke="#111" stroke-width="1.5"/>
+
+  <!-- MAIN BODY -->
+  <rect x="36" y="28" width="340" height="124" rx="10" fill="#E0E4EE" stroke="#A0AECC" stroke-width="2"/>
+
+  <!-- ZONE 2: CAB / MOTOR (x 10-35%) -->
+  <rect x="40" y="32" width="96" height="116" rx="8" fill="#CDD6EC" stroke="#8898BE" stroke-width="1.5"/>
+  <rect x="50" y="44" width="62" height="32" rx="4" fill="#A4C4E8" stroke="#6688B8" stroke-width="1.2" opacity="0.9"/>
+  <line x1="136" y1="32" x2="136" y2="148" stroke="#8898BE" stroke-width="1.5"/>
+  <rect x="46" y="88" width="52" height="24" rx="3" fill="none" stroke="#B09058" stroke-width="1.2" stroke-dasharray="3,2"/>
+  <text x="72" y="103" text-anchor="middle" font-size="8" fill="#806038" font-family="Arial,sans-serif" font-weight="bold">MOTOR</text>
+
+  <!-- ZONE 3: TRANSMISION (x 35-58%) -->
+  <rect x="142" y="36" width="90" height="108" rx="4" fill="#D4DCF0" stroke="#8896BC" stroke-width="1.2"/>
+  <line x1="148" y1="54" x2="228" y2="54" stroke="#7888A8" stroke-width="0.8" stroke-dasharray="5,3"/>
+  <line x1="148" y1="126" x2="228" y2="126" stroke="#7888A8" stroke-width="0.8" stroke-dasharray="5,3"/>
+  <text x="187" y="88" text-anchor="middle" font-size="7.5" fill="#3848A0" font-family="Arial,sans-serif" font-weight="bold">TRANS-</text>
+  <text x="187" y="99" text-anchor="middle" font-size="7.5" fill="#3848A0" font-family="Arial,sans-serif" font-weight="bold">MISIÓN</text>
+
+  <!-- ZONE 4: HIDRAULICO (x 58-79%) -->
+  <rect x="238" y="32" width="76" height="116" rx="4" fill="#D8DDF0" stroke="#8898C8" stroke-width="1.2"/>
+  <rect x="246" y="46" width="60" height="16" rx="4" fill="#B8C8EC" stroke="#6878B0" stroke-width="1.2"/>
+  <rect x="246" y="118" width="60" height="16" rx="4" fill="#B8C8EC" stroke="#6878B0" stroke-width="1.2"/>
+  <text x="276" y="85" text-anchor="middle" font-size="7.5" fill="#2840A0" font-family="Arial,sans-serif" font-weight="bold">HID-</text>
+  <text x="276" y="96" text-anchor="middle" font-size="7.5" fill="#2840A0" font-family="Arial,sans-serif" font-weight="bold">RÁULICO</text>
+
+  <!-- ZONE 5: COMPACTADOR (x 79-97%) -->
+  <rect x="320" y="32" width="52" height="116" rx="6" fill="#ECD8C0" stroke="#B08860" stroke-width="1.5"/>
+  <rect x="326" y="44" width="40" height="92" rx="4" fill="#E4C8A8" stroke="#B08860" stroke-width="1"/>
+  <line x1="332" y1="55" x2="360" y2="55" stroke="#A07848" stroke-width="1.5"/>
+  <line x1="332" y1="67" x2="360" y2="67" stroke="#A07848" stroke-width="1.5"/>
+  <line x1="332" y1="79" x2="360" y2="79" stroke="#A07848" stroke-width="1.5"/>
+  <line x1="332" y1="91" x2="360" y2="91" stroke="#A07848" stroke-width="1.5"/>
+  <line x1="332" y1="103" x2="360" y2="103" stroke="#A07848" stroke-width="1.5"/>
+  <line x1="332" y1="115" x2="360" y2="115" stroke="#A07848" stroke-width="1.5"/>
+  <line x1="332" y1="127" x2="360" y2="127" stroke="#A07848" stroke-width="1.5"/>
+  <text x="346" y="90" text-anchor="middle" font-size="6.5" fill="#704830" font-family="Arial,sans-serif" font-weight="bold" transform="rotate(-90 346 90)">COMPACTADOR</text>
+</svg>

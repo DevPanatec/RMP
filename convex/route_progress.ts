@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getScopedProjectId, getScopedOrgId, getAuthScope, requireProjectAccess, requireSuperAdmin, requireWriteRole } from "./lib/auth";
+import { requireModulo } from "./lib/modules";
 
 // Cleanup admin-only: marca como 'completada' todos los route_progress 'en_progreso'.
 export const cleanupStaleInProgress = mutation({
@@ -34,8 +35,14 @@ export const list = query({
         .collect();
     }
     const scopedOrg = await getScopedOrgId(ctx, args.organizacion_id ?? null);
+    const scope = await getAuthScope(ctx);
+    if (!scopedOrg) {
+      if (scope.isSuperAdmin || scope.isCrossOrgViewer) {
+        return await ctx.db.query("route_progress").collect();
+      }
+      return [];
+    }
     const all = await ctx.db.query("route_progress").collect();
-    if (!scopedOrg) return all;
     return all.filter((rp) => rp.organizacion_id === scopedOrg);
   },
 });
@@ -150,6 +157,7 @@ export const start = mutation({
   handler: async (ctx, args) => {
     const scope = await getAuthScope(ctx);
     if (!scope.perfil) throw new Error("No autenticado");
+    await requireModulo(ctx, "REC");
     // Solo el conductor dueño o super_admin pueden iniciar la ruta.
     if (!scope.isSuperAdmin && scope.perfil._id !== args.conductor_id) {
       throw new Error("Acceso denegado: solo el conductor asignado puede iniciar la ruta");
@@ -249,6 +257,7 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "REC");
     const { id, ...updates } = args;
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Progreso no encontrado");
@@ -274,6 +283,7 @@ export const complete = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "REC");
     const progress = await ctx.db.get(args.id);
     if (!progress) throw new Error("Progreso no encontrado");
 

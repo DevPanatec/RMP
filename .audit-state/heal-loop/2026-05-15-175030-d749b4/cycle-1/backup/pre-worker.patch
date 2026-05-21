@@ -1,0 +1,1571 @@
+diff --git a/.eslintrc.cjs b/.eslintrc.cjs
+index 1e2f4f4..de5eac0 100644
+--- a/.eslintrc.cjs
++++ b/.eslintrc.cjs
+@@ -6,7 +6,7 @@ module.exports = {
+     'plugin:react/recommended',
+     'plugin:react-hooks/recommended',
+   ],
+-  ignorePatterns: ['dist', '.eslintrc.cjs', 'convex/_generated', 'node_modules'],
++  ignorePatterns: ['dist', '.eslintrc.cjs', 'convex/_generated', 'node_modules', 'playwright-report', 'audit', 'test-results', 'tests-e2e/**/*.spec.ts'],
+   parserOptions: {
+     ecmaVersion: 'latest',
+     sourceType: 'module',
+diff --git a/convex/_generated/api.d.ts b/convex/_generated/api.d.ts
+index 0b256ca..22fd539 100644
+--- a/convex/_generated/api.d.ts
++++ b/convex/_generated/api.d.ts
+@@ -21,7 +21,10 @@ import type * as http from "../http.js";
+ import type * as inventario from "../inventario.js";
+ import type * as lib_auth from "../lib/auth.js";
+ import type * as lib_gps from "../lib/gps.js";
++import type * as lib_limits from "../lib/limits.js";
++import type * as lib_modules from "../lib/modules.js";
+ import type * as maintenance from "../maintenance.js";
++import type * as migrations_seed_plan_fields from "../migrations/seed_plan_fields.js";
+ import type * as organizaciones from "../organizaciones.js";
+ import type * as perfiles from "../perfiles.js";
+ import type * as proyectos from "../proyectos.js";
+@@ -57,7 +60,10 @@ declare const fullApi: ApiFromModules<{
+   inventario: typeof inventario;
+   "lib/auth": typeof lib_auth;
+   "lib/gps": typeof lib_gps;
++  "lib/limits": typeof lib_limits;
++  "lib/modules": typeof lib_modules;
+   maintenance: typeof maintenance;
++  "migrations/seed_plan_fields": typeof migrations_seed_plan_fields;
+   organizaciones: typeof organizaciones;
+   perfiles: typeof perfiles;
+   proyectos: typeof proyectos;
+diff --git a/convex/asignaciones.ts b/convex/asignaciones.ts
+index 2eb04ed..4dc3f79 100644
+--- a/convex/asignaciones.ts
++++ b/convex/asignaciones.ts
+@@ -1,6 +1,7 @@
+ import { query, mutation } from "./_generated/server";
+ import { v } from "convex/values";
+ import { getScopedProjectId, getScopedOrgId, requireProjectAccess, requireWriteRole, requireAdminWrite, getAuthScope } from "./lib/auth";
++import { requireModulo } from "./lib/modules";
+ 
+ export const list = query({
+   args: {
+@@ -60,6 +61,7 @@ export const add = mutation({
+   handler: async (ctx, args) => {
+     // Bloqueo a roles read-only (enterprise/viewer).
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "REC");
+     const scope = await getAuthScope(ctx);
+ 
+     // Auto-resolve conductor_id from perfiles_usuarios if not provided
+@@ -217,6 +219,7 @@ export const update = mutation({
+   },
+   handler: async (ctx, args) => {
+     const scope = await requireWriteRole(ctx);
++    await requireModulo(ctx, "REC");
+     const { id, ...updates } = args;
+     const existing = await ctx.db.get(id);
+     if (!existing) throw new Error("Asignación no encontrada");
+@@ -255,6 +258,7 @@ export const updateEstado = mutation({
+   },
+   handler: async (ctx, args) => {
+     const scope = await requireWriteRole(ctx);
++    await requireModulo(ctx, "REC");
+     const existing = await ctx.db.get(args.id);
+     if (!existing) throw new Error("Asignación no encontrada");
+     if (existing.proyecto_id) await requireProjectAccess(ctx, existing.proyecto_id);
+@@ -275,6 +279,7 @@ export const remove = mutation({
+   args: { id: v.id("asignaciones_rutas") },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "REC");
+     const existing = await ctx.db.get(args.id);
+     if (!existing) throw new Error("Asignación no encontrada");
+     if (existing.proyecto_id) await requireProjectAccess(ctx, existing.proyecto_id);
+diff --git a/convex/cleaning.ts b/convex/cleaning.ts
+index 331ffa7..b1d0b7a 100644
+--- a/convex/cleaning.ts
++++ b/convex/cleaning.ts
+@@ -1,6 +1,8 @@
+ import { query, mutation } from "./_generated/server";
+ import { v } from "convex/values";
+ import { getAuthScope, getScopedProjectId, requireProjectAccess, requireWriteRole, requireOrgAccess } from "./lib/auth";
++import { incrementOrgStorage } from "./organizaciones";
++import { requireModulo } from "./lib/modules";
+ 
+ // ========== SALAS ==========
+ export const listSalas = query({
+@@ -56,6 +58,7 @@ export const updateSala = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "LIM");
+     const sala = await ctx.db.get(args.id);
+     if (!sala) throw new Error("Sala no encontrada");
+     if (sala.proyecto_id) await requireProjectAccess(ctx, sala.proyecto_id);
+@@ -75,6 +78,7 @@ export const deleteSala = mutation({
+   args: { id: v.id("salas") },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "LIM");
+     const sala = await ctx.db.get(args.id);
+     if (!sala) throw new Error("Sala no encontrada");
+     if (sala.proyecto_id) await requireProjectAccess(ctx, sala.proyecto_id);
+@@ -131,6 +135,7 @@ export const addArea = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "LIM");
+     const sala = await ctx.db.get(args.sala_id);
+     if (!sala) throw new Error("Sala no encontrada");
+     if (sala.proyecto_id) await requireProjectAccess(ctx, sala.proyecto_id);
+@@ -173,6 +178,7 @@ export const addAssignment = mutation({
+     created_by: v.optional(v.string()),
+   },
+   handler: async (ctx, args) => {
++    await requireModulo(ctx, "LIM");
+     const sala = await ctx.db.get(args.sala_id);
+     if (!sala) throw new Error("Sala no encontrada");
+     if (!sala.proyecto_id) throw new Error("Sala sin proyecto_id; ejecuta migración");
+@@ -195,6 +201,7 @@ export const updateAssignment = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "LIM");
+     const assignment = await ctx.db.get(args.id);
+     if (!assignment) throw new Error("Asignación no encontrada");
+     if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+@@ -209,6 +216,7 @@ export const deleteAssignment = mutation({
+   args: { id: v.id("cleaning_assignments") },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "LIM");
+     const assignment = await ctx.db.get(args.id);
+     if (!assignment) throw new Error("Asignación no encontrada");
+     if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+@@ -220,12 +228,17 @@ export const deleteAssignment = mutation({
+       .query("cleaning_photos")
+       .withIndex("by_assignment", (q) => q.eq("assignment_id", args.id))
+       .collect();
++    const orgId = assignment.organizacion_id;
+     for (const photo of photos) {
+       try {
+         await ctx.storage.delete(photo.storage_id);
+       } catch (err) {
+         console.warn(`No se pudo borrar storage ${photo.storage_id}`, err);
+       }
++      // Storage counter — decrement por org en cascada
++      if (orgId && photo.file_size && photo.file_size > 0) {
++        await incrementOrgStorage(ctx, orgId, -photo.file_size);
++      }
+       await ctx.db.delete(photo._id);
+     }
+ 
+@@ -245,12 +258,19 @@ export const addPhoto = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "LIM");
+     const assignment = await ctx.db.get(args.assignment_id);
+     if (!assignment) throw new Error("Asignación no encontrada");
+     if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+     else if (assignment.organizacion_id) await requireOrgAccess(ctx, assignment.organizacion_id);
+     else throw new Error("Asignación sin proyecto ni organización — requiere migración");
+-    return await ctx.db.insert("cleaning_photos", args);
++    const photoId = await ctx.db.insert("cleaning_photos", args);
++    // Storage counter — delta tracking per org
++    const orgId = assignment.organizacion_id;
++    if (orgId && args.file_size && args.file_size > 0) {
++      await incrementOrgStorage(ctx, orgId, args.file_size);
++    }
++    return photoId;
+   },
+ });
+ 
+@@ -340,6 +360,7 @@ export const createReport = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "LIM");
+     // Derivar proyecto_id desde la sala
+     const sala = await ctx.db.get(args.sala_id);
+     if (!sala) throw new Error("Sala no encontrada");
+diff --git a/convex/empleados.ts b/convex/empleados.ts
+index e9dcefb..18d0365 100644
+--- a/convex/empleados.ts
++++ b/convex/empleados.ts
+@@ -1,6 +1,7 @@
+ import { query, mutation } from "./_generated/server";
+ import { v } from "convex/values";
+ import { getAuthScope, requireOrgAccess, requireProjectAccess, requireWriteRole, requireAdminWrite } from "./lib/auth";
++import { requireModulo } from "./lib/modules";
+ 
+ // Filtra empleados por scope: super_admin/cross-org ve todos; demás solo su org.
+ async function scopeEmpleados(ctx: any, rows: any[]) {
+@@ -112,6 +113,7 @@ export const add = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireAdminWrite(ctx);
++    await requireModulo(ctx, "PER");
+     const scope = await getAuthScope(ctx);
+     let orgId: any = args.organizacion_id ?? scope.organizacionId ?? undefined;
+     if (!orgId && args.proyecto_id) {
+@@ -157,6 +159,7 @@ export const update = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireAdminWrite(ctx);
++    await requireModulo(ctx, "PER");
+     const emp = await ctx.db.get(args.id);
+     if (!emp) throw new Error("Empleado no encontrado");
+     if (!emp.organizacion_id) throw new Error("Empleado sin organización — requiere migración");
+@@ -171,6 +174,7 @@ export const deactivate = mutation({
+   args: { id: v.id("empleados") },
+   handler: async (ctx, args) => {
+     await requireAdminWrite(ctx);
++    await requireModulo(ctx, "PER");
+     const emp = await ctx.db.get(args.id);
+     if (!emp) throw new Error("Empleado no encontrado");
+     if (!emp.organizacion_id) throw new Error("Empleado sin organización — requiere migración");
+@@ -184,6 +188,7 @@ export const activate = mutation({
+   args: { id: v.id("empleados") },
+   handler: async (ctx, args) => {
+     await requireAdminWrite(ctx);
++    await requireModulo(ctx, "PER");
+     const emp = await ctx.db.get(args.id);
+     if (!emp) throw new Error("Empleado no encontrado");
+     if (!emp.organizacion_id) throw new Error("Empleado sin organización — requiere migración");
+@@ -197,6 +202,7 @@ export const remove = mutation({
+   args: { id: v.id("empleados") },
+   handler: async (ctx, args) => {
+     await requireAdminWrite(ctx);
++    await requireModulo(ctx, "PER");
+     const emp = await ctx.db.get(args.id);
+     if (!emp) throw new Error("Empleado no encontrado");
+     if (!emp.organizacion_id) throw new Error("Empleado sin organización — requiere migración");
+diff --git a/convex/fumigaciones.ts b/convex/fumigaciones.ts
+index 61cccc8..cf82c71 100644
+--- a/convex/fumigaciones.ts
++++ b/convex/fumigaciones.ts
+@@ -1,6 +1,8 @@
+ import { query, mutation } from "./_generated/server";
+ import { v } from "convex/values";
+ import { getAuthScope, getScopedProjectId, requireProjectAccess, requireWriteRole, requireOrgAccess } from "./lib/auth";
++import { incrementOrgStorage } from "./organizaciones";
++import { requireModulo } from "./lib/modules";
+ 
+ // ========== LUGARES ==========
+ export const listLugares = query({
+@@ -32,6 +34,7 @@ export const addLugar = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "FUM");
+     await requireProjectAccess(ctx, args.proyecto_id);
+     const proyecto = await ctx.db.get(args.proyecto_id);
+     const organizacion_id = proyecto?.organizacion_id;
+@@ -55,6 +58,7 @@ export const updateLugar = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "FUM");
+     const lugar = await ctx.db.get(args.id);
+     if (!lugar) throw new Error("Lugar no encontrado");
+     if (lugar.proyecto_id) await requireProjectAccess(ctx, lugar.proyecto_id);
+@@ -76,6 +80,7 @@ export const deleteLugar = mutation({
+   args: { id: v.id("lugares") },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "FUM");
+     const lugar = await ctx.db.get(args.id);
+     if (!lugar) throw new Error("Lugar no encontrado");
+     if (lugar.proyecto_id) await requireProjectAccess(ctx, lugar.proyecto_id);
+@@ -274,6 +279,7 @@ export const create = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "FUM");
+     const lugar = await ctx.db.get(args.lugar_id);
+     if (!lugar) throw new Error("Lugar no encontrado");
+     if (!lugar.proyecto_id) throw new Error("Lugar sin proyecto_id; ejecuta migración");
+@@ -344,6 +350,7 @@ export const update = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "FUM");
+     const assignment = await ctx.db.get(args.id);
+     if (!assignment) throw new Error("Asignación no encontrada");
+     if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+@@ -412,6 +419,7 @@ export const updateEstado = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "FUM");
+     const assignment = await ctx.db.get(args.id);
+     if (!assignment) throw new Error("Asignación no encontrada");
+     if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+@@ -425,6 +433,7 @@ export const deleteAssignment = mutation({
+   args: { id: v.id("fumigation_assignments") },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "FUM");
+     const assignment = await ctx.db.get(args.id);
+     if (!assignment) throw new Error("Asignación no encontrada");
+     if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+@@ -437,12 +446,17 @@ export const deleteAssignment = mutation({
+       .withIndex("by_assignment", (q) => q.eq("assignment_id", args.id))
+       .collect();
+ 
++    const orgId = assignment.organizacion_id;
+     for (const photo of photos) {
+       try {
+         await ctx.storage.delete(photo.storage_id);
+       } catch (err) {
+         console.warn(`No se pudo borrar storage ${photo.storage_id}`, err);
+       }
++      // Storage counter — decrement por org en cascada
++      if (orgId && photo.file_size && photo.file_size > 0) {
++        await incrementOrgStorage(ctx, orgId, -photo.file_size);
++      }
+       await ctx.db.delete(photo._id);
+     }
+ 
+@@ -502,12 +516,18 @@ export const savePhoto = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "FUM");
+     const assignment = await ctx.db.get(args.assignment_id);
+     if (!assignment) throw new Error("Asignación no encontrada");
+     if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
+     else if (assignment.organizacion_id) await requireOrgAccess(ctx, assignment.organizacion_id);
+     else throw new Error("Asignación sin proyecto ni organización — requiere migración");
+-    return await ctx.db.insert("fumigation_photos", args);
++    const photoId = await ctx.db.insert("fumigation_photos", args);
++    const orgId = assignment.organizacion_id;
++    if (orgId && args.file_size && args.file_size > 0) {
++      await incrementOrgStorage(ctx, orgId, args.file_size);
++    }
++    return photoId;
+   },
+ });
+ 
+@@ -528,6 +548,12 @@ export const deletePhoto = mutation({
+     // Eliminar del storage
+     await ctx.storage.delete(photo.storage_id);
+ 
++    // Storage counter — decrement por org
++    const orgId = assignment.organizacion_id;
++    if (orgId && photo.file_size && photo.file_size > 0) {
++      await incrementOrgStorage(ctx, orgId, -photo.file_size);
++    }
++
+     // Eliminar del DB
+     return await ctx.db.delete(args.id);
+   },
+diff --git a/convex/inventario.ts b/convex/inventario.ts
+index ce16acf..81a4024 100644
+--- a/convex/inventario.ts
++++ b/convex/inventario.ts
+@@ -1,6 +1,7 @@
+ import { query, mutation } from "./_generated/server";
+ import { v } from "convex/values";
+ import { getAuthScope, requireOrgAccess, requireWriteRole } from "./lib/auth";
++import { requireModulo } from "./lib/modules";
+ 
+ // Filtra items por scope: super_admin/cross-org ven todos; demás solo su org (estricta).
+ async function scopeItems(ctx: any, items: any[]) {
+@@ -112,6 +113,7 @@ export const add = mutation({
+   },
+   handler: async (ctx, args) => {
+     const scope = await requireWriteRole(ctx);
++    await requireModulo(ctx, "INV");
+     if (!scope.isSuperAdmin && !scope.organizacionId) {
+       throw new Error("Sin organización asignada");
+     }
+@@ -183,6 +185,7 @@ export const addToLocation = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "INV");
+     const item = await ctx.db.get(args.item_id);
+     if (!item) throw new Error("Item no encontrado");
+     if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
+@@ -220,6 +223,7 @@ export const updateLocationQuantity = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "INV");
+     const ub = await ctx.db.get(args.ubicacion_id);
+     if (!ub) throw new Error("Ubicación no encontrada");
+     const item = await ctx.db.get(ub.item_id);
+@@ -235,6 +239,7 @@ export const removeFromLocation = mutation({
+   args: { ubicacion_id: v.id("inventario_ubicaciones") },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "INV");
+     const ub = await ctx.db.get(args.ubicacion_id);
+     if (!ub) throw new Error("Ubicación no encontrada");
+     const item = await ctx.db.get(ub.item_id);
+@@ -260,6 +265,7 @@ export const update = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "INV");
+     const item = await ctx.db.get(args.id);
+     if (!item) throw new Error("Item no encontrado");
+     if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
+@@ -274,6 +280,7 @@ export const remove = mutation({
+   args: { id: v.id("inventario") },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "INV");
+     const item = await ctx.db.get(args.id);
+     if (!item) throw new Error("Item no encontrado");
+     if (!item.organizacion_id) throw new Error("Item sin organización — requiere migración");
+diff --git a/convex/maintenance.ts b/convex/maintenance.ts
+index d9ddd83..24a9737 100644
+--- a/convex/maintenance.ts
++++ b/convex/maintenance.ts
+@@ -1,6 +1,8 @@
+ import { query, mutation } from "./_generated/server";
+ import { v } from "convex/values";
+ import { getScopedProjectId, getAuthScope, requireOrgAccess, requireProjectAccess, requireWriteRole } from "./lib/auth";
++import { incrementOrgStorage } from "./organizaciones";
++import { requireModulo } from "./lib/modules";
+ 
+ // ========== MAINTENANCE TASKS ==========
+ // Admin: ve todas. Enterprise: ve las de su proyecto + las globales (proyecto_id null).
+@@ -132,6 +134,7 @@ export const addTask = mutation({
+   },
+   handler: async (ctx, args) => {
+     const scope = await requireWriteRole(ctx);
++    await requireModulo(ctx, "MTO");
+     if (args.proyecto_id) await requireProjectAccess(ctx, args.proyecto_id);
+     if (!scope.isSuperAdmin && !scope.organizacionId) {
+       throw new Error("Sin organización asignada");
+@@ -180,6 +183,7 @@ export const updateTask = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "MTO");
+     const task = await ctx.db.get(args.id);
+     if (!task) throw new Error("Tarea no encontrada");
+     if (task.organizacion_id) await requireOrgAccess(ctx, task.organizacion_id);
+@@ -194,6 +198,7 @@ export const deleteTask = mutation({
+   args: { id: v.id("maintenance_tasks") },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "MTO");
+     const task = await ctx.db.get(args.id);
+     if (!task) throw new Error("Tarea no encontrada");
+     if (task.organizacion_id) await requireOrgAccess(ctx, task.organizacion_id);
+@@ -256,6 +261,7 @@ export const addAlert = mutation({
+   },
+   handler: async (ctx, args) => {
+     const scope = await requireWriteRole(ctx);
++    await requireModulo(ctx, "MTO");
+     if (!scope.isSuperAdmin && !scope.organizacionId) {
+       throw new Error("Sin organización asignada");
+     }
+@@ -273,6 +279,7 @@ export const markAsRead = mutation({
+   args: { id: v.id("maintenance_alerts") },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "MTO");
+     const alert = await ctx.db.get(args.id);
+     if (!alert) throw new Error("Alerta no encontrada");
+     if (!alert.organizacion_id) throw new Error("Alerta sin organización — requiere migración");
+@@ -285,6 +292,7 @@ export const deleteAlert = mutation({
+   args: { id: v.id("maintenance_alerts") },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "MTO");
+     const alert = await ctx.db.get(args.id);
+     if (!alert) throw new Error("Alerta no encontrada");
+     if (!alert.organizacion_id) throw new Error("Alerta sin organización — requiere migración");
+@@ -312,12 +320,18 @@ export const savePhoto = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "MTO");
+     const task = await ctx.db.get(args.task_id);
+     if (!task) throw new Error("Tarea no encontrada");
+     if (task.organizacion_id) await requireOrgAccess(ctx, task.organizacion_id);
+     else if (task.proyecto_id) await requireProjectAccess(ctx, task.proyecto_id);
+     else throw new Error("Tarea sin proyecto ni organización — requiere migración");
+-    return await ctx.db.insert("maintenance_photos", args);
++    const photoId = await ctx.db.insert("maintenance_photos", args);
++    const orgId = task.organizacion_id;
++    if (orgId && args.file_size && args.file_size > 0) {
++      await incrementOrgStorage(ctx, orgId, args.file_size);
++    }
++    return photoId;
+   },
+ });
+ 
+@@ -384,6 +398,7 @@ export const deletePhoto = mutation({
+   args: { id: v.id("maintenance_photos") },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "MTO");
+     const photo = await ctx.db.get(args.id);
+     if (!photo) return null;
+ 
+@@ -397,6 +412,12 @@ export const deletePhoto = mutation({
+     // Eliminar del storage
+     await ctx.storage.delete(photo.storage_id);
+ 
++    // Storage counter — decrement por org
++    const orgId = task.organizacion_id;
++    if (orgId && photo.file_size && photo.file_size > 0) {
++      await incrementOrgStorage(ctx, orgId, -photo.file_size);
++    }
++
+     // Eliminar del DB
+     return await ctx.db.delete(args.id);
+   },
+diff --git a/convex/organizaciones.ts b/convex/organizaciones.ts
+index 5b23d35..d4253fb 100644
+--- a/convex/organizaciones.ts
++++ b/convex/organizaciones.ts
+@@ -1,6 +1,34 @@
+-import { query, mutation } from "./_generated/server";
++import { query, mutation, MutationCtx, QueryCtx } from "./_generated/server";
+ import { v } from "convex/values";
++import { Id } from "./_generated/dataModel";
+ import { getAuthScope, requireSuperAdmin, requireOrgAccess } from "./lib/auth";
++import {
++  ESCALA_LIMITS,
++  buildUsageReport,
++  calcMRR,
++  type Escala,
++  type CustomCaps,
++} from "./lib/limits";
++import {
++  MODULO_CATALOG,
++  isValidModuloCodigo,
++  sumModulosUsd,
++} from "./lib/modules";
++
++type AnyCtx = QueryCtx | MutationCtx;
++
++// Truncar valores grandes para evitar bloating del audit log.
++const MAX_AUDIT_VALUE_SIZE = 5_000; // ~5KB JSON
++function truncateAuditValue(value: unknown): unknown {
++  if (value === null || value === undefined) return null;
++  try {
++    const json = JSON.stringify(value);
++    if (json.length <= MAX_AUDIT_VALUE_SIZE) return value;
++    return { _truncated: true, _size: json.length, _preview: json.slice(0, 500) };
++  } catch {
++    return { _unserializable: true };
++  }
++}
+ 
+ // Lista todas las orgs activas (solo super_admin)
+ export const list = query({
+@@ -64,11 +92,13 @@ export const add = mutation({
+       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+       .first();
+     if (existing) throw new Error(`Ya existe una organización con slug "${args.slug}"`);
+-    return await ctx.db.insert("organizaciones", {
++    const newOrgId = await ctx.db.insert("organizaciones", {
+       ...args,
+       activo: true,
+       fecha_creacion: new Date().toISOString(),
+     });
++    await writeAuditLog(ctx, newOrgId, "create_org", undefined, null, { nombre: args.nombre, slug: args.slug });
++    return newOrgId;
+   },
+ });
+ 
+@@ -94,7 +124,14 @@ export const update = mutation({
+         throw new Error(`Ya existe otra organización con slug "${updates.slug}"`);
+       }
+     }
+-    return await ctx.db.patch(id, updates);
++    const before = await ctx.db.get(id);
++    const beforeSubset: Record<string, unknown> = {};
++    for (const key of Object.keys(updates)) {
++      beforeSubset[key] = (before as any)?.[key] ?? null;
++    }
++    await ctx.db.patch(id, updates);
++    await writeAuditLog(ctx, id, "update_org", undefined, beforeSubset, updates);
++    return id;
+   },
+ });
+ 
+@@ -102,6 +139,494 @@ export const setActive = mutation({
+   args: { id: v.id("organizaciones"), activo: v.boolean() },
+   handler: async (ctx, args) => {
+     await requireSuperAdmin(ctx);
+-    return await ctx.db.patch(args.id, { activo: args.activo });
++    const before = await ctx.db.get(args.id);
++    await ctx.db.patch(args.id, { activo: args.activo });
++    await writeAuditLog(ctx, args.id, "set_activo", "activo", before?.activo, args.activo);
++    return args.id;
+   },
+ });
++
++// ============================================================
++// Super-Admin Platform Panel — Billing/Plan management
++// ============================================================
++
++const BYTES_PER_GB = 1024 ** 3;
++const DEFAULT_ESCALA: Escala = "S";
++const DEFAULT_MODULOS: string[] = ["REC"];
++
++// ---------- Helpers ----------
++async function writeAuditLog(
++  ctx: MutationCtx,
++  orgId: Id<"organizaciones">,
++  action: string,
++  field: string | undefined,
++  before: unknown,
++  after: unknown,
++  notas?: string,
++): Promise<void> {
++  const scope = await getAuthScope(ctx);
++  await ctx.db.insert("org_audit_log", {
++    organizacion_id: orgId,
++    changed_by_user_id: scope.perfil?.userId ?? "system",
++    changed_by_email: scope.perfil?.email,
++    action,
++    field,
++    before_value: truncateAuditValue(before),
++    after_value: truncateAuditValue(after),
++    notas,
++    timestamp: Date.now(),
++  });
++}
++
++async function countOrgUsage(ctx: AnyCtx, orgId: Id<"organizaciones">) {
++  // Camiones por org
++  const camiones = await ctx.db
++    .query("vehiculos")
++    .withIndex("by_organizacion", (q) => q.eq("organizacion_id", orgId))
++    .collect();
++  // Proyectos por org
++  const proyectos = await ctx.db
++    .query("proyectos")
++    .withIndex("by_organizacion", (q) => q.eq("organizacion_id", orgId))
++    .collect();
++  // Usuarios por org (activos)
++  const usuarios = await ctx.db
++    .query("perfiles_usuarios")
++    .withIndex("by_organizacion", (q) => q.eq("organizacion_id", orgId))
++    .collect();
++  const usuariosActivos = usuarios.filter((u) => u.activo !== false);
++  return {
++    camiones: camiones.length,
++    proyectos: proyectos.length,
++    usuarios: usuariosActivos.length,
++  };
++}
++
++// ---------- listWithStats — main panel feed ----------
++export const listWithStats = query({
++  args: {},
++  handler: async (ctx) => {
++    const scope = await getAuthScope(ctx);
++    if (!scope.isSuperAdmin) return [];
++    const orgs = await ctx.db.query("organizaciones").collect();
++
++    const results = [] as any[];
++    for (const org of orgs) {
++      const counts = await countOrgUsage(ctx, org._id);
++      const escala: Escala = (org.escala as Escala) ?? DEFAULT_ESCALA;
++      const modulos = org.modulos_activos ?? DEFAULT_MODULOS;
++      const usage = buildUsageReport(escala, org.custom_caps as CustomCaps, {
++        camiones: counts.camiones,
++        proyectos: counts.proyectos,
++        usuarios: counts.usuarios,
++        storage_bytes: org.storage_bytes_used ?? 0,
++      });
++      const modulosUsd = sumModulosUsd(modulos);
++      const mrr = calcMRR(escala, modulosUsd, usage.overflow_total_usd, org.discount_pct ?? 0);
++
++      results.push({
++        _id: org._id,
++        nombre: org.nombre,
++        slug: org.slug,
++        logo_url: org.logo_url,
++        activo: org.activo,
++        fecha_creacion: org.fecha_creacion,
++        escala,
++        modulos_activos: modulos,
++        custom_caps: org.custom_caps ?? null,
++        discount_pct: org.discount_pct ?? 0,
++        setup_status: org.setup_status ?? "pendiente",
++        fecha_inicio_plan: org.fecha_inicio_plan ?? null,
++        fecha_renovacion_plan: org.fecha_renovacion_plan ?? null,
++        storage_bytes_used: org.storage_bytes_used ?? 0,
++        storage_last_recompute: org.storage_last_recompute ?? null,
++        // Usage
++        usage,
++        mrr_usd: mrr,
++        modulos_usd: modulosUsd,
++        base_usd: ESCALA_LIMITS[escala].base_usd,
++      });
++    }
++    return results;
++  },
++});
++
++// ---------- getOrgStats — single org detail ----------
++export const getOrgStats = query({
++  args: { id: v.id("organizaciones") },
++  handler: async (ctx, args) => {
++    await requireSuperAdmin(ctx);
++    const org = await ctx.db.get(args.id);
++    if (!org) return null;
++    const counts = await countOrgUsage(ctx, args.id);
++    const escala: Escala = (org.escala as Escala) ?? DEFAULT_ESCALA;
++    const modulos = org.modulos_activos ?? DEFAULT_MODULOS;
++    const usage = buildUsageReport(escala, org.custom_caps as CustomCaps, {
++      camiones: counts.camiones,
++      proyectos: counts.proyectos,
++      usuarios: counts.usuarios,
++      storage_bytes: org.storage_bytes_used ?? 0,
++    });
++    const modulosUsd = sumModulosUsd(modulos);
++    const mrr = calcMRR(escala, modulosUsd, usage.overflow_total_usd, org.discount_pct ?? 0);
++
++    const auditLog = await ctx.db
++      .query("org_audit_log")
++      .withIndex("by_org_timestamp", (q) => q.eq("organizacion_id", args.id))
++      .order("desc")
++      .take(50);
++
++    return {
++      org,
++      usage,
++      counts,
++      mrr_usd: mrr,
++      modulos_usd: modulosUsd,
++      base_usd: ESCALA_LIMITS[escala].base_usd,
++      escala_effective: escala,
++      modulos_effective: modulos,
++      audit_log: auditLog,
++    };
++  },
++});
++
++// ---------- setEscala ----------
++export const setEscala = mutation({
++  args: {
++    id: v.id("organizaciones"),
++    escala: v.union(
++      v.literal("S"),
++      v.literal("M"),
++      v.literal("L"),
++      v.literal("XL"),
++      v.literal("XXL"),
++    ),
++    notas: v.optional(v.string()),
++  },
++  handler: async (ctx, args) => {
++    await requireSuperAdmin(ctx);
++    const org = await ctx.db.get(args.id);
++    if (!org) throw new Error("Organización no encontrada");
++    const before = org.escala ?? null;
++
++    // Warning si downgrade deja la org en overflow.
++    const escalaOrder: Escala[] = ["S", "M", "L", "XL", "XXL"];
++    const beforeIdx = before ? escalaOrder.indexOf(before as Escala) : -1;
++    const afterIdx = escalaOrder.indexOf(args.escala);
++    if (beforeIdx >= 0 && afterIdx >= 0 && afterIdx < beforeIdx) {
++      // Es downgrade. Chequear overflow post-downgrade.
++      const counts = await countOrgUsage(ctx, args.id);
++      const usage = buildUsageReport(args.escala, org.custom_caps as CustomCaps, {
++        camiones: counts.camiones,
++        proyectos: counts.proyectos,
++        usuarios: counts.usuarios,
++        storage_bytes: org.storage_bytes_used ?? 0,
++      });
++      if (usage.overflow_total_usd > 0) {
++        // No bloqueo, pero requiero notas explícitas.
++        if (!args.notas || args.notas.trim().length === 0) {
++          throw new Error(
++            `Downgrade de ${before} a ${args.escala} dejará la org en overflow ($${usage.overflow_total_usd}/mes). ` +
++            `Confirmá agregando notas con la justificación.`
++          );
++        }
++      }
++    }
++
++    await ctx.db.patch(args.id, { escala: args.escala });
++    await writeAuditLog(ctx, args.id, "set_escala", "escala", before, args.escala, args.notas);
++    return args.id;
++  },
++});
++
++// ---------- toggleModulo ----------
++export const toggleModulo = mutation({
++  args: {
++    id: v.id("organizaciones"),
++    codigo: v.string(),
++    activar: v.boolean(),
++    notas: v.optional(v.string()),
++  },
++  handler: async (ctx, args) => {
++    await requireSuperAdmin(ctx);
++    if (!isValidModuloCodigo(args.codigo)) {
++      throw new Error(`Código de módulo inválido: ${args.codigo}`);
++    }
++    // Activar módulo roadmap requiere notas explícitas (anti-overcommit comercial).
++    const spec = MODULO_CATALOG[args.codigo];
++    if (args.activar && spec.estado === "roadmap") {
++      if (!args.notas || args.notas.trim().length === 0) {
++        throw new Error(
++          `Módulo "${spec.nombre}" está en roadmap (no construido). ` +
++          `Activá solo con contrato firmado + descuento 30%. Agregá notas con el motivo.`
++        );
++      }
++    }
++    const org = await ctx.db.get(args.id);
++    if (!org) throw new Error("Organización no encontrada");
++    const before = org.modulos_activos ?? [];
++    const set = new Set(before);
++    if (args.activar) set.add(args.codigo);
++    else set.delete(args.codigo);
++    const after = Array.from(set);
++    await ctx.db.patch(args.id, { modulos_activos: after });
++    await writeAuditLog(
++      ctx,
++      args.id,
++      "toggle_modulo",
++      `modulos_activos:${args.codigo}`,
++      before,
++      after,
++      args.notas,
++    );
++    return args.id;
++  },
++});
++
++// ---------- setCustomCap ----------
++export const setCustomCap = mutation({
++  args: {
++    id: v.id("organizaciones"),
++    key: v.union(
++      v.literal("camiones"),
++      v.literal("proyectos"),
++      v.literal("usuarios"),
++      v.literal("storage_gb"),
++    ),
++    value: v.optional(v.number()), // undefined = clear override
++    notas: v.optional(v.string()),
++  },
++  handler: async (ctx, args) => {
++    await requireSuperAdmin(ctx);
++    const org = await ctx.db.get(args.id);
++    if (!org) throw new Error("Organización no encontrada");
++    const before = org.custom_caps ?? {};
++    const next: any = { ...before };
++    if (args.value === undefined || args.value === null) {
++      delete next[args.key];
++    } else {
++      if (args.value < 0) throw new Error("Cap no puede ser negativo");
++      // Upper sanity check para evitar valores absurdos.
++      const MAX_CAPS = {
++        camiones: 10_000,
++        proyectos: 100_000,
++        usuarios: 10_000,
++        storage_gb: 10_240, // 10 TB
++      };
++      const max = MAX_CAPS[args.key];
++      if (args.value > max) {
++        throw new Error(`Cap ${args.key} excede el máximo permitido (${max.toLocaleString()})`);
++      }
++      next[args.key] = args.value;
++    }
++    await ctx.db.patch(args.id, { custom_caps: next });
++    await writeAuditLog(
++      ctx,
++      args.id,
++      "set_custom_cap",
++      `custom_caps.${args.key}`,
++      (before as any)[args.key] ?? null,
++      args.value ?? null,
++      args.notas,
++    );
++    return args.id;
++  },
++});
++
++// ---------- setDiscount ----------
++export const setDiscount = mutation({
++  args: {
++    id: v.id("organizaciones"),
++    pct: v.number(),
++    notas: v.optional(v.string()),
++  },
++  handler: async (ctx, args) => {
++    await requireSuperAdmin(ctx);
++    if (args.pct < 0 || args.pct > 15) {
++      throw new Error("discount_pct debe estar entre 0 y 15");
++    }
++    const org = await ctx.db.get(args.id);
++    if (!org) throw new Error("Organización no encontrada");
++    const before = org.discount_pct ?? 0;
++    await ctx.db.patch(args.id, { discount_pct: args.pct });
++    await writeAuditLog(ctx, args.id, "set_discount", "discount_pct", before, args.pct, args.notas);
++    return args.id;
++  },
++});
++
++// ---------- setSetupStatus ----------
++export const setSetupStatus = mutation({
++  args: {
++    id: v.id("organizaciones"),
++    status: v.union(
++      v.literal("pendiente"),
++      v.literal("pagado"),
++      v.literal("waived"),
++    ),
++    notas: v.optional(v.string()),
++  },
++  handler: async (ctx, args) => {
++    await requireSuperAdmin(ctx);
++    const org = await ctx.db.get(args.id);
++    if (!org) throw new Error("Organización no encontrada");
++    const before = org.setup_status ?? "pendiente";
++    await ctx.db.patch(args.id, { setup_status: args.status });
++    await writeAuditLog(
++      ctx,
++      args.id,
++      "set_setup_status",
++      "setup_status",
++      before,
++      args.status,
++      args.notas,
++    );
++    return args.id;
++  },
++});
++
++// ---------- setPlanFechas ----------
++export const setPlanFechas = mutation({
++  args: {
++    id: v.id("organizaciones"),
++    fecha_inicio_plan: v.optional(v.number()),
++    fecha_renovacion_plan: v.optional(v.number()),
++    notas: v.optional(v.string()),
++  },
++  handler: async (ctx, args) => {
++    await requireSuperAdmin(ctx);
++    const org = await ctx.db.get(args.id);
++    if (!org) throw new Error("Organización no encontrada");
++    const before = {
++      fecha_inicio_plan: org.fecha_inicio_plan ?? null,
++      fecha_renovacion_plan: org.fecha_renovacion_plan ?? null,
++    };
++    const patch: any = {};
++    if (args.fecha_inicio_plan !== undefined) patch.fecha_inicio_plan = args.fecha_inicio_plan;
++    if (args.fecha_renovacion_plan !== undefined) patch.fecha_renovacion_plan = args.fecha_renovacion_plan;
++    await ctx.db.patch(args.id, patch);
++    await writeAuditLog(ctx, args.id, "set_plan_fechas", undefined, before, patch, args.notas);
++    return args.id;
++  },
++});
++
++// ---------- recomputeStorage ----------
++// Re-suma todos los file_size de las 3 tablas de fotos para esta org.
++// Útil para detectar/corregir drift del counter delta.
++// Paginated: limita lookup a MAX_PHOTOS_PER_TABLE para evitar timeout.
++// Si org tiene >5000 fotos en una tabla, el resultado será parcial — re-correr o
++// usar migrations/seed_plan_fields.backfillStorageCounters con batchSize mayor.
++const MAX_PHOTOS_PER_TABLE = 5000;
++const MAX_PARENTS_PER_QUERY = 2000;
++
++export const recomputeStorage = mutation({
++  args: { id: v.id("organizaciones") },
++  handler: async (ctx, args) => {
++    await requireSuperAdmin(ctx);
++    const org = await ctx.db.get(args.id);
++    if (!org) throw new Error("Organización no encontrada");
++
++    let total = 0;
++    let partial = false;
++    let cleaningPhotoCount = 0;
++    let fumiPhotoCount = 0;
++    let mtoPhotoCount = 0;
++
++    // Cleaning: photos → assignment → organizacion_id
++    const cleaningAssignments = await ctx.db
++      .query("cleaning_assignments")
++      .withIndex("by_organizacion", (q) => q.eq("organizacion_id", args.id))
++      .take(MAX_PARENTS_PER_QUERY);
++    if (cleaningAssignments.length >= MAX_PARENTS_PER_QUERY) partial = true;
++    for (const a of cleaningAssignments) {
++      if (cleaningPhotoCount >= MAX_PHOTOS_PER_TABLE) { partial = true; break; }
++      const photos = await ctx.db
++        .query("cleaning_photos")
++        .withIndex("by_assignment", (q) => q.eq("assignment_id", a._id))
++        .take(MAX_PHOTOS_PER_TABLE - cleaningPhotoCount);
++      for (const p of photos) {
++        total += p.file_size ?? 0;
++        cleaningPhotoCount++;
++      }
++    }
++
++    // Fumigation: photos → assignment → organizacion_id
++    const fumiAssignments = await ctx.db
++      .query("fumigation_assignments")
++      .withIndex("by_organizacion", (q) => q.eq("organizacion_id", args.id))
++      .take(MAX_PARENTS_PER_QUERY);
++    if (fumiAssignments.length >= MAX_PARENTS_PER_QUERY) partial = true;
++    for (const a of fumiAssignments) {
++      if (fumiPhotoCount >= MAX_PHOTOS_PER_TABLE) { partial = true; break; }
++      const photos = await ctx.db
++        .query("fumigation_photos")
++        .withIndex("by_assignment", (q) => q.eq("assignment_id", a._id))
++        .take(MAX_PHOTOS_PER_TABLE - fumiPhotoCount);
++      for (const p of photos) {
++        total += p.file_size ?? 0;
++        fumiPhotoCount++;
++      }
++    }
++
++    // Maintenance: photos → task → vehiculo → organizacion_id
++    const vehiculos = await ctx.db
++      .query("vehiculos")
++      .withIndex("by_organizacion", (q) => q.eq("organizacion_id", args.id))
++      .take(MAX_PARENTS_PER_QUERY);
++    if (vehiculos.length >= MAX_PARENTS_PER_QUERY) partial = true;
++    outerMto: for (const veh of vehiculos) {
++      const tasks = await ctx.db
++        .query("maintenance_tasks")
++        .withIndex("by_vehiculo", (q) => q.eq("vehiculo_id", veh._id))
++        .take(MAX_PARENTS_PER_QUERY);
++      for (const t of tasks) {
++        if (mtoPhotoCount >= MAX_PHOTOS_PER_TABLE) { partial = true; break outerMto; }
++        const photos = await ctx.db
++          .query("maintenance_photos")
++          .withIndex("by_task", (q) => q.eq("task_id", t._id))
++          .take(MAX_PHOTOS_PER_TABLE - mtoPhotoCount);
++        for (const p of photos) {
++          total += p.file_size ?? 0;
++          mtoPhotoCount++;
++        }
++      }
++    }
++
++    const before = org.storage_bytes_used ?? 0;
++    const now = Date.now();
++    await ctx.db.patch(args.id, {
++      storage_bytes_used: total,
++      storage_last_recompute: now,
++    });
++    await writeAuditLog(
++      ctx,
++      args.id,
++      "recompute_storage",
++      "storage_bytes_used",
++      before,
++      { total, partial, cleaningPhotoCount, fumiPhotoCount, mtoPhotoCount },
++    );
++    return {
++      before,
++      after: total,
++      drift: total - before,
++      timestamp: now,
++      partial,
++      photo_counts: { cleaning: cleaningPhotoCount, fumi: fumiPhotoCount, mto: mtoPhotoCount },
++    };
++  },
++});
++
++// ---------- Helper export: increment/decrement counter from other modules ----------
++// Used by cleaning.ts, fumigaciones.ts, maintenance.ts photo mutations.
++export async function incrementOrgStorage(
++  ctx: MutationCtx,
++  orgId: Id<"organizaciones"> | null | undefined,
++  deltaBytes: number,
++): Promise<void> {
++  if (!orgId || !deltaBytes) return;
++  const org = await ctx.db.get(orgId);
++  if (!org) return;
++  const current = (org.storage_bytes_used as number | undefined) ?? 0;
++  const next = Math.max(0, current + deltaBytes);
++  await ctx.db.patch(orgId, { storage_bytes_used: next });
++}
+diff --git a/convex/route_events.ts b/convex/route_events.ts
+index cf04688..9e5e42b 100644
+--- a/convex/route_events.ts
++++ b/convex/route_events.ts
+@@ -1,6 +1,7 @@
+ import { mutation, query } from "./_generated/server";
+ import { v } from "convex/values";
+ import { getAuthScope, getScopedProjectId, getScopedOrgId, requireProjectAccess, requireWriteRole } from "./lib/auth";
++import { requireModulo } from "./lib/modules";
+ 
+ // Create route event
+ export const add = mutation({
+@@ -34,6 +35,7 @@ export const add = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "REC");
+     const scope = await getAuthScope(ctx);
+     if (!scope.perfil) throw new Error("No autenticado");
+     let proyecto_id;
+@@ -99,6 +101,7 @@ export const attachPhotoToParada = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "REC");
+     const scope = await getAuthScope(ctx);
+     if (!scope.perfil) throw new Error("No autenticado");
+ 
+diff --git a/convex/route_progress.ts b/convex/route_progress.ts
+index 1078dee..8820ec9 100644
+--- a/convex/route_progress.ts
++++ b/convex/route_progress.ts
+@@ -1,6 +1,7 @@
+ import { query, mutation } from "./_generated/server";
+ import { v } from "convex/values";
+ import { getScopedProjectId, getScopedOrgId, getAuthScope, requireProjectAccess, requireSuperAdmin, requireWriteRole } from "./lib/auth";
++import { requireModulo } from "./lib/modules";
+ 
+ // Cleanup admin-only: marca como 'completada' todos los route_progress 'en_progreso'.
+ export const cleanupStaleInProgress = mutation({
+@@ -150,6 +151,7 @@ export const start = mutation({
+   handler: async (ctx, args) => {
+     const scope = await getAuthScope(ctx);
+     if (!scope.perfil) throw new Error("No autenticado");
++    await requireModulo(ctx, "REC");
+     // Solo el conductor dueño o super_admin pueden iniciar la ruta.
+     if (!scope.isSuperAdmin && scope.perfil._id !== args.conductor_id) {
+       throw new Error("Acceso denegado: solo el conductor asignado puede iniciar la ruta");
+@@ -249,6 +251,7 @@ export const update = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "REC");
+     const { id, ...updates } = args;
+     const existing = await ctx.db.get(id);
+     if (!existing) throw new Error("Progreso no encontrado");
+@@ -274,6 +277,7 @@ export const complete = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "REC");
+     const progress = await ctx.db.get(args.id);
+     if (!progress) throw new Error("Progreso no encontrado");
+ 
+diff --git a/convex/route_reports.ts b/convex/route_reports.ts
+index 4ce4bfe..a10057f 100644
+--- a/convex/route_reports.ts
++++ b/convex/route_reports.ts
+@@ -1,6 +1,7 @@
+ import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
+ import { v } from "convex/values";
+ import { getScopedProjectId, requireProjectAccess, requireWriteRole, getAuthScope } from "./lib/auth";
++import { requireModulo } from "./lib/modules";
+ 
+ function assertPurgeAllowed() {
+   if (process.env.ALLOW_PURGE !== "1") {
+@@ -48,6 +49,7 @@ export const add = mutation({
+   },
+   handler: async (ctx, args) => {
+     const scope = await requireWriteRole(ctx);
++    await requireModulo(ctx, "REC");
+     // Derivar proyecto_id desde la asignación o ruta + denormalizar foto/ubicación de la ruta
+     let proyecto_id;
+     let ruta = null;
+diff --git a/convex/rutas.ts b/convex/rutas.ts
+index 3b6aacc..6383f81 100644
+--- a/convex/rutas.ts
++++ b/convex/rutas.ts
+@@ -2,6 +2,7 @@ import { query, mutation, MutationCtx } from "./_generated/server";
+ import { v } from "convex/values";
+ import { Id } from "./_generated/dataModel";
+ import { getAuthScope, getScopedProjectId, getScopedOrgId, requireProjectAccess, requireWriteRole } from "./lib/auth";
++import { requireModulo } from "./lib/modules";
+ 
+ // Sync auto-generated geofences for a route's paradas.
+ // Deletes previous auto-generated geofences for this ruta, then inserts one per parada.
+@@ -147,6 +148,7 @@ export const add = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "REC");
+     if (!args.proyecto_id) throw new Error("proyecto_id requerido al crear ruta");
+     await requireProjectAccess(ctx, args.proyecto_id);
+     // Persistir organizacion_id derivado del proyecto.
+@@ -184,6 +186,7 @@ export const update = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "REC");
+     const ruta = await ctx.db.get(args.id);
+     if (!ruta) throw new Error("Ruta no encontrada");
+     if (ruta.proyecto_id) await requireProjectAccess(ctx, ruta.proyecto_id);
+@@ -204,6 +207,7 @@ export const updateEstado = mutation({
+   },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "REC");
+     const ruta = await ctx.db.get(args.id);
+     if (!ruta) throw new Error("Ruta no encontrada");
+     if (ruta.proyecto_id) await requireProjectAccess(ctx, ruta.proyecto_id);
+@@ -216,6 +220,7 @@ export const remove = mutation({
+   args: { id: v.id("rutas") },
+   handler: async (ctx, args) => {
+     await requireWriteRole(ctx);
++    await requireModulo(ctx, "REC");
+     const ruta = await ctx.db.get(args.id);
+     if (!ruta) throw new Error("Ruta no encontrada");
+     if (ruta.proyecto_id) await requireProjectAccess(ctx, ruta.proyecto_id);
+diff --git a/convex/schema.ts b/convex/schema.ts
+index f6896b7..5017eb3 100644
+--- a/convex/schema.ts
++++ b/convex/schema.ts
+@@ -12,10 +12,54 @@ export default defineSchema({
+     logo_url: v.optional(v.string()),
+     activo: v.boolean(),
+     fecha_creacion: v.string(),
++    // ---- Plan / Billing (super_admin manages via Plataforma panel) ----
++    escala: v.optional(
++      v.union(
++        v.literal("S"),
++        v.literal("M"),
++        v.literal("L"),
++        v.literal("XL"),
++        v.literal("XXL"),
++      ),
++    ),
++    modulos_activos: v.optional(v.array(v.string())), // ["REC", "FUM", "LIM", "MTO", "INV", "PER", "BI", "API", "SSO", "WL", "PER-full"]
++    custom_caps: v.optional(
++      v.object({
++        camiones: v.optional(v.number()),
++        proyectos: v.optional(v.number()),
++        usuarios: v.optional(v.number()),
++        storage_gb: v.optional(v.number()),
++      }),
++    ),
++    fecha_inicio_plan: v.optional(v.number()), // ms epoch
++    fecha_renovacion_plan: v.optional(v.number()), // ms epoch
++    setup_status: v.optional(
++      v.union(v.literal("pendiente"), v.literal("pagado"), v.literal("waived")),
++    ),
++    discount_pct: v.optional(v.number()), // 0-15
++    // ---- Storage counter (delta-tracked in photo mutations) ----
++    storage_bytes_used: v.optional(v.number()),
++    storage_last_recompute: v.optional(v.number()), // ms epoch — última vez que se re-sumó todo
+   })
+     .index("by_slug", ["slug"])
+     .index("by_activo", ["activo"]),
+ 
++  // 0.1 Org audit log — trazabilidad de cambios de plan/módulos/caps por super_admin
++  org_audit_log: defineTable({
++    organizacion_id: v.id("organizaciones"),
++    changed_by_user_id: v.string(), // Clerk tokenIdentifier
++    changed_by_email: v.optional(v.string()),
++    action: v.string(), // "set_escala", "toggle_modulo", "set_custom_cap", "set_discount", "set_setup_status", "set_plan_fechas", "set_activo", "recompute_storage", "waive_overflow"
++    field: v.optional(v.string()),
++    before_value: v.optional(v.any()),
++    after_value: v.optional(v.any()),
++    notas: v.optional(v.string()),
++    timestamp: v.number(),
++  })
++    .index("by_organizacion", ["organizacion_id"])
++    .index("by_timestamp", ["timestamp"])
++    .index("by_org_timestamp", ["organizacion_id", "timestamp"]),
++
+   // 1. Perfiles de Usuarios (Auth)
+   perfiles_usuarios: defineTable({
+     userId: v.string(), // ID del usuario autenticado
+diff --git a/src/components/Icons/index.js b/src/components/Icons/index.js
+index b5f6b3a..5265c7e 100644
+--- a/src/components/Icons/index.js
++++ b/src/components/Icons/index.js
+@@ -97,7 +97,10 @@ export {
+   Moon,
+   Globe,
+   Power,
+-  Inbox
++  Inbox,
++  HardDrive,
++  ToggleLeft,
++  ToggleRight
+ } from 'lucide-react';
+ 
+ // Alias para Spray
+diff --git a/src/components/Servicios/ServiciosComponent.jsx b/src/components/Servicios/ServiciosComponent.jsx
+index 18dbf58..dfc2658 100644
+--- a/src/components/Servicios/ServiciosComponent.jsx
++++ b/src/components/Servicios/ServiciosComponent.jsx
+@@ -1,35 +1,48 @@
+-import { useState } from 'react';
++import { useState, useMemo, useEffect } from 'react';
+ import { Truck, Bug, Sparkles, Layers } from '../Icons';
+ import RoutesComponent from '../Routes/RoutesComponent';
+ import UbicacionesComponent from '../Ubicaciones/UbicacionesComponent';
+ import { useFumigation } from '../../context/FumigationContext';
+ import { useCleaning } from '../../context/CleaningContext';
+ import { useRoutes } from '../../context/RoutesContext';
++import { useOrganization } from '../../context/OrganizationContext';
+ import './ServiciosComponent.css';
+ 
+-const TABS = [
++const ALL_TABS = [
+   {
+     id: 'recoleccion',
+     label: 'Recolección',
+     desc: 'Rutas con paradas, foto de portada y ubicación principal.',
+     Icon: Truck,
++    modulo: 'REC',
+   },
+   {
+     id: 'fumigacion',
+     label: 'Fumigación',
+     desc: 'Lugares de fumigación interna o externa con foto y GPS.',
+     Icon: Bug,
++    modulo: 'FUM',
+   },
+   {
+     id: 'limpieza',
+     label: 'Limpieza',
+     desc: 'Salas y áreas de limpieza con foto y GPS.',
+     Icon: Sparkles,
++    modulo: 'LIM',
+   },
+ ];
+ 
+ const ServiciosComponent = ({ initialRoutes = [] }) => {
+-  const [activeTab, setActiveTab] = useState('recoleccion');
++  const { hasModulo } = useOrganization();
++  // Filtrar tabs por módulos activos de la org
++  const TABS = useMemo(() => ALL_TABS.filter((t) => hasModulo(t.modulo)), [hasModulo]);
++  const [activeTab, setActiveTab] = useState(() => TABS[0]?.id ?? 'recoleccion');
++  // Si la tab activa deja de existir (módulo apagado en otra ventana), saltar a la primera disponible
++  useEffect(() => {
++    if (TABS.length > 0 && !TABS.find((t) => t.id === activeTab)) {
++      setActiveTab(TABS[0].id);
++    }
++  }, [TABS, activeTab]);
+   const { routes } = useRoutes();
+   const { lugares: lugaresFum } = useFumigation();
+   const { lugares: salas } = useCleaning();
+@@ -71,6 +84,14 @@ const ServiciosComponent = ({ initialRoutes = [] }) => {
+         </div>
+       </div>
+ 
++      {TABS.length === 0 && (
++        <div className="servicios-empty">
++          <p>Ningún módulo de servicios activo para esta organización.</p>
++          <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
++            Pedí al super-admin activar REC, FUM o LIM en el panel Plataforma.
++          </p>
++        </div>
++      )}
+       <div className="servicios-tabs">
+         {TABS.map((t) => {
+           const Icon = t.Icon;
+diff --git a/src/context/OrganizationContext.jsx b/src/context/OrganizationContext.jsx
+index f942579..a905a65 100644
+--- a/src/context/OrganizationContext.jsx
++++ b/src/context/OrganizationContext.jsx
+@@ -35,6 +35,25 @@ export const OrganizationProvider = ({ children }) => {
+     setCurrentOrgIdState(orgId);
+   };
+ 
++  // Módulos activos de la org actual.
++  // - super_admin sin org seleccionada → todos los módulos (puede ver todo)
++  // - cualquier otro → modulos_activos de su org (default ['REC'] si vacío para no romper UX legacy)
++  const currentOrgModulos = useMemo(() => {
++    if (isSuperAdmin && !currentOrg) {
++      return ['REC', 'FUM', 'LIM', 'MTO', 'INV', 'PER', 'BI', 'API', 'SSO', 'WL', 'PER-full'];
++    }
++    if (currentOrg?.modulos_activos && currentOrg.modulos_activos.length > 0) {
++      return currentOrg.modulos_activos;
++    }
++    // Org sin modulos_activos seteados (legacy / pre-backfill): asumir REC default
++    return ['REC'];
++  }, [isSuperAdmin, currentOrg]);
++
++  const hasModulo = useMemo(
++    () => (codigo) => currentOrgModulos.includes(codigo),
++    [currentOrgModulos]
++  );
++
+   const loading = availableOrgs === undefined;
+ 
+   const value = useMemo(
+@@ -44,9 +63,11 @@ export const OrganizationProvider = ({ children }) => {
+       availableOrgs,
+       isSuperAdmin,
+       setCurrentOrg,
++      currentOrgModulos,
++      hasModulo,
+       loading,
+     }),
+-    [currentOrg, currentOrgId, availableOrgs, isSuperAdmin, loading]
++    [currentOrg, currentOrgId, availableOrgs, isSuperAdmin, currentOrgModulos, hasModulo, loading]
+   );
+ 
+   return <OrganizationContext.Provider value={value}>{children}</OrganizationContext.Provider>;
+diff --git a/src/pages/AdminDashboard/AdminDashboard.jsx b/src/pages/AdminDashboard/AdminDashboard.jsx
+index 61f9a4a..16bf76b 100644
+--- a/src/pages/AdminDashboard/AdminDashboard.jsx
++++ b/src/pages/AdminDashboard/AdminDashboard.jsx
+@@ -15,6 +15,7 @@ import { ProjectSwitcher } from '../../components/Project';
+ import { OrganizationSwitcher } from '../../components/Organization';
+ import ProyectosComponent from '../../components/Proyectos';
+ import OrganizacionesComponent from '../../components/Organizaciones';
++import { PlataformaPanel } from '../../components/SuperAdmin';
+ import { useOrganization } from '../../context/OrganizationContext';
+ 
+ import { usePersonnel } from '../../context/PersonnelContext';
+@@ -103,7 +104,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
+   }, [isMobileView, activeTab]);
+ 
+   // Org context (super_admin can switch / admin locked)
+-  const { currentOrgId, availableOrgs } = useOrganization();
++  const { currentOrgId, availableOrgs, hasModulo } = useOrganization();
+   const isSuperAdmin = userRole === 'super_admin' || user?.tipo === 'super_admin';
+ 
+   // Profile creation states
+@@ -737,6 +738,8 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
+         return (userRole === 'admin' || isSuperAdmin) ? <ProyectosComponent /> : null;
+       case 'organizaciones':
+         return isSuperAdmin ? <OrganizacionesComponent /> : null;
++      case 'plataforma':
++        return isSuperAdmin ? <PlataformaPanel /> : null;
+       default:
+         return null;
+     }
+@@ -774,7 +777,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
+             <LayoutDashboard strokeWidth={1.5} size={18} />
+             <span>Monitoreo</span>
+           </button>
+-          {!isRestrictedClient && (
++          {!isRestrictedClient && (hasModulo('REC') || hasModulo('FUM') || hasModulo('LIM') || hasModulo('PER')) && (
+             <button
+               className={`top-nav__tab ${activeTab === 'operaciones' ? 'active' : ''}`}
+               onClick={() => handleTabChange('operaciones', 'personal')}
+@@ -793,16 +796,18 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
+             <span>Calendario</span>
+             {isViewer && <Lock strokeWidth={2} size={12} />}
+           </button>
+-          <button
+-            className={`top-nav__tab ${activeTab === 'mantenimiento' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
+-            onClick={() => handleTabChange('mantenimiento')}
+-            disabled={isViewer}
+-            title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
+-          >
+-            <Wrench strokeWidth={1.5} size={18} />
+-            <span>Mantenimiento</span>
+-            {isViewer && <Lock strokeWidth={2} size={12} />}
+-          </button>
++          {hasModulo('MTO') && (
++            <button
++              className={`top-nav__tab ${activeTab === 'mantenimiento' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
++              onClick={() => handleTabChange('mantenimiento')}
++              disabled={isViewer}
++              title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
++            >
++              <Wrench strokeWidth={1.5} size={18} />
++              <span>Mantenimiento</span>
++              {isViewer && <Lock strokeWidth={2} size={12} />}
++            </button>
++          )}
+           <button
+             className={`top-nav__tab ${activeTab === 'riesgos' ? 'active' : ''}`}
+             onClick={() => handleTabChange('riesgos')}
+@@ -810,16 +815,18 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
+             <AlertTriangle strokeWidth={1.5} size={18} />
+             <span>Riesgos</span>
+           </button>
+-          <button
+-            className={`top-nav__tab ${activeTab === 'inventario' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
+-            onClick={() => handleTabChange('inventario')}
+-            disabled={isViewer}
+-            title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
+-          >
+-            <Package strokeWidth={1.5} size={18} />
+-            <span>Inventario</span>
+-            {isViewer && <Lock strokeWidth={2} size={12} />}
+-          </button>
++          {hasModulo('INV') && (
++            <button
++              className={`top-nav__tab ${activeTab === 'inventario' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
++              onClick={() => handleTabChange('inventario')}
++              disabled={isViewer}
++              title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
++            >
++              <Package strokeWidth={1.5} size={18} />
++              <span>Inventario</span>
++              {isViewer && <Lock strokeWidth={2} size={12} />}
++            </button>
++          )}
+           {(userRole === 'admin' || isSuperAdmin) && (
+             <button
+               className={`top-nav__tab ${activeTab === 'costos' ? 'active' : ''}`}
+@@ -847,6 +854,15 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
+               <span>Organizaciones</span>
+             </button>
+           )}
++          {isSuperAdmin && (
++            <button
++              className={`top-nav__tab ${activeTab === 'plataforma' ? 'active' : ''}`}
++              onClick={() => handleTabChange('plataforma')}
++            >
++              <LayoutDashboard strokeWidth={1.5} size={18} />
++              <span>Plataforma</span>
++            </button>
++          )}
+           <button
+             className={`top-nav__tab ${activeTab === 'reportes' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
+             onClick={() => handleTabChange('reportes')}
+diff --git a/src/pages/ConductorDashboard/ConductorDashboard.jsx b/src/pages/ConductorDashboard/ConductorDashboard.jsx
+index f9b31e5..f2e0002 100644
+--- a/src/pages/ConductorDashboard/ConductorDashboard.jsx
++++ b/src/pages/ConductorDashboard/ConductorDashboard.jsx
+@@ -11,6 +11,7 @@ import { useFleet } from '../../context/FleetContext';
+ import { useRoutes } from '../../context/RoutesContext';
+ import { useSchedule } from '../../context/ScheduleContext';
+ import { useReports } from '../../context/ReportsContext';
++import { useOrganization } from '../../context/OrganizationContext';
+ // import supabaseClient from '../../utils/supabaseClient'; // Removed: Migrated to Convex
+ import {
+   Truck, LogOut, Download, Map, Clock, AlertTriangle,
+@@ -75,6 +76,10 @@ const ConductorDashboard = ({ user, onLogout }) => {
+     addRouteEvent,
+   });
+ 
++  // Module gating per org plan
++  const { hasModulo } = useOrganization();
++  const orgHasRecoleccion = hasModulo('REC');
++
+   // Assignment status update
+   const updateAssignmentStatus = useMutation(api.asignaciones.updateEstado);
+ 
+@@ -1657,6 +1662,25 @@ const ConductorDashboard = ({ user, onLogout }) => {
+ 
+   const progressPercentage = getProgressPercentage();
+ 
++  // Module gate: si la org no tiene REC, conductor dashboard no tiene contenido válido.
++  if (!orgHasRecoleccion) {
++    return (
++      <div className="dashboard-container conductor-dashboard">
++        <main className="conductor-empty-state">
++          <AlertOctagon size={48} strokeWidth={1.5} />
++          <h2>Módulo de Recolección no contratado</h2>
++          <p>
++            Tu organización no tiene activo el módulo de Recolección. El dashboard del conductor
++            requiere este módulo para operar. Contactá al super-admin para activarlo.
++          </p>
++          <button className="btn-secondary" onClick={onLogout}>
++            <LogOut size={16} /> Cerrar sesión
++          </button>
++        </main>
++      </div>
++    );
++  }
++
+   return (
+     <div className={`dashboard-container conductor-dashboard${isMobileView && activeTab === 'ruta' ? ' conductor-dashboard--map-fullscreen' : ''}`}>
+       {/* Banner de estado offline */}

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Upload, Trash2, Check, Camera } from '../Icons';
-import { Button } from '../UI';
+import { Upload, Trash2, Check, Camera } from '../Icons';
+import { Button, Modal } from '../UI';
 import { useCleaning } from '../../context/CleaningContext';
+import { handleMutationError } from '../../utils/mutationError';
 import './PhotosModal.css';
 
 const PHOTO_STAGES = [
@@ -156,30 +157,20 @@ const PhotosModal = ({ isOpen, onClose, onComplete, assignmentId, assignmentData
       });
     } catch (error) {
       console.error('Error al subir fotos:', error);
-      setErrors({ general: 'Error al guardar las evidencias. Intente nuevamente.' });
+      const userMsg = handleMutationError(error, 'Error al guardar las evidencias. Intente nuevamente.');
+      setErrors({ general: userMsg });
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="photos-modal-overlay" onClick={onClose}>
-      <div className="photos-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="photos-modal__header">
-          <div>
-            <h2 className="photos-modal__title">Evidencias Fotográficas</h2>
-            <p className="photos-modal__subtitle">
-              {assignmentData.sala} - {assignmentData.area}
-            </p>
-          </div>
-          <button className="photos-modal__close" onClick={onClose}>
-            <X size={24} />
-          </button>
-        </div>
+    <Modal open onClose={onClose} size="lg" variant="form">
+      <Modal.Header icon={<Camera size={18} />} onClose={onClose} id="photos-modal-title">
+        Evidencias Fotográficas · {assignmentData.sala} — {assignmentData.area}
+      </Modal.Header>
 
-        {/* Content */}
-        <div className="photos-modal__content">
+      <Modal.Body className="photos-modal__content">
           {PHOTO_STAGES.map((stage) => (
             <div key={stage.id} className="photo-stage">
               <div className="photo-stage__header" style={{ borderColor: stage.color }}>
@@ -244,29 +235,25 @@ const PhotosModal = ({ isOpen, onClose, onComplete, assignmentId, assignmentData
               )}
             </div>
           ))}
-        </div>
-
-        {/* General Error */}
         {errors.general && (
           <div className="photos-modal__error">{errors.general}</div>
         )}
+      </Modal.Body>
 
-        {/* Footer */}
-        <div className="photos-modal__footer">
-          <Button variant="secondary" onClick={onClose} disabled={uploading}>
-            Cancelar
-          </Button>
-          <Button
-            variant="primary"
-            icon={<Check size={18} />}
-            onClick={handleComplete}
-            disabled={uploading}
-          >
-            {uploading ? 'Subiendo...' : 'Guardar Evidencias'}
-          </Button>
-        </div>
-      </div>
-    </div>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={onClose} disabled={uploading}>
+          Cancelar
+        </Button>
+        <Button
+          variant="primary"
+          icon={<Check size={18} />}
+          onClick={handleComplete}
+          disabled={uploading}
+        >
+          {uploading ? 'Subiendo...' : 'Guardar Evidencias'}
+        </Button>
+      </Modal.Footer>
+    </Modal>
   );
 };
 

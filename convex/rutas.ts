@@ -2,6 +2,7 @@ import { query, mutation, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { getAuthScope, getScopedProjectId, getScopedOrgId, requireProjectAccess, requireWriteRole } from "./lib/auth";
+import { requireModulo } from "./lib/modules";
 
 // Sync auto-generated geofences for a route's paradas.
 // Deletes previous auto-generated geofences for this ruta, then inserts one per parada.
@@ -70,7 +71,11 @@ export const list = query({
       const all = await ctx.db.query("rutas").collect();
       return all.filter((r) => r.organizacion_id === scopedOrg);
     }
-    return await ctx.db.query("rutas").collect();
+    const scope = await getAuthScope(ctx);
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) {
+      return await ctx.db.query("rutas").collect();
+    }
+    return [];
   },
 });
 
@@ -147,6 +152,7 @@ export const add = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "REC");
     if (!args.proyecto_id) throw new Error("proyecto_id requerido al crear ruta");
     await requireProjectAccess(ctx, args.proyecto_id);
     // Persistir organizacion_id derivado del proyecto.
@@ -184,6 +190,7 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "REC");
     const ruta = await ctx.db.get(args.id);
     if (!ruta) throw new Error("Ruta no encontrada");
     if (ruta.proyecto_id) await requireProjectAccess(ctx, ruta.proyecto_id);
@@ -204,6 +211,7 @@ export const updateEstado = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "REC");
     const ruta = await ctx.db.get(args.id);
     if (!ruta) throw new Error("Ruta no encontrada");
     if (ruta.proyecto_id) await requireProjectAccess(ctx, ruta.proyecto_id);
@@ -216,6 +224,7 @@ export const remove = mutation({
   args: { id: v.id("rutas") },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "REC");
     const ruta = await ctx.db.get(args.id);
     if (!ruta) throw new Error("Ruta no encontrada");
     if (ruta.proyecto_id) await requireProjectAccess(ctx, ruta.proyecto_id);

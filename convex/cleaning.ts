@@ -1,6 +1,8 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthScope, getScopedProjectId, requireProjectAccess, requireWriteRole, requireOrgAccess } from "./lib/auth";
+import { incrementOrgStorage } from "./organizaciones";
+import { requireModulo } from "./lib/modules";
 
 // ========== SALAS ==========
 export const listSalas = query({
@@ -14,10 +16,14 @@ export const listSalas = query({
         .filter((q) => q.eq(q.field("activo"), true))
         .collect();
     }
-    return await ctx.db
+    const scope = await getAuthScope(ctx);
+    const all = await ctx.db
       .query("salas")
       .withIndex("by_activo", (q) => q.eq("activo", true))
       .collect();
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) return all;
+    if (!scope.organizacionId) return [];
+    return all.filter((s) => s.organizacion_id === scope.organizacionId);
   },
 });
 
@@ -32,6 +38,7 @@ export const addSala = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "LIM");
     await requireProjectAccess(ctx, args.proyecto_id);
     // Persistir organizacion_id derivada del proyecto.
     const proyecto = await ctx.db.get(args.proyecto_id);
@@ -56,6 +63,7 @@ export const updateSala = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "LIM");
     const sala = await ctx.db.get(args.id);
     if (!sala) throw new Error("Sala no encontrada");
     if (sala.proyecto_id) await requireProjectAccess(ctx, sala.proyecto_id);
@@ -75,6 +83,7 @@ export const deleteSala = mutation({
   args: { id: v.id("salas") },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "LIM");
     const sala = await ctx.db.get(args.id);
     if (!sala) throw new Error("Sala no encontrada");
     if (sala.proyecto_id) await requireProjectAccess(ctx, sala.proyecto_id);
@@ -131,6 +140,7 @@ export const addArea = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "LIM");
     const sala = await ctx.db.get(args.sala_id);
     if (!sala) throw new Error("Sala no encontrada");
     if (sala.proyecto_id) await requireProjectAccess(ctx, sala.proyecto_id);
@@ -173,6 +183,8 @@ export const addAssignment = mutation({
     created_by: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    await requireWriteRole(ctx);
+    await requireModulo(ctx, "LIM");
     const sala = await ctx.db.get(args.sala_id);
     if (!sala) throw new Error("Sala no encontrada");
     if (!sala.proyecto_id) throw new Error("Sala sin proyecto_id; ejecuta migración");
@@ -195,6 +207,7 @@ export const updateAssignment = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "LIM");
     const assignment = await ctx.db.get(args.id);
     if (!assignment) throw new Error("Asignación no encontrada");
     if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
@@ -209,6 +222,9 @@ export const deleteAssignment = mutation({
   args: { id: v.id("cleaning_assignments") },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    // NO gateamos por módulo: cleanup debe funcionar aunque LIM esté apagado.
+    // Si no, las fotos quedan huérfanas y storage_bytes_used drift hasta el
+    // próximo cron recomputeStorageDaily (~6h). Cleanup = siempre permitido.
     const assignment = await ctx.db.get(args.id);
     if (!assignment) throw new Error("Asignación no encontrada");
     if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
@@ -220,11 +236,16 @@ export const deleteAssignment = mutation({
       .query("cleaning_photos")
       .withIndex("by_assignment", (q) => q.eq("assignment_id", args.id))
       .collect();
+    const orgId = assignment.organizacion_id;
     for (const photo of photos) {
       try {
         await ctx.storage.delete(photo.storage_id);
       } catch (err) {
         console.warn(`No se pudo borrar storage ${photo.storage_id}`, err);
+      }
+      // Storage counter — decrement por org en cascada
+      if (orgId && photo.file_size && photo.file_size > 0) {
+        await incrementOrgStorage(ctx, orgId, -photo.file_size);
       }
       await ctx.db.delete(photo._id);
     }
@@ -245,12 +266,19 @@ export const addPhoto = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "LIM");
     const assignment = await ctx.db.get(args.assignment_id);
     if (!assignment) throw new Error("Asignación no encontrada");
     if (assignment.proyecto_id) await requireProjectAccess(ctx, assignment.proyecto_id);
     else if (assignment.organizacion_id) await requireOrgAccess(ctx, assignment.organizacion_id);
     else throw new Error("Asignación sin proyecto ni organización — requiere migración");
-    return await ctx.db.insert("cleaning_photos", args);
+    const photoId = await ctx.db.insert("cleaning_photos", args);
+    // Storage counter — delta tracking per org
+    const orgId = assignment.organizacion_id;
+    if (orgId && args.file_size && args.file_size > 0) {
+      await incrementOrgStorage(ctx, orgId, args.file_size);
+    }
+    return photoId;
   },
 });
 
@@ -340,6 +368,7 @@ export const createReport = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
+    await requireModulo(ctx, "LIM");
     // Derivar proyecto_id desde la sala
     const sala = await ctx.db.get(args.sala_id);
     if (!sala) throw new Error("Sala no encontrada");

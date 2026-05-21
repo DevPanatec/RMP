@@ -1,14 +1,13 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import {
   X, Download, MapPin, Calendar, FileText, Wrench, UserCheck, Truck, DollarSign,
-  Clock, CheckCircle, AlertTriangle, Camera, Image as ImageIcon
+  CheckCircle, AlertTriangle, Camera, Image as ImageIcon
 } from '../Icons';
+import { Modal } from '../UI';
 import { generateMantenimientoPDFComplete } from '../../utils/lazyPdf';
 import './StandardReportModal.css';
-
-const MapLibreComponent = lazy(() => import('../Map/MapLibreComponent'));
 
 // Helper para parsear fechas sin problemas de timezone
 const parseLocalDate = (dateStr) => {
@@ -33,16 +32,6 @@ const MaintenanceReportDetailModal = ({ report: initialReport, onClose }) => {
   if (!initialReport) return null;
 
   const isLoadingPhotos = !fullReport && initialReport;
-
-  const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget) {
-      if (selectedPhoto) {
-        setSelectedPhoto(null);
-      } else {
-        onClose();
-      }
-    }
-  };
 
   // Formatear tipo de mantenimiento
   const getTipoLabel = (tipo) => {
@@ -87,27 +76,12 @@ const MaintenanceReportDetailModal = ({ report: initialReport, onClose }) => {
   const totalFotos = fotosPorEtapa.antes.length + fotosPorEtapa.durante.length + fotosPorEtapa.despues.length;
 
   return (
-    <div className="report-modal-overlay" onClick={handleOverlayClick}>
-      <div className="report-modal" onClick={(e) => e.stopPropagation()}>
-
-        {/* Header */}
-        <div className="report-modal__header">
-          <div className="report-modal__header-left">
-            <div className="report-modal__icon">
-              <Wrench size={32} />
-            </div>
-            <div className="report-modal__header-text">
-              <h2 className="report-modal__title">Reporte de Mantenimiento</h2>
-              <p className="report-modal__subtitle">{report.titulo}</p>
-            </div>
-          </div>
-          <button className="report-modal__close" onClick={onClose}>
-            <X size={24} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="report-modal__content">
+    <Modal open onClose={onClose} size="lg" variant="detail">
+      <Modal.Header icon={<Wrench size={18} />} onClose={onClose} id="maintenance-report-title">
+        Reporte de Mantenimiento — {report.titulo}
+      </Modal.Header>
+      <Modal.Body>
+        <div className="report-modal__content-inner">
 
           {/* Badges de tipo y estado */}
           <div className="report-badges">
@@ -370,39 +344,39 @@ const MaintenanceReportDetailModal = ({ report: initialReport, onClose }) => {
             </div>
           )}
         </div>
+      </Modal.Body>
+      <Modal.Footer align="between">
+        <button
+          type="button"
+          className="report-modal__btn report-modal__btn--primary"
+          onClick={handleDownloadPDF}
+          disabled={isDownloading}
+        >
+          <Download size={18} />
+          {isDownloading ? 'Generando...' : 'Descargar PDF'}
+        </button>
+        <button type="button" className="report-modal__btn report-modal__btn--secondary" onClick={onClose}>
+          Cerrar
+        </button>
+      </Modal.Footer>
 
-        {/* Footer */}
-        <div className="report-modal__footer">
-          <button className="report-modal__btn report-modal__btn--secondary" onClick={onClose}>
-            <X size={18} />
-            Cerrar
-          </button>
+      {/* Photo Viewer — sigue como overlay separado */}
+      {selectedPhoto && (
+        <div className="report-photo-viewer" onClick={() => setSelectedPhoto(null)}>
           <button
-            className="report-modal__btn report-modal__btn--primary"
-            onClick={handleDownloadPDF}
-            disabled={isDownloading}
+            type="button"
+            className="report-photo-viewer__close"
+            onClick={() => setSelectedPhoto(null)}
+            aria-label="Cerrar foto"
           >
-            <Download size={18} />
-            {isDownloading ? 'Generando...' : 'Descargar PDF'}
+            <X size={28} />
           </button>
-        </div>
-
-        {/* Photo Viewer */}
-        {selectedPhoto && (
-          <div className="report-photo-viewer" onClick={() => setSelectedPhoto(null)}>
-            <button
-              className="report-photo-viewer__close"
-              onClick={() => setSelectedPhoto(null)}
-            >
-              <X size={28} />
-            </button>
-            <div className="report-photo-viewer__content" onClick={(e) => e.stopPropagation()}>
-              <img src={selectedPhoto.url} alt="Evidencia ampliada" />
-            </div>
+          <div className="report-photo-viewer__content" onClick={(e) => e.stopPropagation()}>
+            <img src={selectedPhoto.url} alt="Evidencia ampliada" />
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </Modal>
   );
 };
 

@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthScope, requireOrgAccess, requireProjectAccess, requireWriteRole, requireAdminWrite } from "./lib/auth";
+import { requireModulo } from "./lib/modules";
 
 // Filtra empleados por scope: super_admin/cross-org ve todos; demás solo su org.
 async function scopeEmpleados(ctx: any, rows: any[]) {
@@ -112,6 +113,7 @@ export const add = mutation({
   },
   handler: async (ctx, args) => {
     await requireAdminWrite(ctx);
+    await requireModulo(ctx, "PER");
     const scope = await getAuthScope(ctx);
     let orgId: any = args.organizacion_id ?? scope.organizacionId ?? undefined;
     if (!orgId && args.proyecto_id) {
@@ -157,6 +159,7 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     await requireAdminWrite(ctx);
+    await requireModulo(ctx, "PER");
     const emp = await ctx.db.get(args.id);
     if (!emp) throw new Error("Empleado no encontrado");
     if (!emp.organizacion_id) throw new Error("Empleado sin organización — requiere migración");
@@ -171,6 +174,7 @@ export const deactivate = mutation({
   args: { id: v.id("empleados") },
   handler: async (ctx, args) => {
     await requireAdminWrite(ctx);
+    await requireModulo(ctx, "PER");
     const emp = await ctx.db.get(args.id);
     if (!emp) throw new Error("Empleado no encontrado");
     if (!emp.organizacion_id) throw new Error("Empleado sin organización — requiere migración");
@@ -184,6 +188,7 @@ export const activate = mutation({
   args: { id: v.id("empleados") },
   handler: async (ctx, args) => {
     await requireAdminWrite(ctx);
+    await requireModulo(ctx, "PER");
     const emp = await ctx.db.get(args.id);
     if (!emp) throw new Error("Empleado no encontrado");
     if (!emp.organizacion_id) throw new Error("Empleado sin organización — requiere migración");
@@ -197,6 +202,7 @@ export const remove = mutation({
   args: { id: v.id("empleados") },
   handler: async (ctx, args) => {
     await requireAdminWrite(ctx);
+    await requireModulo(ctx, "PER");
     const emp = await ctx.db.get(args.id);
     if (!emp) throw new Error("Empleado no encontrado");
     if (!emp.organizacion_id) throw new Error("Empleado sin organización — requiere migración");

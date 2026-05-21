@@ -7,6 +7,7 @@ import {
 } from '../Icons';
 import { useAuth } from '../../context/AuthContext';
 import { useOrganization } from '../../context/OrganizationContext';
+import { ConfirmDialog } from '../UI';
 import './ProyectosComponent.css';
 
 const initialProjectForm = {
@@ -25,15 +26,18 @@ const initialUserForm = {
   documento: '',
 };
 
-const ProyectosComponent = () => {
+const ProyectosComponent = ({ orgIdOverride = null, embedded = false }) => {
   const { user } = useAuth();
   const { currentOrgId } = useOrganization();
   const isSuperAdmin = user?.tipo === 'super_admin';
-  const orgIdForCreate = isSuperAdmin ? currentOrgId : (user?.organizacion_id ?? null);
+  // orgIdOverride permite embedded en OrgDetailDrawer — fuerza filtro por esa org
+  const effectiveOrgId = orgIdOverride ?? currentOrgId;
+  const orgIdForCreate = orgIdOverride
+    ?? (isSuperAdmin ? currentOrgId : (user?.organizacion_id ?? null));
 
   const proyectos = useQuery(
     api.proyectos.list,
-    currentOrgId ? { organizacion_id: currentOrgId } : {}
+    effectiveOrgId ? { organizacion_id: effectiveOrgId } : {}
   ) ?? [];
   const addProyecto = useMutation(api.proyectos.add);
   const updateProyecto = useMutation(api.proyectos.update);
@@ -58,6 +62,8 @@ const ProyectosComponent = () => {
 
   const [feedback, setFeedback] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [enterpriseToUnlink, setEnterpriseToUnlink] = useState(null);
 
   const proyectosOrdenados = useMemo(
     () => [...proyectos].sort((a, b) => a.nombre.localeCompare(b.nombre)),
@@ -133,14 +139,20 @@ const ProyectosComponent = () => {
     }
   };
 
-  const deleteProject = async (p) => {
-    if (!window.confirm(`¿Eliminar proyecto "${p.nombre}"? Esta acción no se puede deshacer.`)) return;
+  const deleteProject = (p) => {
+    setProjectToDelete(p);
+  };
+
+  const confirmDeleteProject = async () => {
+    if (!projectToDelete) return;
     try {
-      await removeProyecto({ id: p._id });
+      await removeProyecto({ id: projectToDelete._id });
       flash('ok', 'Proyecto eliminado');
-      if (selectedProjectId === p._id) setSelectedProjectId(null);
+      if (selectedProjectId === projectToDelete._id) setSelectedProjectId(null);
     } catch (err) {
       flash('error', err.message);
+    } finally {
+      setProjectToDelete(null);
     }
   };
 
@@ -181,30 +193,45 @@ const ProyectosComponent = () => {
     }
   };
 
-  const unlinkEnterprise = async (perfilId) => {
-    if (!window.confirm('¿Desvincular este enterprise del proyecto?')) return;
+  const unlinkEnterprise = (perfilId) => {
+    setEnterpriseToUnlink(perfilId);
+  };
+
+  const confirmUnlinkEnterprise = async () => {
+    if (!enterpriseToUnlink) return;
     try {
-      await setUserProyecto({ perfil_id: perfilId, proyecto_id: undefined });
+      await setUserProyecto({ perfil_id: enterpriseToUnlink, proyecto_id: undefined });
       flash('ok', 'Enterprise desvinculado');
     } catch (err) {
       flash('error', err.message);
+    } finally {
+      setEnterpriseToUnlink(null);
     }
   };
 
   return (
-    <div className="proyectos-component">
-      <div className="proyectos-header">
-        <div className="proyectos-header-text">
-          <Briefcase size={24} />
-          <div>
-            <h2>Proyectos</h2>
-            <p>Gestión de proyectos y asignación de Enterprises</p>
+    <div className={`proyectos-component${embedded ? ' proyectos-component--embedded' : ''}`}>
+      {!embedded && (
+        <div className="proyectos-header">
+          <div className="proyectos-header-text">
+            <Briefcase size={24} />
+            <div>
+              <h2>Proyectos</h2>
+              <p>Gestión de proyectos y asignación de Enterprises</p>
+            </div>
           </div>
+          <button className="btn-primary" onClick={openCreateProject}>
+            <Plus size={16} /> Nuevo proyecto
+          </button>
         </div>
-        <button className="btn-primary" onClick={openCreateProject}>
-          <Plus size={16} /> Nuevo proyecto
-        </button>
-      </div>
+      )}
+      {embedded && (
+        <div className="proyectos-embedded-toolbar">
+          <button className="btn-primary" onClick={openCreateProject}>
+            <Plus size={16} /> Nuevo proyecto
+          </button>
+        </div>
+      )}
 
       {feedback && (
         <div className={`proyectos-feedback proyectos-feedback--${feedback.type}`}>
@@ -444,6 +471,32 @@ const ProyectosComponent = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {projectToDelete && (
+        <ConfirmDialog
+          open
+          destructive
+          title="¿Eliminar proyecto?"
+          message={`Vas a eliminar "${projectToDelete.nombre}". Esta acción no se puede deshacer.`}
+          confirmLabel="Eliminar"
+          cancelLabel="Cancelar"
+          onConfirm={confirmDeleteProject}
+          onCancel={() => setProjectToDelete(null)}
+        />
+      )}
+
+      {enterpriseToUnlink && (
+        <ConfirmDialog
+          open
+          destructive
+          title="¿Desvincular enterprise?"
+          message="El usuario enterprise se desvinculará de este proyecto. Podrás reasignarlo después."
+          confirmLabel="Desvincular"
+          cancelLabel="Cancelar"
+          onConfirm={confirmUnlinkEnterprise}
+          onCancel={() => setEnterpriseToUnlink(null)}
+        />
       )}
     </div>
   );

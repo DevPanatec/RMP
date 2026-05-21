@@ -5,6 +5,7 @@ import {
   Edit, Save, Image as ImageIcon
 } from '../Icons';
 import { useCleaning } from '../../context/CleaningContext';
+import { handleMutationError } from '../../utils/mutationError';
 import SimplePhotoSlots from './SimplePhotoSlots';
 import './CleaningModal.css';
 
@@ -138,7 +139,8 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
       }
     } catch (error) {
       console.error('Error al crear asignación:', error);
-      setErrors({ submit: 'Error al crear la asignación' });
+      const userMsg = handleMutationError(error, 'Error al crear la asignación');
+      setErrors({ submit: userMsg });
     } finally {
       setSubmitting(false);
     }

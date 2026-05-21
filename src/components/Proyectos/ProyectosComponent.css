@@ -8,6 +8,19 @@
   margin: 0 auto;
 }
 
+/* Embedded en OrgDetailDrawer — sin padding extra, sin max-width */
+.proyectos-component--embedded {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}
+
+.proyectos-embedded-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-12);
+}
+
 .proyectos-header {
   display: flex;
   justify-content: space-between;
