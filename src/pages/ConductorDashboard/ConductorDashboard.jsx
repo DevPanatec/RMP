@@ -1540,36 +1540,86 @@ const ConductorDashboard = ({ user, onLogout }) => {
         <main className="main-content">
 
           {activeTab === 'ruta' && (
-            <div className="card">
-              <div className="card__body">
-                <div className="no-assignment">
-                  <div className="no-assignment-icon">
-                    <Calendar size={64} strokeWidth={1.5} />
-                  </div>
-                  <h3>Sin Asignación para Hoy</h3>
-                  <p>No tienes ruta asignada para {todayDayName}. Disfruta tu día libre!</p>
+            <>
+              {!isMobileView && (
+                <div className="conductor-desktop-panel">
+                  <div className="card">
+                    <div className="card__body">
+                      <div className="no-assignment">
+                        <div className="no-assignment-icon">
+                          <Calendar size={64} strokeWidth={1.5} />
+                        </div>
+                        <h3>Sin Asignación para Hoy</h3>
+                        <p>No tienes ruta asignada para {todayDayName}. Disfruta tu día libre!</p>
 
-                  {conductorAssignments.length > 0 && (
-                    <div style={{ marginTop: '32px', textAlign: 'left' }}>
-                      <h4><ClipboardList size={20} /> Tus Asignaciones de la Semana</h4>
-                      <ul>
-                        {conductorAssignments.map(assignment => (
-                          <li key={assignment._id || assignment.id}>
-                            <strong>{assignment.ruta?.nombre || 'Ruta sin nombre'}</strong>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
-                              <span><MapPin size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Días: {assignment.dias_semana?.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')}</span>
-                              <span><Truck size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Vehículo: {vehicles.find(v => (v._id || v.id) === assignment.vehiculo_id)?.placa || 'No asignado'}</span>
-                              <span><Clock size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Horario: {assignment.hora_inicio || assignment.ruta?.hora_inicio || 'N/A'} - {assignment.hora_fin || assignment.ruta?.hora_fin || 'N/A'}</span>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
+                        {conductorAssignments.length > 0 && (
+                          <div style={{ marginTop: '32px', textAlign: 'left' }}>
+                            <h4><ClipboardList size={20} /> Tus Asignaciones de la Semana</h4>
+                            <ul>
+                              {conductorAssignments.map(assignment => (
+                                <li key={assignment._id || assignment.id}>
+                                  <strong>{assignment.ruta?.nombre || 'Ruta sin nombre'}</strong>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+                                    <span><MapPin size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Días: {assignment.dias_semana?.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')}</span>
+                                    <span><Truck size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Vehículo: {vehicles.find(v => (v._id || v.id) === assignment.vehiculo_id)?.placa || 'No asignado'}</span>
+                                    <span><Clock size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Horario: {assignment.hora_inicio || assignment.ruta?.hora_inicio || 'N/A'} - {assignment.hora_fin || assignment.ruta?.hora_fin || 'N/A'}</span>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  </div>
+                </div>
+              )}
 
+              {isMobileView && (
+                <div className="card">
+                  <div className="card__body">
+                    <div className="no-assignment">
+                      <div className="no-assignment-icon">
+                        <Calendar size={64} strokeWidth={1.5} />
+                      </div>
+                      <h3>Sin Asignación para Hoy</h3>
+                      <p>No tienes ruta asignada para {todayDayName}. Disfruta tu día libre!</p>
+
+                      {conductorAssignments.length > 0 && (
+                        <div style={{ marginTop: '32px', textAlign: 'left' }}>
+                          <h4><ClipboardList size={20} /> Tus Asignaciones de la Semana</h4>
+                          <ul>
+                            {conductorAssignments.map(assignment => (
+                              <li key={assignment._id || assignment.id}>
+                                <strong>{assignment.ruta?.nombre || 'Ruta sin nombre'}</strong>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+                                  <span><MapPin size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Días: {assignment.dias_semana?.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')}</span>
+                                  <span><Truck size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Vehículo: {vehicles.find(v => (v._id || v.id) === assignment.vehiculo_id)?.placa || 'No asignado'}</span>
+                                  <span><Clock size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />Horario: {assignment.hora_inicio || assignment.ruta?.hora_inicio || 'N/A'} - {assignment.hora_fin || assignment.ruta?.hora_fin || 'N/A'}</span>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Mapa visible aún sin ruta asignada — conductor ve su ubicación */}
+              <div className="conductor-map-section">
+                <div className="map-container-large">
+                  <MapLibreComponent
+                    camiones={camonesArray}
+                    rutas={rutasArray}
+                    userType={user.tipo}
+                    showRealTime={true}
+                    selectedTruck={userTruck?._id || userTruck?.id}
+                  />
                 </div>
               </div>
-            </div>
+            </>
           )}
 
           {activeTab === 'reportes' && (
