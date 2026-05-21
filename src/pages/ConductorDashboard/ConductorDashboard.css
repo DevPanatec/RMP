@@ -3309,13 +3309,16 @@
     display: none !important;
   }
 
-  /* Dashboard container becomes viewport */
+  /* Dashboard container becomes viewport.
+   * NOTA: usamos 100vh (no 100dvh) intencionalmente. 100dvh hace que el mapa
+   * se acorte cuando la URL bar de Safari/Chrome aparece, dando sensación de
+   * mapa "incompleto". 100vh mantiene el mapa al tamaño máximo siempre — la
+   * URL bar slidea por encima sin recortar el mapa visualmente. */
   .conductor-dashboard--map-fullscreen {
     position: fixed !important;
     inset: 0 !important;
     overflow: hidden !important;
     height: 100vh !important;
-    height: 100dvh !important;
     width: 100vw !important;
   }
 
@@ -3327,7 +3330,6 @@
     margin: 0 !important;
     overflow: hidden !important;
     height: 100vh !important;
-    height: 100dvh !important;
     width: 100vw !important;
     z-index: 1;
   }
@@ -3339,16 +3341,13 @@
     padding: 0 !important;
     margin: 0 !important;
     height: 100vh !important;
-    height: 100dvh !important;
     width: 100vw !important;
   }
 
   .conductor-dashboard--map-fullscreen .map-container-large {
     width: 100vw !important;
     height: 100vh !important;
-    height: 100dvh !important;
     min-height: 100vh !important;
-    min-height: 100dvh !important;
     max-height: none !important;
     border-radius: 0 !important;
     overflow: visible !important;
@@ -3357,9 +3356,7 @@
   /* Force MapLibre wrapper and canvas to fill viewport */
   .conductor-dashboard--map-fullscreen .maplibre-component-wrapper {
     min-height: 100vh !important;
-    min-height: 100dvh !important;
     height: 100vh !important;
-    height: 100dvh !important;
     width: 100vw !important;
     border-radius: 0 !important;
   }
@@ -3370,9 +3367,7 @@
   .conductor-dashboard--map-fullscreen .maplibregl-canvas-container,
   .conductor-dashboard--map-fullscreen .maplibregl-canvas {
     height: 100vh !important;
-    height: 100dvh !important;
     min-height: 100vh !important;
-    min-height: 100dvh !important;
     width: 100vw !important;
   }
 
