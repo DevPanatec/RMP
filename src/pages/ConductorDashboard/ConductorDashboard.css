@@ -3304,23 +3304,12 @@
    ============================================ */
 
 @media (max-width: 1024px) {
-  /* App-bar en fullscreen map: pattern admin (translateY + opacity)
-   * en vez de display:none. Permite mostrar/ocultar graceful via
-   * .app-bar--hidden class toggle (controlado por showMobileHeader). */
+  /* En fullscreen map mode el .app-bar queda HIDDEN. El header floating
+   * (.map-overlay-header) lo reemplaza — flota sobre el mapa con blur,
+   * auto-hide en tap. Esto da el efecto "Uber-style" donde el mapa fills
+   * 100% del viewport. */
   .conductor-dashboard--map-fullscreen .app-bar {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    padding-top: env(safe-area-inset-top, 0) !important;
-    z-index: 100 !important;
-    transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out) !important;
-  }
-
-  .conductor-dashboard--map-fullscreen .app-bar.app-bar--hidden {
-    opacity: 0 !important;
-    transform: translateY(-100%) !important;
-    pointer-events: none !important;
+    display: none !important;
   }
 
   /* Dashboard container becomes viewport.

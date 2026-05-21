@@ -1775,7 +1775,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
         </div>
       )}
 
-      <div className={`app-bar${isMobileView && activeTab === 'ruta' && !showMobileHeader ? ' app-bar--hidden' : ''}`}>
+      <div className="app-bar">
         <div className="app-bar__header">
           <div className="app-bar__brand">
             <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="app-bar__logo" />
