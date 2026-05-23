@@ -36,7 +36,7 @@
   border: 1px solid var(--color-border);
 }
 
-/* Top accent bar — Reports list (blue) */
+/* Top accent bar — Reports list (green, brand) */
 .location-modal-new::before {
   content: '';
   position: absolute;
@@ -44,7 +44,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: var(--crono-rec, #0078d4);
+  background: var(--color-action-bg);
   z-index: 10;
   pointer-events: none;
 }

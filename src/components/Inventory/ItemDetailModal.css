@@ -17,7 +17,7 @@
   animation: modalSlideIn 280ms var(--crono-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
-/* Top accent bar — Inventory (generic, blue) */
+/* Top accent bar — Inventory (green, brand) */
 .modal-detail-content::before {
   content: '';
   position: absolute;
@@ -25,7 +25,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: var(--crono-rec, #0078d4);
+  background: var(--color-action-bg);
   z-index: 3;
   pointer-events: none;
 }

@@ -58,7 +58,7 @@
   overflow: hidden;
 }
 
-/* Top accent bar — RouteCompletion (blue) */
+/* Top accent bar — RouteCompletion (green, brand) */
 .completion-modal-content::before {
   content: '';
   position: absolute;
@@ -66,7 +66,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: var(--crono-rec, #0078d4);
+  background: var(--color-action-bg);
   z-index: 10;
   pointer-events: none;
 }
@@ -469,17 +469,17 @@
 }
 
 .completion-btn--confirm {
-  background: linear-gradient(135deg, var(--crono-rec, #0078d4) 0%, #1488d8 100%);
+  background: linear-gradient(135deg, var(--color-action-bg) 0%, #34d399 100%);
   color: white;
   border: 1px solid transparent;
-  box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transition: transform 180ms var(--crono-ease-soft, cubic-bezier(0.32, 0.72, 0, 1)),
               box-shadow 180ms var(--crono-ease-soft, cubic-bezier(0.32, 0.72, 0, 1));
 }
 
 .completion-btn--confirm:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0, 120, 212, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .completion-btn--confirm:active:not(:disabled) {

@@ -1553,7 +1553,7 @@
 
 .risk-stat-chip__icon--warning { color: var(--crono-fum); }
 .risk-stat-chip__icon--info { color: var(--crono-rec); }
-.risk-stat-chip__icon--success { color: var(--crono-lim); }
+.risk-stat-chip__icon--success { color: var(--color-action-bg); }
 .risk-stat-chip__icon--accent { color: var(--color-error, #d13438); }
 
 .report-card {
@@ -1603,7 +1603,7 @@
   color: #7c4a00;
 }
 
-.status-resuelto { background: var(--crono-lim-soft); color: #054b05; }
+.status-resuelto { background: rgba(16, 185, 129, 0.12); color: #065f46; }
 .status-en_revision { background: var(--crono-rec-soft); color: #004578; }
 .status-reportado { background: rgba(209, 52, 56, 0.15); color: #a4262c; }
 

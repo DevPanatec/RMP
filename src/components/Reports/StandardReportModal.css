@@ -44,7 +44,7 @@
   animation: reportSlideUp 280ms var(--crono-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
-/* Top accent bar — Reports (blue/rec default; --mto for maintenance variants via class) */
+/* Top accent bar — Reports (brand green default; --mto for maintenance variants via class) */
 .report-modal::after {
   content: '';
   position: absolute;
@@ -52,14 +52,15 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: var(--crono-rec, #0078d4);
+  background: var(--color-action-bg);
   z-index: 3;
   pointer-events: none;
 }
 
 .report-modal--mto::after { background: var(--crono-mto, #6264a7); }
-.report-modal--lim::after { background: var(--crono-lim, #107c10); }
+.report-modal--lim::after { background: var(--color-action-bg); }
 .report-modal--fum::after { background: var(--crono-fum, #d97706); }
+.report-modal--rec::after { background: var(--crono-rec, #0078d4); }
 
 /* ========== HEADER ========== */
 .report-modal__header {
@@ -327,7 +328,7 @@
 }
 
 .report-badge--preventivo {
-  background: rgba(16, 124, 16, 0.1);
+  background: rgba(16, 185, 129, 0.1);
   color: var(--color-success);
   border: 1px solid var(--color-success);
 }
@@ -345,7 +346,7 @@
 }
 
 .report-badge--success {
-  background: rgba(16, 124, 16, 0.1);
+  background: rgba(16, 185, 129, 0.1);
   color: var(--color-success);
   border: 1px solid var(--color-success);
 }
@@ -363,7 +364,7 @@
 }
 
 .report-badge--externa {
-  background: rgba(16, 124, 16, 0.1);
+  background: rgba(16, 185, 129, 0.1);
   color: var(--color-success);
   border: 1px solid var(--color-success);
 }
@@ -598,17 +599,17 @@
 }
 
 .report-modal__btn--primary {
-  background: linear-gradient(135deg, var(--crono-rec, #0078d4) 0%, #1488d8 100%);
+  background: linear-gradient(135deg, var(--color-action-bg) 0%, #34d399 100%);
   color: white;
   border: 1px solid transparent;
-  box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transition: transform 180ms var(--crono-ease-soft, cubic-bezier(0.32, 0.72, 0, 1)),
               box-shadow 180ms var(--crono-ease-soft, cubic-bezier(0.32, 0.72, 0, 1));
 }
 
 .report-modal__btn--primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0, 120, 212, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 /* ========== PHOTO VIEWER ========== */

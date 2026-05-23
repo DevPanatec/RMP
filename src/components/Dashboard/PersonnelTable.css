@@ -63,7 +63,7 @@
 .personnel-table tbody tr:nth-child(n+9) { animation-delay: 320ms; }
 
 .personnel-table tbody tr:hover {
-  background: rgba(0, 120, 212, 0.04);
+  background: rgba(16, 124, 16, 0.04);
 }
 
 .employee-cell {

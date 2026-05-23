@@ -1,7 +1,15 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Edit, Trash2, Settings, Users, Phone, IdCard, ChevronLeft, ChevronRight } from '../Icons';
 import { EmptyState, SkeletonRow, SortableHeader } from '../UI';
 import useSortableData from '../../hooks/useSortableData';
 import './PersonnelTable.css';
+
+const ROW_HEIGHT = 56;          // approx px per row (avatar row)
+const HEADER_HEIGHT = 48;
+const PAGINATION_HEIGHT = 56;
+const BOTTOM_MARGIN = 24;
+const MIN_PAGE_SIZE = 5;
+const MAX_PAGE_SIZE = 50;
 
 export const PersonnelTable = ({
   personnel,
@@ -9,7 +17,7 @@ export const PersonnelTable = ({
   onEdit,
   onDelete,
   currentPage = 1,
-  totalPages = 1,
+  totalPages: totalPagesProp,
   onPageChange,
   userRole = 'admin'
 }) => {
@@ -59,10 +67,52 @@ export const PersonnelTable = ({
 
   const { sortedData, sortKey, sortDir, requestSort } = useSortableData(personnel || [], 'nombre');
 
-  const itemsPerPage = 8;
+  const containerRef = useRef(null);
+  const [autoPageSize, setAutoPageSize] = useState(8);
+
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return undefined;
+
+    const compute = () => {
+      const rect = node.getBoundingClientRect();
+      const viewportH = window.innerHeight || document.documentElement.clientHeight;
+      const availableH = viewportH - rect.top - PAGINATION_HEIGHT - BOTTOM_MARGIN;
+      const usable = availableH - HEADER_HEIGHT;
+      if (usable <= 0) return;
+      const rows = Math.floor(usable / ROW_HEIGHT);
+      const clamped = Math.max(MIN_PAGE_SIZE, Math.min(MAX_PAGE_SIZE, rows));
+      setAutoPageSize((prev) => (prev === clamped ? prev : clamped));
+    };
+
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(document.body);
+    window.addEventListener('resize', compute);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', compute);
+    };
+  }, []);
+
+  const itemsPerPage = autoPageSize;
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil((sortedData?.length || 0) / itemsPerPage)),
+    [sortedData, itemsPerPage]
+  );
+
+  // Reset to page 1 if current page exceeds available pages (after resize / data shrink)
+  useEffect(() => {
+    if (currentPage > totalPages && onPageChange) {
+      onPageChange(1);
+    }
+  }, [currentPage, totalPages, onPageChange]);
+
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentPersonnel = sortedData.slice(startIndex, endIndex);
+  // totalPagesProp kept for backwards compat but ignored — internal computation wins
+  void totalPagesProp;
 
   if (loading && (!personnel || personnel.length === 0)) {
     return (
@@ -100,7 +150,7 @@ export const PersonnelTable = ({
   }
 
   return (
-    <div className="personnel-table-container">
+    <div className="personnel-table-container" ref={containerRef}>
       <div className="personnel-table-wrapper">
         <table className="personnel-table">
           <thead>

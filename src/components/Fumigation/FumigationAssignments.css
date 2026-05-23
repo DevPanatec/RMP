@@ -332,8 +332,8 @@
 }
 
 .fumigation-card__estado--reportada {
-  background: var(--crono-lim-soft);
-  color: #054b05;
+  background: rgba(16, 185, 129, 0.12);
+  color: #065f46;
 }
 
 .fumigation-card__row {

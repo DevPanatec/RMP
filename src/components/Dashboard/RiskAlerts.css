@@ -88,8 +88,8 @@
 
 .risk-alerts:has(.alerts-count.safe) .alerts-header h3 svg,
 .risk-alerts:has(.no-alerts) .alerts-header h3 svg {
-  background: linear-gradient(135deg, var(--crono-lim) 0%, #15a015 100%);
-  box-shadow: 0 6px 16px var(--crono-lim-glow),
+  background: linear-gradient(135deg, var(--color-action-bg) 0%, #15a015 100%);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35),
               inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
@@ -411,14 +411,14 @@
   width: 48px;
   height: 48px;
   margin: 0 auto var(--space-16);
-  background: linear-gradient(135deg, var(--crono-lim) 0%, #15a015 100%);
+  background: linear-gradient(135deg, var(--color-action-bg) 0%, #15a015 100%);
   border: 1px solid transparent;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 8px 20px var(--crono-lim-glow),
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35),
               inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 

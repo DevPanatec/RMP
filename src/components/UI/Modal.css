@@ -85,7 +85,7 @@
   flex-shrink: 0;
 }
 
-/* Domain accent bar (3px). Default rec/blue; subclass via .modal--<domain> or className passthrough */
+/* Domain accent bar (3px). Default GREEN (brand color); subclass via .modal--<domain> or className passthrough */
 .modal__header::before {
   content: '';
   position: absolute;
@@ -93,11 +93,11 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: var(--crono-rec, #0078d4);
+  background: var(--color-action-bg);
   pointer-events: none;
 }
 
-.modal--lim .modal__header::before { background: var(--crono-lim, #107c10); }
+.modal--lim .modal__header::before { background: var(--color-action-bg); }
 .modal--fum .modal__header::before { background: var(--crono-fum, #d97706); }
 .modal--mto .modal__header::before { background: var(--crono-mto, #6264a7); }
 .modal--rec .modal__header::before { background: var(--crono-rec, #0078d4); }
@@ -109,15 +109,15 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--crono-rec, #0078d4), #1488d8);
+  background: linear-gradient(135deg, var(--color-action-bg), #34d399);
   color: white;
-  box-shadow: 0 6px 16px rgba(0, 120, 212, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   flex-shrink: 0;
 }
 
-.modal--lim .modal__header-icon {
-  background: linear-gradient(135deg, var(--crono-lim, #107c10), #14931a);
-  box-shadow: 0 6px 16px rgba(16, 124, 16, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+.modal--rec .modal__header-icon {
+  background: linear-gradient(135deg, var(--crono-rec, #0078d4), #1488d8);
+  box-shadow: 0 6px 16px rgba(0, 120, 212, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 .modal--fum .modal__header-icon {
   background: linear-gradient(135deg, var(--crono-fum, #d97706), #ea820c);

@@ -39,7 +39,7 @@
   animation: slideUp 280ms var(--crono-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
 }
 
-/* Top accent bar — Reports/Routes (blue) */
+/* Top accent bar — Reports/Routes (green, brand) */
 .location-modal::before {
   content: '';
   position: absolute;
@@ -47,7 +47,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: var(--crono-rec, #0078d4);
+  background: var(--color-action-bg);
   z-index: 10;
   pointer-events: none;
 }

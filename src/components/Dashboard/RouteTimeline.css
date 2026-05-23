@@ -26,7 +26,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--crono-rec) 0%, var(--crono-mto) 100%);
+  background: linear-gradient(90deg, var(--color-action-bg) 0%, #34d399 100%);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 280ms var(--crono-ease-soft);
@@ -399,7 +399,7 @@
 
 .progress-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--crono-rec) 0%, var(--crono-mto) 100%);
+  background: linear-gradient(90deg, var(--color-action-bg) 0%, #34d399 100%);
   border-radius: var(--radius-sm);
   transition: width 0.6s var(--crono-ease-soft);
   position: relative;
@@ -438,11 +438,11 @@
 }
 
 .route-action-btn:hover {
-  background: linear-gradient(135deg, var(--crono-rec) 0%, #1488d8 100%);
+  background: linear-gradient(135deg, var(--color-action-bg) 0%, #34d399 100%);
   color: white;
   border-color: transparent;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px var(--crono-rec-glow);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
 }
 
 .route-action-btn:active {

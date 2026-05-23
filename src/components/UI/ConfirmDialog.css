@@ -47,7 +47,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: var(--crono-rec, #0078d4);
+  background: var(--color-action-bg);
   pointer-events: none;
 }
 
@@ -62,9 +62,9 @@
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  background: linear-gradient(135deg, var(--crono-rec, #0078d4), #1488d8);
+  background: linear-gradient(135deg, var(--color-action-bg), #34d399);
   color: white;
-  box-shadow: 0 6px 16px rgba(0, 120, 212, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   flex-shrink: 0;
 }
 
@@ -143,17 +143,17 @@
 }
 
 .confirm-dialog__btn--primary {
-  background: linear-gradient(135deg, var(--crono-rec, #0078d4) 0%, #1488d8 100%);
+  background: linear-gradient(135deg, var(--color-action-bg) 0%, #34d399 100%);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   transition: transform 180ms var(--crono-ease-soft, cubic-bezier(0.32, 0.72, 0, 1)),
               box-shadow 180ms var(--crono-ease-soft, cubic-bezier(0.32, 0.72, 0, 1));
 }
 
 .confirm-dialog__btn--primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(0, 120, 212, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .confirm-dialog__btn--danger {
