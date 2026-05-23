@@ -17,7 +17,7 @@
   justify-content: space-between;
   align-items: center;
   padding: var(--space-20) var(--space-24);
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-24);
   box-shadow: var(--shadow-md);
@@ -32,7 +32,7 @@
 .rd-header-icon {
   width: 52px;
   height: 52px;
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--alpha-highlight-medium);
   backdrop-filter: blur(10px);
   border-radius: var(--radius-md);
   display: flex;
@@ -51,7 +51,7 @@
 
 .rd-header-text p {
   font-size: var(--font-size-sm);
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--color-surface-acrylic);
   margin: 0;
 }
 
@@ -60,7 +60,7 @@
   align-items: center;
   gap: var(--space-8);
   padding: var(--space-10) var(--space-20);
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--alpha-highlight-medium);
   backdrop-filter: blur(10px);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.25);
@@ -287,7 +287,7 @@
   justify-content: center;
   gap: var(--space-8);
   padding: var(--space-12) var(--space-24);
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
   border: none;
   border-radius: var(--radius-base);
@@ -299,7 +299,7 @@
 }
 
 .rd-export-btn:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--color-action-bg-hover);
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
@@ -351,7 +351,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
 }
 
 .rd-card-header {
@@ -490,5 +490,37 @@
   .rd-card-logo {
     width: 80px;
     height: 80px;
+  }
+}
+
+/* ============================================
+   CRONOGRAMA POLISH OVERRIDES (Reports / REC blue)
+   ============================================ */
+
+.reports-dashboard-v2 {
+  animation: crono-fade-up 400ms var(--crono-ease-soft);
+}
+
+.rd-chip {
+  border-radius: 999px;
+  transition: all 200ms var(--crono-ease-soft);
+}
+
+.rd-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--crono-shadow-1);
+}
+
+.rd-stat-value {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reports-dashboard-v2,
+  .rd-chip {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
   }
 }

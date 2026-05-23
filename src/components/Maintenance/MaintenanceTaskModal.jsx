@@ -3,8 +3,9 @@ import { useMaintenance } from '../../context/MaintenanceContext';
 import { useAuth } from '../../context/AuthContext';
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { X, Upload, Image as ImageIcon, Check, Trash2, Save } from '../Icons';
+import { X, Upload, Image as ImageIcon, Check, Trash2, Save, Wrench } from '../Icons';
 import { MAINTENANCE_PRESETS } from '../../constants/maintenancePresets';
+import { Modal } from '../UI';
 import toast from 'react-hot-toast';
 import { handleMutationError } from '../../utils/mutationError';
 import './MaintenanceTaskModal.css';
@@ -200,12 +201,12 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
         is_global: false // Personal preset by default
       });
 
-      toast.success('✅ Preset guardado exitosamente');
+      toast.success('Preset guardado exitosamente');
       setShowSavePresetDialog(false);
       setNewPresetLabel('');
       setNewPresetDescription('');
     } catch (error) {
-      console.error('❌ Error saving preset:', error);
+      console.error('Error saving preset:', error);
       toast.error('Error al guardar preset');
     }
   };
@@ -238,7 +239,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
             observaciones: operationalData.technical_observations || task.notas || '',
             usuario_completo: 'Admin'
           };
-          console.log('📋 Completando tarea y creando reporte:', reportData);
+          console.log('Completando tarea y creando reporte:', reportData);
           await completeTask(task._id || task.id, reportData);
         } else {
           // Actualización normal (sin completar)
@@ -296,16 +297,16 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   mime_type: photo.file.type,
                 });
 
-                console.log(`✅ Foto ${etapaMap[stage]} subida exitosamente`);
+                console.log(`Foto ${etapaMap[stage]} subida exitosamente`);
               } catch (photoError) {
-                console.error(`❌ Error uploading ${etapaMap[stage]} photo:`, photoError);
+                console.error(`Error uploading ${etapaMap[stage]} photo:`, photoError);
               }
             }
           }
 
           // Si se creó con estado "completada", generar el reporte directamente
           if (formData.estado === 'completada') {
-            console.log('📋 Creando reporte para tarea nueva completada');
+            console.log('Creando reporte para tarea nueva completada');
             await createReportMutation({
               task_id: newTaskId,
               titulo: taskData.titulo,
@@ -318,7 +319,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
               observaciones: operationalData.technical_observations || '',
               usuario_completo: 'Admin'
             });
-            console.log('✅ Reporte creado exitosamente');
+            console.log('Reporte creado exitosamente');
           }
         }
 
@@ -365,9 +366,9 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
           mime_type: file.type,
         });
 
-        console.log(`✅ Foto ${etapaMap[stage]} subida exitosamente:`, photoId);
+        console.log(`Foto ${etapaMap[stage]} subida exitosamente:`, photoId);
       } catch (error) {
-        console.error('❌ Error uploading photo:', error);
+        console.error('Error uploading photo:', error);
         handleMutationError(error, 'Error al subir la foto');
       } finally {
         setUploadingPhotos(false);
@@ -379,7 +380,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
         ...prev,
         [stage]: [...prev[stage], { file, preview, isLocal: true }]
       }));
-      console.log('📸 Foto agregada localmente, se subirá al crear la tarea');
+      console.log('Foto agregada localmente, se subirá al crear la tarea');
     }
   };
 
@@ -442,7 +443,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
 
     // Si aún quedan archivos pero no hay slots, avisar
     if (fileIndex < validFiles.length) {
-      console.log('⚠️ Ya hay fotos en todas las categorías (máx 1 por categoría)');
+      console.log('Ya hay fotos en todas las categorías (máx 1 por categoría)');
     }
   };
 
@@ -457,7 +458,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
           if (nextCategory) {
             await handlePhotoUpload(file, nextCategory);
           } else {
-            console.log('⚠️ Ya hay fotos en todas las categorías');
+            console.log('Ya hay fotos en todas las categorías');
           }
         }
       }
@@ -467,7 +468,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
   // Subir foto a una categoría específica (cuando se hace clic en un slot individual)
   const handlePhotoUploadToCategory = async (file, category) => {
     if (photos[category].length > 0) {
-      console.log(`⚠️ Ya hay una foto en ${category}`);
+      console.log(`Ya hay una foto en ${category}`);
       return;
     }
     await handlePhotoUpload(file, category);
@@ -486,38 +487,29 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
         ...prev,
         [stage]: prev[stage].filter((_, i) => i !== index)
       }));
-      console.log('✅ Foto local eliminada');
+      console.log('Foto local eliminada');
     }
     // Si es foto de Convex, eliminar de BD
     else if (photo.id) {
       try {
         await deletePhotoMutation({ id: photo.id });
-        console.log('✅ Foto eliminada exitosamente');
+        console.log('Foto eliminada exitosamente');
       } catch (error) {
-        console.error('❌ Error deleting photo:', error);
+        console.error('Error deleting photo:', error);
         handleMutationError(error, 'Error al eliminar la foto');
       }
     }
   };
 
-  return (
-    <div className="maintenance-task-modal__overlay">
-      <div className="maintenance-task-modal__container">
-        {/* Header */}
-        <div className="maintenance-task-modal__header">
-          <h2 className="maintenance-task-modal__title">
-            {viewMode ? 'Detalles de Tarea' : task ? 'Editar Tarea' : 'Nueva Tarea de Mantenimiento'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="maintenance-task-modal__close-btn"
-          >
-            <X size={24} />
-          </button>
-        </div>
+  const modalTitle = viewMode ? 'Detalles de Tarea' : task ? 'Editar Tarea' : 'Nueva Tarea de Mantenimiento';
 
-        {/* Content */}
-        <form onSubmit={handleSubmit} className="maintenance-task-modal__form">
+  return (
+    <Modal open onClose={onClose} size="lg" variant="form" ariaLabelledBy="maintenance-task-modal-title">
+      <Modal.Header icon={<Wrench size={18} />} onClose={onClose} id="maintenance-task-modal-title">
+        {modalTitle}
+      </Modal.Header>
+      <Modal.Body className="maintenance-task-modal__body">
+        <form id="maintenance-task-form" onSubmit={handleSubmit} className="maintenance-task-modal__form">
           {/* Paquete de Mantenimiento - Compacto */}
           {!readOnly && (
             <div className="maintenance-task-modal__field-group">
@@ -685,8 +677,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
                   <option value="">Manual</option>
                   {(volumePresets || []).map(preset => (
                     <option key={preset._id} value={preset._id}>
-                      {preset.label} ({preset.volume_gallons.toLocaleString()} gal, B/.{preset.total_cost.toFixed(2)})
-                      {preset.is_custom ? ' 🔧' : ''}
+                      {preset.is_custom ? '[Custom] ' : ''}{preset.label} ({preset.volume_gallons.toLocaleString()} gal, B/.{preset.total_cost.toFixed(2)})
                     </option>
                   ))}
                 </select>
@@ -1071,33 +1062,33 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
             </div>
           )}
 
-          {/* Botones — solo admin puede submit */}
-          {!viewMode && isAdmin && (
-            <div className="maintenance-task-modal__footer">
-              <button
-                type="button"
-                onClick={onClose}
-                className="maintenance-task-modal__btn-cancel"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="maintenance-task-modal__btn-submit"
-              >
-                {loading
-                  ? 'Guardando...'
-                  : formData.estado === 'completada' && task
-                    ? 'Completar Tarea'
-                    : task
-                      ? 'Actualizar Tarea'
-                      : 'Crear Tarea'}
-              </button>
-            </div>
-          )}
         </form>
-      </div>
+      </Modal.Body>
+      {!viewMode && isAdmin && (
+        <Modal.Footer>
+          <button
+            type="button"
+            onClick={onClose}
+            className="maintenance-task-modal__btn-cancel"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="maintenance-task-form"
+            disabled={loading}
+            className="maintenance-task-modal__btn-submit"
+          >
+            {loading
+              ? 'Guardando...'
+              : formData.estado === 'completada' && task
+                ? 'Completar Tarea'
+                : task
+                  ? 'Actualizar Tarea'
+                  : 'Crear Tarea'}
+          </button>
+        </Modal.Footer>
+      )}
 
       {/* Save Preset Dialog */}
       {showSavePresetDialog && (
@@ -1161,7 +1152,7 @@ const MaintenanceTaskModal = ({ task, viewMode, userRole, onClose }) => {
           </div>
         </div>
       )}
-    </div>
+    </Modal>
   );
 };
 

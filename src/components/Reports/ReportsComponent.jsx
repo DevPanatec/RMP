@@ -8,7 +8,7 @@ import { useReports } from '../../context/ReportsContext';
 import { useRoutes } from '../../context/RoutesContext';
 import { useAuth } from '../../context/AuthContext';
 import { useOrganization } from '../../context/OrganizationContext';
-import { BarChart3, Truck, Bug, Sparkles, Wrench, MapPin, Download, Calendar } from '../Icons';
+import { BarChart3, Truck, Bug, Sparkles, Wrench, MapPin, Download, Calendar, User, DollarSign } from '../Icons';
 import { EmptyState } from '../UI';
 import ReportsDashboard from './ReportsDashboard';
 import LocationReportsModal from './LocationReportsModal';
@@ -18,6 +18,7 @@ import MaintenanceReportDetailModal from './MaintenanceReportDetailModal';
 import FumigationReportsPage from './FumigationReportsPage';
 import { DEMO_LUGARES, DEMO_CLEANING_ASSIGNMENTS, mergeDemoData } from '../../utils/demoData';
 import { useDemoMode } from '../../hooks/useDemoMode';
+import { buildGmapsEmbedUrl } from '../../utils/gmaps';
 import {
   generateRecoleccionPDFComplete,
   generateFumigacionPDFComplete,
@@ -200,7 +201,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
       };
 
       result = await generators[module]();
-      console.log(`📄 PDF profesional de ${module} generado:`, result);
+      console.log(`PDF profesional de ${module} generado:`, result);
     } catch (error) {
       console.error(`Error generando PDF de ${module}:`, error);
       alert(`Error al generar el reporte de ${module}. Por favor intenta nuevamente.`);
@@ -301,7 +302,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     const mapQuery = hasCoords
       ? `${ubic.latitud},${ubic.longitud}`
       : encodeURIComponent((ubic?.nombre || card.nombre) + ', Panama City, Panama');
-    const embedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${mapQuery}&zoom=16`;
+    const embedUrl = buildGmapsEmbedUrl(mapQuery, 16);
 
     return (
       <div
@@ -412,7 +413,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     const mapQuery = hasCoords
       ? `${location.latitud},${location.longitud}`
       : encodeURIComponent(location.nombre + ', Panama City, Panama');
-    const embedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${mapQuery}&zoom=16`;
+    const embedUrl = buildGmapsEmbedUrl(mapQuery, 16);
 
     return (
       <div
@@ -510,7 +511,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
     return (
       <div className="reports-category reports-fumigacion">
         <div className="category-header">
-          <h3>🦟 Reportes de Fumigación</h3>
+          <h3><Bug size={18} aria-hidden="true" /> Reportes de Fumigación</h3>
           <p>Visualiza fumigaciones internas (mensuales) y externas (semanales) por ubicación</p>
         </div>
 
@@ -815,21 +816,21 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
                   <div className="route-report-meta">
                     {report.vehiculo_placa && (
                       <span className="route-report-meta-item">
-                        🚛 {report.vehiculo_placa}
+                        <Truck size={14} aria-hidden="true" /> {report.vehiculo_placa}
                       </span>
                     )}
                     {report.mecanico && (
                       <span className="route-report-meta-item">
-                        👤 {report.mecanico}
+                        <User size={14} aria-hidden="true" /> {report.mecanico}
                       </span>
                     )}
                     {report.costo !== undefined && report.costo !== null && (
                       <span className="route-report-meta-item">
-                        💰 ${report.costo.toFixed(2)}
+                        <DollarSign size={14} aria-hidden="true" /> {report.costo.toFixed(2)}
                       </span>
                     )}
                     <span className="route-report-meta-item">
-                      📅 {parseLocalDate(report.fecha_completada).toLocaleDateString('es-ES')}
+                      <Calendar size={14} aria-hidden="true" /> {parseLocalDate(report.fecha_completada).toLocaleDateString('es-ES')}
                     </span>
                   </div>
                   <p className="route-report-hint">

@@ -5,6 +5,7 @@ import { Shield, Search, AlertTriangle, Users, Briefcase, Truck, HardDrive, X, P
 import OrgDetailDrawer from './OrgDetailDrawer';
 import OrgFormModal from './OrgFormModal';
 import { Skeleton } from '../UI';
+import useInputDebounce from '../../hooks/useInputDebounce';
 import './PlataformaPanel.css';
 
 const BYTES_PER_GB = 1024 ** 3;
@@ -140,6 +141,7 @@ function OrgCard({ org, onSelect }) {
 function PlataformaPanel() {
   const orgs = useQuery(api.organizaciones.listWithStats);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useInputDebounce(searchQuery, 300);
   const [filterEscala, setFilterEscala] = useState('all');
   const [filterEstado, setFilterEstado] = useState('activas');
   const [selectedOrgId, setSelectedOrgId] = useState(null);
@@ -152,15 +154,15 @@ function PlataformaPanel() {
     if (filterEstado === 'activas') list = list.filter((o) => o.activo);
     else if (filterEstado === 'suspendidas') list = list.filter((o) => !o.activo);
     if (filterEscala !== 'all') list = list.filter((o) => o.escala === filterEscala);
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase();
       list = list.filter((o) =>
         o.nombre.toLowerCase().includes(q) ||
         (o.slug && o.slug.toLowerCase().includes(q))
       );
     }
     return list;
-  }, [orgs, filterEstado, filterEscala, searchQuery]);
+  }, [orgs, filterEstado, filterEscala, debouncedSearch]);
 
   const aggregates = useMemo(() => {
     if (!orgs) return { totalOrgs: 0, totalMrr: 0, totalOverflow: 0, orgsWithOverflow: 0 };

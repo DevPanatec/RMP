@@ -87,7 +87,7 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
 
   useEffect(() => {
     if (checkDuplicate === true) {
-      setDuplicateWarning('⚠️ Ya existe una fumigación de este tipo para este lugar en esta fecha');
+      setDuplicateWarning('Ya existe una fumigación de este tipo para este lugar en esta fecha');
     } else {
       setDuplicateWarning(null);
     }
@@ -180,7 +180,7 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
         onClose();
       }
     } catch (error) {
-      console.error('❌ Error al registrar fumigación:', error);
+      console.error('Error al registrar fumigación:', error);
       const userMsg = handleMutationError(error, 'Error al registrar la fumigación');
       setErrors({ submit: userMsg });
     } finally {
@@ -220,8 +220,8 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
                 disabled={submitting}
               >
                 <option value="">Seleccionar tipo...</option>
-                <option value="interna">🏢 Interna (Mensual)</option>
-                <option value="externa">🌳 Externa (Semanal)</option>
+                <option value="interna">Interna (Mensual)</option>
+                <option value="externa">Externa (Semanal)</option>
               </select>
               {errors.tipo_fumigacion && <span className="error-text">{errors.tipo_fumigacion}</span>}
             </div>
@@ -301,7 +301,7 @@ const FumigationModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => 
             <div className="warning-banner">
               <AlertTriangle size={16} />
               <span>
-                ⚠️ Límite de frecuencia: {frequencyCheck.actual}/{frequencyCheck.limite} {frequencyCheck.periodo === 'mes' ? 'mensuales' : 'semanales'} para este lugar
+                Límite de frecuencia: {frequencyCheck.actual}/{frequencyCheck.limite} {frequencyCheck.periodo === 'mes' ? 'mensuales' : 'semanales'} para este lugar
               </span>
             </div>
           )}

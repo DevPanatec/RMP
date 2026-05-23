@@ -17,7 +17,7 @@ import {
   Truck, LogOut, Download, Map, Clock, AlertTriangle,
   ClipboardList, Package, TrendingUp, FileText, MapPin,
   CheckCircle, Calendar, Loader, Wrench, AlertOctagon, X,
-  Activity, Navigation, Target, Camera
+  Activity, Navigation, Target, Camera, Radio, Phone
 } from '../../components/Icons';
 import { Badge, ProgressBar, ConfirmDialog } from '../../components/UI';
 import { RouteTimeline } from '../../components/Dashboard';
@@ -580,7 +580,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
       eventData.gps_longitud = currentGPS.lng;
     }
     addRouteEvent(eventData).catch((err) =>
-      console.error('❌ Error registrando evento de llegada:', err)
+      console.error('Error registrando evento de llegada:', err)
     );
   };
 
@@ -628,7 +628,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
           mimeType: extras.mimeType || 'image/jpeg',
         });
       } catch (qErr) {
-        console.error('❌ Error encolando foto offline:', qErr);
+        console.error('Error encolando foto offline:', qErr);
       }
     }
 
@@ -643,7 +643,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
     setPendingStopIndex(null);
     setIsModalOpen(false);
 
-    // 📍 Actualizar route_progress con la parada completada
+    // Actualizar route_progress con la parada completada
     if (routeProgressId) {
       try {
         await updateRouteProgress({
@@ -656,11 +656,11 @@ const ConductorDashboard = ({ user, onLogout }) => {
           }
         });
       } catch (error) {
-        console.error('❌ Error actualizando route progress:', error);
+        console.error('Error actualizando route progress:', error);
       }
     }
 
-    // 📊 Registrar evento: Parada Completada / Salida
+    // Registrar evento: Parada Completada / Salida
     try {
       const eventData = {
         ruta_id: assignedRoute._id || assignedRoute.id,
@@ -687,7 +687,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
       await addRouteEvent(eventData);
     } catch (error) {
-      console.error('❌ Error registrando evento de parada completada:', error);
+      console.error('Error registrando evento de parada completada:', error);
     }
   };
 
@@ -808,9 +808,9 @@ const ConductorDashboard = ({ user, onLogout }) => {
   };
 
   const handleStartRoute = async () => {
-    // ⚠️ VERIFICAR: No permitir iniciar si la asignación ya está completada
+    // VERIFICAR: No permitir iniciar si la asignación ya está completada
     if (todayAssignment?.estado === 'completada') {
-      alert('⚠️ Esta ruta ya fue completada anteriormente. No se puede volver a iniciar.');
+      alert('Esta ruta ya fue completada anteriormente. No se puede volver a iniciar.');
       return;
     }
 
@@ -825,10 +825,10 @@ const ConductorDashboard = ({ user, onLogout }) => {
         estado: "en_progreso"
       });
     } catch (error) {
-      console.error('❌ Error actualizando estado de asignación:', error);
+      console.error('Error actualizando estado de asignación:', error);
     }
 
-    // 📍 Crear registro de progreso de ruta
+    // Crear registro de progreso de ruta
     try {
       const paradas = getParadasArray(assignedRoute.paradas);
       const progressId = await startRouteProgress({
@@ -842,11 +842,11 @@ const ConductorDashboard = ({ user, onLogout }) => {
       });
       setRouteProgressId(progressId);
     } catch (error) {
-      console.error('❌ Error creando route progress:', error);
+      console.error('Error creando route progress:', error);
       notify.error('No se pudo iniciar la ruta. Intenta de nuevo.');
     }
 
-    // 📊 Registrar evento: Ruta Iniciada
+    // Registrar evento: Ruta Iniciada
     try {
       const eventData = {
         ruta_id: assignedRoute._id || assignedRoute.id,
@@ -867,7 +867,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
       await addRouteEvent(eventData);
     } catch (error) {
-      console.error('❌ Error registrando evento de inicio:', error);
+      console.error('Error registrando evento de inicio:', error);
     }
   };
 
@@ -1007,29 +1007,29 @@ const ConductorDashboard = ({ user, onLogout }) => {
         throw new Error(saveResult.error || 'No se pudo guardar el reporte');
       }
 
-      // 🔄 Actualizar estado de la asignación a "completada"
+      // Actualizar estado de la asignación a "completada"
       try {
         await updateAssignmentStatus({
           id: completionReportData.asignacion_id,
           estado: "completada"
         });
       } catch (error) {
-        console.error('❌ Error actualizando estado de asignación:', error);
+        console.error('Error actualizando estado de asignación:', error);
       }
 
-      // 📍 Marcar route_progress como completado
+      // Marcar route_progress como completado
       if (routeProgressId) {
         try {
           await completeRouteProgress({
             id: routeProgressId
           });
         } catch (error) {
-          console.error('❌ Error completando route progress:', error);
+          console.error('Error completando route progress:', error);
           notify.warning('Error guardando progreso. Verifica tu conexión.');
         }
       }
 
-      // 📊 Registrar evento: Ruta Completada
+      // Registrar evento: Ruta Completada
       try {
         const eventData = {
           ruta_id: completionReportData.ruta_id,
@@ -1051,7 +1051,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
         await addRouteEvent(eventData);
       } catch (error) {
-        console.error('❌ Error registrando evento de ruta completada:', error);
+        console.error('Error registrando evento de ruta completada:', error);
       }
 
       // Limpiar localStorage después de guardar exitosamente
@@ -1189,7 +1189,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
       tiempo_total_segundos: reportData.tiempoTotal,
       paradas_completadas: reportData.paradas,
       reportes_riesgo_ids: reportData.reportes_riesgo_ids,
-      observaciones: `⚠️ TERMINACIÓN ANTICIPADA\n\nMotivo: ${finalReason}\n\nParadas completadas: ${paradasCompletadas.length}/${paradas.length} (${reportData.porcentaje_completado}%)`,
+      observaciones: `TERMINACIÓN ANTICIPADA\n\nMotivo: ${finalReason}\n\nParadas completadas: ${paradasCompletadas.length}/${paradas.length} (${reportData.porcentaje_completado}%)`,
       tipo_ruta: reportData.tipo_ruta,
       ruta_nombre: reportData.ruta_nombre,
       ruta_paradas: reportData.ruta_paradas,
@@ -1210,7 +1210,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
           estado: "completada"
         });
       } catch (error) {
-        console.error('❌ Error actualizando estado de asignación:', error);
+        console.error('Error actualizando estado de asignación:', error);
       }
 
       // Marcar route_progress como completado
@@ -1220,7 +1220,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
             id: routeProgressId
           });
         } catch (error) {
-          console.error('❌ Error completando route progress:', error);
+          console.error('Error completando route progress:', error);
           notify.warning('Error guardando progreso. Verifica tu conexión.');
         }
       }
@@ -1246,7 +1246,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
 
         await addRouteEvent(eventData);
       } catch (error) {
-        console.error('❌ Error registrando evento:', error);
+        console.error('Error registrando evento:', error);
       }
 
       // Limpiar estado
@@ -1450,7 +1450,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
               }
             });
           } catch (error) {
-            console.error('❌ Error actualizando route progress:', error);
+            console.error('Error actualizando route progress:', error);
           }
         }
 
@@ -1749,7 +1749,9 @@ const ConductorDashboard = ({ user, onLogout }) => {
       {/* Banner de estado offline — sticky con contador de cola */}
       {showOfflineBanner && (
         <div className="offline-banner" role="status" aria-live="polite">
-          <span className="offline-banner__icon" aria-hidden="true">📡</span>
+          <span className="offline-banner__icon" aria-hidden="true">
+            <Radio size={16} />
+          </span>
           <span className="offline-banner__text">
             Sin conexión — los datos se sincronizarán cuando regrese
           </span>
@@ -1767,7 +1769,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
       {isInstallable && (
         <div className="install-banner">
           <div className="install-content">
-            <span>📱 Instala RMP en tu dispositivo</span>
+            <span><Phone size={14} aria-hidden="true" /> Instala RMP en tu dispositivo</span>
             <button className="install-btn" onClick={installPWA}>
               <Download size={16} /> Instalar App
             </button>
@@ -1982,7 +1984,7 @@ const ConductorDashboard = ({ user, onLogout }) => {
                         return (
                           <div key={index} className={itemClass}>
                             <div className={iconClass}>
-                              {isSkipped ? '⚠' : isCompleted ? <CheckCircle size={14} /> : (index + 1)}
+                              {isSkipped ? <AlertTriangle size={14} /> : isCompleted ? <CheckCircle size={14} /> : (index + 1)}
                             </div>
                             <div className="desktop-stop-item__info">
                               <div className="desktop-stop-item__name">

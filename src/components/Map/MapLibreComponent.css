@@ -76,7 +76,7 @@
 
 .maplibregl-ctrl-attrib {
   font-size: 10px;
-  background: rgba(255, 255, 255, 0.7) !important;
+  background: var(--color-surface-acrylic) !important;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
 }
@@ -120,7 +120,7 @@
 
 .maplibre-vehicle-marker.selected {
   transform: translateZ(0) scale(1.15);
-  z-index: 100;
+  z-index: var(--z-dropdown);
 }
 
 .maplibre-vehicle-marker .vehicle-svg {
@@ -191,8 +191,8 @@
   bottom: -18px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.8);
-  color: var(--color-surface);
+  background: var(--alpha-overlay-deep);
+  color: white;
   font-size: 10px;
   font-weight: 600;
   padding: 2px 6px;
@@ -228,7 +228,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px var(--alpha-overlay-strong);
   position: relative;
 }
 
@@ -244,7 +244,7 @@
   transform: rotate(45deg);
   font-size: 12px;
   font-weight: 700;
-  color: var(--color-surface);
+  color: white;
 }
 
 .maplibre-stop-marker .stop-shadow {
@@ -270,7 +270,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-surface);
+  color: white;
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
   cursor: pointer;
   transition: transform var(--duration-fast) var(--ease-out);
@@ -352,8 +352,8 @@
 .location-popup-inline__btn {
   width: 100%;
   padding: var(--space-8) var(--space-12);
-  background: var(--color-primary);
-  color: var(--color-surface);
+  background: var(--color-action-bg);
+  color: white;
   border: none;
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
@@ -439,8 +439,8 @@
   justify-content: center;
   gap: var(--space-4);
   padding: var(--space-8);
-  background: var(--color-primary);
-  color: var(--color-surface);
+  background: var(--color-action-bg);
+  color: white;
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   border: none;
@@ -450,7 +450,7 @@
 }
 
 .popup-content .btn-view-details:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-action-bg-hover);
 }
 
 /* ============================================
@@ -464,7 +464,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
-  z-index: 10;
+  z-index: var(--z-sticky);
 }
 
 .map-controls-panel.minimized {
@@ -507,8 +507,8 @@
 }
 
 .map-controls-panel .control-btn.active {
-  background: var(--color-primary);
-  color: var(--color-surface);
+  background: var(--color-action-bg);
+  color: white;
   border-color: var(--color-primary);
 }
 
@@ -533,11 +533,11 @@
 .geofence-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--alpha-overlay-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 
 .geofence-modal {
@@ -623,13 +623,13 @@
 }
 
 .geofence-modal .btn-save {
-  background: var(--color-primary);
-  color: var(--color-surface);
+  background: var(--color-action-bg);
+  color: white;
   border: 1px solid var(--color-primary);
 }
 
 .geofence-modal .btn-save:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-action-bg-hover);
 }
 
 /* Geofence Type Selector */
@@ -760,7 +760,7 @@
 
 .btn-delete-geofence:hover {
   background: var(--color-error);
-  color: var(--color-surface);
+  color: white;
 }
 
 /* ============================================
@@ -779,7 +779,7 @@
   border-radius: var(--radius-md);
   padding: var(--space-8) var(--space-12);
   box-shadow: var(--shadow-sm);
-  z-index: 10;
+  z-index: var(--z-sticky);
 }
 
 .map-legend .legend-item {
@@ -824,13 +824,13 @@
   align-items: center;
   gap: var(--space-8);
   padding: var(--space-12) var(--space-16);
-  background: var(--color-primary);
-  color: var(--color-surface);
+  background: var(--color-action-bg);
+  color: white;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  z-index: 100;
+  z-index: var(--z-dropdown);
   pointer-events: none;
   animation: pulse 2s ease-in-out infinite;
 }
@@ -847,10 +847,10 @@
 .truck-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--alpha-overlay-strong);
   display: flex;
   justify-content: flex-end;
-  z-index: 2147483000;
+  z-index: var(--z-overlay-max);
   transition: background var(--duration-fast) var(--ease-out);
 }
 
@@ -907,7 +907,7 @@
     padding-top: calc(env(safe-area-inset-top, 0) + var(--space-16));
     position: sticky;
     top: 0;
-    z-index: 2;
+    z-index: var(--z-base);
   }
   .truck-modal-header-v2 .modal-close-btn-v2 {
     width: 44px !important;
@@ -953,7 +953,7 @@
 .truck-modal-header-v2 {
   padding: var(--space-16);
   background: var(--color-text); /* Sólido Fluent charcoal — sin gradiente */
-  color: var(--color-surface);
+  color: white;
   border-bottom: 1px solid var(--color-border-strong);
 }
 
@@ -967,7 +967,7 @@
 .truck-modal-header-v2 .vehicle-badge-large {
   width: 40px;
   height: 40px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--alpha-highlight-strong);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -980,10 +980,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--alpha-highlight-medium);
   border: none;
   border-radius: var(--radius-base);
-  color: var(--color-surface);
+  color: white;
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease-out);
 }
@@ -1015,7 +1015,7 @@
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4) var(--space-8);
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--alpha-highlight-strong);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
@@ -1230,9 +1230,9 @@
 }
 
 .truck-modal-content-v2 .btn-copy-coords:hover {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border-color: var(--color-primary);
-  color: var(--color-surface);
+  color: white;
 }
 
 /* History Button */
@@ -1243,8 +1243,8 @@
   justify-content: center;
   gap: var(--space-8);
   padding: var(--space-12);
-  background: var(--color-primary);
-  color: var(--color-surface);
+  background: var(--color-action-bg);
+  color: white;
   border: none;
   border-radius: var(--radius-md);
   font-size: var(--font-size-sm);
@@ -1254,7 +1254,7 @@
 }
 
 .truck-modal-content-v2 .btn-history-v2:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-action-bg-hover);
 }
 
 /* No GPS Message */
@@ -1399,7 +1399,7 @@
 
 .truck-modal-content-v2 .stop-list-item.current {
   background: var(--color-info-light) !important;
-  border-left: 3px solid var(--color-primary) !important;
+  border-left: 3px solid var(--color-action-bg) !important;
 }
 
 .truck-modal-content-v2 .stop-list-item.skipped {
@@ -1430,9 +1430,9 @@
 }
 
 .truck-modal-content-v2 .stop-list-item.current .stop-number-badge {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border-color: var(--color-primary);
-  color: var(--color-surface);
+  color: white;
   box-shadow: 0 0 0 1.5px var(--color-info-light);
 }
 
@@ -1557,7 +1557,7 @@
 
   .maplibregl-ctrl-attrib {
     background: rgba(0, 0, 0, 0.7) !important;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--color-surface-acrylic);
   }
 }
 
@@ -1651,7 +1651,7 @@
 
 .route-progress-bar-fill {
   height: 100%;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border-radius: var(--radius-full);
   transition: width 0.4s ease;
   min-width: 4px;
@@ -1698,7 +1698,7 @@
 .stop-photo-lightbox {
   position: fixed;
   inset: 0;
-  z-index: 99999;
+  z-index: var(--z-overlay-max);
   background: rgba(0, 0, 0, 0.85);
   display: flex;
   align-items: center;
@@ -1727,15 +1727,15 @@
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 1;
+  z-index: var(--z-base);
   display: flex;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
   border-radius: var(--radius-full);
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
+  background: var(--alpha-overlay-backdrop);
+  color: white;
   border: none;
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease-out);

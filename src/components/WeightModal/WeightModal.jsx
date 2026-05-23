@@ -147,7 +147,8 @@ const WeightModal = ({ isOpen, onClose, onConfirm, onSkip, currentStop, isOnline
               <img src={photoPreview} alt="Foto de la parada" />
               {pendingOfflineFile && (
                 <div className="weight-extras__photo-queued">
-                  <span>📷 En cola</span>
+                  <Camera size={14} aria-hidden="true" />
+                  <span>En cola</span>
                 </div>
               )}
               <button

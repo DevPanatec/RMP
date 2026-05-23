@@ -27,7 +27,7 @@
 /* Enterprise style: No gradient shine effects */
 
 .progress-bar__fill--primary {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
 }
 
 .progress-bar__fill--success {
@@ -51,8 +51,8 @@
   font-weight: var(--font-weight-bold);
   color: white;
   position: relative;
-  z-index: 1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  z-index: var(--z-base);
+  text-shadow: 0 1px 2px var(--alpha-overlay-strong);
 }
 
 .progress-bar__external-label {

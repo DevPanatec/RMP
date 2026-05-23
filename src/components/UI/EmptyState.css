@@ -11,8 +11,10 @@
   padding: var(--space-32) var(--space-24);
   background: var(--color-surface);
   border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   color: var(--color-text-secondary);
+  opacity: 0;
+  animation: crono-fade-up 400ms var(--crono-ease-soft) forwards;
 }
 
 .empty-state--sm {
@@ -33,6 +35,12 @@
   border-radius: var(--radius-full);
   color: var(--color-text-tertiary);
   margin-bottom: var(--space-12);
+  opacity: 0.5;
+  transition: opacity 200ms var(--crono-ease-soft);
+}
+
+.empty-state:hover .empty-state__icon {
+  opacity: 0.8;
 }
 
 .empty-state--sm .empty-state__icon {
@@ -58,4 +66,13 @@
 
 .empty-state__action {
   margin-top: var(--space-8);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .empty-state,
+  .empty-state__icon {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+  }
 }

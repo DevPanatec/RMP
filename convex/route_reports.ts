@@ -64,6 +64,16 @@ export const add = mutation({
     }
     if (proyecto_id) await requireProjectAccess(ctx, proyecto_id);
 
+    if (args.asignacion_id) {
+      const existing = await ctx.db
+        .query("route_reports")
+        .withIndex("by_asignacion", (q) => q.eq("asignacion_id", args.asignacion_id))
+        .first();
+      if (existing) {
+        return existing._id;
+      }
+    }
+
     // Auto-attach organizacion_id desde la fuente más confiable (ruta/asignación/scope)
     const orgId =
       asignacion?.organizacion_id ??

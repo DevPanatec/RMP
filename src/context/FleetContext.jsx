@@ -53,13 +53,9 @@ export const FleetProvider = ({ children }) => {
   };
 
   const deleteVehicle = async (id) => {
-    try {
-      await deleteVehicleMutation({ id });
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting vehicle:', error);
-      return { success: false, error: error.message };
-    }
+    // Throw para que el caller pueda mostrar toast del error real.
+    // Antes: catch local → return {success:false} → caller no veía nada.
+    await deleteVehicleMutation({ id });
   };
 
   const updateVehicleLocation = async (id, lat, lng) => {

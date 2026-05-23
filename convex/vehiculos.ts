@@ -1,5 +1,6 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { getScopedProjectId, getScopedOrgId, getAuthScope, requireOrgAccess, requireWriteRole } from "./lib/auth";
 import { getMotionState } from "./lib/gps";
 
@@ -497,20 +498,55 @@ export const remove = mutation({
       throw new Error("No se puede eliminar: vehículo tiene ruta en progreso. Espera o termina la ruta.");
     }
 
-    // Cascade cleanup: borrar GPS history + geofence_state + alerts antiguas (audit trail
-    // se preserva en route_events que tienen denormalizado vehiculo_placa).
-    const history = await ctx.db
-      .query("vehicle_location_history")
-      .withIndex("by_vehiculo", (q) => q.eq("vehiculo_id", args.id))
-      .collect();
-    for (const h of history) await ctx.db.delete(h._id);
+    // Cascade cleanup: borrar geofence_state ahora (siempre poco volumen).
+    // GPS location_history puede tener miles de rows (SafeTag c/minuto) — excede
+    // límite de 4096 reads per function. Lo borramos en background via scheduler.
     const states = await ctx.db
       .query("vehicle_geofence_state")
       .withIndex("by_vehiculo", (q) => q.eq("vehiculo_id", args.id))
       .collect();
     for (const s of states) await ctx.db.delete(s._id);
 
+    // Borrar primer batch de history (hasta 2000 rows pa' caber en el read limit)
+    // y schedule background cleanup pa' lo que quede.
+    const HISTORY_BATCH = 2000;
+    const firstBatch = await ctx.db
+      .query("vehicle_location_history")
+      .withIndex("by_vehiculo", (q) => q.eq("vehiculo_id", args.id))
+      .take(HISTORY_BATCH);
+    for (const h of firstBatch) await ctx.db.delete(h._id);
+
+    // Si llenó el batch, probablemente quedan más → cleanup async
+    if (firstBatch.length === HISTORY_BATCH) {
+      await ctx.scheduler.runAfter(0, internal.vehiculos._cleanupVehicleHistoryBatch, {
+        vehiculoId: args.id,
+      });
+    }
+
     return await ctx.db.delete(args.id);
+  },
+});
+
+// Internal mutation pa' batch cleanup recursivo del GPS history.
+// Llamado por remove() cuando hay muchas filas. Se reschedule a si mismo
+// hasta limpiar todo.
+export const _cleanupVehicleHistoryBatch = internalMutation({
+  args: { vehiculoId: v.id("vehiculos") },
+  handler: async (ctx, args) => {
+    const BATCH_SIZE = 2000;
+    const batch = await ctx.db
+      .query("vehicle_location_history")
+      .withIndex("by_vehiculo", (q) => q.eq("vehiculo_id", args.vehiculoId))
+      .take(BATCH_SIZE);
+
+    for (const row of batch) {
+      await ctx.db.delete(row._id);
+    }
+
+    // Si llenó el batch, quedan más — reschedule.
+    if (batch.length === BATCH_SIZE) {
+      await ctx.scheduler.runAfter(0, internal.vehiculos._cleanupVehicleHistoryBatch, args);
+    }
   },
 });
 
@@ -538,3 +574,97 @@ export const getStats = query({
   },
 });
 
+
+// ============================================================
+// DEBUG: diagnostica vehículos que no se pueden eliminar
+// Devuelve para cada vehículo de la org del caller las razones por
+// las que el delete está bloqueado (asignaciones activas / progress).
+// Uso: convex dashboard → Functions → vehiculos:diagnoseBlockedDeletes → Run
+// ============================================================
+export const diagnoseBlockedDeletes = query({
+  handler: async (ctx) => {
+    // Diagnóstico read-only EXTENDIDO — chequea TODAS las FKs.
+    const vehiculos = await ctx.db.query("vehiculos").collect();
+
+    const results = [];
+    for (const v of vehiculos) {
+      const blockers: string[] = [];
+
+      if (!v.organizacion_id) {
+        blockers.push("Sin organizacion_id (vehículo legacy)");
+      }
+
+      const activeAsign = await ctx.db
+        .query("asignaciones_rutas")
+        .withIndex("by_vehiculo", (q) => q.eq("vehiculo_id", v._id))
+        .filter((q) =>
+          q.or(
+            q.eq(q.field("estado"), "asignada"),
+            q.eq(q.field("estado"), "en_progreso"),
+            q.eq(q.field("estado"), "programada"),
+          ),
+        )
+        .collect();
+      if (activeAsign.length > 0) {
+        blockers.push(
+          `${activeAsign.length} asignacion(es) activa(s): ${activeAsign.map((a) => `${a._id} (${a.estado})`).join(", ")}`,
+        );
+      }
+
+      const activeProg = await ctx.db
+        .query("route_progress")
+        .withIndex("by_estado", (q) => q.eq("estado", "en_progreso"))
+        .filter((q) => q.eq(q.field("vehiculo_id"), v._id))
+        .collect();
+      if (activeProg.length > 0) {
+        blockers.push(
+          `${activeProg.length} ruta(s) en progreso: ${activeProg.map((p) => p._id).join(", ")}`,
+        );
+      }
+
+      // Soft-related (NO bloquean remove() actualmente, pero data orphan se queda):
+      const conductoresAsignados = await ctx.db
+        .query("perfiles_usuarios")
+        .filter((q) => q.eq(q.field("vehiculo_asignado_id"), v._id))
+        .collect();
+
+      const allAsign = await ctx.db
+        .query("asignaciones_rutas")
+        .withIndex("by_vehiculo", (q) => q.eq("vehiculo_id", v._id))
+        .collect();
+
+      const componentes = await ctx.db
+        .query("vehicle_components")
+        .withIndex("by_vehiculo", (q) => q.eq("vehiculo_id", v._id))
+        .collect();
+
+      const maintTasks = await ctx.db
+        .query("maintenance_tasks")
+        .filter((q) => q.eq(q.field("vehiculo_id"), v._id))
+        .collect();
+
+      results.push({
+        vehiculo_id: v._id,
+        placa: v.placa,
+        nombre: v.nombre || "(sin nombre)",
+        estado: v.estado,
+        organizacion_id: v.organizacion_id || null,
+        canDelete: blockers.length === 0,
+        blockers,
+        soft_refs: {
+          conductores_asignados: conductoresAsignados.length,
+          conductor_ids: conductoresAsignados.map((c) => ({ id: c._id, nombre: c.nombre_completo, tipo: c.tipo_usuario })),
+          asignaciones_total: allAsign.length,
+          asignaciones_por_estado: allAsign.reduce((acc, a) => {
+            acc[a.estado] = (acc[a.estado] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>),
+          vehicle_components: componentes.length,
+          maintenance_tasks: maintTasks.length,
+        },
+      });
+    }
+
+    return results;
+  },
+});

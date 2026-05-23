@@ -200,6 +200,9 @@ export const add = mutation({
     proyecto_id: v.optional(v.id("proyectos")),
     vehiculo_id: v.optional(v.id("vehiculos")),
     ruta_id: v.optional(v.id("rutas")),
+    // Lugar físico opcional (FUM site, INV warehouse, MTO location).
+    // Si presente, lugar_nombre se denormaliza desde lugares table.
+    lugar_id: v.optional(v.id("lugares")),
     prioridad: v.optional(v.number()),
     conductor_nombre: v.optional(v.string()),
     vehiculo_placa: v.optional(v.string()),
@@ -221,7 +224,7 @@ export const add = mutation({
       fecha_reporte: new Date().toISOString(),
       estado: "reportado",
     };
-    // Derivar org: scope → proyecto → vehículo (super_admin sin org).
+    // Derivar org: scope → proyecto → vehículo → lugar (super_admin sin org).
     let orgId = scope.organizacionId;
     if (!orgId && args.proyecto_id) {
       const p = await ctx.db.get(args.proyecto_id);
@@ -230,6 +233,14 @@ export const add = mutation({
     if (!orgId && args.vehiculo_id) {
       const v = await ctx.db.get(args.vehiculo_id);
       orgId = v?.organizacion_id ?? null;
+    }
+    // Si lugar_id presente, denormalizar lugar_nombre + heredar org si falta
+    if (args.lugar_id) {
+      const lugar = await ctx.db.get(args.lugar_id);
+      if (lugar) {
+        payload.lugar_nombre = lugar.nombre;
+        if (!orgId) orgId = lugar.organizacion_id ?? null;
+      }
     }
     if (!orgId && !scope.isSuperAdmin) {
       throw new Error("No se puede crear reporte sin organización");

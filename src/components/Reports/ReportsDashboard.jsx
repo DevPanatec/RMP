@@ -147,7 +147,7 @@ const ReportsDashboard = ({ onNavigate, categoriesNav }) => {
         (progress) => setDownloadProgress(progress),
         { includeIndex }
       );
-      console.log('📄 PDF completo generado:', result);
+      console.log('PDF completo generado:', result);
     } catch (error) {
       console.error('Error generando PDF:', error);
       alert('Error al generar el reporte.');

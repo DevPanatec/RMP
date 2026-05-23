@@ -820,6 +820,224 @@ export const registrarConsumo = mutation({
   },
 });
 
+// ============================================================
+// FLEET INVENTORY COSTOS — snapshot (activo) + flujo (history)
+// ============================================================
+//
+// Patrón: separa "valor presente" (snapshot del costo de componentes/activos
+// instalados HOY) del "gasto histórico en reemplazos" (flujo mensual desde
+// las 3 tablas *_history). Evita double-counting porque son métricas distintas.
+//
+// Tablas snapshot (estado='activo'):
+//   - vehicle_components (FK vehiculos → proyecto via vehiculos.proyecto_asignado_id)
+//   - fleet_assets (proyecto_id directo)
+//   - fleet_asset_components (FK fleet_assets → proyecto via fleet_assets.proyecto_id)
+//   - location_components (FK lugares → proyecto via lugares.proyecto_id)
+//
+// Tablas flujo (timestamp = fecha_cambio):
+//   - vehicle_components_history
+//   - fleet_asset_components_history
+//   - location_components_history
+
+// Helper: filtra rows por org (super_admin/cross-org bypass)
+async function scopeRows<T extends { organizacion_id?: any }>(ctx: any, rows: T[]): Promise<T[]> {
+  const scope = await getAuthScope(ctx);
+  if (scope.isSuperAdmin || scope.isCrossOrgViewer) return rows;
+  if (!scope.organizacionId) return [];
+  return rows.filter((r) => r.organizacion_id === scope.organizacionId);
+}
+
+// Snapshot: valor total de componentes/activos en estado='activo', opcional filtro por proyecto.
+export const getCostoFlotaActivo = query({
+  args: {
+    proyecto_id: v.optional(v.id("proyectos")),
+  },
+  handler: async (ctx, args) => {
+    // 1. Vehicle components → join con vehiculos para proyecto filter
+    const vcAll = await ctx.db
+      .query("vehicle_components")
+      .withIndex("by_estado", (q) => q.eq("estado", "activo"))
+      .collect();
+    const vcScoped = await scopeRows(ctx, vcAll);
+
+    let vcTotal = 0;
+    const vcItems: Array<{ nombre: string; tipo: string; costo: number; categoria: "vehicle_component" }> = [];
+    for (const c of vcScoped) {
+      if (!c.costo) continue;
+      if (args.proyecto_id) {
+        const v = await ctx.db.get(c.vehiculo_id);
+        if (!v || (v as any).proyecto_asignado_id !== args.proyecto_id) continue;
+      }
+      vcTotal += c.costo;
+      vcItems.push({ nombre: c.nombre, tipo: c.tipo, costo: c.costo, categoria: "vehicle_component" });
+    }
+
+    // 2. Fleet assets → proyecto directo
+    const faAll = await ctx.db
+      .query("fleet_assets")
+      .withIndex("by_estado", (q) => q.eq("estado", "activo"))
+      .collect();
+    const faScoped = await scopeRows(ctx, faAll);
+
+    let faTotal = 0;
+    const faItems: Array<{ nombre: string; tipo: string; costo: number; categoria: "fleet_asset" }> = [];
+    for (const a of faScoped) {
+      if (!a.costo) continue;
+      if (args.proyecto_id && (a as any).proyecto_id !== args.proyecto_id) continue;
+      faTotal += a.costo;
+      faItems.push({ nombre: a.nombre, tipo: a.tipo, costo: a.costo, categoria: "fleet_asset" });
+    }
+
+    // 3. Fleet asset components → join con fleet_assets para proyecto filter
+    const facAll = await ctx.db
+      .query("fleet_asset_components")
+      .withIndex("by_estado", (q) => q.eq("estado", "activo"))
+      .collect();
+    const facScoped = await scopeRows(ctx, facAll);
+
+    let facTotal = 0;
+    const facItems: Array<{ nombre: string; tipo: string; costo: number; categoria: "fleet_asset_component" }> = [];
+    for (const c of facScoped) {
+      if (!c.costo) continue;
+      if (args.proyecto_id) {
+        const a = await ctx.db.get(c.asset_id);
+        if (!a || (a as any).proyecto_id !== args.proyecto_id) continue;
+      }
+      facTotal += c.costo;
+      facItems.push({ nombre: c.nombre, tipo: c.tipo, costo: c.costo, categoria: "fleet_asset_component" });
+    }
+
+    // 4. Location components → join con lugares para proyecto filter
+    const lcAll = await ctx.db
+      .query("location_components")
+      .withIndex("by_estado", (q) => q.eq("estado", "activo"))
+      .collect();
+    const lcScoped = await scopeRows(ctx, lcAll);
+
+    let lcTotal = 0;
+    const lcItems: Array<{ nombre: string; tipo: string; costo: number; categoria: "location_component" }> = [];
+    for (const c of lcScoped) {
+      if (!c.costo) continue;
+      if (args.proyecto_id) {
+        const l = await ctx.db.get(c.lugar_id);
+        if (!l || (l as any).proyecto_id !== args.proyecto_id) continue;
+      }
+      lcTotal += c.costo;
+      lcItems.push({ nombre: c.nombre, tipo: c.tipo, costo: c.costo, categoria: "location_component" });
+    }
+
+    const total = vcTotal + faTotal + facTotal + lcTotal;
+    const allItems = [...vcItems, ...faItems, ...facItems, ...lcItems];
+    const topItems = allItems.sort((a, b) => b.costo - a.costo).slice(0, 10);
+
+    return {
+      total: Math.round(total * 100) / 100,
+      breakdown: {
+        vehicle_components: Math.round(vcTotal * 100) / 100,
+        fleet_assets: Math.round(faTotal * 100) / 100,
+        fleet_asset_components: Math.round(facTotal * 100) / 100,
+        location_components: Math.round(lcTotal * 100) / 100,
+      },
+      counts: {
+        vehicle_components: vcItems.length,
+        fleet_assets: faItems.length,
+        fleet_asset_components: facItems.length,
+        location_components: lcItems.length,
+      },
+      topItems,
+    };
+  },
+});
+
+// Flujo: gasto en reemplazos por mes (últimos N meses), opcional filtro por proyecto.
+export const getHistorialReemplazosFlotaPorMes = query({
+  args: {
+    meses: v.optional(v.number()),
+    proyecto_id: v.optional(v.id("proyectos")),
+  },
+  handler: async (ctx, args) => {
+    const meses = args.meses ?? 12;
+    const now = Date.now();
+    const cutoff = now - meses * 30 * 86400000;
+
+    // Helper: bucket por mes "YYYY-MM"
+    const mesKey = (timestamp: number) => {
+      const d = new Date(timestamp);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    };
+
+    type Bucket = { mes: string; total: number; vehicles: number; fleet_assets: number; locations: number };
+    const buckets: Record<string, Bucket> = {};
+
+    const ensure = (mes: string): Bucket => {
+      if (!buckets[mes]) buckets[mes] = { mes, total: 0, vehicles: 0, fleet_assets: 0, locations: 0 };
+      return buckets[mes];
+    };
+
+    // 1. vehicle_components_history
+    const vchAll = await ctx.db
+      .query("vehicle_components_history")
+      .withIndex("by_fecha", (q) => q.gte("fecha_cambio", cutoff))
+      .collect();
+    const vchScoped = await scopeRows(ctx, vchAll);
+    for (const h of vchScoped) {
+      if (!h.costo) continue;
+      if (args.proyecto_id) {
+        const v = await ctx.db.get(h.vehiculo_id);
+        if (!v || (v as any).proyecto_asignado_id !== args.proyecto_id) continue;
+      }
+      const b = ensure(mesKey(h.fecha_cambio));
+      b.total += h.costo;
+      b.vehicles += h.costo;
+    }
+
+    // 2. fleet_asset_components_history
+    const fachAll = await ctx.db
+      .query("fleet_asset_components_history")
+      .withIndex("by_fecha", (q) => q.gte("fecha_cambio", cutoff))
+      .collect();
+    const fachScoped = await scopeRows(ctx, fachAll);
+    for (const h of fachScoped) {
+      if (!h.costo) continue;
+      if (args.proyecto_id) {
+        const a = await ctx.db.get(h.asset_id);
+        if (!a || (a as any).proyecto_id !== args.proyecto_id) continue;
+      }
+      const b = ensure(mesKey(h.fecha_cambio));
+      b.total += h.costo;
+      b.fleet_assets += h.costo;
+    }
+
+    // 3. location_components_history
+    const lchAll = await ctx.db
+      .query("location_components_history")
+      .withIndex("by_fecha", (q) => q.gte("fecha_cambio", cutoff))
+      .collect();
+    const lchScoped = await scopeRows(ctx, lchAll);
+    for (const h of lchScoped) {
+      if (!h.costo) continue;
+      if (args.proyecto_id) {
+        const l = await ctx.db.get(h.lugar_id);
+        if (!l || (l as any).proyecto_id !== args.proyecto_id) continue;
+      }
+      const b = ensure(mesKey(h.fecha_cambio));
+      b.total += h.costo;
+      b.locations += h.costo;
+    }
+
+    // Ordenar ascendente por mes + redondear
+    return Object.values(buckets)
+      .sort((a, b) => a.mes.localeCompare(b.mes))
+      .map((b) => ({
+        mes: b.mes,
+        total: Math.round(b.total * 100) / 100,
+        vehicles: Math.round(b.vehicles * 100) / 100,
+        fleet_assets: Math.round(b.fleet_assets * 100) / 100,
+        locations: Math.round(b.locations * 100) / 100,
+      }));
+  },
+});
+
 // Obtener top items más costosos
 export const getTopItemsMasCostosos = query({
   args: {

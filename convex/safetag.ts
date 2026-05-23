@@ -56,7 +56,15 @@ export const fetchDevices = internalAction({
       throw new Error(`SafeTag API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const rawText = await response.text();
+    let data: unknown = null;
+    if (rawText.trim().length > 0) {
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        data = null;
+      }
+    }
     let devices: SafeTagDevice[] = [];
     if (Array.isArray(data)) {
       devices = data;
@@ -420,7 +428,15 @@ export const fetchLocationHistory = action({
       throw new Error(`SafeTag API error: ${response.status}`);
     }
 
-    const locations = await response.json();
+    const rawText = await response.text();
+    let locations: unknown = [];
+    if (rawText.trim().length > 0) {
+      try {
+        locations = JSON.parse(rawText);
+      } catch {
+        locations = [];
+      }
+    }
     const distance = response.headers.get("Distance"); // Total KM
 
     return {

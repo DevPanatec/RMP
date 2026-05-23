@@ -155,7 +155,7 @@
 .report-detail__observations {
   padding: var(--space-12) var(--space-16);
   background: var(--color-surface-secondary, var(--color-background));
-  border-left: 3px solid var(--color-primary);
+  border-left: 3px solid var(--color-action-bg);
   border-radius: var(--radius-base);
 }
 
@@ -182,8 +182,8 @@
 }
 
 .report-detail__btn--primary {
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--color-action-bg);
+  color: white;
   border-color: var(--color-primary);
 }
 
@@ -198,5 +198,5 @@
 }
 
 .report-detail__btn--secondary:hover {
-  background: var(--color-hover-overlay, rgba(0, 0, 0, 0.04));
+  background: var(--color-hover-overlay, var(--alpha-overlay-faint));
 }

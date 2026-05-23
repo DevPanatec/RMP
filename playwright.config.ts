@@ -40,7 +40,7 @@ export default defineConfig({
   },
 
   projects: [
-    { name: "setup", testMatch: /auth\.setup\.ts/, use: { headless: true } },
+    { name: "setup", testMatch: /auth\.setup\.ts/, use: { headless: true }, retries: 2 },
 
     {
       name: "audit-headless",

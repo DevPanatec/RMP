@@ -1,0 +1,21 @@
+{
+  "runId": "66a97793",
+  "date": "2026-05-21",
+  "counts": {
+    "p0": 8,
+    "p1": 9,
+    "p2": 6,
+    "total": 23
+  },
+  "prev_runId": "c312dc4a",
+  "diff": {
+    "new": 6,
+    "resolved": 16,
+    "persisting": 10
+  },
+  "spec_results": {
+    "passed": 290,
+    "failed": 57,
+    "total": 347
+  }
+}

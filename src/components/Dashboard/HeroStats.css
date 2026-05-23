@@ -17,29 +17,39 @@
   position: relative;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   padding: var(--space-20);
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
-  transition: border-color var(--duration-fast) var(--ease-out),
-              box-shadow var(--duration-fast) var(--ease-out),
-              transform var(--duration-fast) var(--ease-out);
-  box-shadow: var(--shadow-sm);
+  transition:
+    border-color 200ms var(--crono-ease-soft),
+    box-shadow 200ms var(--crono-ease-soft),
+    transform 200ms var(--crono-ease-soft);
+  box-shadow: var(--crono-shadow-1);
   overflow: hidden;
+  opacity: 0;
+  animation: crono-fade-up 400ms var(--crono-ease-soft) forwards;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Top accent line - subtle brand color */
+.hero-stat-card:nth-child(1) { animation-delay: 0ms; }
+.hero-stat-card:nth-child(2) { animation-delay: 60ms; }
+.hero-stat-card:nth-child(3) { animation-delay: 120ms; }
+.hero-stat-card:nth-child(4) { animation-delay: 180ms; }
+
+/* Left accent bar - pattern A (Cronograma metric) */
 .hero-stat-card::before {
   content: '';
   position: absolute;
   left: 0;
   top: 0;
-  right: 0;
-  height: 3px;
+  bottom: 0;
+  width: 4px;
   background: var(--card-accent);
-  opacity: 0.8;
-  transition: opacity var(--duration-fast) var(--ease-out);
+  border-radius: 4px 0 0 4px;
+  opacity: 0.9;
+  transition: opacity 200ms var(--crono-ease-soft);
 }
 
 .hero-stat-card:hover::before {
@@ -48,7 +58,7 @@
 
 .hero-stat-card:hover {
   border-color: var(--color-border-strong);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--crono-shadow-2);
   transform: translateY(-2px);
 }
 
@@ -70,19 +80,27 @@
 .stat-icon {
   width: 40px;
   height: 40px;
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--icon-bg);
   color: var(--icon-color);
   font-size: 18px;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition:
+    transform 200ms var(--crono-ease-spring),
+    background 200ms var(--crono-ease-soft),
+    color 200ms var(--crono-ease-soft),
+    box-shadow 200ms var(--crono-ease-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 
 .hero-stat-card:hover .stat-icon {
   background: var(--icon-color);
   color: white;
+  transform: scale(1.06);
+  box-shadow: 0 6px 16px var(--icon-glow, rgba(0, 120, 212, 0.25)),
+              inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .stat-label {
@@ -113,6 +131,8 @@
   color: var(--color-text);
   line-height: 1;
   letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  transition: color 200ms var(--crono-ease-soft);
 }
 
 .hero-stat-card:hover .stat-value {
@@ -179,27 +199,31 @@
    ============================================ */
 
 .hero-stat-card:nth-child(1) {
-  --card-accent: var(--color-primary);
-  --icon-bg: var(--color-info-light);
-  --icon-color: var(--color-primary);
+  --card-accent: var(--crono-rec);
+  --icon-bg: var(--crono-rec-soft);
+  --icon-color: var(--crono-rec);
+  --icon-glow: var(--crono-rec-glow);
 }
 
 .hero-stat-card:nth-child(2) {
-  --card-accent: var(--color-success);
-  --icon-bg: var(--color-success-light);
-  --icon-color: var(--color-success);
+  --card-accent: var(--crono-lim);
+  --icon-bg: var(--crono-lim-soft);
+  --icon-color: var(--crono-lim);
+  --icon-glow: var(--crono-lim-glow);
 }
 
 .hero-stat-card:nth-child(3) {
-  --card-accent: var(--color-info);
-  --icon-bg: var(--color-info-light);
-  --icon-color: var(--color-info);
+  --card-accent: var(--crono-mto);
+  --icon-bg: var(--crono-mto-soft);
+  --icon-color: var(--crono-mto);
+  --icon-glow: var(--crono-mto-glow);
 }
 
 .hero-stat-card:nth-child(4) {
-  --card-accent: var(--color-warning);
-  --icon-bg: var(--color-warning-light);
-  --icon-color: var(--color-warning-dark, var(--color-warning));
+  --card-accent: var(--crono-fum);
+  --icon-bg: var(--crono-fum-soft);
+  --icon-color: var(--crono-fum);
+  --icon-glow: var(--crono-fum-glow);
 }
 
 /* ============================================
@@ -251,5 +275,17 @@
   100% {
     color: inherit;
     transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-stat-card,
+  .stat-icon,
+  .stat-value,
+  .stat-value--changed {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

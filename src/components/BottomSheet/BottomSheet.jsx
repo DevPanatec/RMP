@@ -95,6 +95,9 @@ const BottomSheet = ({
     <div
       ref={sheetRef}
       className={`bottom-sheet bottom-sheet--${sheetState} ${isMobile ? 'bottom-sheet--mobile' : 'bottom-sheet--desktop'}`}
+      role="region"
+      aria-label="Lista de paradas de la ruta"
+      aria-expanded={sheetState === 'expanded'}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -103,11 +106,14 @@ const BottomSheet = ({
       <div
         className="bottom-sheet-header"
         onClick={!isMobile ? handleToggleClick : undefined}
+        role="button"
+        tabIndex={!isMobile ? 0 : -1}
+        onKeyDown={!isMobile ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleToggleClick(); } } : undefined}
+        aria-label={sheetState === 'collapsed' ? 'Expandir lista de paradas' : 'Colapsar lista de paradas'}
       >
-        <div className="bottom-sheet-handle-bar"></div>
+        <div className="bottom-sheet-handle-bar" aria-hidden="true"></div>
         <div className="bottom-sheet-summary">
           <div className="bottom-sheet-title">
-            <span className="summary-icon">≡</span>
             <span className="summary-text">
               {completedStops.length}/{stops.length} Paradas Completadas
             </span>

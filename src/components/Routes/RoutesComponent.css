@@ -51,7 +51,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border-radius: 16px;
   color: white;
   box-shadow: var(--shadow-md);
@@ -68,7 +68,7 @@
   font-family: var(--font-family-display);
   font-size: 28px;
   font-weight: 700;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -103,16 +103,16 @@
 
 .routes-stat-pill:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 16px var(--alpha-overlay-light);
 }
 
 .routes-stat-pill.success {
-  background: rgba(52, 199, 89, 0.1);
-  border-color: rgba(52, 199, 89, 0.2);
+  background: var(--alpha-ios-green-tint);
+  border-color: var(--alpha-ios-green-soft);
 }
 
 .routes-stat-pill.info {
-  background: rgba(0, 122, 255, 0.1);
+  background: var(--alpha-ios-blue-tint);
   border-color: rgba(0, 122, 255, 0.2);
 }
 
@@ -146,15 +146,15 @@
   align-items: center;
   gap: 10px;
   padding: 14px 28px;
-  background: var(--color-primary);
-  color: white;
+  background: var(--color-action-bg);
+  color: var(--color-on-action);
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-base);
   font-size: 15px;
   font-weight: 600;
   font-family: var(--font-family-base);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all var(--duration-fast) var(--ease-out);
   box-shadow: var(--shadow-sm);
   white-space: nowrap;
 }
@@ -162,7 +162,7 @@
 .btn-add-v2:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
-  background: var(--color-primary);
+  background: var(--color-action-bg-hover);
 }
 
 .btn-add-v2:active {
@@ -179,7 +179,7 @@
   align-items: center;
   justify-content: center;
   padding: 80px 32px;
-  background: linear-gradient(135deg, #ffffff 0%, var(--color-surface-secondary) 100%);
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-secondary) 100%);
   border: 1px solid var(--color-border);
   border-radius: 16px;
 }
@@ -221,12 +221,12 @@
 .route-card-v2 {
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #ffffff 0%, var(--color-surface-secondary) 100%);
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-secondary) 100%);
   border: 1px solid var(--color-border);
   border-radius: 16px;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 12px var(--alpha-overlay-faint);
   animation: fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) backwards;
 }
 
@@ -254,7 +254,7 @@
   justify-content: center;
   border-radius: 12px;
   color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px var(--alpha-overlay-medium);
 }
 
 .route-card-icon.recoleccion {
@@ -278,8 +278,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
-  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  background: var(--color-surface);
+  border: 1.5px solid var(--alpha-overlay-light);
   border-radius: 10px;
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -289,12 +289,12 @@
 .btn-icon-action:hover {
   background: var(--color-surface-secondary);
   color: var(--color-text);
-  border-color: rgba(0, 0, 0, 0.15);
+  border-color: var(--alpha-overlay-medium);
   transform: scale(1.05);
 }
 
 .btn-icon-action.danger:hover {
-  background: rgba(255, 59, 48, 0.1);
+  background: var(--alpha-ios-red-tint);
   color: var(--color-error);
   border-color: rgba(255, 59, 48, 0.3);
 }
@@ -326,7 +326,7 @@
 .route-type-badge-v2.recoleccion {
   background: rgba(52, 199, 89, 0.12);
   color: var(--color-success);
-  border: 1px solid rgba(52, 199, 89, 0.2);
+  border: 1px solid var(--alpha-ios-green-soft);
 }
 
 .route-type-badge-v2.fumigacion {
@@ -387,7 +387,7 @@
 .route-card-footer {
   padding: 14px 20px;
   background: rgba(0, 0, 0, 0.02);
-  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  border-top: 1px solid var(--alpha-overlay-faint);
 }
 
 .route-schedule-v2 {
@@ -417,7 +417,7 @@
   align-items: center;
   justify-content: center;
   padding: 80px 32px;
-  background: linear-gradient(135deg, #ffffff 0%, var(--color-surface-secondary) 100%);
+  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-surface-secondary) 100%);
   border: 1px dashed var(--color-border);
   border-radius: 16px;
   text-align: center;
@@ -511,5 +511,228 @@
   .route-actions button {
     min-width: 44px;
     min-height: 44px;
+  }
+}
+
+/* ============================================
+   CRONOGRAMA POLISH OVERRIDES (Routes / REC blue)
+   Reuses --crono-* tokens from Cronograma.css
+   ============================================ */
+
+.routes-v2 {
+  animation: crono-fade-up 400ms var(--crono-ease-soft);
+}
+
+.routes-header-v2 {
+  border-radius: 12px;
+  box-shadow: var(--crono-shadow-1);
+  padding: var(--space-16) var(--space-20);
+  transition: box-shadow 200ms var(--crono-ease-soft);
+}
+
+.routes-header-v2:hover {
+  box-shadow: var(--crono-shadow-2);
+}
+
+.routes-header-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--crono-rec) 0%, #1488d8 100%);
+  box-shadow: 0 8px 20px rgba(0, 120, 212, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  position: relative;
+}
+
+.routes-header-icon::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--crono-rec), #1488d8);
+  opacity: 0.22;
+  filter: blur(12px);
+  z-index: -1;
+}
+
+.routes-header-v2:hover .routes-header-icon {
+  transform: none;
+  box-shadow: 0 10px 24px rgba(0, 120, 212, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.routes-header-text h2 {
+  font-size: 22px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
+  background: none;
+  -webkit-text-fill-color: var(--color-text);
+  color: var(--color-text);
+}
+
+.routes-stat-pill {
+  padding: var(--space-8) var(--space-16);
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--crono-shadow-1);
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--space-8);
+  min-width: auto;
+  transition: transform 200ms var(--crono-ease-soft), box-shadow 200ms var(--crono-ease-soft);
+}
+
+.routes-stat-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--crono-shadow-2);
+}
+
+.routes-stat-pill.success {
+  border-color: var(--crono-lim);
+  background: var(--crono-lim-soft);
+  box-shadow: 0 0 0 3px rgba(16, 124, 16, 0.06);
+}
+
+.routes-stat-pill.info {
+  border-color: var(--crono-rec);
+  background: var(--crono-rec-soft);
+  box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.06);
+}
+
+.routes-stat-pill .stat-number {
+  font-size: 18px;
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.routes-stat-pill .stat-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+
+.btn-add-v2 {
+  background: linear-gradient(135deg, var(--crono-rec) 0%, #1488d8 100%);
+  border-radius: 8px;
+  padding: var(--space-10) var(--space-20);
+  box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 200ms var(--crono-ease-soft);
+}
+
+.btn-add-v2:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 120, 212, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  background: linear-gradient(135deg, var(--crono-rec) 0%, #1488d8 100%);
+}
+
+.route-card-v2 {
+  background: var(--color-surface);
+  border-radius: 12px;
+  box-shadow: var(--crono-shadow-1);
+  transition: transform 220ms var(--crono-ease-soft), box-shadow 220ms var(--crono-ease-soft), border-color 220ms var(--crono-ease-soft);
+  opacity: 0;
+  animation: crono-fade-up 420ms var(--crono-ease-soft) forwards;
+}
+
+.route-card-v2:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--crono-shadow-2);
+  border-color: var(--color-border-strong, #c8c8c8);
+}
+
+.route-card-icon.recoleccion {
+  background: linear-gradient(135deg, var(--crono-rec), #1488d8);
+  box-shadow: 0 4px 12px rgba(0, 120, 212, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.route-card-icon.fumigacion {
+  background: linear-gradient(135deg, var(--crono-fum), #f08c1a);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.route-type-badge-v2 {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.route-type-badge-v2.recoleccion {
+  background: var(--crono-rec-soft);
+  color: #004578;
+  border-color: transparent;
+}
+
+.route-type-badge-v2.fumigacion {
+  background: var(--crono-fum-soft);
+  color: #7c4a00;
+  border-color: transparent;
+}
+
+.route-metric .metric-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.route-metric svg {
+  color: var(--crono-rec);
+}
+
+.btn-icon-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  transition: all 180ms var(--crono-ease-soft);
+}
+
+.btn-icon-action:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--crono-shadow-1);
+}
+
+.btn-icon-action.danger:hover {
+  background: rgba(209, 52, 56, 0.1);
+  color: var(--color-error, #d13438);
+  border-color: rgba(209, 52, 56, 0.3);
+}
+
+.routes-empty-state {
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  padding: var(--space-40) var(--space-16);
+}
+
+.routes-empty-state .empty-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: var(--crono-rec-soft);
+  color: var(--crono-rec);
+  margin-bottom: var(--space-16);
+  opacity: 0.85;
+}
+
+.routes-empty-state h3 {
+  font-size: 17px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.routes-empty-state p {
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .routes-v2,
+  .route-card-v2,
+  .routes-header-v2,
+  .routes-stat-pill,
+  .btn-add-v2,
+  .btn-icon-action,
+  .routes-header-v2:hover .routes-header-icon {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
   }
 }

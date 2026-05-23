@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import { X, RefreshCw, AlertTriangle, CheckCircle, Clock } from '../../components/Icons';
+import { X, RefreshCw, AlertTriangle, CheckCircle, Clock, Info } from '../../components/Icons';
 import ProyectosComponent from '../Proyectos/ProyectosComponent';
 import './OrgDetailDrawer.css';
 
@@ -581,14 +581,20 @@ function OrgDetailDrawer({ orgId, onClose, onEditInfo }) {
               </div>
               {lastDrift && !lastDrift.partial && Math.abs(lastDrift.drift) > BYTES_PER_GB_DRAWER && (
                 <div className="drawer__drift-warning">
-                  ⚠ Drift detectado &gt; 1 GB. El counter delta tenía desincronización significativa.
-                  Considerá revisar si hay mutations cascade que no decrementen.
+                  <AlertTriangle size={14} aria-hidden="true" />
+                  <span>
+                    Drift detectado &gt; 1 GB. El counter delta tenía desincronización significativa.
+                    Considerá revisar si hay mutations cascade que no decrementen.
+                  </span>
                 </div>
               )}
               {lastDrift && lastDrift.partial && (
                 <div className="drawer__partial-warning">
-                  ℹ Recompute parcial. El conteo se cortó por límite de paginación; el contador
-                  no se actualizó para evitar persistir un valor incompleto.
+                  <Info size={14} aria-hidden="true" />
+                  <span>
+                    Recompute parcial. El conteo se cortó por límite de paginación; el contador
+                    no se actualizó para evitar persistir un valor incompleto.
+                  </span>
                 </div>
               )}
             </div>
@@ -687,10 +693,13 @@ function OrgDetailDrawer({ orgId, onClose, onEditInfo }) {
               </div>
 
               <h3 className="drawer__h-spaced">Roadmap (no construidos)</h3>
-              <p className="hint" style={{ color: 'var(--color-warning, #FFB900)', fontWeight: 500 }}>
-                ⚠ Módulos roadmap se facturan pero <strong>no tienen UI construida</strong>.
-                Solo activar con contrato firmado (descuento ≥30% o setup waived) y notas con justificación comercial.
-                El usuario final no verá nuevas funcionalidades hasta que se implemente.
+              <p className="hint hint--roadmap-warning">
+                <AlertTriangle size={14} aria-hidden="true" />
+                <span>
+                  Módulos roadmap se facturan pero <strong>no tienen UI construida</strong>.
+                  Solo activar con contrato firmado (descuento ≥30% o setup waived) y notas con justificación comercial.
+                  El usuario final no verá nuevas funcionalidades hasta que se implemente.
+                </span>
               </p>
               {(modulos_effective || []).some((c) => MODULOS_ROADMAP.find((m) => m.code === c)) && (
                 <div className="drawer__feedback drawer__feedback--error" style={{ marginBottom: 'var(--space-12)' }}>

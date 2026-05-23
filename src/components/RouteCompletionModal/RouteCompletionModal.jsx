@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, Clock, MapPin, AlertTriangle, FileText, Download, Package, Trash2, RefreshCw, Truck, X } from '../Icons';
 import { generateSingleRouteReportPDF } from '../../utils/lazyPdf';
+import useFocusTrap from '../../hooks/useFocusTrap';
 import './RouteCompletionModal.css';
 
 const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCancel }) => {
@@ -14,6 +15,8 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const trapRef = useFocusTrap(!!(isOpen && routeData), onCancel);
 
   if (!isOpen || !routeData) return null;
 
@@ -61,7 +64,7 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
     try {
       await generateSingleRouteReportPDF(routeData, riskReports, observaciones);
     } catch (err) {
-      console.error('❌ Error generando PDF:', err);
+      console.error('Error generando PDF:', err);
     } finally {
       setDownloadingPdf(false);
     }
@@ -76,7 +79,14 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
   if (isMobile) {
     return (
       <div className="sheet-backdrop sheet-backdrop--completion" onClick={onCancel}>
-        <div className="completion-sheet" onClick={e => e.stopPropagation()}>
+        <div
+          ref={trapRef}
+          className="completion-sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="completion-sheet-title"
+          onClick={e => e.stopPropagation()}
+        >
           <div className="sheet__handle" />
 
           {/* Compact header */}
@@ -85,7 +95,7 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
               <CheckCircle size={28} />
             </div>
             <div>
-              <div className="completion-sheet__title">¡Ruta Completada!</div>
+              <div id="completion-sheet-title" className="completion-sheet__title">¡Ruta Completada!</div>
               <div className="completion-sheet__subtitle">{routeData.ruta_nombre}</div>
             </div>
             <button className="sheet__close" onClick={onCancel}>
@@ -205,13 +215,20 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
   // ==========================================
   return (
     <div className="completion-modal-overlay" onClick={onCancel}>
-      <div className="completion-modal-content" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={trapRef}
+        className="completion-modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="completion-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="completion-modal-header">
           <div className="completion-header-icon">
             <CheckCircle size={40} />
           </div>
-          <h2>¡Ruta Completada!</h2>
+          <h2 id="completion-modal-title">¡Ruta Completada!</h2>
           <p>Revisa el resumen de tu jornada antes de finalizar</p>
         </div>
 
@@ -266,15 +283,13 @@ const RouteCompletionModal = ({ isOpen, routeData, riskReports, onConfirm, onCan
               <MapPin size={20} />
               <h3>Paradas Completadas ({completedStops.length})</h3>
               {routeData.porcentaje_completado && routeData.porcentaje_completado < 100 && (
-                <span className="completion-percentage" style={{
-                  marginLeft: '10px',
-                  padding: '4px 10px',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                  backgroundColor: routeData.porcentaje_completado >= 80 ? '#34c759' : routeData.porcentaje_completado >= 50 ? '#ff9500' : '#ff3b30',
-                  color: 'white'
-                }}>
+                <span
+                  className={`completion-percentage completion-percentage--${
+                    routeData.porcentaje_completado >= 80 ? 'success'
+                    : routeData.porcentaje_completado >= 50 ? 'warning'
+                    : 'error'
+                  }`}
+                >
                   {routeData.porcentaje_completado}% Completado
                 </span>
               )}

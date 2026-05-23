@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Map, { Marker, NavigationControl } from 'react-map-gl/maplibre';
-import { Search, MapPin, CheckCircle, Navigation, Lightbulb, Home } from '../Icons';
+import { Search, MapPin, CheckCircle, Navigation, Lightbulb, Home, X } from '../Icons';
 import { useGooglePlacesAutocomplete } from '../../hooks/useGooglePlacesAutocomplete';
 import { mapGooglePlaceToLocation } from '../../utils/googlePlacesMapper';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -55,7 +55,7 @@ const MapLocationPicker = ({
   const handleInputChange = (e) => {
     const value = e.target.value;
     setQuery(value);
-    console.log('🔍 Search input:', value, '| isReady:', isReady, '| length:', value.length);
+    console.log('Search input:', value, '| isReady:', isReady, '| length:', value.length);
 
     if (value.length >= 3) {
       searchPlaces(value);
@@ -215,8 +215,9 @@ const MapLocationPicker = ({
               onClick={clearSearch}
               className="clear-button"
               title="Limpiar búsqueda"
+              aria-label="Limpiar búsqueda"
             >
-              ✕
+              <X size={14} aria-hidden="true" />
             </button>
           )}
 

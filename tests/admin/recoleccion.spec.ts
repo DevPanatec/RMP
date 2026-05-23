@@ -69,7 +69,7 @@ test.describe("Admin: Recolección / Rutas / Flota / Asignaciones", () => {
     await page.waitForTimeout(800);
 
     // Click sub-tab Flota
-    const flotaSubTab = page.locator(".ops-tab", { hasText: "Flota" }).first();
+    const flotaSubTab = page.locator(".app-subtab", { hasText: "Flota" }).first();
     await expect(flotaSubTab).toBeVisible({ timeout: 10_000 });
     await flotaSubTab.click();
     await page.waitForTimeout(800);
@@ -131,7 +131,7 @@ test.describe("Admin: Recolección / Rutas / Flota / Asignaciones", () => {
     // ============================================================
     // 2. OPERACIONES → CATÁLOGO → RECOLECCIÓN
     // ============================================================
-    const catalogoSubTab = page.locator(".ops-tab", { hasText: "Catálogo" }).first();
+    const catalogoSubTab = page.locator(".app-subtab", { hasText: "Catálogo" }).first();
     await expect(catalogoSubTab).toBeVisible({ timeout: 5_000 });
     await catalogoSubTab.click();
     await page.waitForTimeout(800);
@@ -201,7 +201,7 @@ test.describe("Admin: Recolección / Rutas / Flota / Asignaciones", () => {
     // 3. OPERACIONES → ASIGNACIONES (Schedule)
     // ============================================================
     const asignacionesSubTab = page
-      .locator(".ops-tab", { hasText: /Asignaciones|Programación/ })
+      .locator(".app-subtab", { hasText: /Asignaciones|Programación/ })
       .first();
     if (await asignacionesSubTab.isVisible({ timeout: 5_000 }).catch(() => false)) {
       await asignacionesSubTab.click();

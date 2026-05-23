@@ -61,7 +61,7 @@ const MaintenanceComponent = ({ userRole = 'admin' }) => {
         dateRange,
         (progress) => setDownloadProgress(progress)
       );
-      console.log('📄 PDF de mantenimiento completo generado:', result);
+      console.log('PDF de mantenimiento completo generado:', result);
     } catch (error) {
       console.error('Error generando PDF:', error);
       alert('Error al generar el reporte de mantenimiento');

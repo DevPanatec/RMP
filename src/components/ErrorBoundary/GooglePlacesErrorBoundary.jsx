@@ -22,7 +22,7 @@ class GooglePlacesErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     // Log del error para debugging
-    console.error('❌ Google Places Error Boundary caught an error:', error, errorInfo);
+    console.error('Google Places Error Boundary caught an error:', error, errorInfo);
     this.setState({
       error,
       errorInfo

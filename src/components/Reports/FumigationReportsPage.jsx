@@ -3,6 +3,7 @@ import { Calendar, Download, FileText, Eye, X, Spray, AlertTriangle } from '../I
 import { Badge } from '../UI';
 import { useOrganization } from '../../context/OrganizationContext';
 import FumigationReportDetailModal from '../Fumigation/FumigationReportDetailModal';
+import { buildGmapsEmbedUrl } from '../../utils/gmaps';
 import pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import './FumigationReportsPage.css';
@@ -180,7 +181,7 @@ const FumigationReportsPage = ({ location, onClose, getStatusVariant }) => {
   const mapQuery = location.latitud && location.longitud
     ? `${location.latitud},${location.longitud}`
     : encodeURIComponent(location.nombre + ', Panama City, Panama');
-  const mapEmbedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${mapQuery}&zoom=17`;
+  const mapEmbedUrl = buildGmapsEmbedUrl(mapQuery, 17);
 
   const googleMapsUrl = location.latitud && location.longitud
     ? `https://www.google.com/maps/search/?api=1&query=${location.latitud},${location.longitud}`

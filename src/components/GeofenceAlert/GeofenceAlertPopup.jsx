@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, X, Navigation, Clock, Truck } from 'lucide-react';
+import { MapPin, X, Navigation, Clock, Truck, Gauge } from 'lucide-react';
 import './GeofenceAlertPopup.css';
 
 /**
@@ -9,17 +9,19 @@ const GeofenceAlertPopup = ({ alerts, onDismiss, onViewMap }) => {
   if (!alerts || alerts.length === 0) return null;
 
   return (
-    <div className="geofence-alerts-container">
+    <div className="geofence-alerts-container" role="region" aria-label="Alertas de geocerca">
       {alerts.map((alert, index) => {
         const isEntering = alert.tipo_evento === 'entrada' || alert.category === 'geofence_enter';
-        
+
         return (
-          <div 
-            key={alert._id} 
+          <div
+            key={alert._id}
             className={`geofence-alert-card ${isEntering ? 'alert-enter' : 'alert-exit'}`}
-            style={{ 
+            role="alert"
+            aria-live="polite"
+            style={{
               animationDelay: `${index * 0.1}s`,
-              zIndex: 10000 - index 
+              zIndex: 10000 - index
             }}
           >
             {/* Barra de color lateral */}
@@ -82,7 +84,7 @@ const GeofenceAlertPopup = ({ alerts, onDismiss, onViewMap }) => {
                 </div>
                 {alert.speed !== undefined && alert.speed > 0 && (
                   <div className="meta-item">
-                    <span>🚀</span>
+                    <Gauge size={12} aria-hidden="true" />
                     <span>{Math.round(alert.speed)} km/h</span>
                   </div>
                 )}

@@ -11,7 +11,7 @@ import {
   Calendar, Plus, Edit, Trash2, AlertTriangle, CheckCircle,
   Truck, Users, Map, Clock, X, Sparkles, Camera, Info, Bug, CalendarCheck
 } from '../Icons';
-import { CustomSelect, EmptyState, StatusBadge, ConfirmDialog } from '../UI';
+import { CustomSelect, EmptyState, StatusBadge, ConfirmDialog, SkeletonList } from '../UI';
 import notify from '../../utils/notify';
 import useRequireOrg from '../../hooks/useRequireOrg';
 import PhotoUploadField from '../Cleaning/PhotoUploadField';
@@ -344,7 +344,7 @@ const ScheduleComponent = ({ viewerMode = false, userRole = 'admin' }) => {
         try {
           allowedDays = JSON.parse(allowedDays);
         } catch (e) {
-          console.error('❌ ERROR parseando dias_operacion:', e);
+          console.error('ERROR parseando dias_operacion:', e);
           allowedDays = [];
         }
       }
@@ -777,8 +777,7 @@ const ScheduleComponent = ({ viewerMode = false, userRole = 'admin' }) => {
 
       {loading ? (
         <div className="schedule-loading">
-          <div className="spinner"></div>
-          <p>Cargando asignaciones...</p>
+          <SkeletonList count={5} itemHeight={64} />
         </div>
       ) : (
         <div className="schedule-content-unified">

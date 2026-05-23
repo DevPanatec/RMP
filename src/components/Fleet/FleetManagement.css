@@ -46,21 +46,32 @@
 }
 
 .fleet-header-icon {
-  width: 56px;
-  height: 56px;
+  position: relative;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-primary); /* Enterprise: solid color */
-  border-radius: var(--radius-base); /* 4px - enterprise */
+  background: linear-gradient(135deg, var(--crono-rec) 0%, #1488d8 100%);
+  border-radius: 12px;
   color: white;
-  box-shadow: var(--shadow-md);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 20px rgba(0, 120, 212, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: transform 200ms var(--crono-ease-soft);
+}
+
+.fleet-header-icon::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 14px;
+  background: inherit;
+  opacity: 0.25;
+  filter: blur(12px);
+  z-index: -1;
 }
 
 .fleet-header-v2:hover .fleet-header-icon {
-  transform: scale(1.05) rotate(3deg);
-  box-shadow: var(--shadow-lg);
+  transform: scale(1.05);
 }
 
 .fleet-header-text h2 {
@@ -104,21 +115,22 @@
 }
 
 .fleet-stat-pill.success {
-  background: rgba(52, 199, 89, 0.1);
-  border-color: rgba(52, 199, 89, 0.2);
+  background: var(--alpha-ios-green-tint);
+  border-color: var(--alpha-ios-green-soft);
 }
 
 .fleet-stat-pill.info {
-  background: rgba(0, 122, 255, 0.1);
+  background: var(--alpha-ios-blue-tint);
   border-color: rgba(0, 122, 255, 0.2);
 }
 
 .fleet-stat-pill .stat-number {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   line-height: 1;
   letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .fleet-stat-pill.success .stat-number {
@@ -142,28 +154,28 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 28px;
-  background: var(--color-primary); /* Enterprise: solid color */
+  padding: var(--space-8) var(--space-16);
+  background: linear-gradient(135deg, var(--crono-rec) 0%, #1488d8 100%);
   color: white;
-  border: none;
-  border-radius: var(--radius-base); /* 4px - enterprise */
+  border: 1px solid transparent;
+  border-radius: 8px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   font-family: var(--font-family-base);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: transform 200ms var(--crono-ease-soft), box-shadow 200ms var(--crono-ease-soft);
   white-space: nowrap;
 }
 
 .btn-add-v2:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  background: var(--color-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 120, 212, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .btn-add-v2:active {
   transform: translateY(0);
+  background: var(--color-action-bg-active);
 }
 
 /* ============================================
@@ -183,11 +195,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 32px;
-  background: var(--color-surface); /* Enterprise: solid color */
+  gap: var(--space-12);
+  padding: var(--space-40) var(--space-16);
+  background: var(--color-surface);
   border: 1px dashed var(--color-border);
-  border-radius: var(--radius-base); /* 4px - enterprise */
+  border-radius: 12px;
   text-align: center;
+  color: var(--color-text-secondary);
 }
 
 .fleet-empty-state .empty-icon {
@@ -223,18 +237,33 @@
 .vehicle-card-v2 {
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #ffffff 0%, var(--color-surface-secondary) 100%);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-base); /* 4px - enterprise */
+  border-radius: 12px;
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  transition: transform 200ms var(--crono-ease-soft),
+              box-shadow 200ms var(--crono-ease-soft),
+              border-color 200ms var(--crono-ease-soft);
+  box-shadow: var(--crono-shadow-1);
+  opacity: 0;
+  animation: crono-cell-in 360ms var(--crono-ease-soft) forwards;
 }
 
+.fleet-grid-v2 .vehicle-card-v2:nth-child(1) { animation-delay: 0ms; }
+.fleet-grid-v2 .vehicle-card-v2:nth-child(2) { animation-delay: 50ms; }
+.fleet-grid-v2 .vehicle-card-v2:nth-child(3) { animation-delay: 100ms; }
+.fleet-grid-v2 .vehicle-card-v2:nth-child(4) { animation-delay: 150ms; }
+.fleet-grid-v2 .vehicle-card-v2:nth-child(5) { animation-delay: 200ms; }
+.fleet-grid-v2 .vehicle-card-v2:nth-child(6) { animation-delay: 250ms; }
+.fleet-grid-v2 .vehicle-card-v2:nth-child(7) { animation-delay: 300ms; }
+.fleet-grid-v2 .vehicle-card-v2:nth-child(8) { animation-delay: 350ms; }
+.fleet-grid-v2 .vehicle-card-v2:nth-child(9) { animation-delay: 400ms; }
+.fleet-grid-v2 .vehicle-card-v2:nth-child(n+10) { animation-delay: 450ms; }
+
 .vehicle-card-v2:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
-  border-color: var(--color-border);
+  transform: translateY(-2px);
+  box-shadow: var(--crono-shadow-2), var(--crono-shadow-glow-rec);
+  border-color: var(--crono-rec);
 }
 
 /* Card Header */
@@ -248,15 +277,15 @@
 }
 
 .vehicle-card-icon {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-primary); /* Enterprise: solid color */
-  border-radius: var(--radius-base); /* 4px - enterprise */
+  background: linear-gradient(135deg, var(--crono-rec) 0%, #1488d8 100%);
+  border-radius: 10px;
   color: white;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 6px 16px rgba(0, 120, 212, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .vehicle-card-actions {
@@ -270,8 +299,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
-  border: 1.5px solid rgba(0, 0, 0, 0.08);
+  background: var(--color-surface);
+  border: 1.5px solid var(--alpha-overlay-light);
   border-radius: var(--radius-base); /* 4px - enterprise */
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -281,12 +310,12 @@
 .btn-icon-action:hover {
   background: var(--color-surface-secondary);
   color: var(--color-text);
-  border-color: rgba(0, 0, 0, 0.15);
+  border-color: var(--alpha-overlay-medium);
   transform: scale(1.05);
 }
 
 .btn-icon-action.danger:hover {
-  background: rgba(255, 59, 48, 0.1);
+  background: var(--alpha-ios-red-tint);
   color: var(--color-error);
   border-color: rgba(255, 59, 48, 0.3);
 }
@@ -308,10 +337,11 @@
 .vehicle-placa {
   margin: 0 0 16px 0;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--color-text-secondary);
   font-family: var(--font-family-mono, monospace);
   letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* GPS Status */
@@ -335,13 +365,13 @@
 .gps-badge.online {
   background: rgba(52, 199, 89, 0.12);
   color: var(--color-success);
-  border: 1px solid rgba(52, 199, 89, 0.2);
+  border: 1px solid var(--alpha-ios-green-soft);
 }
 
 .gps-badge.offline {
   background: rgba(255, 149, 0, 0.12);
   color: var(--color-warning);
-  border: 1px solid rgba(255, 149, 0, 0.2);
+  border: 1px solid var(--alpha-ios-orange-soft);
 }
 
 .gps-badge.no-gps {
@@ -363,7 +393,7 @@
 .vehicle-card-footer {
   padding: 16px 20px;
   background: rgba(0, 0, 0, 0.02);
-  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  border-top: 1px solid var(--alpha-overlay-faint);
 }
 
 .btn-view-history,
@@ -382,19 +412,20 @@
 }
 
 .btn-view-history {
-  background: var(--color-primary); /* Enterprise: solid color */
+  background: linear-gradient(135deg, var(--crono-rec) 0%, #1488d8 100%);
   color: white;
   border: none;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: transform 200ms var(--crono-ease-soft), box-shadow 200ms var(--crono-ease-soft);
 }
 
 .btn-view-history:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 120, 212, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .btn-configure-gps {
-  background: white;
+  background: var(--color-surface);
   color: var(--color-primary);
   border: 1px solid var(--color-border);
 }
@@ -414,12 +445,12 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--alpha-overlay-heavy);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
   padding: 20px;
   animation: fadeIn 0.2s ease;
 }
@@ -430,7 +461,7 @@
 }
 
 .modal-content-v2 {
-  background: white;
+  background: var(--color-surface);
   border-radius: var(--radius-lg); /* 6px - modals enterprise */
   max-width: 480px;
   width: 100%;
@@ -455,7 +486,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 24px 28px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--alpha-overlay-soft);
   background: var(--color-surface-secondary);
 }
 
@@ -482,7 +513,7 @@
 }
 
 .btn-close-v2:hover {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--alpha-overlay-base);
   color: var(--color-text);
 }
 
@@ -508,7 +539,7 @@
 .form-group-v2 input {
   width: 100%;
   padding: 14px 16px;
-  border: 2px solid rgba(0, 0, 0, 0.08);
+  border: 2px solid var(--alpha-overlay-light);
   border-radius: var(--radius-base); /* 4px - enterprise */
   font-size: 15px;
   font-family: inherit;
@@ -519,7 +550,7 @@
 .form-group-v2 input:focus {
   outline: none;
   border-color: var(--color-primary);
-  background: white;
+  background: var(--color-surface);
   box-shadow: 0 0 0 2px var(--color-focus-ring);
 }
 
@@ -533,15 +564,18 @@
 }
 
 .form-group-v2 input.input-warning:focus {
-  box-shadow: 0 0 0 4px rgba(255, 149, 0, 0.1);
+  box-shadow: 0 0 0 4px var(--alpha-ios-orange-tint);
 }
 
 /* IMEI Status Badge */
 .imei-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 11px;
   font-weight: 600;
   padding: 3px 8px;
-  border-radius: var(--radius-sm); /* 2px - enterprise */
+  border-radius: var(--radius-sm);
 }
 
 .imei-status.valid {
@@ -561,7 +595,7 @@
   gap: 10px;
   margin: 28px 0 20px;
   padding-top: 20px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-top: 1px solid var(--alpha-overlay-soft);
   font-size: 13px;
   font-weight: 600;
   color: var(--color-primary);
@@ -579,7 +613,7 @@
 .form-error-v2 {
   padding: 14px 16px;
   background: rgba(255, 59, 48, 0.08);
-  border: 1px solid rgba(255, 59, 48, 0.2);
+  border: 1px solid var(--alpha-ios-red-soft);
   border-radius: var(--radius-base); /* 4px - enterprise */
   color: var(--color-error);
   font-size: 14px;
@@ -594,7 +628,7 @@
   justify-content: flex-end;
   margin-top: 28px;
   padding-top: 20px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-top: 1px solid var(--alpha-overlay-soft);
 }
 
 .btn-secondary-v2,
@@ -608,24 +642,25 @@
 }
 
 .btn-secondary-v2 {
-  background: white;
-  border: 2px solid rgba(0, 0, 0, 0.1);
+  background: var(--color-surface);
+  border: 2px solid var(--alpha-overlay-base);
   color: var(--color-text);
 }
 
 .btn-secondary-v2:hover {
   background: var(--color-surface-secondary);
-  border-color: rgba(0, 0, 0, 0.15);
+  border-color: var(--alpha-overlay-medium);
 }
 
 .btn-primary-v2 {
-  background: var(--color-primary); /* Enterprise: solid color */
+  background: var(--color-action-bg);
   border: none;
-  color: white;
+  color: var(--color-on-action);
   box-shadow: var(--shadow-sm);
 }
 
 .btn-primary-v2:hover {
+  background: var(--color-action-bg-hover);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
@@ -720,3 +755,202 @@
     min-height: 44px;
   }
 }
+
+
+/* ============================================
+   FORM EXTENSIONS — Marca/Modelo/Año (Plan v6)
+   ============================================ */
+
+.form-row-v2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12, 12px);
+}
+
+.select-v2 {
+  width: 100%;
+  padding: var(--space-8, 8px) var(--space-12, 12px);
+  font-size: var(--font-size-base, 15px);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base, 4px);
+  font-family: inherit;
+}
+
+.select-v2:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-focus-ring, rgba(0,120,212,0.2));
+}
+
+/* VIN Decoder */
+.vin-decoder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 4px);
+  margin-bottom: var(--space-8, 8px);
+  padding: var(--space-8, 8px);
+  background: var(--color-surface-secondary, #F8F9FA);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base, 4px);
+}
+
+.vin-decoder__input-group {
+  display: flex;
+  gap: var(--space-8, 8px);
+}
+
+.vin-decoder__input {
+  flex: 1;
+  padding: var(--space-8, 8px) var(--space-12, 12px);
+  font-size: var(--font-size-base, 15px);
+  font-family: monospace;
+  letter-spacing: 0.05em;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base, 4px);
+  background: var(--color-surface);
+}
+
+.vin-decoder__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4, 4px);
+  padding: var(--space-8, 8px) var(--space-12, 12px);
+  font-size: var(--font-size-sm, 13px);
+  background: var(--color-primary);
+  color: white;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-base, 4px);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.vin-decoder__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.vin-decoder__error {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4, 4px);
+  font-size: var(--font-size-xs, 11px);
+  color: var(--color-error);
+}
+
+.vin-decoder__success {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4, 4px);
+  font-size: var(--font-size-xs, 11px);
+  color: var(--color-success);
+}
+
+.vin-decoder__hint {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+/* Model Autocomplete */
+.model-autocomplete {
+  position: relative;
+}
+
+.model-autocomplete__input {
+  width: 100%;
+  padding: var(--space-8, 8px) var(--space-12, 12px);
+  font-size: var(--font-size-base, 15px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base, 4px);
+  background: var(--color-surface);
+}
+
+.model-autocomplete__dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: 4px 0 0 0;
+  padding: 0;
+  list-style: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base, 4px);
+  box-shadow: var(--shadow-md);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.model-autocomplete__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-8, 8px) var(--space-12, 12px);
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.model-autocomplete__item:last-child {
+  border-bottom: none;
+}
+
+.model-autocomplete__item:hover {
+  background: var(--color-hover-overlay, rgba(0,120,212,0.06));
+}
+
+.model-autocomplete__name {
+  font-size: var(--font-size-base, 15px);
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium, 500);
+}
+
+.model-autocomplete__meta {
+  font-size: var(--font-size-xs, 11px);
+  color: var(--color-text-secondary);
+}
+
+.model-autocomplete__empty {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  padding: var(--space-8, 8px) var(--space-12, 12px);
+  background: var(--color-surface-secondary, #F8F9FA);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-base, 4px);
+  font-size: var(--font-size-xs, 11px);
+  color: var(--color-text-secondary);
+  font-style: italic;
+  z-index: 100;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fleet-management-v2,
+  .vehicle-card-v2 {
+    animation: none;
+    opacity: 1;
+  }
+  .vehicle-card-v2:hover,
+  .btn-add-v2:hover,
+  .btn-view-history:hover,
+  .fleet-header-v2:hover .fleet-header-icon {
+    transform: none;
+  }
+  .spin {
+    animation: none;
+  }
+}
+

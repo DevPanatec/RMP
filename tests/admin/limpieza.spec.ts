@@ -58,7 +58,7 @@ async function openOperacionesCatalogoLimpieza(page: Page) {
   await page.waitForTimeout(800);
 
   // Sub-tab: Catálogo (formerly "servicios")
-  const catTab = page.locator(".ops-tab:has-text('Catálogo')").first();
+  const catTab = page.locator(".app-subtab:has-text('Catálogo')").first();
   await expect(catTab).toBeVisible({ timeout: 10_000 });
   await catTab.click();
   await page.waitForTimeout(800);
@@ -80,7 +80,7 @@ async function openOperacionesAsignacionesLimpieza(page: Page) {
   await opsTab.click();
   await page.waitForTimeout(600);
 
-  const asignacionesTab = page.locator(".ops-tab:has-text('Asignaciones')").first();
+  const asignacionesTab = page.locator(".app-subtab:has-text('Asignaciones')").first();
   await expect(asignacionesTab).toBeVisible({ timeout: 10_000 });
   await asignacionesTab.click();
   await page.waitForTimeout(1000);

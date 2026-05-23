@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { getAuthScope, requireOrgAccess, requireWriteRole } from "./lib/auth";
+import { tryEmitParadaEvent } from "./route_events";
 
 /**
  * Calcular distancia entre dos puntos GPS usando fórmula Haversine.
@@ -350,7 +351,7 @@ export const checkVehicleGeofences = internalMutation({
       // Detectar cambio de estado
       if (isInside !== wasInside) {
         const tipoEvento = isInside ? "entrada" : "salida";
-        
+
         // Solo alertar si el tipo de geofence lo permite
         const shouldAlert =
           geofence.tipo === "ambos" ||
@@ -377,6 +378,30 @@ export const checkVehicleGeofences = internalMutation({
             geofenceId: geofence._id,
             tipoEvento,
           });
+        }
+
+        // Auto-emit parada event si el geofence es auto-generado por una ruta.
+        // Solo si tiene ruta_id + parada_index (sembrado por rutas.syncParadaGeofences).
+        // tryEmitParadaEvent verifica route_progress activo + idempotency interna.
+        if (
+          geofence.auto_generada &&
+          geofence.ruta_id &&
+          geofence.parada_index !== undefined &&
+          geofence.parada_index !== null
+        ) {
+          try {
+            await tryEmitParadaEvent(ctx, {
+              vehiculo_id: vehiculoId,
+              ruta_id: geofence.ruta_id,
+              parada_index: geofence.parada_index,
+              tipo_evento: isInside ? "parada_llegada" : "parada_salida",
+              latitud,
+              longitud,
+            });
+          } catch (err) {
+            // Auto-emit es best-effort. No bloquear el flow de geofence si falla.
+            console.warn("tryEmitParadaEvent failed:", err);
+          }
         }
       }
 

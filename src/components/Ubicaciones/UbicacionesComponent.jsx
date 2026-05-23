@@ -9,7 +9,9 @@ import {
   Plus, Edit, Trash2, MapPin, Sparkles, Bug, Camera, Search,
 } from '../Icons';
 import UbicacionModal from './UbicacionModal';
-import { ConfirmDialog } from '../UI';
+import { ConfirmDialog, SortableHeader } from '../UI';
+import useInputDebounce from '../../hooks/useInputDebounce';
+import useSortableData from '../../hooks/useSortableData';
 import './UbicacionesComponent.css';
 
 const UbicacionPhoto = memo(({ storageId, alt }) => {
@@ -39,19 +41,22 @@ const UbicacionesComponent = ({ forceTipo = null, hideHeader = false }) => {
 
   const [activeTipo, setActiveTipo] = useState(forceTipo || 'lugar');
   const [search, setSearch] = useState('');
+  const debouncedSearch = useInputDebounce(search, 300);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
 
   const items = activeTipo === 'lugar' ? lugaresFum : salas;
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
+    const q = debouncedSearch.trim().toLowerCase();
     if (!q) return items;
     return items.filter((it) =>
       (it.nombre || '').toLowerCase().includes(q) ||
       (it.descripcion || '').toLowerCase().includes(q)
     );
-  }, [items, search]);
+  }, [items, debouncedSearch]);
+
+  const { sortedData: sortedItems, sortKey, sortDir, requestSort } = useSortableData(filtered, 'nombre');
 
   const openNew = () => {
     setEditing(null);
@@ -200,14 +205,14 @@ const UbicacionesComponent = ({ forceTipo = null, hideHeader = false }) => {
             <thead>
               <tr>
                 <th style={{ width: 72 }}>Foto</th>
-                <th>Nombre</th>
-                <th>Descripción</th>
-                <th>Coordenadas</th>
+                <SortableHeader column="nombre" label="Nombre" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
+                <SortableHeader column="descripcion" label="Descripción" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
+                <SortableHeader column="latitud" label="Coordenadas" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
                 <th style={{ width: 120 }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((item) => (
+              {sortedItems.map((item) => (
                 <tr key={item._id || item.id}>
                   <td>
                     <UbicacionPhoto storageId={item.foto_storage_id} alt={item.nombre} />

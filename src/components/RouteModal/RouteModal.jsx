@@ -13,6 +13,7 @@ import {
 } from '../Icons';
 import { useProject } from '../../context/ProjectContext';
 import { useAuth } from '../../context/AuthContext';
+import useFocusTrap from '../../hooks/useFocusTrap';
 import './RouteModal.css';
 
 // OpenFreeMap Positron — same tiles as dashboard MapLibreComponent (no key needed).
@@ -422,6 +423,8 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
     };
   }, [formData.paradas]);
 
+  const trapRef = useFocusTrap(isOpen, onClose);
+
   if (!isOpen) return null;
 
   const getValidationStatus = () => {
@@ -437,16 +440,23 @@ const RouteModal = ({ isOpen, onClose, route, onSave, isEditing }) => {
 
   return (
     <div className="route-modal-overlay" onClick={onClose}>
-      <div className="route-modal-content" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={trapRef}
+        className="route-modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="route-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="route-modal-header-v2">
           <div className="header-top-row">
             <div className="modal-header-content">
-              <h4>
+              <h4 id="route-modal-title">
                 {isEditing ? <><Edit size={24} /> Editar Ruta</> : <><Plus size={24} /> Nueva Ruta</>}
               </h4>
               <p>Configura tu ruta con información detallada, paradas y opciones avanzadas</p>
             </div>
-            <button className="modal-close-v2" onClick={onClose}><X size={20} /></button>
+            <button className="modal-close-v2" onClick={onClose} aria-label="Cerrar modal"><X size={20} /></button>
           </div>
 
           <div className="header-stats-row">

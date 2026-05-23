@@ -5,9 +5,10 @@ import { useFumigation } from '../../context/FumigationContext';
 import { useSchedule } from '../../context/ScheduleContext';
 import { useMaintenance } from '../../context/MaintenanceContext';
 import { useOrganization } from '../../context/OrganizationContext';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter } from '../Icons';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Filter, Truck, Bug, Sparkles, Wrench, MapPin } from '../Icons';
 import CalendarDay from './CalendarDay';
 import DayDetailsModal from './DayDetailsModal';
+import { SkeletonGrid } from '../UI';
 import './CalendarComponent.css';
 
 const CALENDAR_CONFIG = {
@@ -47,18 +48,18 @@ const CalendarComponent = () => {
 
   const loading = routesLoading || cleaningLoading || fumigationLoading || scheduleLoading || maintenanceLoading;
 
-  const getActivityTypeIcon = (type) => {
+  const getActivityTypeIcon = (type, size = 14) => {
     switch (type) {
       case 'recoleccion':
-        return '🚛';
+        return <Truck size={size} aria-hidden="true" />;
       case 'fumigacion':
-        return '🦟';
+        return <Bug size={size} aria-hidden="true" />;
       case 'limpieza':
-        return '🧹';
+        return <Sparkles size={size} aria-hidden="true" />;
       case 'mantenimiento':
-        return '🔧';
+        return <Wrench size={size} aria-hidden="true" />;
       default:
-        return '📌';
+        return <MapPin size={size} aria-hidden="true" />;
     }
   };
 
@@ -384,7 +385,7 @@ const CalendarComponent = () => {
                 className={`filter-btn ${filters.recoleccion ? 'active' : ''}`}
                 onClick={() => toggleFilter('recoleccion')}
               >
-                🚛 Recolección
+                <Truck size={14} aria-hidden="true" /> Recolección
               </button>
             )}
             {enabledModules.fumigacion && (
@@ -392,7 +393,7 @@ const CalendarComponent = () => {
                 className={`filter-btn ${filters.fumigacion ? 'active' : ''}`}
                 onClick={() => toggleFilter('fumigacion')}
               >
-                🦟 Fumigación
+                <Bug size={14} aria-hidden="true" /> Fumigación
               </button>
             )}
             {enabledModules.limpieza && (
@@ -400,7 +401,7 @@ const CalendarComponent = () => {
                 className={`filter-btn ${filters.limpieza ? 'active' : ''}`}
                 onClick={() => toggleFilter('limpieza')}
               >
-                🧹 Limpieza
+                <Sparkles size={14} aria-hidden="true" /> Limpieza
               </button>
             )}
             {enabledModules.mantenimiento && (
@@ -408,7 +409,7 @@ const CalendarComponent = () => {
                 className={`filter-btn ${filters.mantenimiento ? 'active' : ''}`}
                 onClick={() => toggleFilter('mantenimiento')}
               >
-                🔧 Mantenimiento
+                <Wrench size={14} aria-hidden="true" /> Mantenimiento
               </button>
             )}
           </div>
@@ -417,8 +418,7 @@ const CalendarComponent = () => {
 
       {loading ? (
         <div className="calendar-loading">
-          <div className="spinner"></div>
-          <p>Cargando calendario...</p>
+          <SkeletonGrid count={28} minColWidth={120} itemHeight={80} />
         </div>
       ) : (
         <>

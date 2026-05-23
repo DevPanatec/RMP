@@ -5,7 +5,7 @@ import { useOrganization } from '../../context/OrganizationContext';
 import {
   DollarSign, TrendingUp, TrendingDown, Package, ShoppingCart,
   Wrench, Shield, Users as UsersIcon, Calendar, PieChart,
-  BarChart3, ClipboardList, CheckCircle, AlertTriangle
+  BarChart3, ClipboardList, CheckCircle, AlertTriangle, Truck
 } from '../Icons';
 import './CostosComponent.css';
 
@@ -15,7 +15,9 @@ const CostosComponent = () => {
     costosPorTipo,
     historialComprasPorMes,
     topItemsMasCostosos,
-    inventory
+    inventory,
+    costoFlotaActivo,
+    historialReemplazosFlota,
   } = useInventory();
 
   const { tasks, getOperationalStats } = useMaintenance();
@@ -50,9 +52,24 @@ const CostosComponent = () => {
     uniforme: { icon: <UsersIcon size={24} />, color: 'var(--color-success)', bgColor: 'rgba(var(--color-success-rgb), 0.1)', nombre: 'Uniformes' }
   };
 
-  // Gráfica inventario
+  // Gráfica inventario — merge inventario + reemplazos flota por mes (eje X común)
   const chartData = historialComprasPorMes || [];
-  const maxGasto = Math.max(...chartData.map(d => d.total || 0), 100);
+  const reemplazosRaw = historialReemplazosFlota || [];
+  // Mapa mes → total reemplazos (lookup rápido)
+  const reemplazosByMes = {};
+  reemplazosRaw.forEach((r) => { reemplazosByMes[r.mes] = r.total || 0; });
+  // Para cada mes en chartData, anexar valor de reemplazos (0 si no hay)
+  const reemplazosSerie = chartData.map((d) => reemplazosByMes[d.mes] || 0);
+  // Meses que solo aparecen en reemplazos (no en compras inventario) — añadirlos
+  const mesesChart = new Set(chartData.map((d) => d.mes));
+  const extraReemplazos = reemplazosRaw.filter((r) => !mesesChart.has(r.mes));
+
+  const maxGasto = Math.max(
+    ...chartData.map(d => d.total || 0),
+    ...reemplazosSerie,
+    ...extraReemplazos.map(r => r.total || 0),
+    100,
+  );
   const chartWidth = 1000;
   const chartHeight = 400;
   const padding = { top: 20, right: 40, bottom: 30, left: 60 };
@@ -70,6 +87,13 @@ const CostosComponent = () => {
   const areaPath = chartData.length > 0
     ? `${linePath} L ${xScale(chartData.length - 1)} ${innerHeight + padding.top} L ${padding.left} ${innerHeight + padding.top} Z`
     : '';
+
+  // Línea de reemplazos flota — misma X que inventario
+  const reemplazosLinePath = chartData.map((_, i) => {
+    const x = xScale(i);
+    const y = yScale(reemplazosSerie[i]);
+    return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
+  }).join(' ');
 
   const formatMes = (mesStr) => {
     const [, month] = mesStr.split('-');
@@ -122,14 +146,43 @@ const CostosComponent = () => {
   }, [tasks]);
 
   // ========================
+  // DATOS FLEET INVENTORY
+  // ========================
+  // Snapshot: valor presente de componentes/activos de flota instalados (estado='activo')
+  const valorFlotaActivo = costoFlotaActivo?.total || 0;
+  const flotaBreakdown = costoFlotaActivo?.breakdown || {
+    vehicle_components: 0, fleet_assets: 0, fleet_asset_components: 0, location_components: 0
+  };
+  const flotaTopItems = costoFlotaActivo?.topItems || [];
+
+  // Flujo: gasto en reemplazos por mes (historial)
+  const reemplazosChartData = historialReemplazosFlota || [];
+  const gastoReemplazosTotal = reemplazosChartData.reduce((sum, m) => sum + (m.total || 0), 0);
+  const gastoReemplazosMesActual = reemplazosChartData.find(m => m.mes === mesActual)?.total || 0;
+  const gastoReemplazosMesAnterior = reemplazosChartData.find(m => m.mes === mesAnteriorKey)?.total || 0;
+  const cambioReemplazosMensual = gastoReemplazosMesAnterior > 0
+    ? (((gastoReemplazosMesActual - gastoReemplazosMesAnterior) / gastoReemplazosMesAnterior) * 100).toFixed(1)
+    : 0;
+
+  // ========================
   // DATOS RESUMEN
   // ========================
-  const costoTotalOperacional = (valorTotalInventario || 0) + (maintCostData.totalCost || 0);
+  const costoTotalOperacional =
+    (valorTotalInventario || 0) +
+    (maintCostData.totalCost || 0) +
+    valorFlotaActivo +
+    gastoReemplazosTotal;
   const pctInventario = costoTotalOperacional > 0
     ? ((valorTotalInventario / costoTotalOperacional) * 100).toFixed(1)
     : '0';
   const pctMantenimiento = costoTotalOperacional > 0
     ? ((maintCostData.totalCost / costoTotalOperacional) * 100).toFixed(1)
+    : '0';
+  const pctFlotaActivo = costoTotalOperacional > 0
+    ? ((valorFlotaActivo / costoTotalOperacional) * 100).toFixed(1)
+    : '0';
+  const pctReemplazos = costoTotalOperacional > 0
+    ? ((gastoReemplazosTotal / costoTotalOperacional) * 100).toFixed(1)
     : '0';
 
   // Iconos y colores por tipo mantenimiento
@@ -187,6 +240,12 @@ const CostosComponent = () => {
             <div className="costos-stat-pill warning">
               <span className="stat-number">B/. {maintCostData.totalCost.toLocaleString()}</span>
               <span className="stat-label">Mant.</span>
+            </div>
+          )}
+          {hasInv && valorFlotaActivo > 0 && (
+            <div className="costos-stat-pill info">
+              <span className="stat-number">B/. {valorFlotaActivo.toLocaleString()}</span>
+              <span className="stat-label">Flota</span>
             </div>
           )}
         </div>
@@ -247,6 +306,32 @@ const CostosComponent = () => {
             </div>
 
             <div className="kpi-card">
+              <div className="kpi-icon" style={{ backgroundColor: 'rgba(var(--color-info-rgb), 0.08)' }}>
+                <Truck size={32} style={{ color: 'var(--color-info)' }} />
+              </div>
+              <div className="kpi-content">
+                <div className="kpi-label">Valor Flota Activa</div>
+                <div className="kpi-value">B/. {valorFlotaActivo.toLocaleString()}</div>
+                <div className="kpi-change" style={{ color: 'var(--color-text-secondary)' }}>
+                  <span>{pctFlotaActivo}% del total</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="kpi-card">
+              <div className="kpi-icon" style={{ backgroundColor: 'rgba(var(--color-error-rgb), 0.08)' }}>
+                <Wrench size={32} style={{ color: 'var(--color-error)' }} />
+              </div>
+              <div className="kpi-content">
+                <div className="kpi-label">Reemplazos Flota (Hist.)</div>
+                <div className="kpi-value">B/. {gastoReemplazosTotal.toLocaleString()}</div>
+                <div className="kpi-change" style={{ color: 'var(--color-text-secondary)' }}>
+                  <span>{pctReemplazos}% del total</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="kpi-card">
               <div className="kpi-icon" style={{ backgroundColor: 'rgba(var(--color-success-rgb), 0.1)' }}>
                 <ShoppingCart size={32} style={{ color: 'var(--color-success)' }} />
               </div>
@@ -272,23 +357,41 @@ const CostosComponent = () => {
                   <div className="distribution-bar">
                     <div
                       className="distribution-segment inventario"
-                      style={{ width: `${pctInventario}%` }}
+                      style={{ width: `${pctInventario}%`, backgroundColor: 'var(--color-primary)' }}
                     />
                     <div
                       className="distribution-segment mantenimiento"
-                      style={{ width: `${pctMantenimiento}%` }}
+                      style={{ width: `${pctMantenimiento}%`, backgroundColor: 'var(--color-warning)' }}
+                    />
+                    <div
+                      className="distribution-segment flota-activo"
+                      style={{ width: `${pctFlotaActivo}%`, backgroundColor: 'var(--color-info)' }}
+                    />
+                    <div
+                      className="distribution-segment flota-reemplazos"
+                      style={{ width: `${pctReemplazos}%`, backgroundColor: 'var(--color-error)' }}
                     />
                   </div>
                   <div className="distribution-legend">
                     <div className="distribution-legend-item">
-                      <span className="distribution-dot inventario" />
+                      <span className="distribution-dot" style={{ backgroundColor: 'var(--color-primary)' }} />
                       <span className="distribution-label">Inventario</span>
                       <span className="distribution-value">B/. {(valorTotalInventario || 0).toLocaleString()} ({pctInventario}%)</span>
                     </div>
                     <div className="distribution-legend-item">
-                      <span className="distribution-dot mantenimiento" />
+                      <span className="distribution-dot" style={{ backgroundColor: 'var(--color-warning)' }} />
                       <span className="distribution-label">Mantenimiento</span>
                       <span className="distribution-value">B/. {maintCostData.totalCost.toLocaleString()} ({pctMantenimiento}%)</span>
+                    </div>
+                    <div className="distribution-legend-item">
+                      <span className="distribution-dot" style={{ backgroundColor: 'var(--color-info)' }} />
+                      <span className="distribution-label">Flota Activa</span>
+                      <span className="distribution-value">B/. {valorFlotaActivo.toLocaleString()} ({pctFlotaActivo}%)</span>
+                    </div>
+                    <div className="distribution-legend-item">
+                      <span className="distribution-dot" style={{ backgroundColor: 'var(--color-error)' }} />
+                      <span className="distribution-label">Reemplazos Flota</span>
+                      <span className="distribution-value">B/. {gastoReemplazosTotal.toLocaleString()} ({pctReemplazos}%)</span>
                     </div>
                   </div>
                 </div>
@@ -386,7 +489,7 @@ const CostosComponent = () => {
           {/* Gráfica de Tendencia */}
           <div className="tendencia-section">
             <div className="tendencia-header">
-              <h3>Tendencia de Gastos en Compras</h3>
+              <h3>Tendencia de Gastos: Inventario vs Reemplazos de Flota</h3>
               <div className="period-selector-v2 period-selector-inline">
                 <button className={selectedPeriod === '6' ? 'active' : ''} onClick={() => setSelectedPeriod('6')}>
                   6 Meses
@@ -394,6 +497,16 @@ const CostosComponent = () => {
                 <button className={selectedPeriod === '12' ? 'active' : ''} onClick={() => setSelectedPeriod('12')}>
                   12 Meses
                 </button>
+              </div>
+            </div>
+            <div className="tendencia-legend">
+              <div className="tendencia-legend-item">
+                <span className="tendencia-dot" style={{ backgroundColor: 'var(--color-primary)' }} />
+                <span>Compras Inventario</span>
+              </div>
+              <div className="tendencia-legend-item">
+                <span className="tendencia-dot" style={{ backgroundColor: 'var(--color-error)' }} />
+                <span>Reemplazos Flota</span>
               </div>
             </div>
             <div className="costos-chart-container">
@@ -426,14 +539,31 @@ const CostosComponent = () => {
 
                   <path d={areaPath} fill="url(#areaGradientInventario)" />
                   <path d={linePath} fill="none" stroke="var(--color-primary)" strokeWidth="3" />
+                  {gastoReemplazosTotal > 0 && (
+                    <path
+                      d={reemplazosLinePath}
+                      fill="none"
+                      stroke="var(--color-error)"
+                      strokeWidth="3"
+                      strokeDasharray="6,4"
+                    />
+                  )}
 
                   {chartData.map((d, i) => (
-                    <g key={i}>
+                    <g key={`inv-${i}`}>
                       <circle cx={xScale(i)} cy={yScale(d.total)} r="5" fill="var(--color-primary)" stroke="var(--color-surface)" strokeWidth="2" />
                       <text x={xScale(i)} y={yScale(d.total) - 15} textAnchor="middle" fontSize="12" fill="var(--color-text-tertiary)">
                         ${d.total.toFixed(0)}
                       </text>
                     </g>
+                  ))}
+
+                  {gastoReemplazosTotal > 0 && chartData.map((_, i) => (
+                    reemplazosSerie[i] > 0 && (
+                      <g key={`rep-${i}`}>
+                        <circle cx={xScale(i)} cy={yScale(reemplazosSerie[i])} r="4" fill="var(--color-error)" stroke="var(--color-surface)" strokeWidth="2" />
+                      </g>
+                    )
                   ))}
 
                   {chartData.map((d, i) => (
@@ -445,6 +575,145 @@ const CostosComponent = () => {
               )}
             </div>
           </div>
+
+          {/* Fleet Inventory — Snapshot + Breakdown */}
+          {valorFlotaActivo > 0 && (
+            <div className="breakdown-section">
+              <h3>Inventario de Flota — Valor Activo</h3>
+              <div className="breakdown-grid">
+                <div className="breakdown-card" style={{ borderLeft: '4px solid var(--color-info)' }}>
+                  <div className="breakdown-header">
+                    <div className="breakdown-icon" style={{ backgroundColor: 'rgba(var(--color-info-rgb), 0.1)' }}>
+                      <Truck size={24} />
+                    </div>
+                    <div className="breakdown-info">
+                      <span className="breakdown-category">Componentes de Vehículos</span>
+                      <span className="breakdown-percentage">
+                        {valorFlotaActivo > 0 ? ((flotaBreakdown.vehicle_components / valorFlotaActivo) * 100).toFixed(1) : '0'}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="breakdown-amount">
+                    B/. {flotaBreakdown.vehicle_components.toLocaleString()}
+                  </div>
+                  <div className="breakdown-meta">
+                    {costoFlotaActivo?.counts?.vehicle_components || 0} componentes activos
+                  </div>
+                </div>
+
+                <div className="breakdown-card" style={{ borderLeft: '4px solid var(--color-success)' }}>
+                  <div className="breakdown-header">
+                    <div className="breakdown-icon" style={{ backgroundColor: 'rgba(var(--color-success-rgb), 0.1)' }}>
+                      <Package size={24} />
+                    </div>
+                    <div className="breakdown-info">
+                      <span className="breakdown-category">Activos Standalone</span>
+                      <span className="breakdown-percentage">
+                        {valorFlotaActivo > 0 ? ((flotaBreakdown.fleet_assets / valorFlotaActivo) * 100).toFixed(1) : '0'}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="breakdown-amount">
+                    B/. {flotaBreakdown.fleet_assets.toLocaleString()}
+                  </div>
+                  <div className="breakdown-meta">
+                    {costoFlotaActivo?.counts?.fleet_assets || 0} activos activos
+                  </div>
+                </div>
+
+                <div className="breakdown-card" style={{ borderLeft: '4px solid var(--color-warning)' }}>
+                  <div className="breakdown-header">
+                    <div className="breakdown-icon" style={{ backgroundColor: 'rgba(var(--color-warning-rgb), 0.1)' }}>
+                      <Shield size={24} />
+                    </div>
+                    <div className="breakdown-info">
+                      <span className="breakdown-category">Componentes de Activos</span>
+                      <span className="breakdown-percentage">
+                        {valorFlotaActivo > 0 ? ((flotaBreakdown.fleet_asset_components / valorFlotaActivo) * 100).toFixed(1) : '0'}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="breakdown-amount">
+                    B/. {flotaBreakdown.fleet_asset_components.toLocaleString()}
+                  </div>
+                  <div className="breakdown-meta">
+                    {costoFlotaActivo?.counts?.fleet_asset_components || 0} componentes activos
+                  </div>
+                </div>
+
+                {flotaBreakdown.location_components > 0 && (
+                  <div className="breakdown-card" style={{ borderLeft: '4px solid var(--color-primary)' }}>
+                    <div className="breakdown-header">
+                      <div className="breakdown-icon" style={{ backgroundColor: 'rgba(var(--color-primary-rgb), 0.1)' }}>
+                        <ClipboardList size={24} />
+                      </div>
+                      <div className="breakdown-info">
+                        <span className="breakdown-category">Componentes de Lugar</span>
+                        <span className="breakdown-percentage">
+                          {((flotaBreakdown.location_components / valorFlotaActivo) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="breakdown-amount">
+                      B/. {flotaBreakdown.location_components.toLocaleString()}
+                    </div>
+                    <div className="breakdown-meta">
+                      {costoFlotaActivo?.counts?.location_components || 0} componentes activos
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Top Componentes de Flota — más costosos */}
+          {flotaTopItems.length > 0 && (
+            <div className="top-items-section">
+              <h3>Top Componentes de Flota por Costo</h3>
+              <div className="top-items-table-container">
+                <table className="top-items-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Nombre</th>
+                      <th>Tipo</th>
+                      <th>Categoría</th>
+                      <th>Costo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {flotaTopItems.map((item, idx) => {
+                      const catLabel = {
+                        vehicle_component: 'Vehículo',
+                        fleet_asset: 'Activo Standalone',
+                        fleet_asset_component: 'Comp. Activo',
+                        location_component: 'Lugar',
+                      }[item.categoria] || item.categoria;
+                      const catColor = {
+                        vehicle_component: 'var(--color-info)',
+                        fleet_asset: 'var(--color-success)',
+                        fleet_asset_component: 'var(--color-warning)',
+                        location_component: 'var(--color-primary)',
+                      }[item.categoria] || 'var(--color-text-tertiary)';
+                      return (
+                        <tr key={idx}>
+                          <td><strong>#{idx + 1}</strong></td>
+                          <td><strong>{item.nombre}</strong></td>
+                          <td>{item.tipo}</td>
+                          <td>
+                            <span className="tipo-badge" style={{ backgroundColor: 'transparent', color: catColor, border: `1px solid ${catColor}` }}>
+                              {catLabel}
+                            </span>
+                          </td>
+                          <td><strong>B/. {item.costo.toLocaleString()}</strong></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Top Items */}
           <div className="top-items-section">

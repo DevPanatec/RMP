@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useRoutes } from '../../context/RoutesContext';
 import RouteModal from '../RouteModal/RouteModal';
 import { Map, Edit, Trash2, MapPin, Clock, Truck, Plus, Route } from '../Icons';
-import { ConfirmDialog } from '../UI';
+import { ConfirmDialog, SkeletonGrid } from '../UI';
 import { handleMutationError } from '../../utils/mutationError';
 import './RoutesComponent.css';
 
@@ -109,10 +109,7 @@ const RoutesComponent = ({ initialRoutes = [], userRole = 'admin' }) => {
 
       {/* Content */}
       {loading ? (
-        <div className="routes-loading-v2">
-          <div className="loading-spinner"></div>
-          <p>Cargando rutas...</p>
-        </div>
+        <SkeletonGrid count={6} minColWidth={280} itemHeight={180} />
       ) : routes.length > 0 ? (
         <div className="routes-grid-v2">
           {routes.map((route, index) => {

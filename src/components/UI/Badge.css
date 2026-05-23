@@ -15,6 +15,11 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border: 1px solid transparent;
+  font-variant-numeric: tabular-nums;
+  transition:
+    background 180ms var(--crono-ease-soft),
+    border-color 180ms var(--crono-ease-soft),
+    box-shadow 180ms var(--crono-ease-soft);
 }
 
 .badge__icon {
@@ -137,4 +142,10 @@
   font-size: var(--font-size-sm);
   line-height: 18px;
   gap: var(--space-4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge {
+    transition: none !important;
+  }
 }

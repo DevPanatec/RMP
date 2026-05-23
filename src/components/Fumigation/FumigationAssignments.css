@@ -93,7 +93,7 @@
 
 .fumigation-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px var(--alpha-overlay-light);
   border-color: var(--color-primary);
 }
 
@@ -105,6 +105,9 @@
 }
 
 .fumigation-card__tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
@@ -236,7 +239,7 @@
 }
 
 .assignment-card__status--programada {
-  background: rgba(0, 122, 255, 0.1);
+  background: var(--alpha-ios-blue-tint);
   color: var(--color-info);
 }
 
@@ -254,5 +257,127 @@
 @media (max-width: 768px) {
   .fumigation-assignments__grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================
+   CRONOGRAMA POLISH OVERRIDES (FUM amber)
+   ============================================ */
+
+.fumigation-assignments {
+  animation: crono-fade-up 360ms var(--crono-ease-soft);
+}
+
+.fumigation-assignments__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-12);
+}
+
+.fumigation-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--crono-shadow-1);
+  transition: transform 220ms var(--crono-ease-soft), box-shadow 220ms var(--crono-ease-soft), border-color 220ms var(--crono-ease-soft);
+  opacity: 0;
+  animation: crono-fade-up 320ms var(--crono-ease-soft) forwards;
+  position: relative;
+  overflow: hidden;
+}
+
+.fumigation-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--crono-fum);
+  border-radius: 4px 0 0 4px;
+}
+
+.fumigation-assignments__grid .fumigation-card:nth-child(1) { animation-delay: 0ms; }
+.fumigation-assignments__grid .fumigation-card:nth-child(2) { animation-delay: 50ms; }
+.fumigation-assignments__grid .fumigation-card:nth-child(3) { animation-delay: 100ms; }
+.fumigation-assignments__grid .fumigation-card:nth-child(4) { animation-delay: 150ms; }
+.fumigation-assignments__grid .fumigation-card:nth-child(5) { animation-delay: 200ms; }
+.fumigation-assignments__grid .fumigation-card:nth-child(6) { animation-delay: 250ms; }
+.fumigation-assignments__grid .fumigation-card:nth-child(7) { animation-delay: 300ms; }
+.fumigation-assignments__grid .fumigation-card:nth-child(n+8) { animation-delay: 350ms; }
+
+.fumigation-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--crono-shadow-2);
+  border-color: var(--color-border-strong, #c8c8c8);
+}
+
+.fumigation-card__estado {
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 7px;
+  border-radius: 4px;
+}
+
+.fumigation-card__estado--programada {
+  background: var(--crono-rec-soft);
+  color: #004578;
+}
+
+.fumigation-card__estado--realizada {
+  background: var(--crono-fum-soft);
+  color: #7c4a00;
+}
+
+.fumigation-card__estado--reportada {
+  background: var(--crono-lim-soft);
+  color: #054b05;
+}
+
+.fumigation-card__row {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+.fumigation-card__action-btn {
+  border-radius: 8px;
+  transition: all 180ms var(--crono-ease-soft);
+}
+
+.fumigation-card__action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--crono-shadow-1);
+}
+
+.fumigation-assignments__lugar-count {
+  font-variant-numeric: tabular-nums;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+
+.fumigation-assignments__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-40) var(--space-16);
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+.fumigation-assignments__empty svg {
+  opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fumigation-assignments,
+  .fumigation-card,
+  .fumigation-card__action-btn {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
   }
 }

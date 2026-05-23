@@ -1,5 +1,6 @@
-import { Edit, Trash2, Settings, Users } from '../Icons';
-import { EmptyState, SkeletonRow } from '../UI';
+import { Edit, Trash2, Settings, Users, Phone, IdCard, ChevronLeft, ChevronRight } from '../Icons';
+import { EmptyState, SkeletonRow, SortableHeader } from '../UI';
+import useSortableData from '../../hooks/useSortableData';
 import './PersonnelTable.css';
 
 export const PersonnelTable = ({
@@ -25,15 +26,15 @@ export const PersonnelTable = ({
     }
   };
 
-  const getStatusIcon = (estado) => {
+  const getStatusDotClass = (estado) => {
     switch (estado?.toLowerCase()) {
-      case 'activo': return '🟢';
-      case 'en ruta': return '🟡';
+      case 'activo': return 'status-dot--success';
+      case 'en ruta': return 'status-dot--warning';
       case 'vacaciones':
       case 'licencia':
-      case 'descanso': return '⚪';
-      case 'inactivo': return '🔴';
-      default: return '⚪';
+      case 'descanso': return 'status-dot--info';
+      case 'inactivo': return 'status-dot--error';
+      default: return 'status-dot--muted';
     }
   };
 
@@ -56,10 +57,12 @@ export const PersonnelTable = ({
     return 'default';
   };
 
+  const { sortedData, sortKey, sortDir, requestSort } = useSortableData(personnel || [], 'nombre');
+
   const itemsPerPage = 8;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentPersonnel = (personnel || []).slice(startIndex, endIndex);
+  const currentPersonnel = sortedData.slice(startIndex, endIndex);
 
   if (loading && (!personnel || personnel.length === 0)) {
     return (
@@ -102,10 +105,10 @@ export const PersonnelTable = ({
         <table className="personnel-table">
           <thead>
             <tr>
-              <th>Empleado</th>
-              <th>Puesto</th>
-              <th>Estado</th>
-              <th>Asignación</th>
+              <SortableHeader column="nombre" label="Empleado" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
+              <SortableHeader column="cargo" label="Puesto" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
+              <SortableHeader column="activo" label="Estado" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
+              <SortableHeader column="asignacion" label="Asignación" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
               {canWrite && <th>Acciones</th>}
             </tr>
           </thead>
@@ -122,8 +125,12 @@ export const PersonnelTable = ({
                         {employee.nombre} {employee.apellido || ''}
                       </div>
                       <div className="employee-contact">
-                        {employee.telefono && <span>📞 {employee.telefono}</span>}
-                        {employee.cedula && <span>🆔 {employee.cedula}</span>}
+                        {employee.telefono && (
+                          <span><Phone size={12} aria-hidden="true" /> {employee.telefono}</span>
+                        )}
+                        {employee.cedula && (
+                          <span><IdCard size={12} aria-hidden="true" /> {employee.cedula}</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -135,7 +142,8 @@ export const PersonnelTable = ({
                 </td>
                 <td>
                   <span className={`status-badge-table status-badge-table--${getStatusColor(employee.activo ? 'Activo' : 'Inactivo')}`}>
-                    {getStatusIcon(employee.activo ? 'Activo' : 'Inactivo')} {employee.activo ? 'Activo' : 'Inactivo'}
+                    <span className={`status-dot ${getStatusDotClass(employee.activo ? 'Activo' : 'Inactivo')}`} aria-hidden="true" />
+                    {employee.activo ? 'Activo' : 'Inactivo'}
                   </span>
                 </td>
                 <td>
@@ -177,8 +185,9 @@ export const PersonnelTable = ({
             className="pagination-btn"
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
+            aria-label="Página anterior"
           >
-            ← Anterior
+            <ChevronLeft size={14} aria-hidden="true" /> Anterior
           </button>
 
           <span className="pagination-info">
@@ -189,8 +198,9 @@ export const PersonnelTable = ({
             className="pagination-btn"
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
+            aria-label="Página siguiente"
           >
-            Siguiente →
+            Siguiente <ChevronRight size={14} aria-hidden="true" />
           </button>
         </div>
       )}

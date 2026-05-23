@@ -5,9 +5,15 @@
 .personnel-table-container {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--crono-shadow-1);
+  transition: box-shadow 200ms var(--crono-ease-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.personnel-table-container:hover {
+  box-shadow: var(--crono-shadow-2);
 }
 
 .personnel-table-wrapper {
@@ -39,11 +45,25 @@
 }
 
 .personnel-table tbody tr {
-  transition: background var(--duration-fast) var(--ease-out);
+  transition:
+    background 180ms var(--crono-ease-soft),
+    transform 180ms var(--crono-ease-soft);
+  opacity: 0;
+  animation: crono-item-in 280ms var(--crono-ease-soft) forwards;
 }
 
+.personnel-table tbody tr:nth-child(1)  { animation-delay: 0ms; }
+.personnel-table tbody tr:nth-child(2)  { animation-delay: 40ms; }
+.personnel-table tbody tr:nth-child(3)  { animation-delay: 80ms; }
+.personnel-table tbody tr:nth-child(4)  { animation-delay: 120ms; }
+.personnel-table tbody tr:nth-child(5)  { animation-delay: 160ms; }
+.personnel-table tbody tr:nth-child(6)  { animation-delay: 200ms; }
+.personnel-table tbody tr:nth-child(7)  { animation-delay: 240ms; }
+.personnel-table tbody tr:nth-child(8)  { animation-delay: 280ms; }
+.personnel-table tbody tr:nth-child(n+9) { animation-delay: 320ms; }
+
 .personnel-table tbody tr:hover {
-  background: var(--color-surface-secondary);
+  background: rgba(0, 120, 212, 0.04);
 }
 
 .employee-cell {
@@ -56,7 +76,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -85,6 +105,26 @@
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
 }
+
+.employee-contact span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.status-dot--success { background: var(--color-success); }
+.status-dot--warning { background: var(--color-warning); }
+.status-dot--info    { background: var(--color-info); }
+.status-dot--error   { background: var(--color-error); }
+.status-dot--muted   { background: var(--color-text-tertiary); }
 
 /* ============================================
    ROLE BADGES - Fluent Semantic
@@ -115,7 +155,7 @@
 
 .role-badge--supervisor {
   background: var(--color-warning-light);
-  color: #C19C00;
+  color: var(--color-warning);
   border-color: var(--color-warning);
 }
 
@@ -149,7 +189,7 @@
 
 .status-badge-table--warning {
   background: var(--color-warning-light);
-  color: #C19C00;
+  color: var(--color-warning);
   border-color: var(--color-warning);
 }
 
@@ -190,9 +230,21 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-base);
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
+  transition:
+    background 180ms var(--crono-ease-soft),
+    border-color 180ms var(--crono-ease-soft),
+    color 180ms var(--crono-ease-soft),
+    transform 180ms var(--crono-ease-spring);
   flex-shrink: 0;
   background: transparent;
+}
+
+.action-btn svg {
+  transition: transform 200ms var(--crono-ease-spring);
+}
+
+.action-btn:hover svg {
+  transform: rotate(8deg) scale(1.05);
 }
 
 .action-btn--edit {
@@ -229,8 +281,11 @@
 }
 
 .pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: var(--space-8) var(--space-16);
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-base);
@@ -241,7 +296,7 @@
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--color-action-bg-hover);
 }
 
 .pagination-btn:disabled {
@@ -292,5 +347,17 @@
     flex-direction: column;
     gap: var(--space-12);
     text-align: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .personnel-table tbody tr,
+  .personnel-table-container,
+  .action-btn,
+  .action-btn svg {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

@@ -183,7 +183,7 @@
 
 .pm-tag {
   padding: 1px 6px;
-  background: var(--color-surface-secondary, #F1F5F9);
+  background: var(--color-surface-secondary, var(--color-surface-secondary));
   border-radius: var(--radius-sm);
   font-size: 10px;
   text-transform: uppercase;
@@ -282,7 +282,7 @@
 }
 
 .pm-btn--primary {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
   border-color: var(--color-primary);
 }
@@ -314,9 +314,9 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--alpha-overlay-darker);
   backdrop-filter: blur(2px);
-  z-index: 1000;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;

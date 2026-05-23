@@ -80,8 +80,8 @@
 }
 
 .risk-stat-compact.total {
-  background: var(--color-primary-subtle);
-  border-color: var(--color-primary);
+  background: var(--color-accent-light);
+  border-color: var(--color-accent-border);
 }
 
 .risk-stat-compact .stat-value {
@@ -238,6 +238,14 @@
 }
 
 /* ===== REPORTS GRID - MODERNO ===== */
+/* Fuerza el bg del grid + parents pa' que los gaps entre cards
+   muestren el color de la página (no surface-secondary lighter). */
+.risk-body,
+.reports-section,
+.reports-responsive-grid {
+  background: var(--color-background);
+}
+
 .reports-responsive-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -334,9 +342,9 @@
 }
 
 .report-status-badge.status-en_revision {
-  background: var(--color-info-light);
-  color: var(--color-info);
-  border: 1px solid var(--color-info);
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
 }
 
 .report-status-badge.status-resuelto {
@@ -388,16 +396,16 @@
   overflow: hidden;
 }
 
-/* Info Grid - Layout 2 columnas */
+/* Info Grid - Layout 2 columnas. Sin background propio — usa el del card
+   para evitar efecto "fondo blanco" dentro del reporte en dark mode. */
 .report-info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-12);
   margin-bottom: var(--space-12);
-  padding: var(--space-12);
-  background: var(--color-surface-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-base);
+  padding: var(--space-12) 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .info-item {
@@ -435,16 +443,16 @@
 
 /* Parada highlight - Sutil neutral */
 .info-item.parada-highlight {
-  background: var(--color-surface-secondary);
-  border: 1px solid var(--color-border-strong);
-  border-left: 3px solid var(--color-primary);
+  background: var(--color-accent-light);
+  border: 1px solid var(--color-accent-border);
+  border-left: 3px solid var(--color-action-bg);
   border-radius: var(--radius-base);
   padding: var(--space-8);
   margin: var(--space-4) 0;
 }
 
 .info-item.parada-highlight .info-label {
-  color: var(--color-primary);
+  color: var(--color-action-bg);
 }
 
 .info-item.parada-highlight .info-value {
@@ -478,9 +486,9 @@
 }
 
 .priority-badge-compact.priority-media {
-  background: var(--color-info-light);
-  color: var(--color-info);
-  border: 1px solid var(--color-info);
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
 }
 
 .priority-badge-compact.priority-baja {
@@ -534,12 +542,12 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--alpha-overlay-backdrop);
   backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
   padding: var(--space-16);
 }
 
@@ -709,7 +717,7 @@
 .detail-item.parada-detail-highlight {
   background: var(--color-surface-secondary);
   border: 1px solid var(--color-border-strong);
-  border-left: 3px solid var(--color-primary);
+  border-left: 3px solid var(--color-action-bg);
   border-radius: var(--radius-base);
   padding: var(--space-12);
 }
@@ -860,4 +868,771 @@
   grid-template-columns: 1fr 1fr;
   gap: var(--space-12);
   margin-bottom: var(--space-12);
+}
+
+/* ============================================
+   HERO HEADER — Modern design refresh
+   Title row + stat chips clickeables (toggle filter) + CTA
+   ============================================ */
+.risk-hero {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-20) var(--space-24);
+  margin-bottom: var(--space-20);
+  box-shadow: var(--shadow-xs);
+  position: relative;
+  overflow: hidden;
+}
+
+.risk-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-action-bg) 0%, transparent 100%);
+}
+
+.risk-hero__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16);
+  margin-bottom: var(--space-20);
+  flex-wrap: wrap;
+}
+
+.risk-hero__title-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+}
+
+.risk-hero__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: var(--color-accent-light);
+  color: var(--color-action-bg);
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+.risk-hero__text h2 {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin: 0 0 2px;
+  letter-spacing: -0.02em;
+}
+
+.risk-hero__text p {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.risk-hero__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-10) var(--space-20);
+  background: var(--color-action-bg);
+  color: var(--color-on-action);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  font-family: var(--font-family-display);
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+  box-shadow: var(--shadow-sm);
+}
+
+.risk-hero__cta:hover {
+  background: var(--color-action-bg-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.risk-hero__cta:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Stat chips horizontales — clickeables = filter toggle */
+.risk-hero__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-10);
+}
+
+.risk-stat-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-12) var(--space-14);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+  text-align: left;
+  font-family: var(--font-family-base);
+}
+
+.risk-stat-chip:hover {
+  border-color: var(--color-border-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.risk-stat-chip--filter-active {
+  border-color: var(--color-action-bg);
+  background: var(--color-accent-light);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+}
+
+/* Icons — unified neutral treatment. Color signal solo via active state (emerald). */
+.risk-stat-chip__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.risk-stat-chip:hover .risk-stat-chip__icon {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+.risk-stat-chip--filter-active .risk-stat-chip__icon {
+  background: var(--color-action-bg);
+  color: var(--color-on-action);
+  border-color: var(--color-action-bg);
+}
+
+/* Legacy variant classes — no-op para no romper JSX. Estilo viene del base. */
+.risk-stat-chip__icon--warning,
+.risk-stat-chip__icon--info,
+.risk-stat-chip__icon--success,
+.risk-stat-chip__icon--accent {
+  /* inherits base */
+}
+
+.risk-stat-chip__data {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.risk-stat-chip__value {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.risk-stat-chip__label {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ============================================
+   SECTION HEADER — consolidated meta + segmented filter
+   ============================================ */
+.reports-section-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.reports-section-meta svg {
+  color: var(--color-action-bg);
+}
+
+.reports-section-count {
+  font-weight: var(--font-weight-medium);
+}
+
+.reports-section-count strong {
+  color: var(--color-text);
+  font-weight: var(--font-weight-bold);
+}
+
+.reports-filter-segment {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.reports-segment-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-12);
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--radius-md) - 4px);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family-base);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.reports-segment-btn:hover:not(.reports-segment-btn--active) {
+  background: var(--color-hover-overlay);
+  color: var(--color-text);
+}
+
+.reports-segment-btn--active {
+  background: var(--color-surface);
+  color: var(--color-action-bg);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: var(--shadow-xs);
+}
+
+/* ============================================
+   REPORT CARDS — polish hover + priority border
+   ============================================ */
+.report-card {
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.report-card::before {
+  width: 4px !important; /* Thicker priority indicator */
+}
+
+.report-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border-strong);
+}
+
+.report-card:hover::before {
+  width: 5px !important;
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 768px) {
+  .risk-hero {
+    padding: var(--space-16);
+  }
+  .risk-hero__title-row {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: var(--space-16);
+  }
+  .risk-hero__cta {
+    width: 100%;
+    justify-content: center;
+  }
+  .risk-hero__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ============================================
+   REPORT CARD V3 — Modern compact layout
+   Strip (tipo+status+date) → Title+category+priority → Description → Info list → Footer
+   ============================================ */
+
+.report-card {
+  padding: 0;
+}
+
+/* Top strip — clean header row (sin fondo distinto, integrado con card) */
+.report-card-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+  padding: var(--space-12) var(--space-14) var(--space-6);
+  background: transparent;
+  border-bottom: none;
+  flex-wrap: wrap;
+}
+
+.report-card-strip__left {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-10);
+  flex-wrap: wrap;
+}
+
+/* Separator vertical entre tipo (texto) y status (pill) */
+.report-card-strip__left > .report-status-pill {
+  position: relative;
+}
+
+.report-card-strip__left > .report-status-pill::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--space-10) * -1 + 1px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 10px;
+  background: var(--color-border);
+}
+
+/* Type pill — text-only neutral label (no fill, no border). */
+.report-type-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--font-family-display);
+  color: var(--color-text-tertiary);
+  background: transparent;
+  border: none;
+}
+
+.report-type-pill svg {
+  opacity: 0.7;
+}
+
+.report-type-pill--interno,
+.report-type-pill--externo {
+  /* inherits base — type ya no usa color como signal */
+}
+
+/* Status pill — outline only, sin fill ruidoso. Color = único signal de estado. */
+.report-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px var(--space-8);
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: var(--font-family-display);
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-text-secondary);
+}
+
+.report-status-pill.status-reportado {
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+}
+
+.report-status-pill.status-en_revision {
+  color: var(--color-action-bg);
+  border-color: var(--color-action-bg);
+}
+
+.report-status-pill.status-resuelto {
+  color: var(--color-text-tertiary);
+  border-color: var(--color-border-strong);
+  opacity: 0.85;
+}
+
+/* Date with calendar icon */
+.report-card-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+.report-card-date svg {
+  opacity: 0.7;
+}
+
+/* Title block */
+.report-card-titleblock {
+  padding: var(--space-12) var(--space-14) var(--space-8);
+}
+
+.report-card .report-title {
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  margin: 0 0 var(--space-8);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.report-card-meta-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.report-category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px var(--space-8);
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+}
+
+.report-category-chip svg {
+  opacity: 0.7;
+}
+
+/* Priority pill — inline en meta row */
+.priority-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px var(--space-8);
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.priority-pill.priority-critica,
+.priority-pill.priority-alta {
+  background: var(--color-error-light);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+.priority-pill.priority-media {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+}
+
+.priority-pill.priority-baja {
+  background: var(--color-success-light);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+/* Description */
+.report-card .report-description {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+  margin: 0 var(--space-14) var(--space-12);
+  font-weight: var(--font-weight-regular);
+}
+
+/* Info list — inline rows con icon */
+.report-info-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 var(--space-14) var(--space-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.report-info-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  padding: var(--space-6) 0;
+  border-bottom: 1px dashed var(--color-divider, var(--color-border));
+}
+
+.report-info-item:last-child {
+  border-bottom: none;
+}
+
+.report-info-item svg {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.report-info-item > span {
+  color: var(--color-text);
+  font-weight: var(--font-weight-medium);
+  word-break: break-word;
+}
+
+.report-info-item--highlight {
+  background: var(--color-accent-light);
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-base);
+  padding: var(--space-8) var(--space-10);
+  margin: var(--space-4) 0;
+}
+
+.report-info-item--highlight svg {
+  color: var(--color-action-bg);
+}
+
+.report-info-item--highlight > span {
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.report-info-item--highlight strong {
+  color: var(--color-action-bg);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Footer — clear separation + balanced buttons */
+.report-card-footer {
+  margin-top: auto;
+  padding: var(--space-10) var(--space-14);
+  border-top: 1px solid var(--color-divider, var(--color-border));
+  background: var(--color-surface-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.report-card-footer .btn {
+  font-family: var(--font-family-display);
+  letter-spacing: -0.01em;
+}
+
+.report-card-footer .btn--ghost {
+  flex: 1;
+  justify-content: center;
+}
+
+.report-card-footer .risk-btn-delete {
+  margin-left: auto;
+  padding: var(--space-6);
+  min-width: 32px;
+}
+
+/* ============================================
+   CRONOGRAMA POLISH OVERRIDES (Risk / red + fluent neutrals)
+   ============================================ */
+
+.risk-v2 {
+  animation: crono-fade-up 400ms var(--crono-ease-soft);
+}
+
+.risk-hero {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--crono-shadow-1);
+  padding: var(--space-16) var(--space-20);
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 200ms var(--crono-ease-soft);
+}
+
+.risk-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--color-error, #d13438);
+  border-radius: 4px 0 0 4px;
+}
+
+.risk-hero:hover {
+  box-shadow: var(--crono-shadow-2);
+}
+
+.risk-hero__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--color-error, #d13438) 0%, #b91d22 100%);
+  color: white;
+  box-shadow: 0 6px 16px rgba(209, 52, 56, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.risk-hero__text h2 {
+  font-family: var(--font-family-base);
+  font-size: 22px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.risk-hero__text p {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.risk-hero__cta {
+  background: linear-gradient(135deg, var(--color-error, #d13438) 0%, #b91d22 100%);
+  color: white;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: var(--space-8) var(--space-16);
+  font-weight: var(--font-weight-semibold);
+  box-shadow: 0 4px 12px rgba(209, 52, 56, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 200ms var(--crono-ease-soft);
+}
+
+.risk-hero__cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(209, 52, 56, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.risk-stat-chip {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: var(--space-6) var(--space-12);
+  box-shadow: var(--crono-shadow-1);
+  transition: all 200ms var(--crono-ease-soft);
+}
+
+.risk-stat-chip:hover {
+  transform: translateY(-1px);
+  border-color: var(--color-border-strong, #c8c8c8);
+  box-shadow: var(--crono-shadow-2);
+}
+
+.risk-stat-chip--filter-active {
+  border-color: var(--color-error, #d13438);
+  background: rgba(209, 52, 56, 0.06);
+  box-shadow: 0 0 0 3px rgba(209, 52, 56, 0.08);
+}
+
+.risk-stat-chip__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+.risk-stat-chip__label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+
+.risk-stat-chip__icon--warning { color: var(--crono-fum); }
+.risk-stat-chip__icon--info { color: var(--crono-rec); }
+.risk-stat-chip__icon--success { color: var(--crono-lim); }
+.risk-stat-chip__icon--accent { color: var(--color-error, #d13438); }
+
+.report-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--crono-shadow-1);
+  transition: transform 220ms var(--crono-ease-soft), box-shadow 220ms var(--crono-ease-soft), border-color 220ms var(--crono-ease-soft);
+  opacity: 0;
+  animation: crono-fade-up 360ms var(--crono-ease-soft) forwards;
+}
+
+.reports-responsive-grid .report-card:nth-child(1) { animation-delay: 0ms; }
+.reports-responsive-grid .report-card:nth-child(2) { animation-delay: 40ms; }
+.reports-responsive-grid .report-card:nth-child(3) { animation-delay: 80ms; }
+.reports-responsive-grid .report-card:nth-child(4) { animation-delay: 120ms; }
+.reports-responsive-grid .report-card:nth-child(5) { animation-delay: 160ms; }
+.reports-responsive-grid .report-card:nth-child(6) { animation-delay: 200ms; }
+.reports-responsive-grid .report-card:nth-child(7) { animation-delay: 240ms; }
+.reports-responsive-grid .report-card:nth-child(8) { animation-delay: 280ms; }
+.reports-responsive-grid .report-card:nth-child(9) { animation-delay: 320ms; }
+.reports-responsive-grid .report-card:nth-child(n+10) { animation-delay: 360ms; }
+
+.report-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--crono-shadow-2);
+  border-color: var(--color-border-strong, #c8c8c8);
+}
+
+.report-status-pill,
+.report-type-pill {
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 7px;
+  border-radius: 4px;
+}
+
+.report-type-pill--interno {
+  background: var(--crono-mto-soft);
+  color: #2f2f6e;
+}
+
+.report-type-pill--externo {
+  background: var(--crono-fum-soft);
+  color: #7c4a00;
+}
+
+.status-resuelto { background: var(--crono-lim-soft); color: #054b05; }
+.status-en_revision { background: var(--crono-rec-soft); color: #004578; }
+.status-reportado { background: rgba(209, 52, 56, 0.15); color: #a4262c; }
+
+.reports-segment-btn {
+  border-radius: 8px;
+  transition: all 180ms var(--crono-ease-soft);
+}
+
+.reports-segment-btn--active {
+  background: var(--color-surface);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  color: var(--color-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.report-card-date,
+.report-info-list {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .risk-v2,
+  .risk-hero,
+  .risk-hero__cta,
+  .risk-stat-chip,
+  .report-card,
+  .reports-segment-btn {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
 }

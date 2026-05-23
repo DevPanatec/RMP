@@ -5,6 +5,8 @@ import ServiciosComponent from '../../components/Servicios';
 import ScheduleComponent from '../../components/Schedule/ScheduleComponent';
 import FleetManagement from '../../components/Fleet/FleetManagement';
 import CalendarComponent from '../../components/Calendar/CalendarComponent';
+import CronogramaComponent from '../../components/Cronograma';
+import CoreSubNav from '../../components/Core/CoreSubNav';
 import MaintenanceComponent from '../../components/Maintenance/MaintenanceComponent';
 import InventoryComponent from '../../components/Inventory/InventoryComponent';
 import RiskComponent from '../../components/Risk/RiskComponent';
@@ -35,16 +37,19 @@ import {
   BarChart3, Users, Map, LogOut, TrendingUp, CheckCircle,
   MapPin, Radio, Activity, Zap, Bell, Wrench, Leaf, Navigation, Clock, Save, Calendar,
   Satellite, Briefcase, Sparkles, Plus, X, Maximize2, Minimize2, DollarSign,
-  UserPlus, Shield, Lock, Mail, Phone, Target, Layers
+  UserPlus, Shield, Lock, Mail, Phone, Target, Layers, Sun, Moon
 } from '../../components/Icons';
 import { Badge, ProgressBar, ConfirmDialog } from '../../components/UI';
+import { useTheme } from '../../context/ThemeContext';
 import { useSafeTabNav } from '../../hooks/useModuleAccess';
 import { AlertCard, PersonnelTable, HeroStats, RealtimeActivity, RiskAlerts, UpcomingRoutes } from '../../components/Dashboard';
 import './AdminDashboard.css';
 
 const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [activeSubTab, setActiveSubTab] = useState('');
+  // Layout post-refactor: Monitoreo/Riesgos/Calendario consolidados en tab 'core'
+  // con sub-tabs internos. Default landing: core → monitoreo.
+  const [activeTab, setActiveTab] = useState('core');
+  const [activeSubTab, setActiveSubTab] = useState('monitoreo');
   const [isMobileView, setIsMobileView] = useState(window.innerWidth < 1025);
   const [monitoringSheetExpanded, setMonitoringSheetExpanded] = useState(false);
   const [monitoringSheetTab, setMonitoringSheetTab] = useState('activity');
@@ -94,7 +99,9 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
       clearTimeout(headerTimeoutRef.current);
       headerTimeoutRef.current = null;
     }
-    if (isMobileView && activeTab === 'dashboard') {
+    // Mobile header auto-hide solo cuando estamos en Monitoreo (mapa fullscreen).
+    const isShowingMonitoreo = activeTab === 'core' && (!activeSubTab || activeSubTab === 'monitoreo');
+    if (isMobileView && isShowingMonitoreo) {
       setShowMobileHeader(true);
       headerTimeoutRef.current = setTimeout(() => setShowMobileHeader(false), 3000);
     } else {
@@ -103,7 +110,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
     return () => {
       if (headerTimeoutRef.current) clearTimeout(headerTimeoutRef.current);
     };
-  }, [isMobileView, activeTab]);
+  }, [isMobileView, activeTab, activeSubTab]);
 
   // Org context (super_admin can switch / admin locked)
   const { currentOrgId, availableOrgs, hasModulo, currentOrgModulos } = useOrganization();
@@ -127,8 +134,15 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   const [profileStatus, setProfileStatus] = useState({ type: '', message: '' });
   const [creatingProfile, setCreatingProfile] = useState(false);
 
-  // Route events from Convex
+  // Route events from Convex (legacy — kept para compatibility con código que consuma routeEvents raw)
   const routeEvents = useQuery(api.route_events.getRecent, {
+    limit: 50,
+    organizacion_id: currentOrgId ?? undefined,
+  }) || [];
+
+  // Merged activity feed — route_events (REC) + cleaning_reports (LIM) + fumigation_reports (FUM).
+  // Cada item ya viene normalizado a { id, tipo, descripcion, vehiculo?, conductor?, timestamp, ruta? }.
+  const mergedActivity = useQuery(api.activity.getRecentMerged, {
     limit: 50,
     organizacion_id: currentOrgId ?? undefined,
   }) || [];
@@ -150,6 +164,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   } = usePersonnel();
 
   const { signOut, user: currentUser } = useAuth();
+  const { effectiveTheme, toggleTheme } = useTheme();
 
   // Convex action to create users via Clerk Backend API
   const createUserAction = useAction(api.perfiles.createUserWithClerk);
@@ -213,33 +228,12 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
     return isDemoMode ? mergeDemoData(alerts, DEMO_ALERTS) : alerts;
   }, [isDemoMode, alerts]);
 
-  // Convertir route_events de Convex al formato esperado por RealtimeActivity
+  // Feed unificado: backend query (api.activity.getRecentMerged) ya devuelve
+  // shape normalizado pa' RealtimeActivity. Demo mode usa data estática.
   const recentActivity = useMemo(() => {
     if (isDemoMode) return DEMO_RECENT_ACTIVITY;
-
-    return routeEvents.map((event, index) => ({
-      id: event._id || `event-${index}`,
-      tipo: event.tipo_evento,
-      descripcion: (() => {
-        switch (event.tipo_evento) {
-          case 'ruta_iniciada':
-            return `Ruta "${event.ruta_nombre}" iniciada`;
-          case 'parada_llegada':
-            return `Llegada a parada "${event.parada_nombre}"`;
-          case 'parada_completada':
-            return `Parada "${event.parada_nombre}" completada${event.categoria_carga ? ` (${event.categoria_carga})` : ''}`;
-          case 'ruta_completada':
-            return `Ruta "${event.ruta_nombre}" completada`;
-          default:
-            return event.detalles || 'Actividad registrada';
-        }
-      })(),
-      vehiculo: event.vehiculo_placa,
-      conductor: event.conductor_nombre,
-      ruta: event.ruta_nombre,
-      timestamp: event.timestamp,
-    }));
-  }, [isDemoMode, routeEvents]);
+    return mergedActivity;
+  }, [isDemoMode, mergedActivity]);
 
   // Normalizar vehículos (ya vienen con conductor_nombre y ruta_id desde Convex)
   const normalizedCamiones = useMemo(() => {
@@ -267,9 +261,9 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   const { newEventIds, newAlertIds } = useMonitoringNotifications(recentActivity, displayAlerts);
 
   const isViewer = userRole === 'viewer' || user?.tipo === 'viewer';
-  // viewer ve dashboard + operaciones (read-only) + riesgos.
-  // Layout flat: riesgos vive como tab top-nav propio, gated por REC.
-  const VIEWER_ALLOWED_TABS = ['dashboard', 'operaciones', 'riesgos'];
+  // viewer ve core (Monitoreo + Riesgos, no Calendario) + operaciones (read-only).
+  // Calendario locked dentro de Core para viewer.
+  const VIEWER_ALLOWED_TABS = ['core', 'operaciones'];
 
   // Cliente con operaciones bloqueadas — controlado por flag `restricted_operations`
   // en `perfiles_usuarios` (schema). El backend lo expone vía `getCurrentUser`.
@@ -288,13 +282,13 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   // viewer/restricted cambió de permisos) → redirige a dashboard.
   // Crítico para que el usuario no quede atrapado en una pantalla huérfana.
   const isTabAvailable = (tab) => {
-    if (tab === 'dashboard') return true;
+    // Core es siempre accesible (sub-tab Monitoreo siempre on).
+    // Las sub-tabs internas (Riesgos, Calendario) tienen sus propios gates dentro de CoreSubNav.
+    if (tab === 'core') return true;
     if (tab === 'operaciones') {
       if (isRestrictedClient) return false;
       return hasModulo('REC') || hasModulo('FUM') || hasModulo('LIM') || hasModulo('MTO') || hasModulo('PER');
     }
-    if (tab === 'calendario') return hasAnyOperacional;
-    if (tab === 'riesgos') return hasModulo('REC');
     if (tab === 'inventario') return hasModulo('INV');
     if (tab === 'mantenimiento') return hasModulo('MTO');
     if (tab === 'reportes') return hasModulo('BI');
@@ -306,25 +300,42 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   };
 
   // safeNav genera callbacks que validan isTabAvailable antes de navegar.
-  // Si target no está disponible, callback es undefined → el caller no renderiza el botón.
-  // Layout flat: Reportes y Riesgos son tabs top-nav independientes.
+  // Riesgos y Calendario ahora son sub-tabs internas de Core, no top-nav tabs.
   const safeNav = useSafeTabNav(isTabAvailable, setActiveTab);
   const navToReportes = safeNav('reportes');
-  const navToRiesgos = safeNav('riesgos');
+  // Helper especial: ir a Core con sub-tab Riesgos pre-seleccionado.
+  // Solo disponible si Riesgos no está locked por viewer y hay al menos un módulo ops.
+  const canShowRiesgos =
+    hasModulo('REC') || hasModulo('FUM') || hasModulo('LIM') || hasModulo('MTO');
+  const navToRiesgos = canShowRiesgos
+    ? () => {
+        setActiveTab('core');
+        setActiveSubTab('riesgos');
+      }
+    : undefined;
 
   useEffect(() => {
-    // Si la tab activa ya no es accesible (módulo desactivado, org switch, etc.),
-    // redirige automáticamente a dashboard sin perder el flujo del usuario.
+    // Si la tab activa ya no es accesible, redirige a Core (Monitoreo siempre on).
     if (!isTabAvailable(activeTab)) {
-      setActiveTab('dashboard');
-      setActiveSubTab('');
+      setActiveTab('core');
+      setActiveSubTab('monitoreo');
     }
     // viewer extra-check: si su tab no está en el allowlist, redirige
     if (isViewer && !VIEWER_ALLOWED_TABS.includes(activeTab)) {
-      setActiveTab('dashboard');
+      setActiveTab('core');
+      setActiveSubTab('monitoreo');
     }
     if (isRestrictedClient && RESTRICTED_BLOCKED_TABS.includes(activeTab)) {
-      setActiveTab('dashboard');
+      setActiveTab('core');
+      setActiveSubTab('monitoreo');
+    }
+    // Core sub-tab: si activeSubTab='riesgos' pero REC se desactivó, saltar a monitoreo
+    if (activeTab === 'core' && activeSubTab === 'riesgos' && !canShowRiesgos) {
+      setActiveSubTab('monitoreo');
+    }
+    // Core sub-tab: si activeSubTab='calendario' pero ningún ops module activo, saltar a monitoreo
+    if (activeTab === 'core' && activeSubTab === 'calendario' && !hasAnyOperacional) {
+      setActiveSubTab('monitoreo');
     }
     // Operaciones sub-tab: si activeSubTab='personal' pero PER se desactivó, saltar a flota
     if (activeTab === 'operaciones' && activeSubTab === 'personal' && !hasModulo('PER')) {
@@ -344,7 +355,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
 
   const handleGoToVehicleLocation = (vehicleId) => {
     setSelectedTruck(vehicleId);
-    handleTabChange('dashboard');
+    handleTabChange('core', 'monitoreo');
   };
 
   // Profile creation handlers
@@ -579,7 +590,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
       return null;
     }
     switch (activeTab) {
-      case 'dashboard':
+      case 'core': {
         const activeCount = normalizedCamiones.filter(c => c.estado === 'En ruta' || c.estado === 'en_ruta').length;
         const personnelCount = displayPersonnel?.length || 0;
 
@@ -603,6 +614,19 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
         ].filter((s) => !s.requiredModulo || hasModulo(s.requiredModulo));
 
         return (
+          <div className="core-group">
+            <CoreSubNav
+              activeSubTab={activeSubTab || 'monitoreo'}
+              onChange={(sub) => setActiveSubTab(sub)}
+              hasModulo={hasModulo}
+              hasAnyOperacional={hasAnyOperacional}
+              isViewer={isViewer}
+            />
+            <div className="core-group__content">
+              {activeSubTab === 'riesgos' && <RiskComponent userType={user.tipo} />}
+              {activeSubTab === 'cronograma' && <CronogramaComponent />}
+              {activeSubTab === 'calendario' && <CalendarComponent />}
+              {(!activeSubTab || activeSubTab === 'monitoreo') && (
           <div className="monitoring-layout">
             {/* Desktop: Side panel with KPIs, Activity, Alerts */}
             {!isMobileView && (
@@ -639,7 +663,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                     vehicles={normalizedCamiones}
                     routes={displayRoutes}
                     personnel={displayPersonnel}
-                    recentActivity={hasModulo('REC') ? recentActivity : []}
+                    recentActivity={hasAnyOperacional ? recentActivity : []}
                     newEventIds={newEventIds}
                     onViewAll={navToReportes}
                   />
@@ -737,7 +761,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                       vehicles={normalizedCamiones}
                       routes={displayRoutes}
                       personnel={displayPersonnel}
-                      recentActivity={hasModulo('REC') ? recentActivity : []}
+                      recentActivity={hasAnyOperacional ? recentActivity : []}
                       newEventIds={newEventIds}
                       onViewAll={navToReportes}
                     />
@@ -753,50 +777,64 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
               </div>
             )}
           </div>
+              )}
+            </div>
+          </div>
         );
+      }
       case 'operaciones':
         return (
           <div className="operations-section">
-            <div className="operations-tabs">
+            <div className="app-subtabs" role="tablist" aria-label="Secciones Operaciones">
               {hasModulo('PER') && (
                 <button
-                  className={`ops-tab ${(!activeSubTab || activeSubTab === 'personal') ? 'ops-tab-active' : ''}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={!activeSubTab || activeSubTab === 'personal'}
+                  className={`app-subtab${(!activeSubTab || activeSubTab === 'personal') ? ' app-subtab--active' : ''}`}
                   onClick={() => setActiveSubTab('personal')}
                   title="Módulo PER"
                 >
-                  <Briefcase strokeWidth={1.5} size={20} />
+                  <Briefcase strokeWidth={1.75} size={14} />
                   <span>Personal</span>
                 </button>
               )}
               <button
-                className={`ops-tab ${activeSubTab === 'flota' ? 'ops-tab-active' : ''}`}
+                type="button"
+                role="tab"
+                aria-selected={activeSubTab === 'flota'}
+                className={`app-subtab${activeSubTab === 'flota' ? ' app-subtab--active' : ''}`}
                 onClick={() => setActiveSubTab('flota')}
               >
-                <Truck strokeWidth={1.5} size={20} />
+                <Truck strokeWidth={1.75} size={14} />
                 <span>Flota</span>
               </button>
               <button
-                className={`ops-tab ${activeSubTab === 'servicios' ? 'ops-tab-active' : ''}`}
+                type="button"
+                role="tab"
+                aria-selected={activeSubTab === 'servicios'}
+                className={`app-subtab${activeSubTab === 'servicios' ? ' app-subtab--active' : ''}`}
                 onClick={() => setActiveSubTab('servicios')}
                 title="Catálogo de servicios: rutas, lugares de fumigación, salas de limpieza"
               >
-                <Layers strokeWidth={1.5} size={20} />
+                <Layers strokeWidth={1.75} size={14} />
                 <span>Catálogo</span>
               </button>
               <button
-                className={`ops-tab ${activeSubTab === 'programacion' ? 'ops-tab-active' : ''}`}
+                type="button"
+                role="tab"
+                aria-selected={activeSubTab === 'programacion'}
+                className={`app-subtab${activeSubTab === 'programacion' ? ' app-subtab--active' : ''}`}
                 onClick={() => setActiveSubTab('programacion')}
                 title="Asignar servicios del catálogo a conductores y fechas"
               >
-                <Calendar strokeWidth={1.5} size={20} />
+                <Calendar strokeWidth={1.75} size={14} />
                 <span>Asignaciones</span>
               </button>
             </div>
             {renderOperationsContent()}
           </div>
         );
-      case 'calendario':
-        return <CalendarComponent />;
       case 'inventario':
         return <InventoryComponent userType={user.tipo} />;
       case 'mantenimiento':
@@ -808,8 +846,6 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             onClearSelection={handleClearLocationSelection}
           />
         );
-      case 'riesgos':
-        return <RiskComponent userType={user.tipo} />;
       case 'asistencia':
         return <AsistenciaComponent />;
       case 'rrhh':
@@ -827,9 +863,9 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
 
   
   return (
-    <div className={`dashboard-container${activeTab === 'dashboard' ? ' monitoring-active' : ''}${isMobileView && activeTab === 'dashboard' ? ' monitoring--map-fullscreen' : ''}`}>
+    <div className={`dashboard-container${activeTab === 'core' && (!activeSubTab || activeSubTab === 'monitoreo') ? ' monitoring-active' : ''}${isMobileView && activeTab === 'core' && (!activeSubTab || activeSubTab === 'monitoreo') ? ' monitoring--map-fullscreen' : ''}`}>
       {/* Top App Bar - Header con logo y acciones */}
-      <div className={`app-bar${isMobileView && activeTab === 'dashboard' && !showMobileHeader ? ' app-bar--hidden' : ''}`}>
+      <div className={`app-bar${isMobileView && activeTab === 'core' && (!activeSubTab || activeSubTab === 'monitoreo') && !showMobileHeader ? ' app-bar--hidden' : ''}`}>
         <div className="app-bar__header">
           <div className="app-bar__brand">
             <img src="/icons/modules/Logo principal.png" alt="RMP Logo" className="app-bar__logo" />
@@ -847,6 +883,14 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
               <Activity size={16} />
               <span>Sistema en Tiempo Real</span>
             </div>
+            <button
+              className="app-bar__theme-toggle"
+              onClick={toggleTheme}
+              aria-label={effectiveTheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+              title={effectiveTheme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+            >
+              {effectiveTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
             <button className="app-bar__logout" onClick={onLogout} aria-label="Cerrar sesión">
               <LogOut size={18} />
               <span>Cerrar Sesión</span>
@@ -854,14 +898,18 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
           </div>
         </div>
 
-        {/* Top Navigation Tabs - Navegación horizontal */}
+        {/* Top Navigation Tabs - Navegación horizontal
+            Layout consolidado: Core (Monitoreo + Riesgos + Calendario via sub-tabs)
+            seguido de módulos pagos y tabs rol-only. */}
         <nav className="top-nav">
+          {/* Core: agrupa Monitoreo + Riesgos + Calendario con sub-tabs internos */}
           <button
-            className={`top-nav__tab ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => handleTabChange('dashboard')}
+            className={`top-nav__tab ${activeTab === 'core' ? 'active' : ''}`}
+            onClick={() => handleTabChange('core', 'monitoreo')}
+            title="Core — Monitoreo, Riesgos, Calendario"
           >
             <LayoutDashboard strokeWidth={1.5} size={18} />
-            <span>Monitoreo</span>
+            <span>Core</span>
           </button>
           {!isRestrictedClient && (hasModulo('REC') || hasModulo('FUM') || hasModulo('LIM') || hasModulo('MTO') || hasModulo('PER')) && (
             <button
@@ -870,34 +918,6 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             >
               <Truck strokeWidth={1.5} size={18} />
               <span>Operaciones</span>
-            </button>
-          )}
-          {hasAnyOperacional && (
-            <button
-              className={`top-nav__tab ${activeTab === 'calendario' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
-              onClick={() => handleTabChange('calendario')}
-              disabled={isViewer}
-              title={isViewer ? 'Sección bloqueada para tu cuenta' : ''}
-            >
-              <Calendar strokeWidth={1.5} size={18} />
-              <span>Calendario</span>
-              {isViewer && <Lock strokeWidth={2} size={12} />}
-            </button>
-          )}
-          {/* Layout flat: cada módulo es su propio tab top-nav.
-              Orden visual: CORE primero (Monitoreo, Operaciones, Calendario, Riesgos),
-              después módulos pagos (Inventario, Mantenimiento, Reportes, Asistencia, RRHH),
-              después rol-only (Proyectos, Plataforma). */}
-
-          {/* Riesgos: CORE gated por REC (incidentes de recolección) */}
-          {hasModulo('REC') && (
-            <button
-              className={`top-nav__tab ${activeTab === 'riesgos' ? 'active' : ''}`}
-              onClick={() => handleTabChange('riesgos')}
-              title="Riesgos — reportes de incidentes operacionales"
-            >
-              <AlertTriangle strokeWidth={1.5} size={18} />
-              <span>Riesgos</span>
             </button>
           )}
 
@@ -1043,7 +1063,7 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
                     vehicles={normalizedCamiones}
                     routes={displayRoutes}
                     personnel={displayPersonnel}
-                    recentActivity={hasModulo('REC') ? recentActivity : []}
+                    recentActivity={hasAnyOperacional ? recentActivity : []}
                     newEventIds={newEventIds}
                     onViewAll={navToReportes ? () => { setIsMapMaximized(false); navToReportes(); } : undefined}
                   />

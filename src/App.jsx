@@ -4,6 +4,7 @@ import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { ClerkProvider, useAuth as useClerkAuth } from "@clerk/clerk-react";
 import Login from './components/Login/Login';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 // Lazy load dashboards: cada uno entra en su propio chunk.
 // Reduce el bundle inicial y permite que el conductor PWA cargue solo lo suyo.
@@ -120,17 +121,19 @@ const AppContent = () => {
 
 function App() {
   return (
-    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
-      <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
-        <GooglePlacesErrorBoundary>
-          <GooglePlacesProvider>
-            <AuthProvider>
-              <AppContent />
-            </AuthProvider>
-          </GooglePlacesProvider>
-        </GooglePlacesErrorBoundary>
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
+    <ThemeProvider>
+      <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
+        <ConvexProviderWithClerk client={convex} useAuth={useClerkAuth}>
+          <GooglePlacesErrorBoundary>
+            <GooglePlacesProvider>
+              <AuthProvider>
+                <AppContent />
+              </AuthProvider>
+            </GooglePlacesProvider>
+          </GooglePlacesErrorBoundary>
+        </ConvexProviderWithClerk>
+      </ClerkProvider>
+    </ThemeProvider>
   );
 }
 

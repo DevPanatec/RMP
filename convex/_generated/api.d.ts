@@ -8,8 +8,10 @@
  * @module
  */
 
+import type * as activity from "../activity.js";
 import type * as asignaciones from "../asignaciones.js";
 import type * as cleaning from "../cleaning.js";
+import type * as cronograma from "../cronograma.js";
 import type * as crons from "../crons.js";
 import type * as diagramEngine from "../diagramEngine.js";
 import type * as e2e from "../e2e.js";
@@ -20,14 +22,18 @@ import type * as fumigaciones from "../fumigaciones.js";
 import type * as geofences from "../geofences.js";
 import type * as gps from "../gps.js";
 import type * as http from "../http.js";
+import type * as integrations_nhtsaVpic from "../integrations/nhtsaVpic.js";
 import type * as inventario from "../inventario.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_gps from "../lib/gps.js";
 import type * as lib_limits from "../lib/limits.js";
 import type * as lib_modules from "../lib/modules.js";
 import type * as maintenance from "../maintenance.js";
+import type * as makes from "../makes.js";
 import type * as meterReadings from "../meterReadings.js";
 import type * as migrations_seed_plan_fields from "../migrations/seed_plan_fields.js";
+import type * as modelYears from "../modelYears.js";
+import type * as models from "../models.js";
 import type * as organizaciones from "../organizaciones.js";
 import type * as perfiles from "../perfiles.js";
 import type * as pmSchedules from "../pmSchedules.js";
@@ -51,8 +57,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  activity: typeof activity;
   asignaciones: typeof asignaciones;
   cleaning: typeof cleaning;
+  cronograma: typeof cronograma;
   crons: typeof crons;
   diagramEngine: typeof diagramEngine;
   e2e: typeof e2e;
@@ -63,14 +71,18 @@ declare const fullApi: ApiFromModules<{
   geofences: typeof geofences;
   gps: typeof gps;
   http: typeof http;
+  "integrations/nhtsaVpic": typeof integrations_nhtsaVpic;
   inventario: typeof inventario;
   "lib/auth": typeof lib_auth;
   "lib/gps": typeof lib_gps;
   "lib/limits": typeof lib_limits;
   "lib/modules": typeof lib_modules;
   maintenance: typeof maintenance;
+  makes: typeof makes;
   meterReadings: typeof meterReadings;
   "migrations/seed_plan_fields": typeof migrations_seed_plan_fields;
+  modelYears: typeof modelYears;
+  models: typeof models;
   organizaciones: typeof organizaciones;
   perfiles: typeof perfiles;
   pmSchedules: typeof pmSchedules;

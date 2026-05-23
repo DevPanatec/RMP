@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, Filter } from '../Icons';
+import { Calendar as CalendarIcon, Filter, Truck, Bug, Sparkles, Wrench } from '../Icons';
 import { Modal } from '../UI';
 import { useOrganization } from '../../context/OrganizationContext';
 import ActivityIcon from './ActivityIcon';
@@ -107,7 +107,7 @@ const DayDetailsModal = ({ date, activities, onClose, filters, onFilterChange })
                 className={`filter-btn-sm ${localFilters.recoleccion ? 'active' : ''}`}
                 onClick={() => toggleLocalFilter('recoleccion')}
               >
-                🚛 Recolección
+                <Truck size={14} aria-hidden="true" /> Recolección
               </button>
             )}
             {hasModulo('FUM') && (
@@ -115,7 +115,7 @@ const DayDetailsModal = ({ date, activities, onClose, filters, onFilterChange })
                 className={`filter-btn-sm ${localFilters.fumigacion ? 'active' : ''}`}
                 onClick={() => toggleLocalFilter('fumigacion')}
               >
-                🦟 Fumigación
+                <Bug size={14} aria-hidden="true" /> Fumigación
               </button>
             )}
             {hasModulo('LIM') && (
@@ -123,7 +123,7 @@ const DayDetailsModal = ({ date, activities, onClose, filters, onFilterChange })
                 className={`filter-btn-sm ${localFilters.limpieza ? 'active' : ''}`}
                 onClick={() => toggleLocalFilter('limpieza')}
               >
-                🧹 Limpieza
+                <Sparkles size={14} aria-hidden="true" /> Limpieza
               </button>
             )}
             {hasModulo('MTO') && (
@@ -131,7 +131,7 @@ const DayDetailsModal = ({ date, activities, onClose, filters, onFilterChange })
                 className={`filter-btn-sm ${localFilters.mantenimiento ? 'active' : ''}`}
                 onClick={() => toggleLocalFilter('mantenimiento')}
               >
-                🔧 Mantenimiento
+                <Wrench size={14} aria-hidden="true" /> Mantenimiento
               </button>
             )}
           </div>

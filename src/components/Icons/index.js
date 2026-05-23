@@ -100,7 +100,11 @@ export {
   Inbox,
   HardDrive,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  IdCard,
+  Building2,
+  TreePine,
+  Circle
 } from 'lucide-react';
 
 // Alias para Spray

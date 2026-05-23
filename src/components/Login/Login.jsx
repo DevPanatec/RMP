@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Eye, EyeOff } from '../Icons';
+import { Eye, EyeOff, AlertTriangle } from '../Icons';
 import './Login.css';
 
 const Login = ({ onLogin }) => {
@@ -46,8 +46,9 @@ const Login = ({ onLogin }) => {
         </div>
 
         {(error || authError) && (
-          <div className="error-message">
-            {error || authError}
+          <div className="error-message" role="alert">
+            <AlertTriangle size={16} aria-hidden="true" />
+            <span>{error || authError}</span>
           </div>
         )}
 

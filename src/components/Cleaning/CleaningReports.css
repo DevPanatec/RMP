@@ -33,7 +33,7 @@
 
 .cleaning-filters__search:focus-within {
   border-color: var(--color-primary);
-  background: white;
+  background: var(--color-surface);
 }
 
 .cleaning-filters__search-input {
@@ -57,7 +57,7 @@
   font-family: var(--font-family);
   font-size: 14px;
   color: var(--color-text-primary);
-  background: white;
+  background: var(--color-surface);
   cursor: pointer;
   transition: all 0.2s ease;
   outline: none;
@@ -85,7 +85,7 @@
   align-items: center;
   gap: 16px;
   padding: 20px;
-  background: white;
+  background: var(--color-surface);
   border-radius: 12px;
   border: 1px solid var(--color-divider);
   transition: all 0.2s ease;
@@ -93,7 +93,7 @@
 
 .cleaning-stat:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 16px var(--alpha-overlay-soft);
 }
 
 .cleaning-stat__value {
@@ -287,5 +287,111 @@
   .cleaning-table__action {
     width: 32px;
     height: 32px;
+  }
+}
+
+/* ============================================
+   CRONOGRAMA POLISH OVERRIDES (LIM green)
+   ============================================ */
+
+.cleaning-reports {
+  animation: crono-fade-up 360ms var(--crono-ease-soft);
+}
+
+.cleaning-table tbody tr {
+  transition: background 180ms var(--crono-ease-soft);
+  opacity: 0;
+  animation: crono-fade-up 280ms var(--crono-ease-soft) forwards;
+}
+
+.cleaning-table tbody tr:nth-child(1) { animation-delay: 0ms; }
+.cleaning-table tbody tr:nth-child(2) { animation-delay: 30ms; }
+.cleaning-table tbody tr:nth-child(3) { animation-delay: 60ms; }
+.cleaning-table tbody tr:nth-child(4) { animation-delay: 90ms; }
+.cleaning-table tbody tr:nth-child(5) { animation-delay: 120ms; }
+.cleaning-table tbody tr:nth-child(6) { animation-delay: 150ms; }
+.cleaning-table tbody tr:nth-child(7) { animation-delay: 180ms; }
+.cleaning-table tbody tr:nth-child(8) { animation-delay: 210ms; }
+.cleaning-table tbody tr:nth-child(n+9) { animation-delay: 240ms; }
+
+.cleaning-table tbody tr:hover {
+  background: rgba(16, 124, 16, 0.04);
+}
+
+.cleaning-table thead th {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.cleaning-table__date,
+.cleaning-table__date-day,
+.cleaning-table__date-time {
+  font-variant-numeric: tabular-nums;
+}
+
+.cleaning-table__photo-badge {
+  font-variant-numeric: tabular-nums;
+}
+
+.cleaning-table__action {
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  transition: all 180ms var(--crono-ease-soft);
+}
+
+.cleaning-table__action:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--crono-shadow-1);
+}
+
+.cleaning-stat {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--crono-shadow-1);
+  padding: var(--space-12) var(--space-16);
+  transition: transform 200ms var(--crono-ease-soft), box-shadow 200ms var(--crono-ease-soft);
+}
+
+.cleaning-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--crono-shadow-2);
+}
+
+.cleaning-stat__value {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+.cleaning-stat__label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.cleaning-reports__empty {
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  padding: var(--space-40) var(--space-16);
+}
+
+.cleaning-reports__empty svg {
+  opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cleaning-reports,
+  .cleaning-table tbody tr,
+  .cleaning-table__action,
+  .cleaning-stat {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
   }
 }

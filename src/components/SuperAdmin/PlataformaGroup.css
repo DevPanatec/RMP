@@ -34,8 +34,8 @@
 }
 
 .plataforma-group__tab--active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
+  color: var(--crono-mto);
+  border-bottom-color: var(--crono-mto);
 }
 
 .plataforma-group__tab:focus-visible {

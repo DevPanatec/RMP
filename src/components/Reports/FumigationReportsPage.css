@@ -10,7 +10,7 @@
   flex-direction: column;
   background: var(--color-surface-secondary);
   overflow: hidden;
-  z-index: 9998;
+  z-index: var(--z-overlay-max);
 }
 
 /* Header */
@@ -19,7 +19,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 24px 32px;
-  background: white;
+  background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   flex-shrink: 0;
 }
@@ -70,11 +70,11 @@
   left: 0;
   right: 0;
   padding: 24px 32px;
-  background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, transparent 100%);
+  background: linear-gradient(180deg, var(--alpha-overlay-heavy) 0%, transparent 100%);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  z-index: 10;
+  z-index: var(--z-sticky);
 }
 
 .fumigation-map-location h2 {
@@ -82,18 +82,18 @@
   font-size: 24px;
   font-weight: 700;
   color: white;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  text-shadow: 0 2px 4px var(--alpha-overlay-strong);
 }
 
 .fumigation-map-location span {
   font-size: 14px;
-  color: rgba(255,255,255,0.9);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  color: var(--color-surface);
+  text-shadow: 0 1px 2px var(--alpha-overlay-strong);
 }
 
 .fumigation-open-maps {
   padding: 10px 20px;
-  background: white;
+  background: var(--color-surface);
   color: var(--color-primary);
   border: none;
   border-radius: 8px;
@@ -102,12 +102,12 @@
   text-decoration: none;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px var(--alpha-overlay-base);
 }
 
 .fumigation-open-maps:hover {
   background: var(--color-surface-secondary);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  box-shadow: 0 4px 12px var(--alpha-overlay-medium);
 }
 
 /* Reports Section */
@@ -116,7 +116,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: white;
+  background: var(--color-surface);
   margin: 0;
 }
 
@@ -140,7 +140,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: white;
+  background: var(--color-surface);
   border: 2px solid var(--color-border);
   border-radius: 8px;
   font-weight: 500;
@@ -156,7 +156,7 @@
 }
 
 .fumigation-filter-btn.active {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border-color: var(--color-primary);
   color: white;
 }
@@ -166,7 +166,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border: none;
   border-radius: 8px;
   font-weight: 600;
@@ -203,7 +203,7 @@
 
 .fumigation-date-presets button {
   padding: 8px 16px;
-  background: white;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 13px;
@@ -265,7 +265,7 @@
 
 /* Report Card */
 .fumigation-report-card {
-  background: white;
+  background: var(--color-surface);
   border: 2px solid var(--color-border);
   border-radius: 12px;
   padding: 20px;
@@ -345,13 +345,13 @@
 }
 
 .fumigation-view-btn {
-  background: white;
+  background: var(--color-surface);
   border: 1px solid var(--color-primary);
   color: var(--color-primary);
 }
 
 .fumigation-view-btn:hover {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
 }
 

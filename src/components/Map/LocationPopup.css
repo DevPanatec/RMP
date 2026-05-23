@@ -5,11 +5,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--alpha-overlay-darker);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-toast);
   animation: fadeIn 0.2s ease;
 }
 
@@ -24,10 +24,10 @@
 
 /* Card del popup */
 .location-popup {
-  background: white;
+  background: var(--color-surface);
   border-radius: 16px;
   box-shadow:
-    0 20px 60px rgba(0, 0, 0, 0.3),
+    0 20px 60px var(--alpha-overlay-strong),
     0 8px 16px rgba(0, 0, 0, 0.2);
   width: 90%;
   max-width: 420px;
@@ -52,7 +52,7 @@
   position: absolute;
   top: 12px;
   right: 12px;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--color-surface);
   border: none;
   border-radius: 50%;
   width: 32px;
@@ -61,13 +61,13 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 10;
+  z-index: var(--z-sticky);
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px var(--alpha-overlay-medium);
 }
 
 .location-popup-close:hover {
-  background: white;
+  background: var(--color-surface);
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }

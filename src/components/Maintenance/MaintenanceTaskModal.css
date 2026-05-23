@@ -6,14 +6,15 @@
 .maintenance-task-modal__overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.4);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
   padding: var(--space-20);
-  animation: mtm-fadeIn 0.2s ease-out;
+  animation: crono-fadein 240ms var(--crono-ease-soft, cubic-bezier(0.32, 0.72, 0, 1));
 }
 
 @keyframes mtm-fadeIn {
@@ -24,7 +25,7 @@
 @keyframes mtm-slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px) scale(0.95);
+    transform: translateY(8px) scale(0.97);
   }
   to {
     opacity: 1;
@@ -34,14 +35,27 @@
 
 /* Modal Container */
 .maintenance-task-modal__container {
+  position: relative;
   background: var(--color-surface);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
   max-width: 900px;
   width: 100%;
   max-height: 85vh;
   overflow: auto;
-  box-shadow: var(--shadow-xl);
-  animation: mtm-slideUp 0.3s ease-out;
+  box-shadow: var(--crono-shadow-3, 0 10px 30px rgba(15, 23, 42, 0.1), 0 4px 8px rgba(15, 23, 42, 0.06));
+  animation: mtm-slideUp 280ms var(--crono-ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+/* Top accent bar — Maintenance (purple) */
+.maintenance-task-modal__container::before {
+  content: '';
+  position: sticky;
+  top: 0;
+  display: block;
+  height: 3px;
+  background: var(--crono-mto, #6264a7);
+  z-index: 10;
 }
 
 .maintenance-task-modal__container::-webkit-scrollbar {
@@ -73,7 +87,7 @@
   align-items: center;
   justify-content: space-between;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  z-index: 1;
+  z-index: var(--z-base);
 }
 
 .maintenance-task-modal__title {
@@ -84,18 +98,26 @@
 }
 
 .maintenance-task-modal__close-btn {
-  background: none;
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   cursor: pointer;
-  padding: var(--space-8);
-  color: var(--color-text-muted);
-  border-radius: var(--radius-base);
-  transition: all var(--duration-fast, 0.15s) ease;
+  padding: 0;
+  color: var(--color-text-secondary);
+  border-radius: 8px;
+  transition: background 180ms var(--crono-ease-soft, cubic-bezier(0.32, 0.72, 0, 1)),
+              color 180ms var(--crono-ease-soft, cubic-bezier(0.32, 0.72, 0, 1)),
+              transform 180ms var(--crono-ease-soft, cubic-bezier(0.32, 0.72, 0, 1));
 }
 
 .maintenance-task-modal__close-btn:hover {
-  background: var(--color-hover-overlay);
-  color: var(--color-text-secondary);
+  background: var(--color-surface-secondary, #f3f2f1);
+  color: var(--color-text);
+  transform: rotate(90deg);
 }
 
 /* Form Content */
@@ -312,11 +334,11 @@
 }
 
 .maintenance-task-modal__save-preset-btn--active {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
 }
 
 .maintenance-task-modal__save-preset-btn--active:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-action-bg-hover);
 }
 
 .maintenance-task-modal__save-preset-btn--disabled {
@@ -600,7 +622,7 @@
 
 .maintenance-task-modal__view-stage-count {
   font-size: var(--font-size-xs);
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
   padding: var(--space-2) var(--space-8);
   border-radius: var(--radius-full);
@@ -667,26 +689,46 @@
 
 .maintenance-task-modal__btn-submit {
   padding: var(--space-8) var(--space-24);
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--crono-mto, #6264a7) 0%, #7375b8 100%);
   color: white;
-  border: none;
-  border-radius: var(--radius-base);
+  border: 1px solid transparent;
+  border-radius: 8px;
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
-  transition: all var(--duration-fast, 0.15s) ease;
+  box-shadow: 0 4px 12px rgba(98, 100, 167, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: transform 180ms var(--crono-ease-soft, cubic-bezier(0.32, 0.72, 0, 1)),
+              box-shadow 180ms var(--crono-ease-soft, cubic-bezier(0.32, 0.72, 0, 1));
   font-family: var(--font-family-base);
 }
 
 .maintenance-task-modal__btn-submit:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 6px 16px rgba(98, 100, 167, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
 }
 
 .maintenance-task-modal__btn-submit:disabled {
   background: var(--color-text-muted);
   cursor: not-allowed;
   box-shadow: none;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .maintenance-task-modal__overlay,
+  .maintenance-task-modal__container {
+    animation: none !important;
+  }
+  .maintenance-task-modal__close-btn,
+  .maintenance-task-modal__btn-submit,
+  .maintenance-task-modal__btn-cancel {
+    transition: none !important;
+  }
+  .maintenance-task-modal__close-btn:hover,
+  .maintenance-task-modal__btn-submit:hover,
+  .maintenance-task-modal__btn-cancel:hover {
+    transform: none !important;
+  }
 }
 
 /* Save Preset Dialog Overlay */
@@ -696,11 +738,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--alpha-overlay-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-toast);
 }
 
 .maintenance-task-modal__preset-dialog {
@@ -802,12 +844,12 @@
 }
 
 .maintenance-task-modal__preset-btn-save--active {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   cursor: pointer;
 }
 
 .maintenance-task-modal__preset-btn-save--active:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-action-bg-hover);
 }
 
 .maintenance-task-modal__preset-btn-save--disabled {

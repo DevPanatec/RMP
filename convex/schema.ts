@@ -255,7 +255,8 @@ export default defineSchema({
     .index("by_conductor", ["conductor_nombre"])
     .index("by_fecha", ["fecha_completacion"])
     .index("by_proyecto_fecha", ["proyecto_id", "fecha_completacion"])
-    .index("by_organizacion", ["organizacion_id"]),
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_asignacion", ["asignacion_id"]),
 
   // 7b. Eventos de Rutas (Activity Log)
   route_events: defineTable({
@@ -321,6 +322,9 @@ export default defineSchema({
     proyecto_id: v.optional(v.id("proyectos")),
     vehiculo_id: v.optional(v.id("vehiculos")),
     ruta_id: v.optional(v.id("rutas")),
+    // Vinculación a lugar físico (FUM site, INV warehouse, MTO location)
+    lugar_id: v.optional(v.id("lugares")),
+    lugar_nombre: v.optional(v.string()), // Denormalizado para queries
     prioridad: v.optional(v.number()),
     fecha_reporte: v.string(),
     estado: v.optional(v.string()),
@@ -339,6 +343,7 @@ export default defineSchema({
     .index("by_fecha", ["fecha_reporte"])
     .index("by_severidad", ["nivel_severidad"])
     .index("by_proyecto", ["proyecto_id"])
+    .index("by_lugar", ["lugar_id"])
     .index("by_organizacion", ["organizacion_id"]),
 
   // 10. Inventario
@@ -924,4 +929,192 @@ export default defineSchema({
     .index("by_vehiculo_tipo", ["vehiculo_id", "tipo"])
     .index("by_fecha", ["fecha"])
     .index("by_organizacion", ["organizacion_id"]),
+
+  // ─── Knowledge Base — Motor de Diagramas v2 (Plan v6) ─────────────
+
+  // 30. Marcas (catalogo cross-org)
+  makes: defineTable({
+    nombre: v.string(),                       // "Mack", "Volvo", "Tennant"
+    slug: v.string(),                         // "mack", "volvo", "tennant"
+    logo_storage_id: v.optional(v.id("_storage")),
+    paises_disponibles: v.optional(v.array(v.string())),
+    oem_website: v.optional(v.string()),      // base URL para crawler
+    validated: v.boolean(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_validated", ["validated"])
+    .searchIndex("search_nombre", { searchField: "nombre" }),
+
+  // 31. Modelos
+  models: defineTable({
+    make_id: v.id("makes"),
+    nombre: v.string(),                       // "Granite", "M30", "FH16"
+    equipment_class: v.string(),              // "barredora", "compactador", etc
+    tipo_vehiculo_default: v.optional(v.string()),
+    aliases: v.optional(v.array(v.string())), // ["Mack Granite GU713"]
+    validated: v.boolean(),
+    visibility: v.string(),                   // "private_org" | "global"
+    organizacion_id: v.optional(v.id("organizaciones")), // null si global
+  })
+    .index("by_make", ["make_id"])
+    .index("by_class", ["equipment_class"])
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_visibility", ["visibility"])
+    .searchIndex("search_nombre", { searchField: "nombre" }),
+
+  // 32. Anos de modelo
+  model_years: defineTable({
+    model_id: v.id("models"),
+    year: v.number(),
+    specs: v.optional(v.object({
+      engine: v.optional(v.string()),
+      transmission: v.optional(v.string()),
+      gvwr_kg: v.optional(v.number()),
+      axle_config: v.optional(v.string()),
+      wheelbase_mm: v.optional(v.number()),
+      cabin_style: v.optional(v.string()),
+    })),
+    param_svg_overrides: v.optional(v.any()), // knobs por defecto para ParamSVGEngine
+    vin_decoded_raw: v.optional(v.any()),     // raw NHTSA vPIC payload
+  })
+    .index("by_model", ["model_id"])
+    .index("by_model_year", ["model_id", "year"]),
+
+  // 33. KB Sources (crawler audit + provenance)
+  kb_sources: defineTable({
+    model_year_id: v.optional(v.id("model_years")),
+    make_id: v.optional(v.id("makes")),
+    source_url: v.string(),
+    source_type: v.string(),                  // "nhtsa_vpic" | "wikidata" | "doe_afdc" |
+                                              // "gsa_fleet" | "oem_brochure" | "datos_abiertos_pa" |
+                                              // "internet_archive" | "vincario" | "marketcheck"
+    fetched_at: v.number(),
+    last_modified: v.optional(v.string()),
+    etag: v.optional(v.string()),
+    content_hash: v.string(),
+    raw_storage_id: v.optional(v.id("_storage")),
+    parsed_data: v.optional(v.any()),
+    confidence: v.number(),                   // 0-1
+    license: v.string(),                      // "public_domain" | "cc_by_sa" | "oem_public" | "commercial"
+    attribution: v.optional(v.string()),
+  })
+    .index("by_model_year", ["model_year_id"])
+    .index("by_make", ["make_id"])
+    .index("by_fetched", ["fetched_at"])
+    .index("by_source_type", ["source_type"]),
+
+  // 34. Documentos uploaded por cliente
+  oem_documents: defineTable({
+    model_year_id: v.optional(v.id("model_years")),
+    vehiculo_id: v.optional(v.id("vehiculos")),
+    tipo: v.string(),                         // "service_manual" | "parts_catalog" | "operator_manual" | "brochure"
+    storage_id: v.id("_storage"),
+    file_name: v.string(),
+    file_size: v.number(),
+    page_count: v.optional(v.number()),
+    uploaded_by: v.id("perfiles_usuarios"),
+    source: v.string(),                       // "manual_upload" | "crawler" | "external_api"
+    license_declaration: v.boolean(),         // cliente declara tener derecho
+    organizacion_id: v.id("organizaciones"),
+  })
+    .index("by_model_year", ["model_year_id"])
+    .index("by_vehiculo", ["vehiculo_id"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 35. Ingestion runs (procesamiento OCR + Claude)
+  ingestion_runs: defineTable({
+    document_id: v.optional(v.id("oem_documents")),
+    model_year_id: v.optional(v.id("model_years")),
+    estado: v.string(),                       // "queued" | "ocr_running" | "ocr_done" |
+                                              // "vision_running" | "rendered" | "needs_review" |
+                                              // "approved" | "failed"
+    ocr_provider: v.optional(v.string()),     // "pdfjs" | "tesseract" | "claude_vision"
+    ocr_cost_usd: v.optional(v.number()),
+    vision_model: v.optional(v.string()),
+    vision_cost_usd: v.optional(v.number()),
+    iterations: v.optional(v.number()),
+    confidence_score: v.optional(v.number()),
+    comparison_score: v.optional(v.number()),
+    extracted_structure: v.optional(v.any()),
+    generated_svg_storage_id: v.optional(v.id("_storage")),
+    human_curator_id: v.optional(v.id("perfiles_usuarios")),
+    audit_log: v.array(v.object({
+      timestamp: v.number(),
+      event: v.string(),
+      detail: v.any(),
+      cost_usd: v.optional(v.number()),
+    })),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  })
+    .index("by_document", ["document_id"])
+    .index("by_model_year", ["model_year_id"])
+    .index("by_estado", ["estado"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 36. Part catalog (extraido de manuales)
+  part_catalog: defineTable({
+    model_year_id: v.optional(v.id("model_years")),
+    equipment_class: v.optional(v.string()),
+    nombre: v.string(),
+    numero_parte_oem: v.optional(v.string()),
+    numeros_parte_alternativos: v.optional(v.array(v.string())),
+    sistema: v.string(),                      // "motor", "transmision", "frenos", etc
+    vida_util_default: v.optional(v.object({
+      valor: v.number(),
+      unidad: v.string(),                     // "km" | "horas" | "dias"
+    })),
+    aliases: v.optional(v.array(v.string())),
+    kb_source_id: v.optional(v.id("kb_sources")),
+    validated: v.boolean(),
+  })
+    .index("by_model_year", ["model_year_id"])
+    .index("by_class", ["equipment_class"])
+    .searchIndex("search_nombre", { searchField: "nombre" }),
+
+  // 37. Vehicle photos (multi-angulo, opcional)
+  vehicle_photos: defineTable({
+    vehiculo_id: v.id("vehiculos"),
+    storage_id: v.id("_storage"),
+    angulo: v.string(),                       // "frontal" | "lateral_izq" | "lateral_der" |
+                                              // "posterior" | "top"
+    uploaded_by: v.id("perfiles_usuarios"),
+    uploaded_at: v.number(),
+    use_as_ground_truth: v.boolean(),
+    organizacion_id: v.id("organizaciones"),
+  })
+    .index("by_vehiculo", ["vehiculo_id"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 38. Crawler audit log (defensa legal)
+  crawler_audit_log: defineTable({
+    source_url: v.string(),
+    fetched_at: v.number(),
+    status_code: v.number(),
+    user_agent: v.string(),
+    robots_txt_checked: v.boolean(),
+    robots_txt_allowed: v.boolean(),
+    response_size_bytes: v.number(),
+    result_kb_source_id: v.optional(v.id("kb_sources")),
+  })
+    .index("by_url", ["source_url"])
+    .index("by_fetched", ["fetched_at"]),
+
+  // 39. Template overrides (cache de refinamientos por modelo)
+  template_overrides: defineTable({
+    model_year_id: v.id("model_years"),
+    equipment_class: v.string(),
+    template_name: v.string(),                // "compactador" | "barredora" | etc
+    param_overrides: v.any(),                 // JSON con knobs
+    confidence: v.number(),
+    source: v.string(),                       // "claude_refinement" | "manual_curator" |
+                                              // "ocr_extracted" | "kb_specs"
+    approved_by: v.optional(v.id("perfiles_usuarios")),
+    approved_at: v.optional(v.number()),
+    last_computed: v.number(),
+    visibility: v.string(),                   // "private_org" | "global"
+    organizacion_id: v.optional(v.id("organizaciones")),
+  })
+    .index("by_model_year", ["model_year_id"])
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_visibility", ["visibility"]),
 });

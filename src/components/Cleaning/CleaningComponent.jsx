@@ -25,7 +25,7 @@ const CleaningComponent = ({ userRole = 'admin', embedded = false }) => {
         dateRange,
         (progress) => setDownloadProgress(progress)
       );
-      console.log('📄 PDF de limpieza completo generado:', result);
+      console.log('PDF de limpieza completo generado:', result);
     } catch (error) {
       console.error('Error generando PDF:', error);
       alert('Error al generar el reporte de limpieza');

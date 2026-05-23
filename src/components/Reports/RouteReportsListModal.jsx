@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { X, Calendar, Eye, FileText, Truck, Clock, Package } from '../Icons';
 import { Badge } from '../UI';
+import { buildGmapsEmbedUrl } from '../../utils/gmaps';
 import './LocationReportsModal.css';
 
 const parseLocalDate = (dateStr) => {
@@ -66,7 +67,7 @@ const RouteReportsListModal = ({ card, onClose, onSelectReport, getStatusVariant
   const mapQuery = hasCoords
     ? `${ubic.latitud},${ubic.longitud}`
     : encodeURIComponent((ubic?.nombre || card.nombre) + ', Panama City, Panama');
-  const mapEmbedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${mapQuery}&zoom=16`;
+  const mapEmbedUrl = buildGmapsEmbedUrl(mapQuery, 16);
   const googleMapsUrl = hasCoords
     ? `https://www.google.com/maps/search/?api=1&query=${ubic.latitud},${ubic.longitud}`
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((ubic?.nombre || card.nombre) + ', Panama City, Panama')}`;

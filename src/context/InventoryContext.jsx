@@ -16,6 +16,9 @@ export const InventoryProvider = ({ children }) => {
   const consumoPorTipo = useQuery(api.inventario.getConsumoPorTipo);
   const historialComprasPorMes = useQuery(api.inventario.getHistorialComprasPorMes, { meses: 12 });
   const topItemsMasCostosos = useQuery(api.inventario.getTopItemsMasCostosos, { limit: 10 });
+  // Fleet inventory costos (snapshot + flujo)
+  const costoFlotaActivo = useQuery(api.inventario.getCostoFlotaActivo, {});
+  const historialReemplazosFlota = useQuery(api.inventario.getHistorialReemplazosFlotaPorMes, { meses: 12 });
 
   // Mutations
   const addItemMutation = useMutation(api.inventario.add);
@@ -180,6 +183,9 @@ export const InventoryProvider = ({ children }) => {
     consumoPorTipo: consumoPorTipo || [],
     historialComprasPorMes: historialComprasPorMes || [],
     topItemsMasCostosos: topItemsMasCostosos || [],
+    // Fleet inventory costos
+    costoFlotaActivo: costoFlotaActivo || { total: 0, breakdown: { vehicle_components: 0, fleet_assets: 0, fleet_asset_components: 0, location_components: 0 }, counts: { vehicle_components: 0, fleet_assets: 0, fleet_asset_components: 0, location_components: 0 }, topItems: [] },
+    historialReemplazosFlota: historialReemplazosFlota || [],
     loading,
     error: null,
     addItem,
@@ -207,6 +213,8 @@ export const InventoryProvider = ({ children }) => {
     consumoPorTipo,
     historialComprasPorMes,
     topItemsMasCostosos,
+    costoFlotaActivo,
+    historialReemplazosFlota,
     loading,
     inventoryStats,
   ]);

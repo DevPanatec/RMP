@@ -4,7 +4,7 @@ import Map, { Marker, Source, Layer, Popup, NavigationControl, ScaleControl } fr
 import maplibregl from 'maplibre-gl';
 import { useAction, useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import { Satellite, Map as MapIcon, MapPin, X, Truck, Navigation, CheckCircle, Clock, Play, Battery, Signal, RefreshCw, Target, Trash2, Gauge, Copy, Radio, Recycle, Spray, Sun, Moon, Route, Calendar, AlertTriangle, Minimize2, Maximize2 } from '../Icons';
+import { Satellite, Map as MapIcon, MapPin, X, Truck, Navigation, CheckCircle, Clock, Play, Battery, Signal, RefreshCw, Target, Trash2, Gauge, Copy, Radio, Recycle, Spray, Sun, Moon, Route, Calendar, AlertTriangle, Minimize2, Maximize2, BarChart3 } from '../Icons';
 import GPSPlaybackModal from '../GPS/GPSPlaybackModal';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapLibreComponent.css';
@@ -1217,7 +1217,7 @@ const MapLibreComponent = ({
       setShowGeofenceModal(false);
       setGeofenceType('ambos'); // Reset to default
     } catch (error) {
-      console.error('❌ Error creando geofence:', error);
+      console.error('Error creando geofence:', error);
     }
   };
 
@@ -1233,7 +1233,7 @@ const MapLibreComponent = ({
       await deleteGeofence({ id });
       setSelectedGeofence(null); // Close popup
     } catch (error) {
-      console.error('❌ Error eliminando geofence:', error);
+      console.error('Error eliminando geofence:', error);
     }
   };
 
@@ -1244,7 +1244,7 @@ const MapLibreComponent = ({
     try {
       await syncSafeTag();
     } catch (error) {
-      console.error('❌ Error en sincronización:', error);
+      console.error('Error en sincronización:', error);
     } finally {
       setIsSyncing(false);
     }
@@ -1672,7 +1672,7 @@ const MapLibreComponent = ({
                   }
                 }}
               >
-                📊 Ver Reportes de Limpieza
+                <BarChart3 size={14} aria-hidden="true" /> Ver Reportes de Limpieza
               </button>
             </div>
           </Popup>

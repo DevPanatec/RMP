@@ -165,3 +165,42 @@ export async function callerHasModulo(ctx: Ctx, codigo: ModuloCodigo): Promise<b
   if (!org) return false;
   return hasModulo((org as any).modulos_activos, codigo);
 }
+
+// ============================================================
+// OR-gated helpers — para recursos compartidos entre módulos
+// ============================================================
+// Caso de uso: `lugares` table es usada por FUM (fumigation sites),
+// INV (warehouse locations vía inventario_ubicaciones) y MTO (location_components).
+// Un org con cualquiera de los 3 debe poder gestionar lugares.
+
+// Throws si NINGUNO de los módulos pasados está activo. Super_admin bypass.
+export async function requireAnyModulo(ctx: Ctx, codigos: ModuloCodigo[]): Promise<void> {
+  const scope = await getAuthScope(ctx);
+  if (!scope.perfil) throw new Error("No autenticado");
+  if (scope.isSuperAdmin) return;
+
+  if (!scope.organizacionId) {
+    throw new Error("Usuario sin organización asignada");
+  }
+  const org = await ctx.db.get(scope.organizacionId);
+  if (!org) throw new Error("Organización no encontrada");
+
+  const activos = (org as any).modulos_activos as string[] | undefined;
+  const someActive = codigos.some((c) => hasModulo(activos, c));
+  if (!someActive) {
+    const nombres = codigos.map((c) => MODULO_CATALOG[c]?.nombre ?? c).join(", ");
+    throw new Error(`Requiere alguno de estos módulos: ${nombres}`);
+  }
+}
+
+// Sin throw — true si CUALQUIERA de los módulos está activo.
+export async function callerHasAnyModulo(ctx: Ctx, codigos: ModuloCodigo[]): Promise<boolean> {
+  const scope = await getAuthScope(ctx);
+  if (!scope.perfil) return false;
+  if (scope.isSuperAdmin) return true;
+  if (!scope.organizacionId) return false;
+  const org = await ctx.db.get(scope.organizacionId);
+  if (!org) return false;
+  const activos = (org as any).modulos_activos as string[] | undefined;
+  return codigos.some((c) => hasModulo(activos, c));
+}

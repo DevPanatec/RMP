@@ -1,11 +1,12 @@
 /* ============================================
-   SERVICIOS COMPONENT - FLUENT
+   SERVICIOS COMPONENT - FLUENT + CRONO
    ============================================ */
 .servicios-component {
   padding: var(--space-16);
   display: flex;
   flex-direction: column;
   gap: var(--space-16);
+  animation: crono-fade-up 400ms var(--crono-ease-soft);
 }
 
 .servicios-header {
@@ -17,14 +18,23 @@
 
 .servicios-header-left {
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-12);
+  align-items: center;
+  gap: var(--space-14);
 }
 
 .servicios-header-icon {
-  color: var(--color-primary);
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--crono-mto) 0%, #7c7fc8 100%);
+  color: white !important;
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: 0;
+  box-shadow: 0 6px 16px rgba(98, 100, 167, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .servicios-header-left h2 {
@@ -60,31 +70,43 @@
   padding: var(--space-12) var(--space-16);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   cursor: pointer;
   text-align: left;
-  transition: border-color var(--duration-fast) var(--ease-out),
-              background var(--duration-fast) var(--ease-out),
-              box-shadow var(--duration-fast) var(--ease-out);
+  transition: transform 200ms var(--crono-ease-soft),
+              box-shadow 200ms var(--crono-ease-soft),
+              border-color 200ms var(--crono-ease-soft),
+              background 200ms var(--crono-ease-soft);
   color: var(--color-text-secondary);
+  box-shadow: var(--crono-shadow-1);
+  opacity: 0;
+  animation: crono-cell-in 360ms var(--crono-ease-soft) forwards;
 }
 
+.servicios-tab:nth-child(1) { animation-delay: 0ms; }
+.servicios-tab:nth-child(2) { animation-delay: 70ms; }
+.servicios-tab:nth-child(3) { animation-delay: 140ms; }
+
 .servicios-tab:hover {
-  border-color: var(--color-border-strong, var(--color-primary));
+  border-color: var(--crono-mto);
   color: var(--color-text);
-  box-shadow: var(--shadow-xs);
+  transform: translateY(-2px);
+  box-shadow: var(--crono-shadow-2);
 }
 
 .servicios-tab--active {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: white;
-  box-shadow: var(--shadow-sm);
+  background: var(--crono-mto-soft);
+  border-color: var(--crono-mto);
+  color: var(--crono-mto);
+  box-shadow: 0 0 0 3px rgba(98, 100, 167, 0.1), var(--crono-shadow-2);
 }
 
 .servicios-tab--active:hover {
-  background: var(--color-primary-hover);
-  color: white;
+  background: var(--crono-mto-soft);
+  border-color: var(--crono-mto);
+  color: var(--crono-mto);
+  transform: translateY(-2px);
+  box-shadow: 0 0 0 3px rgba(98, 100, 167, 0.12), var(--crono-shadow-glow-mto);
 }
 
 .servicios-tab-text {
@@ -102,6 +124,7 @@
 .servicios-tab-count {
   font-size: var(--font-size-xs);
   opacity: 0.85;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Section hint debajo de tabs */
@@ -110,11 +133,39 @@
   align-items: center;
   gap: var(--space-8);
   padding: var(--space-8) var(--space-12);
-  background: var(--color-surface-secondary);
-  border-left: 3px solid var(--color-primary);
+  background: var(--crono-mto-soft);
+  border-left: 3px solid var(--crono-mto);
   border-radius: var(--radius-base);
   font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
+  animation: crono-fade-up 320ms var(--crono-ease-soft);
+}
+
+/* Empty state */
+.servicios-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-12);
+  padding: var(--space-40) var(--space-16);
+  text-align: center;
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .servicios-component,
+  .servicios-tab,
+  .servicios-section-hint {
+    animation: none;
+    opacity: 1;
+  }
+  .servicios-tab:hover,
+  .servicios-tab--active:hover {
+    transform: none;
+  }
 }
 
 /* Content */

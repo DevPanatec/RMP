@@ -75,7 +75,7 @@ async function gotoOperaciones(page: Page) {
 
 async function gotoAsignaciones(page: Page) {
   await gotoOperaciones(page);
-  const sub = page.locator(".ops-tab", { hasText: "Asignaciones" }).first();
+  const sub = page.locator(".app-subtab", { hasText: "Asignaciones" }).first();
   await expect(sub).toBeVisible({ timeout: 10_000 });
   await sub.click();
   await page.waitForTimeout(800);
@@ -89,7 +89,7 @@ async function gotoAsignaciones(page: Page) {
 
 async function gotoCatalogoFumigacion(page: Page) {
   await gotoOperaciones(page);
-  const sub = page.locator(".ops-tab", { hasText: "Catálogo" }).first();
+  const sub = page.locator(".app-subtab", { hasText: "Catálogo" }).first();
   await expect(sub).toBeVisible({ timeout: 10_000 });
   await sub.click();
   await page.waitForTimeout(800);

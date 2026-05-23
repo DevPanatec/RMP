@@ -6,7 +6,7 @@
   right: 0;
   bottom: 0;
   background: var(--color-background);
-  z-index: 9999;
+  z-index: var(--z-overlay-max);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -80,7 +80,7 @@
   border-radius: var(--radius-md);
   padding: var(--space-12);
   box-shadow: var(--shadow-lg);
-  z-index: 100;
+  z-index: var(--z-dropdown);
 }
 
 .date-picker-dropdown input[type="date"] {
@@ -100,7 +100,7 @@
   gap: var(--space-6);
   padding: var(--space-8) var(--space-14);
   background: var(--color-text);
-  color: var(--color-surface);
+  color: white;
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -137,7 +137,7 @@
 
 .close-button:hover {
   background: var(--color-error);
-  color: var(--color-surface);
+  color: white;
   border-color: var(--color-error);
 }
 
@@ -200,7 +200,7 @@
   position: relative;
   width: 40px;
   height: 40px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 2px 4px var(--alpha-overlay-strong));
 }
 
 /* Playback Controls */
@@ -317,7 +317,7 @@
 .timeline-slider::-moz-range-progress {
   height: 12px;
   border-radius: 6px;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
 }
 
 .timeline-slider::-webkit-slider-thumb {
@@ -326,7 +326,7 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
@@ -338,7 +338,7 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   cursor: pointer;
   border: 3px solid var(--color-surface);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -404,7 +404,7 @@
   border-radius: var(--radius-md);
   padding: var(--space-12);
   box-shadow: var(--shadow-lg);
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 
 .date-picker-dropdown-inline input[type="date"] {
@@ -447,7 +447,7 @@
   width: 60px;
   height: 60px;
   background: var(--color-text);
-  color: var(--color-surface);
+  color: white;
   border: none;
 }
 
@@ -573,7 +573,7 @@
 .retry-button {
   padding: var(--space-10) var(--space-20);
   background: var(--color-text);
-  color: var(--color-surface);
+  color: white;
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;

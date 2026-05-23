@@ -1,5 +1,6 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 import { getAuthScope, getScopedProjectId, getScopedOrgId, requireProjectAccess, requireWriteRole } from "./lib/auth";
 import { requireModulo } from "./lib/modules";
 
@@ -215,3 +216,91 @@ export const getRecent = query({
   },
 });
 
+
+// ============================================================
+// AUTO-TRIGGER: emit parada event desde geofence detection
+// ============================================================
+//
+// Llamado por geofences.checkVehicleGeofences cuando un vehículo entra/sale
+// de un geofence auto-generado por una ruta (`geofence.ruta_id` +
+// `geofence.parada_index` set). Encuentra el route_progress activo del
+// vehículo y emite el evento. Sin user identity — corre desde cron internal.
+//
+// Idempotency: por cada (asignacion+parada_index+tipo_evento), solo emite la
+// PRIMERA vez. Re-entradas a la misma parada no crean spam. Para re-emitir,
+// el conductor debe completar la ruta o resetear.
+export async function tryEmitParadaEvent(
+  ctx: MutationCtx,
+  args: {
+    vehiculo_id: Id<"vehiculos">;
+    ruta_id: Id<"rutas">;
+    parada_index: number;
+    tipo_evento: "parada_llegada" | "parada_salida";
+    latitud: number;
+    longitud: number;
+  },
+): Promise<{ emitted: boolean; reason?: string; eventId?: Id<"route_events"> }> {
+  // 1. Buscar route_progress activo (estado='en_progreso') que matche vehiculo+ruta
+  const activeProgress = await ctx.db
+    .query("route_progress")
+    .withIndex("by_estado", (q) => q.eq("estado", "en_progreso"))
+    .collect();
+  const progress = activeProgress.find(
+    (p) => p.vehiculo_id === args.vehiculo_id && p.ruta_id === args.ruta_id,
+  );
+  if (!progress) {
+    return { emitted: false, reason: "no_active_progress" };
+  }
+
+  // 2. Idempotency: skip si ya existe evento mismo tipo+asignacion+parada_index
+  const existing = await ctx.db
+    .query("route_events")
+    .withIndex("by_asignacion", (q) => q.eq("asignacion_id", progress.asignacion_id))
+    .collect();
+  const dupe = existing.find(
+    (e) =>
+      e.tipo_evento === args.tipo_evento &&
+      e.parada_index === args.parada_index,
+  );
+  if (dupe) {
+    return { emitted: false, reason: "duplicate", eventId: dupe._id };
+  }
+
+  // 3. Obtener datos denormalizados pa' el evento
+  const ruta = await ctx.db.get(args.ruta_id);
+  const vehiculo = await ctx.db.get(args.vehiculo_id);
+
+  // Extraer nombre de parada desde rutas.paradas[index]
+  let parada_nombre: string | undefined;
+  let parada_orden: number | undefined;
+  if (ruta && Array.isArray(ruta.paradas)) {
+    const p = ruta.paradas[args.parada_index];
+    if (p) {
+      parada_nombre = p.nombre || p.direccion || `Parada ${args.parada_index + 1}`;
+      parada_orden = typeof p.orden === "number" ? p.orden : args.parada_index + 1;
+    }
+  }
+
+  // 4. Insertar evento
+  const eventId = await ctx.db.insert("route_events", {
+    ruta_id: args.ruta_id,
+    asignacion_id: progress.asignacion_id,
+    conductor_id: progress.conductor_id,
+    conductor_nombre: progress.conductor_nombre,
+    vehiculo_id: args.vehiculo_id,
+    vehiculo_placa: vehiculo?.placa ?? "",
+    ruta_nombre: ruta?.nombre ?? "",
+    tipo_evento: args.tipo_evento,
+    parada_nombre,
+    parada_orden,
+    parada_index: args.parada_index,
+    gps_latitud: args.latitud,
+    gps_longitud: args.longitud,
+    detalles: "Auto-emitido por geofence trigger",
+    timestamp: new Date().toISOString(),
+    proyecto_id: progress.proyecto_id,
+    organizacion_id: progress.organizacion_id,
+  });
+
+  return { emitted: true, eventId };
+}

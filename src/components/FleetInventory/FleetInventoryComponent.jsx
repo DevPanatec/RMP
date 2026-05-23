@@ -6,6 +6,7 @@ import {
   Truck, Package, Plus, ChevronRight, RefreshCw, Trash2, Edit,
   AlertTriangle, History, X, Layers
 } from '../Icons';
+import { renderDiagram, implementedTemplates } from '../../diagrams/factory';
 import './FleetInventoryComponent.css';
 
 // ─────────────────────────────────────────────────────────
@@ -78,7 +79,13 @@ function DiagramEngine({ vehicle, components, kmAcumulado, onZoneFilter, activeZ
     );
   }
 
-  const { template, zones, fallback_level } = resolution;
+  const { template, zones, fallback_level, equipment_class, code_template_params } = resolution;
+
+  // Plan v6 — Si el equipment_class tiene code template TS implementado, usarlo
+  const useCodeTemplate = equipment_class && implementedTemplates.includes(equipment_class);
+  const codeRender = useCodeTemplate
+    ? renderDiagram(equipment_class, code_template_params ?? {})
+    : null;
 
   // Peor estado por zona (para coloreado)
   const zoneHealth = {};
@@ -114,12 +121,19 @@ function DiagramEngine({ vehicle, components, kmAcumulado, onZoneFilter, activeZ
         <div className="diagram-generic-badge">Vista genérica — {template.label}</div>
       )}
       <div className="diagram-canvas">
-        <img
-          src={template.render_path}
-          alt={template.label}
-          className="diagram-render"
-          draggable={false}
-        />
+        {codeRender ? (
+          <div
+            className="diagram-render"
+            dangerouslySetInnerHTML={{ __html: codeRender.svg }}
+          />
+        ) : (
+          <img
+            src={template.render_path}
+            alt={template.label}
+            className="diagram-render"
+            draggable={false}
+          />
+        )}
         {[...zones].sort((a, b) => a.display_order - b.display_order).map(zone => {
           const pct = zoneHealth[zone.system_key];
           const isActive = activeZone === zone.system_key;

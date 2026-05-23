@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { X, Calendar, Download, Search, Camera, Clock, FileText } from '../Icons';
 import { Badge } from '../UI';
+import { buildGmapsEmbedUrl } from '../../utils/gmaps';
 import './LocationMapModal.css';
 
 // Helper para parsear fechas sin problemas de timezone
@@ -63,7 +64,7 @@ const LocationMapModal = ({ location, onClose, getPhotoUrl, getStatusVariant }) 
   };
 
   const mapUrl = location.latitud && location.longitud
-    ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${location.latitud},${location.longitud}&zoom=16`
+    ? buildGmapsEmbedUrl(`${location.latitud},${location.longitud}`, 16)
     : null;
 
   return (

@@ -2,7 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthScope, getScopedProjectId, requireProjectAccess, requireWriteRole, requireOrgAccess } from "./lib/auth";
 import { incrementOrgStorage } from "./organizaciones";
-import { requireModulo } from "./lib/modules";
+import { requireModulo, requireAnyModulo } from "./lib/modules";
 
 // ========== LUGARES ==========
 export const listLugares = query({
@@ -38,7 +38,9 @@ export const addLugar = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
-    await requireModulo(ctx, "FUM");
+    // Lugares es tabla compartida: FUM (fumigation sites), INV (warehouse locations
+    // via inventario_ubicaciones), MTO (location_components). Cualquier módulo desbloquea.
+    await requireAnyModulo(ctx, ["FUM", "INV", "MTO"]);
     await requireProjectAccess(ctx, args.proyecto_id);
     const proyecto = await ctx.db.get(args.proyecto_id);
     const organizacion_id = proyecto?.organizacion_id;
@@ -62,7 +64,7 @@ export const updateLugar = mutation({
   },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
-    await requireModulo(ctx, "FUM");
+    await requireAnyModulo(ctx, ["FUM", "INV", "MTO"]);
     const lugar = await ctx.db.get(args.id);
     if (!lugar) throw new Error("Lugar no encontrado");
     if (lugar.proyecto_id) await requireProjectAccess(ctx, lugar.proyecto_id);
@@ -84,7 +86,7 @@ export const deleteLugar = mutation({
   args: { id: v.id("lugares") },
   handler: async (ctx, args) => {
     await requireWriteRole(ctx);
-    await requireModulo(ctx, "FUM");
+    await requireAnyModulo(ctx, ["FUM", "INV", "MTO"]);
     const lugar = await ctx.db.get(args.id);
     if (!lugar) throw new Error("Lugar no encontrado");
     if (lugar.proyecto_id) await requireProjectAccess(ctx, lugar.proyecto_id);

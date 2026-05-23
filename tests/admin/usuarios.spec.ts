@@ -35,7 +35,7 @@ async function goToPersonal(page: Page): Promise<boolean> {
   await page.waitForTimeout(800);
 
   const personalSub = page
-    .locator("button.ops-tab", { hasText: "Personal" })
+    .locator("button.app-subtab", { hasText: "Personal" })
     .first();
   const hasSub = await personalSub.isVisible({ timeout: 5_000 }).catch(() => false);
   if (hasSub) {

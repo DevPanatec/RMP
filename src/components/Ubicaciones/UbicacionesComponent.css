@@ -46,7 +46,7 @@
   align-items: center;
   gap: var(--space-8);
   padding: var(--space-8) var(--space-16);
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
   border: none;
   border-radius: var(--radius-base);
@@ -58,7 +58,7 @@
 }
 
 .btn-add-ubic:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-action-bg-hover);
 }
 
 /* Toolbar */
@@ -119,7 +119,7 @@
 }
 
 .ubic-tipo-tab--active .ubic-tab-badge {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
 }
 

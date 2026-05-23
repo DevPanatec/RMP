@@ -191,12 +191,21 @@ export const start = mutation({
     const now = new Date();
     const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-    // Cerrar progress en_progreso del mismo VEHÍCULO (un vehículo no puede correr 2 rutas).
-    // Filtramos por vehículo (no por nombre conductor — colisiones cross-org).
+    // Idempotency: si ya existe en_progreso para esta misma asignación, devolverlo.
+    // Previene duplicados por double-click / network retry.
     const stale = await ctx.db
       .query("route_progress")
       .withIndex("by_estado", (q) => q.eq("estado", "en_progreso"))
       .collect();
+    const existingSameAssignment = stale.find(
+      (sp) => sp.asignacion_id === args.asignacion_id
+    );
+    if (existingSameAssignment) {
+      return existingSameAssignment._id;
+    }
+
+    // Cerrar progress en_progreso del mismo VEHÍCULO (un vehículo no puede correr 2 rutas).
+    // Filtramos por vehículo (no por nombre conductor — colisiones cross-org).
     for (const sp of stale) {
       if (sp.vehiculo_id === args.vehiculo_id) {
         await ctx.db.patch(sp._id, { estado: "completada" });
@@ -292,6 +301,10 @@ export const complete = mutation({
     const isOwner = scope.perfil._id === progress.conductor_id;
     if (!isOwner && !scope.isSuperAdmin) {
       if (progress.proyecto_id) await requireProjectAccess(ctx, progress.proyecto_id);
+    }
+
+    if (progress.estado === "completada") {
+      return args.id;
     }
 
     await ctx.db.patch(args.id, {

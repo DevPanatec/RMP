@@ -6,7 +6,7 @@
   position: fixed;
   top: 80px;
   right: 20px;
-  z-index: 10000;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -19,9 +19,9 @@
   background: var(--color-surface);
   border-radius: 12px;
   box-shadow: 
-    0 10px 40px rgba(0, 0, 0, 0.15),
-    0 4px 16px rgba(0, 0, 0, 0.1),
-    0 2px 8px rgba(0, 0, 0, 0.06);
+    0 10px 40px var(--alpha-overlay-medium),
+    0 4px 16px var(--alpha-overlay-base),
+    0 2px 8px var(--alpha-overlay-soft);
   overflow: hidden;
   animation: slideInAlert 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   opacity: 0;
@@ -82,7 +82,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-surface);
+  color: white;
 }
 
 .alert-icon--enter {
@@ -142,7 +142,7 @@
 }
 
 .alert-close-btn:hover {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--alpha-overlay-base);
   color: var(--color-text-secondary);
 }
 
@@ -201,8 +201,8 @@
   justify-content: center;
   gap: 6px;
   padding: 10px 16px;
-  background: var(--color-primary);
-  color: var(--color-surface);
+  background: var(--color-action-bg);
+  color: white;
   border: none;
   border-radius: 8px;
   font-size: 13px;
@@ -228,14 +228,14 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--alpha-overlay-base);
   overflow: hidden;
 }
 
 .alert-progress-fill {
   height: 100%;
   width: 100%;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   animation: progressShrink 10s linear forwards;
 }
 
@@ -267,12 +267,12 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--alpha-overlay-heavy);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-toast);
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -282,7 +282,7 @@
   padding: 40px;
   max-width: 500px;
   width: 90%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px var(--alpha-overlay-strong);
   position: relative;
   overflow: hidden;
   animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -326,7 +326,7 @@
 @media (prefers-color-scheme: dark) {
   .geofence-alert-card {
     background: var(--color-text);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--alpha-highlight-light);
   }
 
   .alert-title {
@@ -346,12 +346,12 @@
   }
 
   .alert-close-btn {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--alpha-highlight-light);
     color: var(--color-text-muted);
   }
 
   .alert-close-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--alpha-highlight-medium);
     color: var(--color-border-strong);
   }
 
@@ -366,12 +366,12 @@
   }
 
   .alert-progress-bar {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--alpha-highlight-light);
   }
 
   .geofence-alert-popup {
     background: var(--color-text);
-    color: var(--color-surface);
+    color: white;
   }
 }
 

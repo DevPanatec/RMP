@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
-import { MapPin, Plus, RefreshCw, Trash2, Edit, History, X, ChevronRight } from '../Icons';
+import { MapPin, Plus, RefreshCw, Trash2, Edit, History, X, ChevronRight, AlertTriangle } from '../Icons';
 import './LocationComponentsView.css';
 
 // ─────────────────────────────────────────────
@@ -246,7 +246,10 @@ function LocationDetail({ lugar, canWrite }) {
         <div className="lc-detail-panel__meta">
           {lugar.descripcion && <span className="lc-detail-panel__desc">{lugar.descripcion}</span>}
           {alertCount > 0 && (
-            <span className="lc-alert-pill">⚠ {alertCount} alerta{alertCount > 1 ? 's' : ''}</span>
+            <span className="lc-alert-pill">
+              <AlertTriangle size={12} aria-hidden="true" />
+              {alertCount} alerta{alertCount > 1 ? 's' : ''}
+            </span>
           )}
         </div>
       </div>

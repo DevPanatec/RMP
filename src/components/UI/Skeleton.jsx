@@ -50,4 +50,35 @@ export const SkeletonRow = ({ cols = 4 }) => (
   </tr>
 );
 
+export const SkeletonAvatar = ({ size = 40 }) => (
+  <Skeleton width={size} height={size} radius="50%" />
+);
+
+export const SkeletonButton = ({ width = 100, height = 36 }) => (
+  <Skeleton width={width} height={height} radius="var(--radius-base)" />
+);
+
+export const SkeletonGrid = ({ count = 8, minColWidth = 240, itemHeight = 80 }) => (
+  <div
+    className="skeleton-grid"
+    style={{
+      display: 'grid',
+      gridTemplateColumns: `repeat(auto-fill, minmax(${minColWidth}px, 1fr))`,
+      gap: 'var(--space-12)',
+    }}
+  >
+    {Array.from({ length: count }).map((_, i) => (
+      <Skeleton key={i} height={itemHeight} radius="var(--radius-md)" />
+    ))}
+  </div>
+);
+
+export const SkeletonList = ({ count = 3, itemHeight = 80 }) => (
+  <div className="skeleton-list" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-12)' }}>
+    {Array.from({ length: count }).map((_, i) => (
+      <Skeleton key={i} height={itemHeight} radius="var(--radius-md)" />
+    ))}
+  </div>
+);
+
 export default Skeleton;

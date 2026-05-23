@@ -34,7 +34,7 @@ async function goToPersonal(page: Page): Promise<boolean> {
 
   // Personal sub-tab (only visible if PER module active)
   const personalSub = page
-    .locator("button.ops-tab", { hasText: "Personal" })
+    .locator("button.app-subtab", { hasText: "Personal" })
     .first();
   const hasPersonal = await personalSub
     .isVisible({ timeout: 5_000 })

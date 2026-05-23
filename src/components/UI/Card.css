@@ -5,9 +5,12 @@
 .card-new {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md); /* 6px - Fluent cards */
+  border-radius: 12px;
   overflow: hidden;
-  transition: all 200ms cubic-bezier(0.1, 0.9, 0.2, 1); /* Fluent easing */
+  transition:
+    border-color 200ms var(--crono-ease-soft),
+    box-shadow 200ms var(--crono-ease-soft),
+    transform 200ms var(--crono-ease-soft);
 }
 
 .card-new__header {
@@ -43,16 +46,16 @@
    ============================================ */
 
 .card-new--default {
-  box-shadow: var(--shadow-sm); /* Elevation 4 */
+  box-shadow: var(--crono-shadow-1);
 }
 
 .card-new--elevated {
-  box-shadow: var(--shadow-md); /* Elevation 8 */
+  box-shadow: var(--crono-shadow-2);
 }
 
 /* Acrylic effect for elevated cards */
 .card-new--acrylic {
-  background: rgba(255, 255, 255, 0.7);
+  background: var(--color-surface-acrylic);
   backdrop-filter: blur(30px) saturate(125%);
   -webkit-backdrop-filter: blur(30px) saturate(125%);
   box-shadow: var(--shadow-md);
@@ -66,13 +69,21 @@
 /* Hoverable cards */
 .card-new--hoverable:hover {
   border-color: var(--color-border-strong);
-  box-shadow: var(--shadow-md); /* Elevation increases on hover */
-  transform: translateY(-2px); /* Subtle lift */
+  box-shadow: var(--crono-shadow-2);
+  transform: translateY(-2px);
 }
 
 .card-new--hoverable.card-new--acrylic:hover {
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: var(--shadow-lg);
+  background: var(--color-surface-acrylic);
+  box-shadow: var(--crono-shadow-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-new,
+  .card-new--hoverable:hover {
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 /* ============================================
@@ -100,7 +111,7 @@
    ============================================ */
 
 .card-new--primary {
-  border-left: 4px solid var(--color-primary);
+  border-left: 4px solid var(--color-action-bg);
 }
 
 .card-new--success {

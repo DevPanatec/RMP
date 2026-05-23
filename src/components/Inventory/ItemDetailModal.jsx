@@ -4,7 +4,7 @@ import { api } from '../../../convex/_generated/api';
 import { useInventory } from '../../context/InventoryContext';
 import { Package, MapPin, Plus, Edit, Trash2, X, Save, AlertTriangle, Building, ShoppingCart, Clock, DollarSign, Info, TrendingDown } from '../Icons';
 import toast, { Toaster } from 'react-hot-toast';
-import { ConfirmDialog } from '../UI';
+import { ConfirmDialog, Modal } from '../UI';
 import { handleMutationError } from '../../utils/mutationError';
 import './ItemDetailModal.css';
 
@@ -362,34 +362,34 @@ const ItemDetailModal = ({ item, onClose, canWrite = true }) => {
   const stockStatus = getStockStatus();
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <Modal open onClose={onClose} size="lg" variant="detail" ariaLabelledBy="item-detail-modal-title" className="modal-detail-wrapper">
       <Toaster
         position="top-right"
         toastOptions={{
           duration: 3000,
           style: {
-            background: '#363636',
-            color: '#fff',
+            background: 'var(--color-text)',
+            color: 'var(--color-surface)',
             fontWeight: '500',
             fontSize: '14px',
-            borderRadius: '10px',
+            borderRadius: 'var(--radius-md)',
             padding: '12px 20px',
           },
           success: {
             iconTheme: {
-              primary: '#10b981',
-              secondary: '#fff',
+              primary: 'var(--color-success)',
+              secondary: 'var(--color-surface)',
             },
           },
           error: {
             iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
+              primary: 'var(--color-error)',
+              secondary: 'var(--color-surface)',
             },
           },
         }}
       />
-      <div className="modal-detail-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-detail-content-inner">
         {/* Header */}
         <div className="modal-detail-header">
           <div className="modal-detail-header-content">
@@ -398,7 +398,7 @@ const ItemDetailModal = ({ item, onClose, canWrite = true }) => {
             </div>
             <div className="modal-detail-title">
               <div className="modal-detail-codigo">{item.codigo}</div>
-              <h3>{item.nombre}</h3>
+              <h3 id="item-detail-modal-title">{item.nombre}</h3>
               <span className="modal-detail-tipo">{item.tipo_articulo}</span>
             </div>
           </div>
@@ -1017,7 +1017,7 @@ const ItemDetailModal = ({ item, onClose, canWrite = true }) => {
           onCancel={() => setLocationToDelete(null)}
         />
       )}
-    </div>
+    </Modal>
   );
 };
 

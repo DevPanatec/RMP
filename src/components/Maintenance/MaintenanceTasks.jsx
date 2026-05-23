@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useMaintenance } from '../../context/MaintenanceContext';
 import { Plus, Eye, Trash2, CheckCircle, Calendar, Clock, Edit, FileText } from '../Icons';
-import { ConfirmDialog } from '../UI';
+import { ConfirmDialog, SortableHeader } from '../UI';
+import useSortableData from '../../hooks/useSortableData';
 
 const MaintenanceTasks = ({ userRole, isAdmin: isAdminProp, onCreate, onView, onEdit }) => {
   const { tasks, deleteTask } = useMaintenance();
@@ -16,6 +17,8 @@ const MaintenanceTasks = ({ userRole, isAdmin: isAdminProp, onCreate, onView, on
   const filteredTasks = filter === 'all'
     ? tasks
     : tasks.filter(t => t.estado === filter);
+
+  const { sortedData: sortedTasks, sortKey, sortDir, requestSort } = useSortableData(filteredTasks, 'fecha_programada', 'desc');
 
   const handleDelete = (task) => {
     setTaskToDelete(task);
@@ -178,16 +181,16 @@ const MaintenanceTasks = ({ userRole, isAdmin: isAdminProp, onCreate, onView, on
               <table className="maint-tasks-table">
                 <thead>
                   <tr>
-                    <th className="maint-tasks-th">Tipo</th>
-                    <th className="maint-tasks-th">Título</th>
-                    <th className="maint-tasks-th">Fecha</th>
-                    <th className="maint-tasks-th">Estado</th>
-                    <th className="maint-tasks-th">Costo</th>
+                    <SortableHeader column="tipo" label="Tipo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
+                    <SortableHeader column="titulo" label="Título" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
+                    <SortableHeader column="fecha_programada" label="Fecha" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
+                    <SortableHeader column="estado" label="Estado" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
+                    <SortableHeader column="costo" label="Costo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
                     <th className="maint-tasks-th maint-tasks-th--right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredTasks.map((task) => (
+                  {sortedTasks.map((task) => (
                     <tr key={task._id} className="maint-tasks-row">
                       <td className="maint-tasks-td">
                         <span className="maint-dash-type-badge">

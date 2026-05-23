@@ -216,7 +216,43 @@ export const resolveForVehicle = query({
 
     const equipClass = getEquipmentClass(vehicle.tipo_vehiculo);
 
-    // Level 1: Plantilla verificada específica del modelo
+    // Plan v6 — Nivel 1.0: Buscar param_svg_overrides en KB (model_years)
+    // Si existe → devolver params para que cliente use code template TS
+    let kbParams: any = null;
+    if (vehicle.marca && vehicle.modelo) {
+      const make = await ctx.db
+        .query("makes")
+        .withIndex("by_slug", q => q.eq("slug", vehicle.marca!.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "")))
+        .first();
+      if (make) {
+        const candidateModels = await ctx.db
+          .query("models")
+          .withIndex("by_make", q => q.eq("make_id", make._id))
+          .collect();
+        const matchModel = candidateModels.find(m =>
+          m.nombre.toLowerCase().trim() === vehicle.modelo!.toLowerCase().trim()
+        );
+        if (matchModel && vehicle.anio) {
+          const my = await ctx.db
+            .query("model_years")
+            .withIndex("by_model_year", q => q.eq("model_id", matchModel._id).eq("year", vehicle.anio!))
+            .first();
+          if (my?.param_svg_overrides) {
+            kbParams = my.param_svg_overrides;
+          }
+          // Plan v6 — Nivel 1.1: template_overrides cacheado (refinamiento Claude)
+          if (!kbParams) {
+            const override = await ctx.db
+              .query("template_overrides")
+              .withIndex("by_model_year", q => q.eq("model_year_id", my!._id))
+              .first();
+            if (override) kbParams = override.param_overrides;
+          }
+        }
+      }
+    }
+
+    // Level 1: Plantilla verificada específica del modelo (SVG legacy)
     if (vehicle.marca && vehicle.modelo) {
       const modelTpl = await ctx.db
         .query("diagram_templates")
@@ -235,7 +271,13 @@ export const resolveForVehicle = query({
           .query("diagram_zones")
           .withIndex("by_template", q => q.eq("template_id", modelTpl._id))
           .collect();
-        return { template: modelTpl, zones, fallback_level: 1 as const };
+        return {
+          template: modelTpl,
+          zones,
+          fallback_level: 1 as const,
+          equipment_class: equipClass,
+          code_template_params: kbParams,
+        };
       }
     }
 
@@ -253,7 +295,13 @@ export const resolveForVehicle = query({
           .query("diagram_zones")
           .withIndex("by_template", q => q.eq("template_id", classTpl._id))
           .collect();
-        return { template: classTpl, zones, fallback_level: 2 as const };
+        return {
+          template: classTpl,
+          zones,
+          fallback_level: 2 as const,
+          equipment_class: equipClass,
+          code_template_params: kbParams,
+        };
       }
 
       // Level 2b: Constantes hardcoded (no requiere seed en BD)
@@ -273,12 +321,20 @@ export const resolveForVehicle = query({
             _id: `hardcoded-${hardcoded.equipment_class}-${i}`,
           })),
           fallback_level: 2 as const,
+          equipment_class: equipClass,
+          code_template_params: kbParams,
         };
       }
     }
 
     // Level 3: Sin diagrama — solo lista de componentes
-    return { template: null, zones: [], fallback_level: 3 as const };
+    return {
+      template: null,
+      zones: [],
+      fallback_level: 3 as const,
+      equipment_class: equipClass,
+      code_template_params: null,
+    };
   },
 });
 

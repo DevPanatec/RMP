@@ -140,7 +140,7 @@ const RouteReportDetailModal = ({ report, onClose }) => {
 
         {/* Contenido */}
         <div className="route-report-body">
-          {/* 🗺️ MAPA ARRIBA */}
+          {/* MAPA ARRIBA */}
           <div className="route-map-section">
             <h3><MapPin size={20} /> Mapa de Ruta ({rutaParaMapa[0]?.paradas?.length || 0} paradas)</h3>
             {rutaParaMapa[0]?.paradas?.length > 0 ? (
@@ -174,7 +174,7 @@ const RouteReportDetailModal = ({ report, onClose }) => {
             )}
           </div>
 
-          {/* 📊 STATS ABAJO */}
+          {/* STATS ABAJO */}
           <div className="route-report-stats">
             <div className="stat-card">
               <UserCheck size={20} />

@@ -1,9 +1,40 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
+import { useMutation } from 'convex/react';
+import { api } from '../../../convex/_generated/api';
 import { useFleet } from '../../context/FleetContext';
-import { Truck, Plus, X, Play, Satellite, Edit3, Trash2, MapPin, Clock } from '../Icons';
+import { Truck, Plus, X, Play, Satellite, Edit3, Trash2, MapPin, Clock, Check } from '../Icons';
 import RoutePlayback from '../SafeTag/RoutePlayback';
 import { ConfirmDialog } from '../UI';
+import VinDecoder from './VinDecoder';
+import ModelAutocomplete from './ModelAutocomplete';
 import './FleetManagement.css';
+
+// Tipos de vehículo soportados (alineados con schema vehiculos.tipo_vehiculo)
+const TIPOS_VEHICULO = [
+  { value: '', label: '-- Seleccionar --' },
+  { value: 'compactador', label: 'Compactador (basura)' },
+  { value: 'barredora', label: 'Barredora vial' },
+  { value: 'fumigadora', label: 'Fumigadora' },
+  { value: 'cisterna', label: 'Cisterna' },
+  { value: 'camion_carga', label: 'Camión de carga' },
+  { value: 'pickup', label: 'Pickup' },
+  { value: 'bus', label: 'Bus' },
+];
+
+// equipment_class por defecto según tipo_vehiculo
+function inferEquipmentClass(tipoVehiculo) {
+  const map = {
+    compactador: 'compactador',
+    camion_carga: 'compactador',
+    bus: 'compactador',
+    pickup: 'compactador',
+    barredora: 'barredora',
+    cisterna: 'cisterna',
+    fumigadora: 'fumigadora',
+  };
+  return map[tipoVehiculo] ?? null;
+}
 
 const FleetManagement = ({ userRole = 'admin' }) => {
   const { vehicles, addVehicle, updateVehicle, deleteVehicle } = useFleet();
@@ -19,12 +50,20 @@ const FleetManagement = ({ userRole = 'admin' }) => {
   // Confirm dialog para delete
   const [vehicleToDelete, setVehicleToDelete] = useState(null);
 
-  // Estado del formulario - MINIMALISTA
+  // Estado del formulario — ahora con marca/modelo/año/tipo
   const [formData, setFormData] = useState({
     nombre: '',
     placa: '',
-    safetagDeviceId: ''
+    safetagDeviceId: '',
+    marca: '',
+    modelo: '',
+    anio: '',
+    tipo_vehiculo: '',
   });
+  // Mutations KB upsert
+  const upsertMake = useMutation(api.makes.upsert);
+  const upsertModel = useMutation(api.models.upsert);
+  const upsertModelYear = useMutation(api.modelYears.upsert);
 
   // Estados de UI
   const [submitError, setSubmitError] = useState(null);
@@ -39,7 +78,7 @@ const FleetManagement = ({ userRole = 'admin' }) => {
   const handleOpenAddModal = () => {
     setModalMode('add');
     setEditingVehicle(null);
-    setFormData({ nombre: '', placa: '', safetagDeviceId: '' });
+    setFormData({ nombre: '', placa: '', safetagDeviceId: '', marca: '', modelo: '', anio: '', tipo_vehiculo: '' });
     setSubmitError(null);
     setShowModal(true);
   };
@@ -51,7 +90,11 @@ const FleetManagement = ({ userRole = 'admin' }) => {
     setFormData({
       nombre: vehicle.nombre || '',
       placa: vehicle.placa || '',
-      safetagDeviceId: vehicle.safetag_device_id || vehicle.gps_imei || ''
+      safetagDeviceId: vehicle.safetag_device_id || vehicle.gps_imei || '',
+      marca: vehicle.marca || '',
+      modelo: vehicle.modelo || '',
+      anio: vehicle.anio ? String(vehicle.anio) : '',
+      tipo_vehiculo: vehicle.tipo_vehiculo || '',
     });
     setSubmitError(null);
     setShowModal(true);
@@ -61,9 +104,17 @@ const FleetManagement = ({ userRole = 'admin' }) => {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingVehicle(null);
-    setFormData({ nombre: '', placa: '', safetagDeviceId: '' });
+    setFormData({ nombre: '', placa: '', safetagDeviceId: '', marca: '', modelo: '', anio: '', tipo_vehiculo: '' });
     setSubmitError(null);
   };
+
+  // Escape key closes modal (a11y + parity with overlay/X button)
+  useEffect(() => {
+    if (!showModal) return;
+    const onKey = (e) => { if (e.key === 'Escape') handleCloseModal(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showModal]);
 
   // Manejar cambios en inputs
   const handleInputChange = (e) => {
@@ -86,25 +137,53 @@ const FleetManagement = ({ userRole = 'admin' }) => {
     setIsSubmitting(true);
 
     try {
+      const anioNum = formData.anio ? parseInt(formData.anio, 10) : undefined;
+      const tipoVeh = formData.tipo_vehiculo || undefined;
+      const equipmentClass = inferEquipmentClass(tipoVeh);
+
+      // Upsert KB si hay marca/modelo
+      if (formData.marca && formData.modelo && equipmentClass) {
+        try {
+          const make_id = await upsertMake({ nombre: formData.marca.trim() });
+          const model_id = await upsertModel({
+            make_id,
+            nombre: formData.modelo.trim(),
+            equipment_class: equipmentClass,
+            tipo_vehiculo_default: tipoVeh,
+          });
+          if (anioNum) {
+            await upsertModelYear({ model_id, year: anioNum });
+          }
+        } catch (kbErr) {
+          console.warn('KB upsert falló (no crítico):', kbErr);
+        }
+      }
+
+      const payload = {
+        nombre: formData.nombre,
+        placa: formData.placa,
+        marca: formData.marca || undefined,
+        modelo: formData.modelo || undefined,
+        anio: anioNum,
+        tipoVehiculo: tipoVeh,
+      };
+
       if (modalMode === 'add') {
-        // Agregar nuevo vehículo
         const result = await addVehicle({
-          nombre: formData.nombre,
-          placa: formData.placa,
+          ...payload,
           safetagDeviceId: formData.safetagDeviceId || undefined,
-          tipo_servicio: 'general', // Default
+          tipo_servicio: 'general',
         });
 
         if (result?.success === false) {
           throw new Error(result.error || 'Error al agregar vehículo');
         }
       } else {
-        // Editar vehículo existente
         const result = await updateVehicle(editingVehicle._id || editingVehicle.id, {
-          nombre: formData.nombre,
-          placa: formData.placa,
+          ...payload,
+          tipo_vehiculo: tipoVeh,
           safetag_device_id: formData.safetagDeviceId || undefined,
-          gps_imei: formData.safetagDeviceId || undefined
+          gps_imei: formData.safetagDeviceId || undefined,
         });
 
         if (result?.success === false) {
@@ -114,10 +193,27 @@ const FleetManagement = ({ userRole = 'admin' }) => {
 
       handleCloseModal();
     } catch (error) {
-      console.error('❌ Error:', error);
+      console.error('Error:', error);
       setSubmitError(error.message || 'Error al procesar la solicitud');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // VIN decoder callback: autocompleta marca/modelo/año
+  const handleVinDecoded = (data) => {
+    setFormData(prev => ({
+      ...prev,
+      marca: prev.marca || data.make || '',
+      modelo: prev.modelo || data.model || '',
+      anio: prev.anio || (data.year ? String(data.year) : ''),
+    }));
+  };
+
+  // ModelAutocomplete selection: set kbRefs y tipo_vehiculo_default si disponible
+  const handleModelSelect = (modelDoc) => {
+    if (modelDoc.tipo_vehiculo_default && !formData.tipo_vehiculo) {
+      setFormData(prev => ({ ...prev, tipo_vehiculo: modelDoc.tipo_vehiculo_default }));
     }
   };
 
@@ -130,9 +226,14 @@ const FleetManagement = ({ userRole = 'admin' }) => {
     if (!vehicleToDelete) return;
     try {
       await deleteVehicle(vehicleToDelete._id || vehicleToDelete.id);
+      toast.success(`Vehículo ${vehicleToDelete.placa || ''} eliminado`);
+      setVehicleToDelete(null);
     } catch (error) {
       console.error('Error eliminando vehículo:', error);
-    } finally {
+      // Mostrar mensaje completo del backend (e.g. "tiene asignaciones activas")
+      const msg = error?.message || error?.data || 'Error desconocido al eliminar vehículo';
+      toast.error(msg.replace(/^Uncaught Error:\s*/, ''), { duration: 6000 });
+      // No cerrar el modal de confirm si falló — user puede ver el error y decidir
       setVehicleToDelete(null);
     }
   };
@@ -342,6 +443,62 @@ const FleetManagement = ({ userRole = 'admin' }) => {
               </div>
 
               <div className="form-divider-v2">
+                <Truck size={16} />
+                <span>Identificación del vehículo</span>
+              </div>
+
+              <div className="form-group-v2">
+                <label>Tipo de vehículo</label>
+                <select
+                  name="tipo_vehiculo"
+                  value={formData.tipo_vehiculo}
+                  onChange={handleInputChange}
+                  className="select-v2"
+                >
+                  {TIPOS_VEHICULO.map(t => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <VinDecoder onDecoded={handleVinDecoded} disabled={isSubmitting} />
+
+              <div className="form-row-v2">
+                <div className="form-group-v2">
+                  <label>Marca</label>
+                  <input
+                    type="text"
+                    name="marca"
+                    value={formData.marca}
+                    onChange={handleInputChange}
+                    placeholder="ej: Mack, Volvo, Tennant"
+                  />
+                </div>
+                <div className="form-group-v2">
+                  <label>Año</label>
+                  <input
+                    type="number"
+                    name="anio"
+                    value={formData.anio}
+                    onChange={handleInputChange}
+                    placeholder="ej: 2018"
+                    min={1980}
+                    max={new Date().getFullYear() + 1}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group-v2">
+                <label>Modelo</label>
+                <ModelAutocomplete
+                  value={formData.modelo}
+                  onChange={(v) => setFormData(prev => ({ ...prev, modelo: v }))}
+                  onSelectModel={handleModelSelect}
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              <div className="form-divider-v2">
                 <Satellite size={16} />
                 <span>Conexión GPS (opcional)</span>
               </div>
@@ -351,7 +508,11 @@ const FleetManagement = ({ userRole = 'admin' }) => {
                   IMEI del dispositivo GPS
                   {formData.safetagDeviceId && (
                     <span className={`imei-status ${formData.safetagDeviceId.length === 15 ? 'valid' : 'partial'}`}>
-                      {formData.safetagDeviceId.length === 15 ? '✓ Válido' : `${formData.safetagDeviceId.length}/15`}
+                      {formData.safetagDeviceId.length === 15 ? (
+                        <>
+                          <Check size={12} aria-hidden="true" /> Válido
+                        </>
+                      ) : `${formData.safetagDeviceId.length}/15`}
                     </span>
                   )}
                 </label>

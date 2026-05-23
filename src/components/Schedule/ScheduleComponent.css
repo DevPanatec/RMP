@@ -47,7 +47,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border-radius: var(--radius-base);
   color: white;
   flex-shrink: 0;
@@ -141,7 +141,7 @@
   align-items: center;
   gap: var(--space-6);
   padding: var(--space-8) var(--space-16);
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
   border: none;
   border-radius: var(--radius-base);
@@ -154,7 +154,7 @@
 }
 
 .btn-add-v2:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-action-bg-hover);
 }
 
 .btn-add-v2.secondary {
@@ -267,7 +267,7 @@
 .schedule-tabs-unified {
   display: inline-flex;
   gap: 0;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   padding: 4px;
   border-radius: var(--radius-md);
   border: none;
@@ -284,25 +284,25 @@
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--color-surface-acrylic);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-out);
   white-space: nowrap;
 }
 
 .tab-unified:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--alpha-highlight-light);
   color: white;
 }
 
 .tab-unified.active {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
 }
 
 .tab-badge {
   padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--alpha-highlight-strong);
   color: inherit;
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
@@ -337,7 +337,7 @@
 .assignments-table thead {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: var(--z-base);
 }
 
 .assignments-table th {
@@ -413,6 +413,8 @@
 .assignments-table-container {
   max-height: 500px;
   overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: var(--radius-base);
   border: 1px solid var(--color-border);
 }
@@ -451,12 +453,12 @@
 }
 
 .assignments-grid::-webkit-scrollbar-thumb {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border-radius: 10px;
 }
 
 .assignments-grid::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
 }
 
 /* === CARDS COMPACTAS (Fluent Style) === */
@@ -521,7 +523,7 @@
 }
 
 .assignment-type-icon.route {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
 }
 
@@ -694,9 +696,9 @@
   align-items: center;
   margin-bottom: 24px;
   padding: 16px 20px;
-  background: white;
+  background: var(--color-surface);
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px var(--alpha-overlay-light);
   gap: 16px;
   flex-wrap: wrap;
 }
@@ -727,7 +729,7 @@
 }
 
 .view-mode-btn.active {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
   box-shadow: var(--shadow-xs);
 }
@@ -827,9 +829,9 @@
 }
 
 .schedule-day {
-  background: white;
+  background: var(--color-surface);
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px var(--alpha-overlay-base);
   min-height: 400px;
   display: flex;
   flex-direction: column;
@@ -898,8 +900,8 @@
 }
 
 .assignment-card:hover {
-  background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: var(--color-surface);
+  box-shadow: 0 2px 4px var(--alpha-overlay-base);
   transform: translateY(-2px);
 }
 
@@ -1034,10 +1036,10 @@
 }
 
 .schedule-month-view {
-  background: white;
+  background: var(--color-surface);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px var(--alpha-overlay-light);
 }
 
 .month-header {
@@ -1082,11 +1084,11 @@
 }
 
 .month-day:hover {
-  background: white;
+  background: var(--color-surface);
   border-color: var(--color-primary);
   transform: scale(1.05);
   box-shadow: var(--shadow-sm);
-  z-index: 1;
+  z-index: var(--z-base);
 }
 
 .month-day.other-month {
@@ -1099,7 +1101,7 @@
 }
 
 .month-day.today {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border-color: var(--color-primary);
   box-shadow: var(--shadow-sm);
 }
@@ -1130,7 +1132,7 @@
 }
 
 .assignments-count {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
   font-size: 11px;
   font-weight: 700;
@@ -1142,7 +1144,7 @@
 }
 
 .month-day.today .assignments-count {
-  background: white;
+  background: var(--color-surface);
   color: var(--color-primary);
 }
 
@@ -1233,7 +1235,7 @@
 .photos-header-icon {
   width: 48px;
   height: 48px;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -1269,7 +1271,7 @@
   align-items: center;
   gap: 4px;
   padding: 8px 16px;
-  background: white;
+  background: var(--color-surface);
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -1309,12 +1311,12 @@
   overflow: hidden;
   margin-bottom: 24px;
   position: relative;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: inset 0 2px 4px var(--alpha-overlay-soft);
 }
 
 .progress-fill {
   height: 100%;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border-radius: 999px;
   transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
@@ -1328,7 +1330,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  background: linear-gradient(90deg, transparent, var(--alpha-highlight-heavy), transparent);
   animation: shimmer 2s infinite;
 }
 
@@ -1345,7 +1347,7 @@
 }
 
 .photo-card-enhanced {
-  background: white;
+  background: var(--color-surface);
   border: 2px solid var(--color-border);
   border-radius: 12px;
   overflow: hidden;
@@ -1355,7 +1357,7 @@
 
 .photo-card-enhanced:hover {
   border-color: var(--color-border-strong);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 16px var(--alpha-overlay-base);
   transform: translateY(-2px);
 }
 
@@ -1574,7 +1576,7 @@
 .helper-input {
   flex: 1;
   border: 1px solid var(--color-primary);
-  background: white;
+  background: var(--color-surface);
   padding: 6px 10px;
   border-radius: 6px;
   font-size: 14px;
@@ -1692,7 +1694,7 @@
   justify-content: center;
   gap: 6px;
   padding: 10px 12px;
-  background: white;
+  background: var(--color-surface);
   border: 2px solid var(--color-border);
   border-radius: 8px;
   cursor: pointer;
@@ -1707,7 +1709,7 @@
 }
 
 .weekday-item.selected {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border-color: var(--color-primary);
   color: white;
   box-shadow: var(--shadow-sm);
@@ -1738,7 +1740,7 @@
 
 .selected-days-summary {
   padding: 12px;
-  background: white;
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   display: flex;
@@ -1822,13 +1824,13 @@
 }
 
 .weekday-pill.selected {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border-color: var(--color-primary);
   color: white;
 }
 
 .weekday-pill.selected:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--color-action-bg-hover);
   border-color: var(--color-primary-hover);
 }
 
@@ -1871,10 +1873,10 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--alpha-overlay-backdrop);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  z-index: 900;
+  z-index: var(--z-modal);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2080,7 +2082,7 @@
 }
 
 .form-group-card {
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--color-surface-acrylic);
   border: 1px solid rgba(142, 142, 147, 0.1);
   border-radius: 16px;
   padding: 16px;
@@ -2090,7 +2092,7 @@
 }
 
 .form-group-card:hover {
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--color-surface-acrylic);
   border-color: var(--color-border);
   box-shadow: var(--shadow-sm);
   transform: translateY(-2px);
@@ -2143,7 +2145,7 @@
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--color-surface-acrylic);
   border: 2px solid rgba(142, 142, 147, 0.15);
   border-radius: 12px;
   padding: 14px 18px;
@@ -2161,14 +2163,14 @@
 .form-group select:hover,
 .form-group textarea:hover {
   border-color: rgba(142, 142, 147, 0.25);
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.08);
+  background: var(--color-surface);
+  box-shadow: 0 2px 8px -2px var(--alpha-overlay-light);
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--color-surface);
   border-color: var(--color-primary);
   box-shadow: 
     0 0 0 4px var(--color-primary-subtle),
@@ -2235,7 +2237,7 @@
 }
 
 .btn--primary {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
   box-shadow: 0 2px 8px rgba(48, 209, 88, 0.25);
 }
@@ -2247,7 +2249,7 @@
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, var(--alpha-highlight-strong), transparent);
   transition: left 0.5s ease;
 }
 
@@ -2256,7 +2258,7 @@
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--color-action-bg-hover);
   box-shadow: 0 4px 16px rgba(48, 209, 88, 0.35);
   transform: translateY(-1px);
 }
@@ -2501,7 +2503,7 @@
   justify-content: center;
   font-size: 14px;
   font-weight: 700;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
   box-shadow: var(--shadow-sm);
 }
@@ -2514,7 +2516,7 @@
 
 /* Success Modal */
 .success-modal-content {
-  background: white;
+  background: var(--color-surface);
   border-radius: 24px;
   padding: 48px 40px;
   max-width: 480px;
@@ -2538,7 +2540,7 @@
 .success-icon-wrapper {
   width: 100px;
   height: 100px;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -2740,4 +2742,99 @@
   background: var(--color-surface-secondary);
   border-bottom-left-radius: var(--radius-md);
   border-bottom-right-radius: var(--radius-md);
+}
+
+/* ============================================
+   CRONOGRAMA POLISH OVERRIDES (Schedule / REC blue)
+   ============================================ */
+
+.schedule-v2 {
+  animation: crono-fade-up 400ms var(--crono-ease-soft);
+}
+
+.schedule-header-v2 {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: var(--crono-shadow-1);
+  padding: var(--space-16) var(--space-20);
+  transition: box-shadow 200ms var(--crono-ease-soft);
+}
+
+.schedule-header-v2:hover {
+  box-shadow: var(--crono-shadow-2);
+}
+
+.schedule-header-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--crono-rec) 0%, #1488d8 100%);
+  color: white;
+  box-shadow: 0 8px 20px rgba(0, 120, 212, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  position: relative;
+}
+
+.schedule-header-icon::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--crono-rec), #1488d8);
+  opacity: 0.22;
+  filter: blur(12px);
+  z-index: -1;
+}
+
+.schedule-header-text h2 {
+  font-family: var(--font-family-base);
+  font-size: 22px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.schedule-header-text p {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.schedule-stat-pill {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: var(--space-6) var(--space-14);
+  box-shadow: var(--crono-shadow-1);
+  transition: all 200ms var(--crono-ease-soft);
+}
+
+.schedule-stat-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--crono-shadow-2);
+}
+
+.schedule-stat-pill .stat-number {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
+}
+
+.schedule-stat-pill .stat-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .schedule-v2,
+  .schedule-header-v2,
+  .schedule-stat-pill {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
 }

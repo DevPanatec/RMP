@@ -8,6 +8,9 @@ import { useRoutes } from '../../context/RoutesContext';
 import { useOrganization } from '../../context/OrganizationContext';
 import './ServiciosComponent.css';
 
+// Lugares tab es genérico — sirve a FUM (sitios fumigación), INV (warehouse
+// locations via inventario_ubicaciones), MTO (location_components). Visible si
+// CUALQUIERA está activo. Label/desc dinámico según contexto.
 const ALL_TABS = [
   {
     id: 'recoleccion',
@@ -18,10 +21,10 @@ const ALL_TABS = [
   },
   {
     id: 'fumigacion',
-    label: 'Fumigación',
-    desc: 'Lugares de fumigación interna o externa con foto y GPS.',
+    label: 'Lugares',
+    desc: 'Sitios físicos: fumigación, almacenes, lugares de mantenimiento.',
     Icon: Bug,
-    modulo: 'FUM',
+    modulos: ['FUM', 'INV', 'MTO'],
   },
   {
     id: 'limpieza',
@@ -34,8 +37,22 @@ const ALL_TABS = [
 
 const ServiciosComponent = ({ initialRoutes = [], userRole = 'admin' }) => {
   const { hasModulo } = useOrganization();
-  // Filtrar tabs por módulos activos de la org
-  const TABS = useMemo(() => ALL_TABS.filter((t) => hasModulo(t.modulo)), [hasModulo]);
+  // Filtrar tabs por módulos activos de la org. Soporta tab.modulo (single) o
+  // tab.modulos (array para gate OR — caso Lugares compartido).
+  const TABS = useMemo(
+    () =>
+      ALL_TABS.filter((t) => {
+        if (t.modulos) return t.modulos.some((m) => hasModulo(m));
+        return hasModulo(t.modulo);
+      }).map((t) => {
+        // Renombrar Lugares → Fumigación si FUM es el único módulo de lugares activo
+        if (t.id === 'fumigacion' && hasModulo('FUM') && !hasModulo('INV') && !hasModulo('MTO')) {
+          return { ...t, label: 'Fumigación', desc: 'Lugares de fumigación interna o externa con foto y GPS.' };
+        }
+        return t;
+      }),
+    [hasModulo],
+  );
   const [activeTab, setActiveTab] = useState(() => TABS[0]?.id ?? 'recoleccion');
   // Si la tab activa deja de existir (módulo apagado en otra ventana), saltar a la primera disponible
   useEffect(() => {

@@ -21,6 +21,9 @@ import {
   Minimize2,
   ChevronUp,
   ChevronDown,
+  Sun,
+  Moon,
+  AlertTriangle,
 } from '../Icons';
 import { useRoutePlayback } from '../../hooks/useRoutePlayback';
 import { exportToGPX } from '../../utils/routeExport';
@@ -88,7 +91,7 @@ const GPSPlaybackModal = ({
         const MAX_COORDS = 100;
 
         if (locations.length > MAX_COORDS) {
-          console.log(`📊 Submuestreando ${locations.length} puntos a ${MAX_COORDS} para Map Matching`);
+          console.log(`Submuestreando ${locations.length} puntos a ${MAX_COORDS} para Map Matching`);
           const step = Math.ceil(locations.length / MAX_COORDS);
           sampledLocations = locations.filter((_, index) => index % step === 0);
           if (sampledLocations[sampledLocations.length - 1] !== locations[locations.length - 1]) {
@@ -110,18 +113,18 @@ const GPSPlaybackModal = ({
           return coord !== arr[index - 1];
         });
 
-        console.log(`🧹 Filtrado de duplicados: ${coordinatesArray.length} → ${uniqueCoordinates.length} puntos únicos`);
+        console.log(`Filtrado de duplicados: ${coordinatesArray.length} → ${uniqueCoordinates.length} puntos únicos`);
 
         const coordinates = uniqueCoordinates.join(';');
 
         if (!coordinates || uniqueCoordinates.length < 2) {
-          console.warn('⚠️ No hay suficientes coordenadas únicas para Map Matching');
+          console.warn('No hay suficientes coordenadas únicas para Map Matching');
           setSnappedRoute(null);
           setIsSnapping(false);
           return;
         }
 
-        console.log(`🗺️ Ajustando ${uniqueCoordinates.length} puntos GPS únicos a calles con Map Matching...`);
+        console.log(`Ajustando ${uniqueCoordinates.length} puntos GPS únicos a calles con Map Matching...`);
 
         const params = new URLSearchParams({
           geometries: 'geojson',
@@ -137,10 +140,10 @@ const GPSPlaybackModal = ({
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          console.warn(`⚠️ Map Matching HTTP ${response.status}:`, errorData.message || response.statusText);
+          console.warn(`Map Matching HTTP ${response.status}:`, errorData.message || response.statusText);
 
           if (response.status === 422) {
-            console.log('📍 Usando puntos GPS originales (sin ajustar a calles)');
+            console.log('Usando puntos GPS originales (sin ajustar a calles)');
           }
 
           setSnappedRoute(null);
@@ -154,16 +157,16 @@ const GPSPlaybackModal = ({
           // MapLibre expects [lng, lat]
           const matchedCoords = data.matchings[0].geometry.coordinates;
 
-          console.log(`✅ Ruta ajustada a calles: ${matchedCoords.length} puntos`);
-          console.log(`📏 Confianza del matching: ${(data.matchings[0].confidence * 100).toFixed(1)}%`);
+          console.log(`Ruta ajustada a calles: ${matchedCoords.length} puntos`);
+          console.log(`Confianza del matching: ${(data.matchings[0].confidence * 100).toFixed(1)}%`);
 
           setSnappedRoute(matchedCoords);
         } else {
-          console.warn(`⚠️ Map Matching code: ${data.code}, usando puntos GPS originales`);
+          console.warn(`Map Matching code: ${data.code}, usando puntos GPS originales`);
           setSnappedRoute(null);
         }
       } catch (error) {
-        console.warn('⚠️ Map Matching no disponible:', error.message);
+        console.warn('Map Matching no disponible:', error.message);
         setSnappedRoute(null);
       } finally {
         setIsSnapping(false);
@@ -205,7 +208,7 @@ const GPSPlaybackModal = ({
           dateDropdownRef.current &&
           !dateDropdownRef.current.contains(event.target) &&
           !event.target.closest('.date-btn')) {
-        console.log('🔒 Cerrando date picker por click afuera');
+        console.log('Cerrando date picker por click afuera');
         setShowDatePicker(false);
       }
     };
@@ -267,7 +270,7 @@ const GPSPlaybackModal = ({
       }
 
       if (isNaN(date.getTime())) {
-        console.warn('⚠️ Timestamp inválido:', timestamp);
+        console.warn('Timestamp inválido:', timestamp);
         return '--:--:--';
       }
 
@@ -278,7 +281,7 @@ const GPSPlaybackModal = ({
         hour12: false,
       });
     } catch (error) {
-      console.error('❌ Error formateando timestamp:', timestamp, error);
+      console.error('Error formateando timestamp:', timestamp, error);
       return '--:--:--';
     }
   };
@@ -379,7 +382,7 @@ const GPSPlaybackModal = ({
               }}
               title={mapTheme === 'dark' ? 'Modo día' : 'Modo noche'}
             >
-              {mapTheme === 'dark' ? '☀️' : '🌙'}
+              {mapTheme === 'dark' ? <Sun size={16} aria-hidden="true" /> : <Moon size={16} aria-hidden="true" />}
             </button>
 
             {/* Selector de fecha */}
@@ -485,7 +488,7 @@ const GPSPlaybackModal = ({
 
           {playback.error && (
             <div className="playback-error-state">
-              <span className="error-icon">⚠️</span>
+              <AlertTriangle size={32} className="error-icon" aria-hidden="true" />
               <p>{playback.error}</p>
               <button onClick={playback.loadHistory} className="retry-btn">
                 Reintentar
@@ -643,11 +646,20 @@ const GPSPlaybackModal = ({
                 >
                   <div className="vehicle-popup-content">
                     <strong>{vehicleData?.placa}</strong>
-                    <br />
-                    <span>🕐 {formatTime(playback.currentPoint?.timestamp || playback.currentPoint?.last_updated)}</span>
-                    <br />
-                    <span>🚗 {playback.currentPoint?.speed || 0} km/h</span>
-                    {snappedRoute && <><br /><span>📍 Posición ajustada a calle</span></>}
+                    <div className="vehicle-popup-row">
+                      <Clock size={12} aria-hidden="true" />
+                      <span>{formatTime(playback.currentPoint?.timestamp || playback.currentPoint?.last_updated)}</span>
+                    </div>
+                    <div className="vehicle-popup-row">
+                      <Gauge size={12} aria-hidden="true" />
+                      <span>{playback.currentPoint?.speed || 0} km/h</span>
+                    </div>
+                    {snappedRoute && (
+                      <div className="vehicle-popup-row">
+                        <MapPin size={12} aria-hidden="true" />
+                        <span>Posición ajustada a calle</span>
+                      </div>
+                    )}
                   </div>
                 </Popup>
               )}

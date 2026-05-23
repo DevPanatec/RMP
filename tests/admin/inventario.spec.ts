@@ -41,7 +41,7 @@ async function goToInventario(page: Page) {
 
   // Default sub-tab interno es "Materiales" — asegurar que está activo
   const materialesSubTab = page
-    .locator("button.inv-subtab", { hasText: /^Materiales$/ })
+    .locator("button.app-subtab", { hasText: /^Materiales$/ })
     .first();
   if (await materialesSubTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
     await materialesSubTab.click();

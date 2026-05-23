@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Search, Eye, Trash2, Filter, FileText } from '../Icons';
-import { Button, Card, ConfirmDialog } from '../UI';
+import { Button, Card, ConfirmDialog, SkeletonList } from '../UI';
 import { useCleaning } from '../../context/CleaningContext';
 import ReportDetailModal from './ReportDetailModal';
+import useInputDebounce from '../../hooks/useInputDebounce';
 import toast from 'react-hot-toast';
 import './CleaningReports.css';
 
@@ -14,6 +15,7 @@ const CleaningReports = ({ userRole }) => {
     area: '',
     search: '',
   });
+  const debouncedSearch = useInputDebounce(filters.search, 300);
   const [selectedReport, setSelectedReport] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [reportToDelete, setReportToDelete] = useState(null);
@@ -73,8 +75,8 @@ const CleaningReports = ({ userRole }) => {
       if (filters.fecha && report.fecha !== filters.fecha) return false;
       if (filters.lugar && report.lugar !== filters.lugar) return false;
       if (filters.area && report.area !== filters.area) return false;
-      if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
+      if (debouncedSearch) {
+        const searchLower = debouncedSearch.toLowerCase();
         return (
           report.lugar.toLowerCase().includes(searchLower) ||
           report.area.toLowerCase().includes(searchLower)
@@ -82,7 +84,7 @@ const CleaningReports = ({ userRole }) => {
       }
       return true;
     });
-  }, [reports, filters]);
+  }, [reports, filters.fecha, filters.lugar, filters.area, debouncedSearch]);
 
   // Obtener lugars y áreas únicas para los filtros
   const uniqueLugars = useMemo(() => [...new Set(reports.map((r) => r.lugar))], [reports]);
@@ -91,11 +93,7 @@ const CleaningReports = ({ userRole }) => {
   if (loading) {
     return (
       <div className="cleaning-reports">
-        <Card>
-          <div className="cleaning-reports__empty">
-            <p>Cargando reportes...</p>
-          </div>
-        </Card>
+        <SkeletonList count={4} itemHeight={100} />
       </div>
     );
   }

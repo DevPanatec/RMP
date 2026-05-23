@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Plus, MapPin, Calendar, Image as ImageIcon, Clock, Bug, Edit3, Trash2, CheckCircle } from '../Icons';
-import { Button, Card } from '../UI';
+import { Plus, MapPin, Calendar, Image as ImageIcon, Clock, Bug, Edit3, Trash2, CheckCircle, Building, Leaf } from '../Icons';
+import { Button, Card, SkeletonList } from '../UI';
 import { useFumigation } from '../../context/FumigationContext';
 import FumigationModal from './FumigationModal';
 import PhotosModal from './PhotosModal';
@@ -46,7 +46,7 @@ const FumigationAssignments = ({ userRole }) => {
       }
       return result;
     } catch (error) {
-      console.error('❌ Error:', error);
+      console.error('Error guardando fumigación:', error);
       toast.error('Error al guardar fumigación');
       return { success: false, error: error.message };
     }
@@ -84,13 +84,20 @@ const FumigationAssignments = ({ userRole }) => {
     setShowPhotosModal(true);
   };
 
-  const getTipoLabel = (tipo) =>
-    tipo === 'interna' ? '🏢 Interna (Mensual)' : '🌳 Externa (Semanal)';
+  const getTipoLabel = (tipo) => tipo === 'interna' ? (
+    <>
+      <Building size={14} aria-hidden="true" /> Interna (Mensual)
+    </>
+  ) : (
+    <>
+      <Leaf size={14} aria-hidden="true" /> Externa (Semanal)
+    </>
+  );
 
   if (loading) {
     return (
       <div className="fumigation-assignments">
-        <Card><div className="fumigation-assignments__empty"><p>Cargando...</p></div></Card>
+        <SkeletonList count={3} itemHeight={120} />
       </div>
     );
   }
@@ -136,7 +143,14 @@ const FumigationAssignments = ({ userRole }) => {
             if (lugarAssignments.length === 0) return null;
 
             return (
-              <Card key={lugar._id} title={`📍 ${lugar.nombre}`}>
+              <Card
+                key={lugar._id}
+                title={
+                  <span className="card-title-with-icon">
+                    <MapPin size={16} aria-hidden="true" /> {lugar.nombre}
+                  </span>
+                }
+              >
                 <div className="fumigation-assignments__lugar-header">
                   <span className="fumigation-assignments__lugar-count">
                     {lugarAssignments.length} fumigacion{lugarAssignments.length !== 1 ? 'es' : ''}

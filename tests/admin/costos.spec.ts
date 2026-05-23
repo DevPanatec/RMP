@@ -1,7 +1,7 @@
 // Admin: Costos module — tab navigation + KPI cards + charts.
 //
 // Coverage:
-//   1. Navigate Inventario top-nav → Costos inv-subtab (post-flat-refactor)
+//   1. Navigate Inventario top-nav → Costos app-subtab (post-flat-refactor)
 //   2. Verify header renders
 //   3. Switch between costos tabs (Resumen, Inventario, Mantenimiento)
 //   4. KPI cards present on Resumen tab
@@ -34,9 +34,9 @@ async function goToCostos(page: Page) {
   await invTab.click();
   await page.waitForTimeout(800);
 
-  // Step 2: Costos inv-subtab — solo visible para admin/super_admin
+  // Step 2: Costos app-subtab — solo visible para admin/super_admin
   const costosTab = page
-    .locator("button.inv-subtab", { hasText: /^Costos$/ })
+    .locator("button.app-subtab", { hasText: /^Costos$/ })
     .first();
   const hasCostos = await costosTab.isVisible({ timeout: 5_000 }).catch(() => false);
   if (!hasCostos) {

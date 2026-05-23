@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Calendar, Image as ImageIcon, CheckCircle, Camera } from '../Icons';
-import { Button, Card } from '../UI';
+import { Button, Card, SkeletonList } from '../UI';
 import { useCleaning } from '../../context/CleaningContext';
 import { useAuth } from '../../context/AuthContext';
 import PhotosModal from './PhotosModal';
@@ -81,7 +81,7 @@ const CleaningAssignments = ({ userRole }) => {
       });
 
       if (reportResult.success) {
-        alert('✅ Limpieza completada y reporte generado exitosamente');
+        alert('Limpieza completada y reporte generado exitosamente');
       } else {
         alert(`Error al completar: ${reportResult.error}`);
       }
@@ -99,11 +99,7 @@ const CleaningAssignments = ({ userRole }) => {
   if (loading) {
     return (
       <div className="cleaning-assignments">
-        <Card>
-          <div className="cleaning-assignments__empty">
-            <p>Cargando...</p>
-          </div>
-        </Card>
+        <SkeletonList count={3} itemHeight={120} />
       </div>
     );
   }

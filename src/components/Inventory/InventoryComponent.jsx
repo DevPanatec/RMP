@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useInventory } from '../../context/InventoryContext';
+import useInputDebounce from '../../hooks/useInputDebounce';
 import { Package, FileText, AlertTriangle, X, Loader, CheckCircle, Search, Filter, LayoutGrid, List, Eye, Edit, Trash2, TrendingUp, TrendingDown, Plus, Truck, DollarSign } from '../Icons';
 import ItemDetailModal from './ItemDetailModal';
-import { ConfirmDialog } from '../UI';
+import { ConfirmDialog, SkeletonGrid, SortableHeader } from '../UI';
+import useSortableData from '../../hooks/useSortableData';
 import { handleMutationError } from '../../utils/mutationError';
 import FleetInventoryComponent from '../FleetInventory/FleetInventoryComponent';
 import CostosComponent from '../Costos/CostosComponent';
@@ -18,6 +20,7 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
   const [alerts, setAlerts] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useInputDebounce(searchQuery, 300);
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
   const [categoryFilter, setCategoryFilter] = useState('todos');
   const [newMaterialData, setNewMaterialData] = useState({
@@ -46,11 +49,12 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
     let filtered = [...materials];
 
     // Filtrar por búsqueda
-    if (searchQuery.trim()) {
+    if (debouncedSearch.trim()) {
+      const q = debouncedSearch.toLowerCase();
       filtered = filtered.filter(material =>
-        material.nombre?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        material.tipo_articulo?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        material.proveedor?.toLowerCase().includes(searchQuery.toLowerCase())
+        material.nombre?.toLowerCase().includes(q) ||
+        material.tipo_articulo?.toLowerCase().includes(q) ||
+        material.proveedor?.toLowerCase().includes(q)
       );
     }
 
@@ -60,7 +64,9 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
     }
 
     return filtered;
-  }, [materials, searchQuery, categoryFilter]);
+  }, [materials, debouncedSearch, categoryFilter]);
+
+  const { sortedData: sortedMaterials, sortKey, sortDir, requestSort } = useSortableData(filteredMaterials, 'codigo');
 
   // Obtener tipos de artículos únicos
   const categories = useMemo(() => {
@@ -122,10 +128,10 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
 
   const getStockColor = (status) => {
     switch (status) {
-      case 'crítico': return '#ff3b30';
-      case 'bajo': return '#ff9500';
-      case 'alto': return '#007aff';
-      default: return '#34c759';
+      case 'crítico': return 'var(--color-error)';
+      case 'bajo':    return 'var(--color-warning)';
+      case 'alto':    return 'var(--color-info)';
+      default:        return 'var(--color-success)';
     }
   };
 
@@ -260,35 +266,10 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
   const renderMaterialsTab = () => (
     <div className="inventory-content">
       <div className="inventory-header-modern">
-        <div className="inventory-header-top">
-          <div className="inventory-title-section">
-            <div className="title-icon-wrapper">
-              <Package size={32} />
-            </div>
-            <div>
-              <h3>Gestión de Items de Inventario</h3>
-              <p>Control integral de items, materiales e insumos</p>
-            </div>
-          </div>
-          {canWrite && (
-            <div className="inventory-actions-modern">
-              <button className="btn-modern btn-secondary">
-                <FileText size={18} /> Importar
-              </button>
-              <button
-                className="btn-modern btn-primary"
-                onClick={() => setShowMaterialModal(true)}
-              >
-                <Package size={18} /> Nuevo Item
-              </button>
-            </div>
-          )}
-        </div>
-
         {/* Barra de búsqueda y filtros */}
         <div className="inventory-controls">
           <div className="search-box-modern">
-            <Search size={20} />
+            <Search size={14} />
             <input
               type="text"
               placeholder="Buscar materiales por nombre, código o proveedor..."
@@ -308,14 +289,14 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
               onClick={() => setViewMode('table')}
               title="Vista de tabla"
             >
-              <List size={20} />
+              <List size={14} />
             </button>
             <button
               className={`view-toggle ${viewMode === 'grid' ? 'active' : ''}`}
               onClick={() => setViewMode('grid')}
               title="Vista de tarjetas"
             >
-              <LayoutGrid size={20} />
+              <LayoutGrid size={14} />
             </button>
           </div>
         </div>
@@ -345,7 +326,7 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
         <div className="inventory-alerts-modern">
           <div className="alerts-header">
             <div className="alerts-title">
-              <AlertTriangle size={22} />
+              <AlertTriangle size={14} />
               <h4>Alertas de Inventario</h4>
             </div>
             <span className="alerts-badge">{alerts.length} activas</span>
@@ -358,7 +339,7 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className="alert-icon-modern">
-                  <AlertTriangle size={28} />
+                  <AlertTriangle size={14} />
                 </div>
                 <div className="alert-content-modern">
                   <div className="alert-material-modern">{alert.material}</div>
@@ -378,7 +359,7 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
       <div className="inventory-stats-modern">
         <div className="stat-card-modern stat-total">
           <div className="stat-icon-modern">
-            <Package size={32} />
+            <Package size={15} />
           </div>
           <div className="stat-data-modern">
             <div className="stat-value-modern">{filteredMaterials.length}</div>
@@ -388,7 +369,7 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
         </div>
         <div className="stat-card-modern stat-low">
           <div className="stat-icon-modern">
-            <AlertTriangle size={32} />
+            <AlertTriangle size={15} />
           </div>
           <div className="stat-data-modern">
             <div className="stat-value-modern">
@@ -400,7 +381,7 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
         </div>
         <div className="stat-card-modern stat-critical">
           <div className="stat-icon-modern">
-            <TrendingDown size={32} />
+            <TrendingDown size={15} />
           </div>
           <div className="stat-data-modern">
             <div className="stat-value-modern">
@@ -412,7 +393,7 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
         </div>
         <div className="stat-card-modern stat-ok">
           <div className="stat-icon-modern">
-            <CheckCircle size={32} />
+            <CheckCircle size={15} />
           </div>
           <div className="stat-data-modern">
             <div className="stat-value-modern">
@@ -430,19 +411,19 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
           <table className="inventory-table-modern">
             <thead>
               <tr>
-                <th>Código</th>
-                <th>Material</th>
-                <th>Tipo</th>
+                <SortableHeader column="codigo" label="Código" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
+                <SortableHeader column="nombre" label="Material" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
+                <SortableHeader column="tipo_articulo" label="Tipo" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
                 <th>Ubicaciones</th>
-                <th>Stock Total</th>
+                <SortableHeader column="cantidad_disponible" label="Stock Total" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
                 <th>Stock Mín/Máx</th>
-                <th>Proveedor</th>
+                <SortableHeader column="proveedor" label="Proveedor" sortKey={sortKey} sortDir={sortDir} onSort={requestSort} />
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filteredMaterials.map((material, index) => {
+              {sortedMaterials.map((material, index) => {
                 const status = getStockStatus(material);
                 const percentage = getStockPercentage(material);
                 const color = getStockColor(status);
@@ -676,19 +657,22 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
         </div>
 
         {canWrite && (
-          <button className="btn-add-v2" onClick={() => setShowMaterialModal(true)}>
-            <Plus size={18} />
-            Nuevo Item
-          </button>
+          <div className="inventory-header-actions">
+            <button className="btn-secondary-v2" type="button" title="Importar items desde CSV/Excel (próximamente)">
+              <FileText size={18} />
+              <span>Importar</span>
+            </button>
+            <button className="btn-add-v2" onClick={() => setShowMaterialModal(true)}>
+              <Plus size={18} />
+              Nuevo Item
+            </button>
+          </div>
         )}
       </div>
 
       {loading ? (
         <div className="inventory-loading">
-          <div className="loading-spinner">
-            <div className="spinner"></div>
-            <p>Cargando inventario...</p>
-          </div>
+          <SkeletonGrid count={6} minColWidth={280} itemHeight={140} />
         </div>
       ) : (
         <div className="inventory-body">
@@ -1040,30 +1024,39 @@ const InventoryComponent = ({ userType = 'admin' }) => {
   const [invTab, setInvTab] = useState('materiales');
   const canSeeCostos = userType === 'admin' || userType === 'super_admin';
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div className="inv-subtabs">
+    <div className="inv-group">
+      <div className="app-subtabs" role="tablist" aria-label="Secciones Inventario">
         <button
-          className={`inv-subtab${invTab === 'materiales' ? ' inv-subtab--active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={invTab === 'materiales'}
+          className={`app-subtab${invTab === 'materiales' ? ' app-subtab--active' : ''}`}
           onClick={() => setInvTab('materiales')}
         >
-          <Package size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
-          Materiales
+          <Package strokeWidth={1.75} size={14} />
+          <span>Materiales</span>
         </button>
         <button
-          className={`inv-subtab${invTab === 'flota' ? ' inv-subtab--active' : ''}`}
+          type="button"
+          role="tab"
+          aria-selected={invTab === 'flota'}
+          className={`app-subtab${invTab === 'flota' ? ' app-subtab--active' : ''}`}
           onClick={() => setInvTab('flota')}
         >
-          <Truck size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
-          Inventario de Flota
+          <Truck strokeWidth={1.75} size={14} />
+          <span>Inventario de Flota</span>
         </button>
         {canSeeCostos && (
           <button
-            className={`inv-subtab${invTab === 'costos' ? ' inv-subtab--active' : ''}`}
+            type="button"
+            role="tab"
+            aria-selected={invTab === 'costos'}
+            className={`app-subtab${invTab === 'costos' ? ' app-subtab--active' : ''}`}
             onClick={() => setInvTab('costos')}
             title="Análisis financiero del inventario y mantenimiento"
           >
-            <DollarSign size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
-            Costos
+            <DollarSign strokeWidth={1.75} size={14} />
+            <span>Costos</span>
           </button>
         )}
       </div>

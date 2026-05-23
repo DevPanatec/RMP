@@ -12,13 +12,34 @@
   --color-text-tertiary: #64748b;     /* Slate 500 - tertiary text */
   --color-text-muted: #94a3b8;        /* Slate 400 - muted text */
 
-  /* PRIMARY - Slate/Charcoal (serio, neutral, moderno) */
+  /* PRIMARY - Slate/Charcoal (serio, neutral, moderno)
+     ⚠️ IMPORTANTE: --color-primary se usa principalmente como TEXT COLOR.
+     En dark mode se invierte a slate-200 (light gray) para legibilidad sobre dark bg.
+     ❌ NO usar como background (rompe contraste con text white en dark mode).
+     ✅ Para action backgrounds (CTAs, active tabs, primary buttons) usar
+        --color-action-bg / --color-on-action (definidos abajo). */
   --color-primary: #1e293b;           /* Slate 800 - base principal */
   --color-primary-hover: #334155;     /* Slate 700 - hover states */
   --color-primary-active: #0f172a;    /* Slate 900 - active/pressed */
   --color-primary-dark: #0f172a;      /* Slate 900 - dark variant */
   --color-primary-light: #334155;     /* Slate 700 - light variant */
   --color-primary-subtle: rgba(30, 41, 59, 0.1);  /* Subtle bg */
+  --color-text-on-primary: #ffffff;   /* Text on primary bg — invierte en dark mode */
+
+  /* ============================================
+     ACTION TOKENS - CTAs, active tabs, primary buttons
+     Alineado con --color-success (emerald 500 #10b981) — mismo verde
+     que ya se usa en Monitoreo ("Sistema en Tiempo Real" + badges "Activo")
+     pa' consistencia visual en todo el sistema.
+     ============================================ */
+  --color-action-bg: #10b981;            /* Emerald 500 - matches Monitoreo green */
+  --color-action-bg-hover: #059669;      /* Emerald 600 - hover */
+  --color-action-bg-active: #047857;     /* Emerald 700 - pressed */
+  --color-action-bg-disabled: #d1d5db;   /* Gray disabled */
+  --color-on-action: #ffffff;            /* Text/icons SOBRE action-bg */
+  --color-accent: #10b981;               /* Alias semántico de action-bg */
+  --color-accent-light: rgba(16, 185, 129, 0.12);  /* Subtle tinted bg */
+  --color-accent-border: rgba(16, 185, 129, 0.30); /* Subtle accent border */
 
   /* SECONDARY - Neutral Gray (Fluent Design professional) */
   --color-secondary: #475569;         /* Slate 600 - neutral secondary */
@@ -202,6 +223,62 @@
   --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.10), 0 24px 48px rgba(30, 41, 59, 0.15);
   --shadow-2xl: 0 20px 40px rgba(0, 0, 0, 0.12), 0 32px 64px rgba(30, 41, 59, 0.18);
 
+  /* ============================================
+     Z-INDEX SCALE — Fluent layering
+     ============================================ */
+  --z-base: 1;
+  --z-sticky: 10;
+  --z-dropdown: 100;
+  --z-modal: 1000;
+  --z-overlay: 2000;       /* sobre modal (e.g. RouteCompletionModal) */
+  --z-toast: 10000;        /* notificaciones, geofence alerts */
+  --z-overlay-max: 99999;  /* NUNCA usar 2147483647 */
+
+  /* ============================================
+     ALPHA TOKENS — overlays + tints
+     ============================================ */
+  /* Overlays neutros (negro con opacidad) */
+  --alpha-overlay-faint: rgba(0, 0, 0, 0.04);
+  --alpha-overlay-soft: rgba(0, 0, 0, 0.06);
+  --alpha-overlay-light: rgba(0, 0, 0, 0.08);
+  --alpha-overlay-base: rgba(0, 0, 0, 0.10);
+  --alpha-overlay-medium: rgba(0, 0, 0, 0.15);
+  --alpha-overlay-strong: rgba(0, 0, 0, 0.30);
+  --alpha-overlay-darker: rgba(0, 0, 0, 0.40);
+  --alpha-overlay-backdrop: rgba(0, 0, 0, 0.50);
+  --alpha-overlay-heavy: rgba(0, 0, 0, 0.60);
+  --alpha-overlay-deep: rgba(0, 0, 0, 0.80);
+  --alpha-overlay-near-opaque: rgba(0, 0, 0, 0.90);
+  --alpha-overlay-opaque: rgba(0, 0, 0, 0.95);
+
+  /* Highlights (blanco con opacidad — pa' texto/borders sobre bg color) */
+  --alpha-highlight-faint: rgba(255, 255, 255, 0.05);
+  --alpha-highlight-soft: rgba(255, 255, 255, 0.06);
+  --alpha-highlight-base: rgba(255, 255, 255, 0.08);
+  --alpha-highlight-light: rgba(255, 255, 255, 0.10);
+  --alpha-highlight-medium: rgba(255, 255, 255, 0.15);
+  --alpha-highlight-strong: rgba(255, 255, 255, 0.20);
+  --alpha-highlight-heavy: rgba(255, 255, 255, 0.30);
+
+  /* Semantic tints (semánticos colored con 10/20%) */
+  --alpha-error-tint: rgba(209, 52, 56, 0.10);
+  --alpha-error-soft: rgba(209, 52, 56, 0.20);
+  --alpha-success-tint: rgba(16, 124, 16, 0.10);
+  --alpha-success-soft: rgba(16, 124, 16, 0.20);
+  --alpha-warning-tint: rgba(255, 185, 0, 0.10);
+  --alpha-warning-soft: rgba(255, 185, 0, 0.20);
+  --alpha-info-tint: rgba(0, 120, 212, 0.10);
+  --alpha-info-soft: rgba(0, 120, 212, 0.20);
+
+  /* iOS system colors usados en código legacy */
+  --alpha-ios-red-tint: rgba(255, 59, 48, 0.10);
+  --alpha-ios-red-soft: rgba(255, 59, 48, 0.20);
+  --alpha-ios-orange-tint: rgba(255, 149, 0, 0.10);
+  --alpha-ios-orange-soft: rgba(255, 149, 0, 0.20);
+  --alpha-ios-green-tint: rgba(52, 199, 89, 0.10);
+  --alpha-ios-green-soft: rgba(52, 199, 89, 0.20);
+  --alpha-ios-blue-tint: rgba(0, 122, 255, 0.10);
+
   /* Colored Glow Shadows for hover states */
   --shadow-primary-glow: 0 4px 16px rgba(30, 41, 59, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1);
   --shadow-success-glow: 0 4px 16px rgba(16, 185, 129, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -250,6 +327,124 @@
   --enterprise-icon-size-lg: 24px;             /* Large icons (maximum) */
 }
 
+/* ============================================
+   DARK MODE TOKENS — manual via [data-theme="dark"]
+   ============================================ */
+:root[data-theme="dark"] {
+  /* Surfaces */
+  --color-background: #0a0a0f;
+  --color-surface: #18181b;
+  --color-surface-secondary: #27272a;
+  --color-surface-elevated: #1f1f23;
+  --color-surface-acrylic: rgba(24, 24, 27, 0.85);
+
+  /* Text */
+  --color-text: #f4f4f5;
+  --color-text-secondary: #a1a1aa;
+  --color-text-tertiary: #71717a;
+  --color-text-muted: #52525b;
+
+  /* Borders */
+  --color-border: rgba(255, 255, 255, 0.10);
+  --color-border-strong: rgba(255, 255, 255, 0.18);
+  --color-divider: rgba(255, 255, 255, 0.06);
+  --color-hover-overlay: rgba(255, 255, 255, 0.05);
+  --color-active-overlay: rgba(255, 255, 255, 0.10);
+
+  /* Primary — invert for visibility on dark bg (used as TEXT color only) */
+  --color-primary: #e2e8f0;
+  --color-primary-hover: #cbd5e1;
+  --color-primary-active: #f8fafc;
+  --color-primary-dark: #94a3b8;
+  --color-primary-light: #cbd5e1;
+  --color-primary-subtle: rgba(226, 232, 240, 0.10);
+  --color-text-on-primary: #0f172a;   /* Dark text on light-primary bg */
+
+  /* ACTION TOKENS dark mode — mismo emerald que light mode (--color-success
+     no se invierte). Mantiene consistencia visual con badges de Monitoreo. */
+  --color-action-bg: #10b981;            /* Emerald 500 - matches success */
+  --color-action-bg-hover: #34d399;      /* Emerald 400 - hover lighter en dark pa' feedback */
+  --color-action-bg-active: #059669;     /* Emerald 600 - pressed */
+  --color-action-bg-disabled: #52525b;   /* Zinc 600 disabled */
+  --color-on-action: #ffffff;            /* White SIEMPRE — alto contraste */
+  --color-accent: #10b981;
+  --color-accent-light: rgba(16, 185, 129, 0.18);
+  --color-accent-border: rgba(16, 185, 129, 0.40);
+
+  /* System colors — slightly softer for dark mode */
+  --color-error-light: rgba(239, 68, 68, 0.18);
+  --color-success-light: rgba(16, 185, 129, 0.18);
+  --color-warning-light: rgba(245, 158, 11, 0.18);
+  --color-info-light: rgba(59, 130, 246, 0.18);
+
+  /* Shadows — invertir intensidad pa' dark */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.40), 0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.40), 0 8px 16px rgba(0, 0, 0, 0.30);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.50), 0 16px 32px rgba(0, 0, 0, 0.40);
+
+  /* White-alpha tokens — invertir a dark-alpha pa' borders/highlights sutiles */
+  --color-white-alpha-15: rgba(255, 255, 255, 0.06);
+  --color-white-alpha-25: rgba(255, 255, 255, 0.10);
+
+  /* Alpha highlight (originalmente blanco con opacity) — invertir en dark mode */
+  --alpha-highlight-faint: rgba(255, 255, 255, 0.03);
+  --alpha-highlight-soft: rgba(255, 255, 255, 0.05);
+  --alpha-highlight-base: rgba(255, 255, 255, 0.06);
+  --alpha-highlight-light: rgba(255, 255, 255, 0.08);
+  --alpha-highlight-medium: rgba(255, 255, 255, 0.12);
+  --alpha-highlight-strong: rgba(255, 255, 255, 0.16);
+  --alpha-highlight-heavy: rgba(255, 255, 255, 0.22);
+}
+
+/* Auto-honor system preference si no hay data-theme explícito */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --color-background: #0a0a0f;
+    --color-surface: #18181b;
+    --color-surface-secondary: #27272a;
+    --color-surface-elevated: #1f1f23;
+    --color-surface-acrylic: rgba(24, 24, 27, 0.85);
+    --color-text: #f4f4f5;
+    --color-text-secondary: #a1a1aa;
+    --color-text-tertiary: #71717a;
+    --color-text-muted: #52525b;
+    --color-border: rgba(255, 255, 255, 0.10);
+    --color-border-strong: rgba(255, 255, 255, 0.18);
+    --color-divider: rgba(255, 255, 255, 0.06);
+    --color-hover-overlay: rgba(255, 255, 255, 0.05);
+    --color-active-overlay: rgba(255, 255, 255, 0.10);
+    --color-primary: #e2e8f0;
+    --color-primary-hover: #cbd5e1;
+    --color-primary-active: #f8fafc;
+    --color-primary-dark: #94a3b8;
+    --color-primary-light: #cbd5e1;
+    --color-primary-subtle: rgba(226, 232, 240, 0.10);
+    --color-text-on-primary: #0f172a;
+    --color-action-bg: #10b981;
+    --color-action-bg-hover: #34d399;
+    --color-action-bg-active: #059669;
+    --color-action-bg-disabled: #52525b;
+    --color-on-action: #ffffff;
+    --color-accent: #10b981;
+    --color-accent-light: rgba(16, 185, 129, 0.18);
+    --color-accent-border: rgba(16, 185, 129, 0.40);
+    --color-error-light: rgba(239, 68, 68, 0.18);
+    --color-success-light: rgba(16, 185, 129, 0.18);
+    --color-warning-light: rgba(245, 158, 11, 0.18);
+    --color-info-light: rgba(59, 130, 246, 0.18);
+    --color-white-alpha-15: rgba(255, 255, 255, 0.06);
+    --color-white-alpha-25: rgba(255, 255, 255, 0.10);
+    --alpha-highlight-faint: rgba(255, 255, 255, 0.03);
+    --alpha-highlight-soft: rgba(255, 255, 255, 0.05);
+    --alpha-highlight-base: rgba(255, 255, 255, 0.06);
+    --alpha-highlight-light: rgba(255, 255, 255, 0.08);
+    --alpha-highlight-medium: rgba(255, 255, 255, 0.12);
+    --alpha-highlight-strong: rgba(255, 255, 255, 0.16);
+    --alpha-highlight-heavy: rgba(255, 255, 255, 0.22);
+  }
+}
+
 
 /* Base styles */
 html {
@@ -258,9 +453,18 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  color-scheme: light;
+  color-scheme: light dark;
   font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
   scroll-behavior: smooth;
+  background: var(--color-background);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 body {
@@ -276,6 +480,39 @@ body {
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+/* ============================================
+   SCROLLBAR — themed para light + dark
+   ============================================ */
+/* Webkit (Chrome/Edge/Safari) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--color-background);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--color-background);
+}
+
+/* Firefox */
+* {
+  scrollbar-color: var(--color-border-strong) var(--color-background);
+  scrollbar-width: thin;
 }
 
 /* Text Selection */
@@ -422,24 +659,25 @@ a:hover {
 }
 
 .btn:focus-visible {
-  outline: none;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
   box-shadow: 0 0 0 4px var(--color-focus-ring);
 }
 
 .btn--primary {
-  background-color: var(--color-primary);
-  color: white;
+  background-color: var(--color-action-bg);
+  color: var(--color-on-action);
   box-shadow: var(--shadow-sm);
 }
 
 .btn--primary:hover {
-  background-color: var(--color-primary-hover);
-  box-shadow: var(--shadow-primary-glow);
+  background-color: var(--color-action-bg-hover);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
 .btn--primary:active {
-  background-color: var(--color-primary-active);
+  background-color: var(--color-action-bg-active);
   transform: translateY(0);
   box-shadow: var(--shadow-sm);
 }
@@ -452,12 +690,49 @@ a:hover {
 
 .btn--secondary:hover {
   background-color: var(--color-surface-secondary);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  border-color: var(--color-action-bg);
+  color: var(--color-action-bg);
 }
 
 .btn--secondary:active {
   background-color: var(--color-surface-secondary);
+}
+
+/* Ghost button — transparent, sutil hover. Usado pa' actions terciarias
+   tipo "Ver Detalles" en cards. */
+.btn--ghost {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid transparent;
+}
+
+.btn--ghost:hover {
+  background: var(--color-hover-overlay);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.btn--ghost:active {
+  background: var(--color-active-overlay);
+}
+
+/* Info button — para acciones secundarias diferenciadas de primary (action).
+   Ej: "Revisar" en risk reports, "Ver" detail flows. */
+.btn--info {
+  background-color: var(--color-info);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn--info:hover {
+  background-color: var(--color-info-dark);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.btn--info:active {
+  background-color: var(--color-info-dark);
+  transform: translateY(0);
 }
 
 .btn--outline {
@@ -740,7 +1015,7 @@ select.form-control:focus {
 
 .table th {
   font-weight: var(--font-weight-semibold);
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
   text-transform: uppercase;
   font-size: var(--font-size-xs);
@@ -1376,7 +1651,7 @@ select.form-control:focus {
 }
 
 .btn-minimal.primary:hover {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
   transform: translateY(-1px);
 }
@@ -2045,24 +2320,25 @@ select.form-control:focus {
 }
 
 .action-btn.primary {
-  background: var(--color-primary);
-  color: white;
+  background: var(--color-action-bg);
+  color: var(--color-on-action);
 }
 
 .action-btn.primary:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-action-bg-hover);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .action-btn.secondary {
   background: transparent;
-  color: var(--color-primary);
-  border-color: var(--color-primary);
+  color: var(--color-action-bg);
+  border-color: var(--color-action-bg);
 }
 
 .action-btn.secondary:hover {
-  background: var(--color-primary);
-  color: white;
+  background: var(--color-action-bg);
+  color: var(--color-on-action);
 }
 
 .action-btn.tertiary {
@@ -2703,7 +2979,7 @@ select.form-control:focus {
 }
 
 .template-btn:hover {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
 }
 
@@ -2818,7 +3094,7 @@ select.form-control:focus {
 .stop-number {
   width: 28px;
   height: 28px;
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -2917,13 +3193,13 @@ select.form-control:focus {
 }
 
 .save-route-btn {
-  background: var(--color-primary);
+  background: var(--color-action-bg);
   color: white;
   border-color: var(--color-primary);
 }
 
 .save-route-btn:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+  background: var(--color-action-bg-hover);
   transform: translateY(-1px);
 }
 
@@ -3229,4 +3505,96 @@ select.form-control:focus {
 
 .historical-only-banner svg {
   flex-shrink: 0;
-} 
+}
+
+/* ============================================
+   UNIFIED SUB-TABS — usado por Core, Operaciones, Inventario.
+   Underline tab minimalista. Border-bottom emerald en active.
+   Single source of truth para sub-nav switcher en todo el dashboard.
+   ============================================ */
+.app-subtabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 16px 0;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.app-subtab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  font-family: var(--font-family-base);
+}
+
+.app-subtab svg {
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.app-subtab:hover:not(:disabled) {
+  color: var(--color-text);
+}
+
+.app-subtab--active {
+  color: var(--color-action-bg);
+  border-bottom-color: var(--color-action-bg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.app-subtab--active svg {
+  color: var(--color-action-bg);
+}
+
+.app-subtab--locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Group shells — wraps sub-tabs + content. Mismo patrón pa' Core/Operaciones/Inventario. */
+.core-group,
+.inv-group {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  height: 100%;
+}
+
+.core-group__content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Inv content (todo lo que no sea subtabs) scrollable con padding propio. */
+.inv-group > :not(.app-subtabs) {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-16) var(--space-24);
+}
+
+/* Cuando main-content envuelve un wrapper con subtabs al top, killar padding
+   pa' que los subtabs queden edge-to-edge (pegado a esquina como Core). */
+.main-content:has(> .core-group),
+.main-content:has(> .operations-section),
+.main-content:has(> .inv-group) {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}

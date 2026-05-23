@@ -81,18 +81,31 @@ test.describe("Admin: Riesgos module", () => {
       await page.waitForTimeout(500);
     }
 
-    const riesgosTab = page
-      .locator("button.top-nav__tab", { hasText: /^Riesgos$/ })
+    // Post-Core-refactor: Riesgos vive como sub-tab interno de Core top-nav.
+    // Flow: click top-nav "Core" → click sub-tab "Riesgos" en CoreSubNav.
+    const coreTab = page
+      .locator("button.top-nav__tab", { hasText: /^Core$/ })
       .first();
-    const riesgosVisible = await riesgosTab.isVisible({ timeout: 15_000 }).catch(() => false);
-    if (!riesgosVisible) {
-      test.skip(true, "Riesgos tab not available (REC module off for this role/org)");
+    const coreVisible = await coreTab.isVisible({ timeout: 15_000 }).catch(() => false);
+    if (!coreVisible) {
+      test.skip(true, "Core tab not available — env degraded");
       return;
     }
-    // On mobile, the tab may be in a horizontally-scrolling nav; scroll into view first.
-    await riesgosTab.scrollIntoViewIfNeeded().catch(() => {});
+    await coreTab.scrollIntoViewIfNeeded().catch(() => {});
     await page.waitForTimeout(200);
-    await riesgosTab.click({ force: isMobile });
+    await coreTab.click({ force: isMobile });
+    await page.waitForTimeout(800);
+
+    // Click sub-tab "Riesgos" dentro de CoreSubNav. Si no aparece, REC module off.
+    const riesgosSubTab = page
+      .locator("button.core-subnav__tab", { hasText: /Riesgos/ })
+      .first();
+    const riesgosVisible = await riesgosSubTab.isVisible({ timeout: 10_000 }).catch(() => false);
+    if (!riesgosVisible) {
+      test.skip(true, "Riesgos sub-tab not available (REC module off for this role/org)");
+      return;
+    }
+    await riesgosSubTab.click({ force: isMobile });
     await page.waitForTimeout(1200);
     await snap(page, role, "01-riesgos-open", proj);
 
@@ -157,12 +170,17 @@ test.describe("Admin: Riesgos module", () => {
       await expect(detailModal, "Detail modal should open").toBeVisible({ timeout: 5_000 });
       await snap(page, role, "04-detail-modal", proj);
 
-      // Close it
-      const closeBtn = page
-        .locator(".modal-close, button:has-text('Cerrar')")
+      // Close it — selector debe estar SCOPED al modal pa' evitar matchear
+      // el botón "Cerrar Sesión" (logout) del app bar.
+      const closeBtn = detailModal
+        .locator(".modal-close, button[aria-label*='close' i], button[aria-label*='cerrar' i]")
         .first();
-      if (await closeBtn.isVisible().catch(() => false)) {
-        await closeBtn.click();
+      if (await closeBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        await closeBtn.click().catch(() => {});
+        await page.waitForTimeout(400);
+      } else {
+        // Fallback: ESC para cerrar
+        await page.keyboard.press("Escape").catch(() => {});
         await page.waitForTimeout(400);
       }
 

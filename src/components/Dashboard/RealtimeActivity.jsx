@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Truck, MapPin, Clock, CheckCircle, Radio, Navigation, Wrench, ChevronRight } from '../Icons';
+import { Truck, MapPin, Clock, CheckCircle, Radio, Navigation, Wrench, ChevronRight, Sparkles, Bug } from '../Icons';
 import { formatRelative, formatTime as formatTimeUtil } from '../../utils/dates';
 import './RealtimeActivity.css';
 
@@ -128,6 +128,14 @@ const generateActivitiesFromRealData = (vehicles, routes, personnel) => {
 const ActivityItem = ({ activity, delay, isNew }) => {
   const getActivityConfig = (tipo) => {
     switch (tipo) {
+      case 'parada_llegada':
+        return {
+          icon: <MapPin size={16} />,
+          color: '#06b6d4',
+          bgColor: 'rgba(6, 182, 212, 0.08)',
+          label: 'Llegada a Parada',
+          badgeColor: '#06b6d4'
+        };
       case 'parada_completada':
         return {
           icon: <CheckCircle size={16} />,
@@ -151,6 +159,22 @@ const ActivityItem = ({ activity, delay, isNew }) => {
           bgColor: 'rgba(139, 92, 246, 0.08)',
           label: 'Ruta Completada',
           badgeColor: '#8b5cf6'
+        };
+      case 'limpieza_completada':
+        return {
+          icon: <Sparkles size={16} />,
+          color: '#ec4899',
+          bgColor: 'rgba(236, 72, 153, 0.08)',
+          label: 'Limpieza Completada',
+          badgeColor: '#ec4899'
+        };
+      case 'fumigacion_completada':
+        return {
+          icon: <Bug size={16} />,
+          color: '#f59e0b',
+          bgColor: 'rgba(245, 158, 11, 0.08)',
+          label: 'Fumigación Completada',
+          badgeColor: '#f59e0b'
         };
       default:
         return {

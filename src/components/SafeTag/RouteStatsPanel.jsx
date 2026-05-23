@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, TrendingUp, Clock, Zap, StopCircle, Navigation } from '../Icons';
+import { MapPin, TrendingUp, Clock, Zap, StopCircle, Navigation, Play, CheckCircle } from '../Icons';
 import './RouteStatsPanel.css';
 
 /**
@@ -166,11 +166,15 @@ export const RouteStatsPanel = ({ stats, currentPoint }) => {
       {/* Horarios */}
       <div className="time-range">
         <div className="time-info">
-          <span className="time-label">⏰ Inicio:</span>
+          <span className="time-label">
+            <Play size={12} aria-hidden="true" /> Inicio:
+          </span>
           <span className="time-value">{formatTime(stats.startTime)}</span>
         </div>
         <div className="time-info">
-          <span className="time-label">🏁 Fin:</span>
+          <span className="time-label">
+            <CheckCircle size={12} aria-hidden="true" /> Fin:
+          </span>
           <span className="time-value">{formatTime(stats.endTime)}</span>
         </div>
       </div>

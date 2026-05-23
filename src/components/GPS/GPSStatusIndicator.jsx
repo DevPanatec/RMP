@@ -1,5 +1,5 @@
 import './GPSStatusIndicator.css';
-import { Satellite } from '../Icons';
+import { Satellite, Check, X } from '../Icons';
 
 /**
  * GPSStatusIndicator - Componente para mostrar el estado de conexión GPS de un vehículo
@@ -36,7 +36,9 @@ const GPSStatusIndicator = ({
       >
         <div className="gps-status-icon">
           <Satellite size={size === 'small' ? 12 : size === 'medium' ? 14 : 16} strokeWidth={2} />
-          <span className="gps-status-badge">✗</span>
+          <span className="gps-status-badge" aria-hidden="true">
+            <X size={size === 'small' ? 8 : 10} strokeWidth={3} />
+          </span>
         </div>
         {showLabel && <span className="gps-status-label">GPS No Configurado</span>}
       </div>
@@ -66,13 +68,17 @@ const GPSStatusIndicator = ({
 
   const statusClass = gps_conectado ? 'gps-status--connected' : 'gps-status--disconnected';
   const statusText = gps_conectado ? 'GPS Conectado' : 'GPS Desconectado';
-  const statusIcon = gps_conectado ? '✓' : '✗';
+  const badgeSize = size === 'small' ? 8 : 10;
 
   return (
     <div className={`gps-status-indicator gps-status-indicator--${size} ${statusClass}`} title={`IMEI: ${gps_imei}`}>
       <div className="gps-status-icon">
         <Satellite size={size === 'small' ? 12 : size === 'medium' ? 14 : 16} strokeWidth={2} />
-        <span className="gps-status-badge">{statusIcon}</span>
+        <span className="gps-status-badge" aria-hidden="true">
+          {gps_conectado
+            ? <Check size={badgeSize} strokeWidth={3} />
+            : <X size={badgeSize} strokeWidth={3} />}
+        </span>
       </div>
 
       {showLabel && (

@@ -437,3 +437,168 @@ export const _migrationBackfillOrganizacionId = mutation({
     return { salas_fixed, assignments_fixed, reports_fixed };
   },
 });
+
+// ============================================================
+// SEED PARA DEMO — crea cleaning_assignment + cleaning_report
+// con prefix [TEST-DEMO] pa' visualizar feed multi-servicio.
+//
+// Uso (admin/super_admin):
+//   Convex dashboard → Functions → cleaning:seedTestCompleted → Run
+//
+// Limpieza:
+//   cleaning:removeTestData
+// ============================================================
+
+export const seedTestCompleted = mutation({
+  args: {
+    proyecto_id: v.optional(v.id("proyectos")),
+  },
+  handler: async (ctx, args) => {
+    const scope = await requireWriteRole(ctx);
+    await requireModulo(ctx, "LIM");
+
+    const orgId = scope.organizacionId;
+    if (!orgId && !scope.isSuperAdmin) {
+      throw new Error("Sin organización asignada — no se puede seedear");
+    }
+
+    // 1. Encontrar o crear sala [TEST-DEMO]
+    let testSala: any = null;
+    if (orgId) {
+      const salas = await ctx.db
+        .query("salas")
+        .withIndex("by_organizacion", (q) => q.eq("organizacion_id", orgId))
+        .collect();
+      testSala = salas.find((s) => s.nombre.startsWith("[TEST-DEMO]"));
+    }
+
+    if (!testSala) {
+      const salaId = await ctx.db.insert("salas", {
+        nombre: "[TEST-DEMO] Sala de prueba",
+        descripcion: "Sala generada por seedTestCompleted — borrar con removeTestData",
+        latitud: 8.983333,
+        longitud: -79.51667,
+        activo: true,
+        ...(args.proyecto_id && { proyecto_id: args.proyecto_id }),
+        ...(orgId && { organizacion_id: orgId }),
+      });
+      testSala = await ctx.db.get(salaId);
+    }
+
+    if (!testSala) throw new Error("No se pudo crear sala test");
+
+    // Derivar proyecto_id si no se pasó (usar de la sala)
+    const proyecto_id = args.proyecto_id ?? testSala.proyecto_id;
+
+    // 2. Crear cleaning_assignment estado='completado'
+    const now = new Date();
+    const fechaHoy = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const horaAhora = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+    const assignmentId = await ctx.db.insert("cleaning_assignments", {
+      sala_id: testSala._id,
+      fecha: fechaHoy,
+      hora: horaAhora,
+      estado: "completado",
+      notas: "[TEST-DEMO] Asignación de prueba pa' validar activity feed",
+      ...(proyecto_id && { proyecto_id }),
+      ...(orgId && { organizacion_id: orgId }),
+    });
+
+    // 3. Crear cleaning_report
+    const isoNow = new Date().toISOString();
+    const reportId = await ctx.db.insert("cleaning_reports", {
+      assignment_id: assignmentId,
+      sala_id: testSala._id,
+      sala_nombre: testSala.nombre,
+      latitud: testSala.latitud,
+      longitud: testSala.longitud,
+      fecha: fechaHoy,
+      hora_inicio: horaAhora,
+      hora_fin: `${String((now.getHours() + 1) % 24).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`,
+      duracion_minutos: 60,
+      fotos_antes_ids: [],
+      fotos_durante_ids: [],
+      fotos_despues_ids: [],
+      observaciones: "[TEST-DEMO] Reporte generado por seed",
+      usuario_completo: "[TEST-DEMO] Seed User",
+      fecha_completacion: isoNow,
+      ...(proyecto_id && { proyecto_id }),
+      ...(orgId && { organizacion_id: orgId }),
+    });
+
+    return {
+      success: true,
+      sala_id: testSala._id,
+      assignment_id: assignmentId,
+      report_id: reportId,
+      mensaje: "Test data creado. Refrescá el dashboard Monitoreo pa' ver 'Limpieza Completada' en el feed.",
+    };
+  },
+});
+
+export const removeTestData = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const scope = await requireWriteRole(ctx);
+    await requireModulo(ctx, "LIM");
+
+    const orgId = scope.organizacionId;
+    if (!orgId && !scope.isSuperAdmin) {
+      throw new Error("Sin organización asignada");
+    }
+
+    let deletedReports = 0;
+    let deletedAssignments = 0;
+    let deletedSalas = 0;
+
+    // 1. Borrar cleaning_reports con observaciones [TEST-DEMO]
+    const reports = orgId
+      ? await ctx.db
+          .query("cleaning_reports")
+          .withIndex("by_organizacion", (q) => q.eq("organizacion_id", orgId))
+          .collect()
+      : await ctx.db.query("cleaning_reports").collect();
+    for (const r of reports) {
+      if (r.observaciones?.startsWith("[TEST-DEMO]") || r.usuario_completo?.startsWith("[TEST-DEMO]")) {
+        await ctx.db.delete(r._id);
+        deletedReports++;
+      }
+    }
+
+    // 2. Borrar cleaning_assignments con notas [TEST-DEMO]
+    const assignments = orgId
+      ? await ctx.db
+          .query("cleaning_assignments")
+          .withIndex("by_organizacion", (q) => q.eq("organizacion_id", orgId))
+          .collect()
+      : await ctx.db.query("cleaning_assignments").collect();
+    for (const a of assignments) {
+      if (a.notas?.startsWith("[TEST-DEMO]")) {
+        await ctx.db.delete(a._id);
+        deletedAssignments++;
+      }
+    }
+
+    // 3. Borrar salas [TEST-DEMO]
+    const salas = orgId
+      ? await ctx.db
+          .query("salas")
+          .withIndex("by_organizacion", (q) => q.eq("organizacion_id", orgId))
+          .collect()
+      : await ctx.db.query("salas").collect();
+    for (const s of salas) {
+      if (s.nombre.startsWith("[TEST-DEMO]")) {
+        await ctx.db.delete(s._id);
+        deletedSalas++;
+      }
+    }
+
+    return {
+      success: true,
+      deletedReports,
+      deletedAssignments,
+      deletedSalas,
+    };
+  },
+});

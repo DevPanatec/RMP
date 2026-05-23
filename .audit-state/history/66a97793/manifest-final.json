@@ -1,0 +1,9 @@
+{
+  "runId": "66a97793",
+  "ended_at": "2026-05-21T17:47:35.478Z",
+  "state": "cleaned",
+  "purged": {
+    "clerk": 5,
+    "convex_records": 19
+  }
+}

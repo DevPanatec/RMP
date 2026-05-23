@@ -1,16 +1,20 @@
+import { Truck, Bug, Sparkles, Wrench, MapPin } from '../Icons';
+
+const ICON_SIZE = { sm: 12, md: 16, lg: 20 };
+
 const ActivityIcon = ({ activity, size = 'md' }) => {
-  const getIcon = (type) => {
+  const getIcon = (type, pixelSize) => {
     switch (type) {
       case 'recoleccion':
-        return '🚛';
+        return <Truck size={pixelSize} aria-hidden="true" />;
       case 'fumigacion':
-        return '🦟';
+        return <Bug size={pixelSize} aria-hidden="true" />;
       case 'limpieza':
-        return '🧹';
+        return <Sparkles size={pixelSize} aria-hidden="true" />;
       case 'mantenimiento':
-        return '🔧';
+        return <Wrench size={pixelSize} aria-hidden="true" />;
       default:
-        return '📌';
+        return <MapPin size={pixelSize} aria-hidden="true" />;
     }
   };
 
@@ -30,13 +34,14 @@ const ActivityIcon = ({ activity, size = 'md' }) => {
   };
 
   const sizeClass = `activity-icon-${size}`;
+  const pixelSize = ICON_SIZE[size] || ICON_SIZE.md;
 
   return (
-    <div 
+    <div
       className={`activity-icon ${sizeClass} ${getColorClass(activity.type)}`}
       title={activity.title}
     >
-      {getIcon(activity.type)}
+      {getIcon(activity.type, pixelSize)}
     </div>
   );
 };

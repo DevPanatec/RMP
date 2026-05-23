@@ -5,6 +5,7 @@ import { useOrganization } from '../../context/OrganizationContext';
 import ReportDetailModal from '../Cleaning/ReportDetailModal';
 import RouteReportDetailModal from './RouteReportDetailModal';
 import FumigationReportDetailModal from '../Fumigation/FumigationReportDetailModal';
+import { buildGmapsEmbedUrl } from '../../utils/gmaps';
 import pdfMake from 'pdfmake/build/pdfmake';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import './LocationReportsModal.css';
@@ -193,7 +194,7 @@ const LocationReportsModal = ({ location, onClose, getStatusVariant, modalType =
       const fileName = `Reporte_${location.nombre.replace(/\s+/g, '_')}_${report.fecha}_${report.hora?.replace(/:/g, '-') || 'sin-hora'}.pdf`;
       pdfMake.createPdf(docDefinition).download(fileName);
 
-      console.log('✅ PDF generado exitosamente:', fileName);
+      console.log('PDF generado exitosamente:', fileName);
     } catch (error) {
       console.error('Error generando PDF:', error);
       alert('Error al generar el PDF. Por favor intenta nuevamente.');
@@ -244,7 +245,7 @@ const LocationReportsModal = ({ location, onClose, getStatusVariant, modalType =
     ? `${location.latitud},${location.longitud}`
     : encodeURIComponent(location.nombre + ', Panama City, Panama');
   const mapEmbedUrl = location.nombre
-    ? `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${mapQuery}&zoom=17`
+    ? buildGmapsEmbedUrl(mapQuery, 17)
     : null;
 
   // URL para abrir en Google Maps

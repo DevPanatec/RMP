@@ -5,15 +5,21 @@
 .realtime-activity {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   padding: 0;
   margin-bottom: 0;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--crono-shadow-1);
   display: flex;
   flex-direction: column;
   position: relative;
   min-width: 0;
   overflow: hidden;
+  font-variant-numeric: tabular-nums;
+  transition: box-shadow 200ms var(--crono-ease-soft);
+}
+
+.realtime-activity:hover {
+  box-shadow: var(--crono-shadow-2);
 }
 
 /* Accent stripe verde a la izquierda — identidad visual sección "Actividades" */
@@ -25,7 +31,7 @@
   width: 3px;
   height: 100%;
   background: var(--color-success);
-  z-index: 1;
+  z-index: var(--z-base);
 }
 
 .activity-header {
@@ -51,13 +57,15 @@
 
 .activity-header h3 svg {
   padding: var(--space-6);
-  background: var(--color-surface);
-  color: var(--color-success);
-  border: 1px solid var(--color-success);
-  border-radius: var(--radius-base);
+  background: linear-gradient(135deg, var(--crono-lim) 0%, #15a015 100%);
+  color: white;
+  border: 1px solid transparent;
+  border-radius: 10px;
   width: 32px;
   height: 32px;
   box-sizing: content-box;
+  box-shadow: 0 6px 16px var(--crono-lim-glow),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .live-indicator {
@@ -80,12 +88,8 @@
   height: 7px;
   background: var(--color-success);
   border-radius: 50%;
-  animation: livePulse 2s ease-in-out infinite;
-}
-
-@keyframes livePulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  animation: crono-pulse 1.8s ease-in-out infinite;
+  box-shadow: 0 0 0 0 var(--crono-lim-glow);
 }
 
 /* ============================================
@@ -107,11 +111,23 @@
   display: flex;
   gap: var(--space-12);
   padding: var(--space-10) 0;
-  transition: background var(--duration-fast) var(--ease-out);
+  transition:
+    background 180ms var(--crono-ease-soft),
+    padding 180ms var(--crono-ease-soft);
   position: relative;
   flex-shrink: 0;
   min-width: 0;
+  opacity: 0;
+  animation: crono-item-in 320ms var(--crono-ease-soft) forwards;
 }
+
+.activity-item:nth-child(1) { animation-delay: 0ms; }
+.activity-item:nth-child(2) { animation-delay: 50ms; }
+.activity-item:nth-child(3) { animation-delay: 100ms; }
+.activity-item:nth-child(4) { animation-delay: 150ms; }
+.activity-item:nth-child(5) { animation-delay: 200ms; }
+.activity-item:nth-child(6) { animation-delay: 250ms; }
+.activity-item:nth-child(n+7) { animation-delay: 300ms; }
 
 .activity-main {
   min-width: 0;
@@ -140,7 +156,7 @@
 .activity-icon {
   width: 36px;
   height: 36px;
-  border-radius: var(--radius-base);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -148,12 +164,14 @@
   background: var(--color-surface-secondary);
   color: var(--color-text-secondary);
   border: 1px solid var(--color-border);
-  transition: all 200ms ease;
+  transition:
+    transform 200ms var(--crono-ease-spring),
+    box-shadow 200ms var(--crono-ease-soft);
 }
 
 .activity-item:hover .activity-icon {
-  transform: scale(1.06);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04);
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
 }
 
 .activity-line {
@@ -431,4 +449,20 @@
 @keyframes contentHighlight {
   0% { background: rgba(16, 185, 129, 0.12); border-radius: var(--radius-base); }
   100% { background: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .realtime-activity,
+  .activity-item,
+  .activity-icon,
+  .live-dot,
+  .activity-item--new,
+  .activity-item--new .activity-icon,
+  .activity-item--new .activity-content {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    box-shadow: none !important;
+  }
 }

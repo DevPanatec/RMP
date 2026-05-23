@@ -5,9 +5,18 @@
 .upcoming-routes {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   padding: var(--space-12);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--crono-shadow-1);
+  font-variant-numeric: tabular-nums;
+  transition:
+    box-shadow 200ms var(--crono-ease-soft),
+    transform 200ms var(--crono-ease-soft);
+}
+
+.upcoming-routes:hover {
+  box-shadow: var(--crono-shadow-2);
+  transform: translateY(-2px);
 }
 
 .upcoming-routes-header {
@@ -36,9 +45,11 @@
   padding: 0 6px;
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
-  background: var(--color-primary);
+  background: linear-gradient(135deg, var(--crono-rec) 0%, #1488d8 100%);
   color: white;
   border-radius: var(--radius-full);
+  box-shadow: 0 2px 6px var(--crono-rec-glow),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .upcoming-routes-empty {
@@ -65,8 +76,28 @@
   gap: var(--space-12);
   padding: var(--space-8) var(--space-12);
   background: var(--color-surface-secondary);
-  border-radius: var(--radius-base);
-  border-left: 3px solid var(--color-primary);
+  border-radius: 8px;
+  border-left: 3px solid var(--crono-rec);
+  transition:
+    background 180ms var(--crono-ease-soft),
+    transform 180ms var(--crono-ease-soft),
+    box-shadow 180ms var(--crono-ease-soft);
+  opacity: 0;
+  animation: crono-item-in 320ms var(--crono-ease-soft) forwards;
+}
+
+.upcoming-routes-list .upcoming-route-item:nth-child(1) { animation-delay: 0ms; }
+.upcoming-routes-list .upcoming-route-item:nth-child(2) { animation-delay: 50ms; }
+.upcoming-routes-list .upcoming-route-item:nth-child(3) { animation-delay: 100ms; }
+.upcoming-routes-list .upcoming-route-item:nth-child(4) { animation-delay: 150ms; }
+.upcoming-routes-list .upcoming-route-item:nth-child(5) { animation-delay: 200ms; }
+.upcoming-routes-list .upcoming-route-item:nth-child(6) { animation-delay: 250ms; }
+.upcoming-routes-list .upcoming-route-item:nth-child(n+7) { animation-delay: 300ms; }
+
+.upcoming-route-item:hover {
+  background: var(--color-surface);
+  box-shadow: var(--crono-shadow-1);
+  transform: translateX(2px);
 }
 
 .upcoming-route-when {
@@ -126,5 +157,15 @@
   .upcoming-route-item {
     grid-template-columns: 70px 1fr;
     gap: var(--space-8);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upcoming-routes,
+  .upcoming-route-item {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

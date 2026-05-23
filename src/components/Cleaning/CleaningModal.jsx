@@ -6,6 +6,7 @@ import {
 } from '../Icons';
 import { useCleaning } from '../../context/CleaningContext';
 import { handleMutationError } from '../../utils/mutationError';
+import useFocusTrap from '../../hooks/useFocusTrap';
 import SimplePhotoSlots from './SimplePhotoSlots';
 import './CleaningModal.css';
 
@@ -146,6 +147,8 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
     }
   };
 
+  const trapRef = useFocusTrap(isOpen, onClose);
+
   if (!isOpen) return null;
 
   const getValidationStatus = () => {
@@ -168,15 +171,22 @@ const CleaningModal = ({ isOpen, onClose, assignment, onSave, isEditing }) => {
 
   return (
     <div className="cleaning-modal-overlay" onClick={onClose}>
-      <div className="cleaning-modal-content" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={trapRef}
+        className="cleaning-modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cleaning-modal-title"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="cleaning-modal-header">
           <div className="modal-header-content">
-            <h4>
+            <h4 id="cleaning-modal-title">
               {isEditing ? <><Edit size={20} /> Editar Asignación</> : <><Plus size={20} /> Nueva Asignación de Limpieza</>}
             </h4>
             <p>Configura la asignación con información detallada y evidencias fotográficas</p>
           </div>
-          <button className="modal-close" onClick={onClose}><X size={18} /></button>
+          <button className="modal-close" onClick={onClose} aria-label="Cerrar modal"><X size={18} /></button>
         </div>
 
         <div className="cleaning-modal-tabs">

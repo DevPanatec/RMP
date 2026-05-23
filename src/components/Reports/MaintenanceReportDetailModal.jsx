@@ -52,7 +52,7 @@ const MaintenanceReportDetailModal = ({ report: initialReport, onClose }) => {
       const fecha = report.fecha_reporte || report.fecha_completada;
       const dateRange = { desde: fecha, hasta: fecha };
       await generateMantenimientoPDFComplete([report], dateRange);
-      console.log('📄 PDF de mantenimiento individual generado');
+      console.log('PDF de mantenimiento individual generado');
     } catch (error) {
       console.error('Error generando PDF:', error);
       alert('Error al generar el PDF');
