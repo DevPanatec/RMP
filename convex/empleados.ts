@@ -1,6 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getAuthScope, requireOrgAccess, requireProjectAccess, requireWriteRole, requireAdminWrite } from "./lib/auth";
+import { getAuthScope, requireOrgAccess, requireProjectAccess, requireWriteRole, requireAdminWrite, requireSuperAdmin } from "./lib/auth";
 import { requireModulo } from "./lib/modules";
 
 // Filtra empleados por scope: super_admin/cross-org ve todos; demás solo su org.
@@ -242,13 +242,22 @@ export const getStats = query({
 //
 // Auth: solo super_admin (puede tocar empleados de cualquier org).
 export const _migrationBackfillOrganizacionId = mutation({
-  args: { default_org_id: v.optional(v.id("organizaciones")) },
+  args: {
+    default_org_id: v.optional(v.id("organizaciones")),
+    default_org_slug: v.optional(v.string()), // alternativa: lookup por slug
+  },
   handler: async (ctx, args) => {
-    const { requireSuperAdmin } = await import("./lib/auth");
-    await requireSuperAdmin(ctx);
+    // Gate: super_admin (Clerk auth) o llamada interna admin (MCP/Convex CLI).
+    const identity = await ctx.auth.getUserIdentity();
+    if (identity) await requireSuperAdmin(ctx);
 
     const orgs = await ctx.db.query("organizaciones").collect();
-    const defaultOrgId = args.default_org_id ?? (orgs.length === 1 ? orgs[0]._id : null);
+    let defaultOrgId = args.default_org_id ?? null;
+    if (!defaultOrgId && args.default_org_slug) {
+      const match = orgs.find((o) => o.slug === args.default_org_slug);
+      defaultOrgId = match?._id ?? null;
+    }
+    if (!defaultOrgId && orgs.length === 1) defaultOrgId = orgs[0]._id;
 
     const empleados = await ctx.db.query("empleados").collect();
     let fixed = 0;
