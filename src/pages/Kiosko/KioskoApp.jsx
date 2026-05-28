@@ -11,6 +11,28 @@ const TIPO_MARCA_LABELS = {
   salida: 'Salida',
 };
 
+// Orden natural del día — pa' iteración estable en UI.
+const TIPO_MARCA_ORDER = ['entrada', 'salida_almuerzo', 'regreso_almuerzo', 'salida'];
+
+/**
+ * Devuelve los tipos válidos según el estado de la jornada del día.
+ * El PRIMERO es el sugerido (auto-confirm con ese).
+ * Reglas:
+ *   sin entrada              → [entrada]
+ *   entrada, sin salida_alm  → [salida_almuerzo, salida]  (sugerido almuerzo, alt salida directa)
+ *   salida_alm, sin regreso  → [regreso_almuerzo]
+ *   regreso, sin salida      → [salida]
+ *   todo completo            → []  (UI muestra "Ya completaste el día")
+ */
+function getTiposValidos(jornada) {
+  const j = jornada ?? {};
+  if (!j.entrada) return ['entrada'];
+  if (!j.salida_almuerzo) return ['salida_almuerzo', 'salida'];
+  if (!j.regreso_almuerzo) return ['regreso_almuerzo'];
+  if (!j.salida) return ['salida'];
+  return []; // día completo
+}
+
 // Detection throttling — 8fps es plenty pa' face match. Más es CPU desperdicio.
 const DETECTION_FPS = 8;
 const DETECTION_MS = 1000 / DETECTION_FPS;
@@ -240,11 +262,11 @@ const KioskoApp = () => {
                         (e) => e._id === matchRes.empleado_id,
                       );
                       if (empMeta) {
-                        const tipoSugerido = autoDetectTipoMarca(
-                          matchRes.empleado_id,
-                          stateCtx?.jornadasHoy,
-                          stateCtx?.horariosVigentes,
-                        );
+                        // Sugerido derivado del estado real de la jornada (orden natural),
+                        // no de la hora del reloj. Si no hay tipos válidos = día completo.
+                        const jornadaHoy = stateCtx?.jornadasHoy?.[matchRes.empleado_id];
+                        const tipos = getTiposValidos(jornadaHoy);
+                        const tipoSugerido = tipos[0] ?? null;
                         setMatched({
                           empleado: empMeta,
                           score: matchRes.score,
@@ -288,12 +310,13 @@ const KioskoApp = () => {
   // ─── Auto-confirm timer ──────────────────────────────────────────
   useEffect(() => {
     if (state !== 'matched' || !matched || !empleadosCtx) return;
-    const secs = empleadosCtx.zona.auto_confirm_segundos ?? 3;
+    // Si no hay tipo sugerido (día completo) NO auto-confirma — usuario debe cerrar manual.
+    if (!matched.tipoSugerido) return;
+    const secs = empleadosCtx.zona.auto_confirm_segundos ?? 5;
     if (secs <= 0) return;
     autoConfirmTimerRef.current = setTimeout(() => {
-      // Lee del ref pa' agarrar el último matched aunque haya cambiado durante el timer
       const m = matchedRef.current;
-      if (m) handleConfirm(m.tipoSugerido);
+      if (m?.tipoSugerido) handleConfirm(m.tipoSugerido);
     }, secs * 1000);
     return () => clearTimeout(autoConfirmTimerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -445,7 +468,8 @@ const KioskoApp = () => {
         {state === 'matched' && matched && (
           <MatchedCard
             matched={matched}
-            autoConfirmSecs={empleadosCtx.zona.auto_confirm_segundos ?? 3}
+            jornada={stateCtx?.jornadasHoy?.[matched.empleado._id]}
+            autoConfirmSecs={empleadosCtx.zona.auto_confirm_segundos ?? 5}
             onConfirm={handleConfirm}
             onCancel={handleCancel}
           />
@@ -470,6 +494,8 @@ const KioskoApp = () => {
           token={token}
           gps={gps}
           marcarPinMut={marcarPinMut}
+          uploadUrlMut={uploadUrlMut}
+          captureFn={() => videoRef.current ? captureFrame(videoRef.current) : null}
           onClose={() => setShowPinFallback(false)}
           onResult={(r) => { setResult(r); setShowPinFallback(false); setState('result'); }}
         />
@@ -488,18 +514,23 @@ const KioskoApp = () => {
 
 // ─── Sub-componentes ────────────────────────────────────────────────
 
-const MatchedCard = ({ matched, autoConfirmSecs, onConfirm, onCancel }) => {
+const MatchedCard = ({ matched, jornada, autoConfirmSecs, onConfirm, onCancel }) => {
+  // Filtra los tipos según estado de jornada — el primero es el sugerido.
+  const tiposValidos = useMemo(() => getTiposValidos(jornada), [jornada]);
+  const sugerido = tiposValidos[0] ?? null;
+  const dayComplete = tiposValidos.length === 0;
+
   const [secsLeft, setSecsLeft] = useState(autoConfirmSecs);
   const [paused, setPaused] = useState(false); // pause timer si user interactúa
 
   useEffect(() => {
-    if (autoConfirmSecs <= 0 || paused) return;
+    if (autoConfirmSecs <= 0 || paused || !sugerido || dayComplete) return;
     if (secsLeft <= 0) return;
     const id = setInterval(() => setSecsLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
-  }, [autoConfirmSecs, paused, secsLeft]);
+  }, [autoConfirmSecs, paused, secsLeft, sugerido, dayComplete]);
 
-  const showCountdown = autoConfirmSecs > 0 && !paused && secsLeft > 0;
+  const showCountdown = autoConfirmSecs > 0 && !paused && secsLeft > 0 && sugerido && !dayComplete;
 
   return (
     <div className="kiosko__match-card">
@@ -509,45 +540,60 @@ const MatchedCard = ({ matched, autoConfirmSecs, onConfirm, onCancel }) => {
         <span className="kiosko__match-score">match {(matched.score * 100).toFixed(0)}%</span>
       </div>
 
-      <p className="kiosko__match-hint">
-        {showCountdown
-          ? `Marcando ${TIPO_MARCA_LABELS[matched.tipoSugerido]} en ${secsLeft}s — toca otro si no es:`
-          : 'Elige el tipo de marcación:'}
-      </p>
-
-      <div className="kiosko__match-tipos kiosko__match-tipos--grid">
-        {Object.entries(TIPO_MARCA_LABELS).map(([k, label]) => {
-          const isSuggested = k === matched.tipoSugerido;
-          return (
-            <button
-              key={k}
-              className={`kiosko-btn kiosko-btn--lg ${isSuggested ? 'kiosko-btn--primary kiosko-btn--suggested' : ''}`}
-              onClick={() => onConfirm(k)}
-              onMouseEnter={() => setPaused(true)}
-              onTouchStart={() => setPaused(true)}
-            >
-              <span className="kiosko-btn__label">{label}</span>
-              {isSuggested && showCountdown && (
-                <span className="kiosko-countdown-badge">{secsLeft}s</span>
-              )}
-              {isSuggested && !showCountdown && (
-                <span className="kiosko-suggested-badge">sugerido</span>
-              )}
+      {dayComplete ? (
+        <>
+          <p className="kiosko__match-hint kiosko__match-hint--done">
+            ✓ Ya completaste todas las marcaciones del día.
+          </p>
+          <div className="kiosko__match-extras">
+            <button className="kiosko-btn kiosko-btn--ghost" onClick={onCancel}>
+              Cerrar
             </button>
-          );
-        })}
-      </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="kiosko__match-hint">
+            {showCountdown
+              ? `Marcando ${TIPO_MARCA_LABELS[sugerido]} en ${secsLeft}s${tiposValidos.length > 1 ? ' — o toca otro:' : ''}`
+              : 'Elige el tipo de marcación:'}
+          </p>
 
-      <div className="kiosko__match-extras">
-        <button className="kiosko-btn kiosko-btn--ghost" onClick={onCancel}>
-          No soy yo
-        </button>
-      </div>
+          <div className={`kiosko__match-tipos kiosko__match-tipos--grid ${tiposValidos.length === 1 ? 'kiosko__match-tipos--single' : ''}`}>
+            {tiposValidos.map((k) => {
+              const isSuggested = k === sugerido;
+              return (
+                <button
+                  key={k}
+                  className={`kiosko-btn kiosko-btn--lg ${isSuggested ? 'kiosko-btn--primary kiosko-btn--suggested' : ''}`}
+                  onClick={() => onConfirm(k)}
+                  onMouseEnter={() => setPaused(true)}
+                  onTouchStart={() => setPaused(true)}
+                >
+                  <span className="kiosko-btn__label">{TIPO_MARCA_LABELS[k]}</span>
+                  {isSuggested && showCountdown && (
+                    <span className="kiosko-countdown-badge">{secsLeft}s</span>
+                  )}
+                  {isSuggested && !showCountdown && tiposValidos.length > 1 && (
+                    <span className="kiosko-suggested-badge">sugerido</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="kiosko__match-extras">
+            <button className="kiosko-btn kiosko-btn--ghost" onClick={onCancel}>
+              No soy yo
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };
 
-const PinFallbackModal = ({ token, gps, marcarPinMut, onClose, onResult }) => {
+const PinFallbackModal = ({ token, gps, marcarPinMut, uploadUrlMut, captureFn, onClose, onResult }) => {
   const [cedula, setCedula] = useState('');
   const [pin, setPin] = useState('');
   const [tipoMarca, setTipoMarca] = useState('entrada');
@@ -559,6 +605,20 @@ const PinFallbackModal = ({ token, gps, marcarPinMut, onClose, onResult }) => {
     if (!canSubmit) return;
     setSubmitting(true);
     try {
+      // Capturar foto pa' auditoría — el admin necesita ver quién marcó cuando
+      // se usa PIN (puede ser un compañero marcando por el empleado real).
+      // Best-effort: si la captura/upload falla, igual procesa la marcación.
+      let foto_storage_id;
+      try {
+        const blob = await captureFn();
+        if (blob) {
+          const uploadUrl = await uploadUrlMut({ device_token: token });
+          foto_storage_id = await uploadBlobToConvex(uploadUrl, blob);
+        }
+      } catch (capErr) {
+        console.warn('[kiosko] PIN photo capture failed (continuing):', capErr?.message);
+      }
+
       const res = await marcarPinMut({
         device_token: token,
         cedula: cedula.trim(),
@@ -567,6 +627,7 @@ const PinFallbackModal = ({ token, gps, marcarPinMut, onClose, onResult }) => {
         gps_lat: gps.lat,
         gps_lng: gps.lng,
         gps_accuracy: gps.accuracy,
+        foto_storage_id,
       });
       onResult(res);
     } catch (e) {
@@ -721,35 +782,8 @@ const ResultOverlay = ({ result, onDismiss, autoDismissMs = 3500 }) => {
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
-// Auto-detección del tipo de marca según jornada + hora del horario vigente.
-// Devuelve string: "entrada" | "salida_almuerzo" | "regreso_almuerzo" | "salida"
-function autoDetectTipoMarca(empId, jornadasHoy, horariosVigentes) {
-  const j = jornadasHoy?.[empId] ?? {};
-  const h = horariosVigentes?.[empId];
-  const now = new Date();
-  const nowMin = now.getHours() * 60 + now.getMinutes();
-
-  if (!j.entrada) return 'entrada';
-  if (j.salida_almuerzo && !j.regreso_almuerzo) return 'regreso_almuerzo';
-
-  // Almuerzo: si hora actual cerca de hora_almuerzo_inicio (±60min)
-  if (h?.hora_almuerzo_inicio && !j.salida_almuerzo) {
-    const [hh, mm] = h.hora_almuerzo_inicio.split(':').map(Number);
-    const alm = hh * 60 + mm;
-    if (Math.abs(nowMin - alm) <= 60) return 'salida_almuerzo';
-  }
-
-  // Salida final
-  if (h?.hora_salida) {
-    const [hh, mm] = h.hora_salida.split(':').map(Number);
-    const sal = hh * 60 + mm;
-    if (nowMin >= sal - 60) return 'salida';
-  }
-
-  // Fallback: si entró y no hay info clara, sugerir salida
-  if (j.entrada && !j.salida) return 'salida';
-  return 'entrada';
-}
+// (autoDetectTipoMarca eliminado — ahora getTiposValidos deriva el sugerido del
+// orden natural de la jornada, independiente del reloj. Maneja almuerzo flexible.)
 
 function distanceMeters(lat1, lon1, lat2, lon2) {
   const R = 6371000;
