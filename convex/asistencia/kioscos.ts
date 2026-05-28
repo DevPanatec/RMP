@@ -131,7 +131,7 @@ export const getKioskoEmpleados = query({
         direccion: zona.direccion,
         liveness_mode: zona.liveness_mode ?? "passive_first",
         facial_threshold: zona.facial_threshold ?? 0.6,
-        auto_confirm_segundos: zona.auto_confirm_segundos ?? 3,
+        auto_confirm_segundos: zona.auto_confirm_segundos ?? 5,
       },
       empleados,
     };

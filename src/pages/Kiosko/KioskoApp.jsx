@@ -452,13 +452,16 @@ const KioskoApp = () => {
 
 const MatchedCard = ({ matched, autoConfirmSecs, onConfirm, onCancel }) => {
   const [secsLeft, setSecsLeft] = useState(autoConfirmSecs);
-  const [showOverride, setShowOverride] = useState(false);
+  const [paused, setPaused] = useState(false); // pause timer si user interactúa
 
   useEffect(() => {
-    if (autoConfirmSecs <= 0) return;
+    if (autoConfirmSecs <= 0 || paused) return;
+    if (secsLeft <= 0) return;
     const id = setInterval(() => setSecsLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
-  }, [autoConfirmSecs]);
+  }, [autoConfirmSecs, paused, secsLeft]);
+
+  const showCountdown = autoConfirmSecs > 0 && !paused && secsLeft > 0;
 
   return (
     <div className="kiosko__match-card">
@@ -467,39 +470,41 @@ const MatchedCard = ({ matched, autoConfirmSecs, onConfirm, onCancel }) => {
         <strong>{matched.empleado.nombre} {matched.empleado.apellido}</strong>
         <span className="kiosko__match-score">match {(matched.score * 100).toFixed(0)}%</span>
       </div>
-      {!showOverride ? (
-        <>
-          <div className="kiosko__match-action">
-            <button className="kiosko-btn kiosko-btn--primary kiosko-btn--lg" onClick={() => onConfirm(matched.tipoSugerido)}>
-              {TIPO_MARCA_LABELS[matched.tipoSugerido]}
-              {autoConfirmSecs > 0 && <span className="kiosko-countdown"> en {secsLeft}s</span>}
+
+      <p className="kiosko__match-hint">
+        {showCountdown
+          ? `Marcando ${TIPO_MARCA_LABELS[matched.tipoSugerido]} en ${secsLeft}s — toca otro si no es:`
+          : 'Elige el tipo de marcación:'}
+      </p>
+
+      <div className="kiosko__match-tipos kiosko__match-tipos--grid">
+        {Object.entries(TIPO_MARCA_LABELS).map(([k, label]) => {
+          const isSuggested = k === matched.tipoSugerido;
+          return (
+            <button
+              key={k}
+              className={`kiosko-btn kiosko-btn--lg ${isSuggested ? 'kiosko-btn--primary kiosko-btn--suggested' : ''}`}
+              onClick={() => onConfirm(k)}
+              onMouseEnter={() => setPaused(true)}
+              onTouchStart={() => setPaused(true)}
+            >
+              <span className="kiosko-btn__label">{label}</span>
+              {isSuggested && showCountdown && (
+                <span className="kiosko-countdown-badge">{secsLeft}s</span>
+              )}
+              {isSuggested && !showCountdown && (
+                <span className="kiosko-suggested-badge">sugerido</span>
+              )}
             </button>
-          </div>
-          <div className="kiosko__match-extras">
-            <button className="kiosko-btn kiosko-btn--ghost" onClick={() => setShowOverride(true)}>
-              Otro tipo de marca
-            </button>
-            <button className="kiosko-btn kiosko-btn--ghost" onClick={onCancel}>
-              No soy yo
-            </button>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="kiosko__match-tipos">
-            {Object.entries(TIPO_MARCA_LABELS).map(([k, label]) => (
-              <button
-                key={k}
-                className={`kiosko-btn kiosko-btn--md ${k === matched.tipoSugerido ? 'kiosko-btn--primary' : ''}`}
-                onClick={() => onConfirm(k)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <button className="kiosko-btn kiosko-btn--ghost" onClick={onCancel}>Cancelar</button>
-        </>
-      )}
+          );
+        })}
+      </div>
+
+      <div className="kiosko__match-extras">
+        <button className="kiosko-btn kiosko-btn--ghost" onClick={onCancel}>
+          No soy yo
+        </button>
+      </div>
     </div>
   );
 };
