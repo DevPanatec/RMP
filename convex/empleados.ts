@@ -233,14 +233,22 @@ export const getStats = query({
   },
 });
 
-// One-shot: backfill organizacion_id en empleados.
-// Empleados no tienen relación directa a entidad con org — usa la org default si está sola.
-// Si hay múltiples orgs y empleado no tiene proyecto_id, requiere intervención manual.
+// One-shot: backfill organizacion_id en empleados huérfanos (pre-multi-tenant).
+// Resuelve org del empleado en orden:
+//   1) proyecto_id.organizacion_id (si tiene proyecto)
+//   2) default_org_id (argumento explícito de super_admin)
+//   3) sola org del sistema (si hay 1 sola)
+// Si nada matchea → skipped.
+//
+// Auth: solo super_admin (puede tocar empleados de cualquier org).
 export const _migrationBackfillOrganizacionId = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { default_org_id: v.optional(v.id("organizaciones")) },
+  handler: async (ctx, args) => {
+    const { requireSuperAdmin } = await import("./lib/auth");
+    await requireSuperAdmin(ctx);
+
     const orgs = await ctx.db.query("organizaciones").collect();
-    const defaultOrgId = orgs.length === 1 ? orgs[0]._id : null;
+    const defaultOrgId = args.default_org_id ?? (orgs.length === 1 ? orgs[0]._id : null);
 
     const empleados = await ctx.db.query("empleados").collect();
     let fixed = 0;
