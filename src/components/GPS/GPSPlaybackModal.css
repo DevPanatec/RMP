@@ -1091,6 +1091,82 @@
   background: var(--color-error);
 }
 
+/* ─── Drop-pin markers A/B (anchored bottom) ────────────────────
+   Forma de "lágrima" tradicional de mapas. La punta (tip) se ancla en el
+   GPS point. El círculo con letra queda flotando arriba, separado del
+   vehicle marker (que está en center anchor sobre el mismo point). */
+.playback-pin {
+  width: 32px;
+  height: 42px;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.6));
+  cursor: pointer;
+  z-index: 5;
+}
+
+/* Cabeza circular (donde va la letra) */
+.playback-pin::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  background: inherit;
+  border-radius: 50%;
+  border: 2px solid white;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+/* Punta (tip) hacia abajo — forma triangular que apunta al GPS point */
+.playback-pin::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 14px solid var(--pin-color, currentColor);
+  transform: translateX(-50%);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+}
+
+.playback-pin span {
+  position: relative;
+  z-index: 2;
+  margin-top: 5px;
+  line-height: 1;
+}
+
+.playback-pin-start {
+  background: #10b981; /* emerald 500 — vibrante pa' verse en dark */
+  --pin-color: #10b981;
+}
+
+.playback-pin-end {
+  background: #ef4444; /* red 500 */
+  --pin-color: #ef4444;
+}
+
+
+/* Wrapper del Marker MapLibre — suaviza movimiento entre ticks de interpolación (50ms).
+   Transition corta (90ms) > tick (50ms) → marker siempre "alcanza" target sin lag visible.
+   Solo aplica al wrapper del vehículo, no a markers A/B (que son estáticos). */
+.maplibregl-marker.playback-vehicle-marker-wrapper {
+  transition: transform 90ms linear;
+  will-change: transform;
+}
+
 /* Vehicle Marker for MapLibre */
 .playback-vehicle-marker {
   width: 40px;

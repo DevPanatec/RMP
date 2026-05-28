@@ -1542,26 +1542,6 @@
 }
 
 /* ============================================
-   DARK MODE ADJUSTMENTS
-   ============================================ */
-
-@media (prefers-color-scheme: dark) {
-  .maplibregl-popup-content {
-    background: var(--color-surface) !important;
-    border-color: var(--color-border) !important;
-  }
-
-  .maplibregl-popup-tip {
-    border-top-color: var(--color-surface) !important;
-  }
-
-  .maplibregl-ctrl-attrib {
-    background: rgba(0, 0, 0, 0.7) !important;
-    color: var(--color-surface-acrylic);
-  }
-}
-
-/* ============================================
    RESPONSIVE ADJUSTMENTS
    ============================================ */
 

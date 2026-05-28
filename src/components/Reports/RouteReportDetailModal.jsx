@@ -1,388 +1,429 @@
 import { lazy, Suspense } from 'react';
-import { X, MapPin, Truck, Clock, UserCheck, Package, Calendar, FileText, AlertTriangle, Wrench, AlertOctagon, Camera } from '../Icons';
+import {
+  Truck,
+  MapPin,
+  Clock,
+  UserCheck,
+  Package,
+  Calendar,
+  FileText,
+  AlertTriangle,
+  Wrench,
+  AlertOctagon,
+} from '../Icons';
 import { StorageImage } from '../UI';
 import { useRiskReports } from '../../context/RiskReportsContext';
 import { useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
+import ReportLayout from './ReportLayout';
 import './RouteReportDetailModal.css';
 
 const MapLibreComponent = lazy(() => import('../Map/MapLibreComponent'));
 
-// Helper para parsear fechas sin problemas de timezone
 const parseLocalDate = (dateStr) => {
   if (!dateStr) return new Date();
   if (dateStr.includes('T')) return new Date(dateStr);
   return new Date(dateStr + 'T00:00:00');
 };
 
+const formatDuration = (seconds) => {
+  if (seconds == null) return '—';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m ${s}s`;
+};
+
+const formatTime = (ts) => {
+  if (!ts) return null;
+  try {
+    const d = typeof ts === 'string' ? new Date(ts) : new Date(ts);
+    return d.toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return null;
+  }
+};
+
+const formatElapsed = (a, b) => {
+  if (!a || !b) return null;
+  const ms = new Date(b).getTime() - new Date(a).getTime();
+  if (ms <= 0) return null;
+  const mins = Math.round(ms / 60000);
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${h}h ${m}m`;
+};
+
+const CARGA_LABEL = {
+  alta: 'Alta',
+  media: 'Media',
+  baja: 'Baja',
+  ninguna: 'Ninguna',
+};
+
 const RouteReportDetailModal = ({ report, onClose }) => {
   const { reports: allRiskReports } = useRiskReports();
 
-  // Obtener historial GPS real del vehículo durante la ruta
   const vehicleHistory = useQuery(
     api.vehicleHistory.getVehicleHistory,
-    report?.vehiculo_id ? {
-      vehiculoId: report.vehiculo_id,
-      startDate: new Date(report.fecha_inicio).getTime(),
-      endDate: new Date(report.fecha_completacion).getTime()
-    } : 'skip'
+    report?.vehiculo_id
+      ? {
+          vehiculoId: report.vehiculo_id,
+          startDate: new Date(report.fecha_inicio).getTime(),
+          endDate: new Date(report.fecha_completacion).getTime(),
+        }
+      : 'skip'
   );
 
-  // Preparar datos del trail GPS real
-  const gpsTrailData = vehicleHistory?.locations?.map(loc => ({
-    lat: loc.gps_latitud,
-    lng: loc.gps_longitud
-  })) || [];
+  // route_events: timeline real con hora de llegada + hora de completado por parada.
+  // El snapshot paradas_completadas guarda mismo timestamp pa' los dos — los
+  // tiempos reales viven en route_events.
+  const eventsByAsignacion = useQuery(
+    api.route_events.getByAsignacion,
+    report?.asignacion_id ? { asignacion_id: report.asignacion_id } : 'skip'
+  );
 
-  if (!report) return null;
-
-  // Obtener reportes de riesgo asociados a esta ruta
-  const associatedRiskReports = (report.reportes_riesgo_ids || [])
-    .map(riskId => allRiskReports.find(r => (r._id || r.id) === riskId))
-    .filter(Boolean);
-
-  const formatTime = (seconds) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${secs}s`;
-    }
-    return `${minutes}m ${secs}s`;
-  };
-
-  // Preparar datos de paradas para el mapa
-  const paradasConGPS = (report.paradas_completadas || [])
-    .filter(p => p.completada && p.gps_completada)
-    .map((p, idx) => ({
-      ...p,
-      lat: p.gps_completada?.lat || p.gps_completada?.latitud,
-      lng: p.gps_completada?.lng || p.gps_completada?.longitud,
-      index: idx
-    }))
-    .filter(p => p.lat && p.lng);
-
-  // Preparar ruta para el mapa en el formato que espera MapComponent
-  // Cruzar paradas originales con paradas_completadas para color por estado
-  const completadasByIndex = (report.paradas_completadas || []).reduce((acc, p, idx) => {
-    const key = p.parada_index ?? p.index ?? idx;
-    acc[key] = p;
+  const eventsByParadaIndex = (eventsByAsignacion || []).reduce((acc, ev) => {
+    if (ev.parada_index == null) return acc;
+    const key = ev.parada_index;
+    if (!acc[key]) acc[key] = {};
+    if (ev.tipo_evento === 'parada_llegada') acc[key].llegada = ev.timestamp;
+    else if (ev.tipo_evento === 'parada_salida') acc[key].salida = ev.timestamp;
+    else if (ev.tipo_evento === 'parada_completada') acc[key].completada = ev.timestamp;
     return acc;
   }, {});
 
-  const rutaParaMapa = [{
-    _id: report._id || report.ruta_id || 'reporte-ruta',
-    nombre: report.ruta_nombre,
-    paradas: (report.ruta_paradas || []).map((p, idx) => {
-      const lat = p.lat || p.latitud || p.gps_completada?.lat || p.gps_completada?.latitud;
-      const lng = p.lng || p.longitud || p.gps_completada?.lng || p.gps_completada?.longitud;
-      const completedInfo = completadasByIndex[idx];
+  const gpsTrailData =
+    vehicleHistory?.locations?.map((loc) => ({
+      lat: loc.gps_latitud,
+      lng: loc.gps_longitud,
+    })) || [];
 
-      return {
-        nombre: p.direccion || p.nombre || `Parada ${idx + 1}`,
-        direccion: p.direccion || p.nombre,
-        lat: lat,
-        lng: lng,
-        latitud: lat,
-        longitud: lng,
-        orden: p.orden || idx + 1,
-        completada: completedInfo ? completedInfo.completada !== false : false,
-        motivo_no_completada: completedInfo?.motivo_no_completada,
-      };
-    }).filter(p => p.lat && p.lng)
-  }];
+  if (!report) return null;
 
-  // Calcular estadísticas
+  const associatedRiskReports = (report.reportes_riesgo_ids || [])
+    .map((riskId) => allRiskReports.find((r) => (r._id || r.id) === riskId))
+    .filter(Boolean);
+
+  const completadasByIndex = (report.paradas_completadas || []).reduce(
+    (acc, p, idx) => {
+      const key = p.parada_index ?? p.index ?? idx;
+      acc[key] = p;
+      return acc;
+    },
+    {}
+  );
+
+  const rutaParaMapa = [
+    {
+      _id: report._id || report.ruta_id || 'reporte-ruta',
+      nombre: report.ruta_nombre,
+      paradas: (report.ruta_paradas || [])
+        .map((p, idx) => {
+          const lat = p.lat || p.latitud || p.gps_completada?.lat || p.gps_completada?.latitud;
+          const lng = p.lng || p.longitud || p.gps_completada?.lng || p.gps_completada?.longitud;
+          const completedInfo = completadasByIndex[idx];
+          return {
+            nombre: p.direccion || p.nombre || `Parada ${idx + 1}`,
+            direccion: p.direccion || p.nombre,
+            lat,
+            lng,
+            latitud: lat,
+            longitud: lng,
+            orden: p.orden || idx + 1,
+            completada: completedInfo ? completedInfo.completada !== false : false,
+            motivo_no_completada: completedInfo?.motivo_no_completada,
+          };
+        })
+        .filter((p) => p.lat && p.lng),
+    },
+  ];
+
   const totalParadas = report.paradas_completadas?.length || 0;
-  const completadas = report.paradas_completadas?.filter(p => p.completada).length || 0;
-  const noCompletadas = totalParadas - completadas;
+  const completadas = report.paradas_completadas?.filter((p) => p.completada).length || 0;
   const porcentaje = totalParadas > 0 ? Math.round((completadas / totalParadas) * 100) : 0;
+  const hasMapData = rutaParaMapa[0]?.paradas?.length > 0;
 
-  // Centro del mapa - calcular punto medio de TODAS las paradas
-  const mapCenter = (() => {
-    const paradasConGPS = rutaParaMapa[0]?.paradas?.filter(p => p.lat && p.lng) || [];
-
-    if (paradasConGPS.length === 0) {
-      return { lat: 8.983333, lng: -79.516670 }; // Panama City default
-    }
-
-    if (paradasConGPS.length === 1) {
-      return { lat: paradasConGPS[0].lat, lng: paradasConGPS[0].lng };
-    }
-
-    // Calcular centro geográfico (promedio de lat/lng)
-    const sumLat = paradasConGPS.reduce((sum, p) => sum + p.lat, 0);
-    const sumLng = paradasConGPS.reduce((sum, p) => sum + p.lng, 0);
-
-    return {
-      lat: sumLat / paradasConGPS.length,
-      lng: sumLng / paradasConGPS.length
-    };
-  })();
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="route-report-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="route-report-header">
-          <div className="route-report-title">
-            <FileText size={24} />
-            <div>
-              <h2>{report.ruta_nombre}</h2>
-              <p className="route-report-subtitle">Reporte de Ruta Completada</p>
-            </div>
+  // ============ PAGE 1: RESUMEN ============
+  const renderResumen = () => (
+    <div className="rrm-resumen">
+      <div className="rrm-stats">
+        <article className="rrm-stat">
+          <div className="rrm-stat__icon"><UserCheck size={18} strokeWidth={1.75} /></div>
+          <div className="rrm-stat__body">
+            <span className="rrm-stat__label">Conductor</span>
+            <span className="rrm-stat__value">{report.conductor_nombre || '—'}</span>
           </div>
-          <button className="modal-close-btn" onClick={onClose}>
-            <X size={24} />
-          </button>
-        </div>
-
-        {/* Contenido */}
-        <div className="route-report-body">
-          {/* MAPA ARRIBA */}
-          <div className="route-map-section">
-            <h3><MapPin size={20} /> Mapa de Ruta ({rutaParaMapa[0]?.paradas?.length || 0} paradas)</h3>
-            {rutaParaMapa[0]?.paradas?.length > 0 ? (
-              <div className="route-map-container">
-                <Suspense fallback={<div style={{ padding: 40, textAlign: 'center' }}>Cargando mapa...</div>}>
-                  <MapLibreComponent
-                    key={`map-${report._id}`}
-                    camiones={[]}
-                    rutas={rutaParaMapa}
-                    personnel={[]}
-                    lugares={[]}
-                    showRealTime={false}
-                    gpsTrail={gpsTrailData}
-                    showMapboxRoute={false}
-                  />
-                </Suspense>
-              </div>
-            ) : (
-              <div className="route-map-container" style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#f3f4f6',
-                color: '#6b7280'
-              }}>
-                <div style={{ textAlign: 'center' }}>
-                  <MapPin size={48} style={{ opacity: 0.3, marginBottom: '12px' }} />
-                  <p>No hay coordenadas GPS disponibles para esta ruta</p>
-                </div>
-              </div>
-            )}
+        </article>
+        <article className="rrm-stat">
+          <div className="rrm-stat__icon"><Truck size={18} strokeWidth={1.75} /></div>
+          <div className="rrm-stat__body">
+            <span className="rrm-stat__label">Vehículo</span>
+            <span className="rrm-stat__value">{report.vehiculo_placa || '—'}</span>
           </div>
-
-          {/* STATS ABAJO */}
-          <div className="route-report-stats">
-            <div className="stat-card">
-              <UserCheck size={20} />
-              <div>
-                <span className="stat-label">Conductor</span>
-                <span className="stat-value">{report.conductor_nombre}</span>
-              </div>
-            </div>
-            <div className="stat-card">
-              <Truck size={20} />
-              <div>
-                <span className="stat-label">Vehículo</span>
-                <span className="stat-value">{report.vehiculo_placa}</span>
-              </div>
-            </div>
-            <div className="stat-card">
-              <Clock size={20} />
-              <div>
-                <span className="stat-label">Tiempo Total</span>
-                <span className="stat-value">{formatTime(report.tiempo_total_segundos)}</span>
-              </div>
-            </div>
-            <div className="stat-card">
-              <Calendar size={20} />
-              <div>
-                <span className="stat-label">Fecha</span>
-                <span className="stat-value">
-                  {parseLocalDate(report.fecha_completacion).toLocaleDateString('es-ES', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric'
-                  })}
-                </span>
-              </div>
-            </div>
-            <div className="stat-card">
-              <Package size={20} />
-              <div>
-                <span className="stat-label">Paradas</span>
-                <span className="stat-value">{completadas} / {totalParadas}</span>
-              </div>
-            </div>
+        </article>
+        <article className="rrm-stat">
+          <div className="rrm-stat__icon"><Clock size={18} strokeWidth={1.75} /></div>
+          <div className="rrm-stat__body">
+            <span className="rrm-stat__label">Tiempo total</span>
+            <span className="rrm-stat__value">{formatDuration(report.tiempo_total_segundos)}</span>
           </div>
-
-          {/* Lista de paradas */}
-          <div className="paradas-section">
-            <h3><Package size={20} /> Paradas ({totalParadas})</h3>
-            <div className="paradas-list">
-              {(report.paradas_completadas || []).map((parada, idx) => {
-                // 🆕 Buscar reporte de riesgo asociado a esta parada
-                const paradaRiskReport = parada.reporte_riesgo_id
-                  ? allRiskReports.find(r => (r._id || r.id) === parada.reporte_riesgo_id)
-                  : null;
-
-                return (
-                  <div
-                    key={idx}
-                    className={`parada-item ${parada.completada ? 'completada' : 'no-completada'}`}
-                  >
-                    <div className="parada-number">{parada.orden || idx + 1}</div>
-                    <div className="parada-content">
-                      <div className="parada-header">
-                        <span className="parada-direccion">{parada.direccion || parada.parada_nombre}</span>
-                        {parada.completada ? (
-                          <span className="badge badge-success">Completada</span>
-                        ) : (
-                          <span className="badge badge-warning">No completada</span>
-                        )}
-                      </div>
-                      {parada.completada && (
-                        <div className="parada-details">
-                          {(parada.categoria_carga || parada.category) && (
-                            <span className="parada-detail">
-                              <Package size={14} />
-                              Carga: {parada.categoria_carga || parada.category}
-                            </span>
-                          )}
-                          {parada.bolsas !== undefined && parada.bolsas !== null && (
-                            <span className="parada-detail">
-                              <Package size={14} />
-                              {parada.bolsas} bolsa{parada.bolsas === 1 ? '' : 's'}
-                            </span>
-                          )}
-                          {(parada.timestamp_llegada || parada.timestamp) && (
-                            <span className="parada-detail">
-                              <Clock size={14} />
-                              {parada.timestamp_llegada || parada.timestamp}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                      {parada.completada && parada.foto_storage_id && (
-                        <div className="parada-photo">
-                          <StorageImage
-                            storageId={parada.foto_storage_id}
-                            alt={`Foto parada ${parada.orden || idx + 1}`}
-                            className="parada-photo__img"
-                          />
-                        </div>
-                      )}
-                      {!parada.completada && parada.motivo_no_completada && (
-                        <div className="parada-motivo">
-                          <span className="motivo-label">Motivo:</span>
-                          <span className="motivo-text">{parada.motivo_no_completada}</span>
-                        </div>
-                      )}
-
-                      {/* 🆕 Mostrar reporte de riesgo vinculado inline */}
-                      {paradaRiskReport && (
-                        <div className="parada-risk-report">
-                          <div className="parada-risk-header">
-                            <AlertTriangle size={16} />
-                            <span>Reporte de Riesgo Asociado</span>
-                          </div>
-                          <div className="parada-risk-body">
-                            <div className="parada-risk-title">{paradaRiskReport.titulo}</div>
-                            <div className="parada-risk-description">{paradaRiskReport.descripcion}</div>
-                            <div className="parada-risk-meta">
-                              <span className={`parada-risk-priority priority-${paradaRiskReport.nivel_severidad || paradaRiskReport.prioridad}`}>
-                                {(paradaRiskReport.nivel_severidad || paradaRiskReport.prioridad || '').toUpperCase()}
-                              </span>
-                              <span className="parada-risk-category">
-                                {paradaRiskReport.tipo_riesgo || paradaRiskReport.categoria}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
+        </article>
+        <article className="rrm-stat">
+          <div className="rrm-stat__icon"><Calendar size={18} strokeWidth={1.75} /></div>
+          <div className="rrm-stat__body">
+            <span className="rrm-stat__label">Fecha</span>
+            <span className="rrm-stat__value">
+              {parseLocalDate(report.fecha_completacion).toLocaleDateString('es-PA', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
               })}
-            </div>
+            </span>
           </div>
+        </article>
+        <article className="rrm-stat rrm-stat--wide">
+          <div className="rrm-stat__icon"><Package size={18} strokeWidth={1.75} /></div>
+          <div className="rrm-stat__body">
+            <span className="rrm-stat__label">Paradas completadas</span>
+            <span className="rrm-stat__value">
+              {completadas} <span className="rrm-stat__divider">/</span> {totalParadas}
+              <span className="rrm-stat__pct"> · {porcentaje}%</span>
+            </span>
+          </div>
+        </article>
+      </div>
 
-          {/* Reportes de Riesgo Asociados */}
-          {associatedRiskReports.length > 0 && (
-            <div className="risk-reports-section">
-              <h3><AlertTriangle size={20} /> Reportes de Riesgo ({associatedRiskReports.length})</h3>
-              <div className="risk-reports-list">
-                {associatedRiskReports.map((riskReport, idx) => (
-                  <div key={idx} className={`risk-report-card ${riskReport.nivel_severidad || riskReport.prioridad}`}>
-                    <div className="risk-report-header">
-                      <div className="risk-type">
-                        {riskReport.tipo === 'interno' ? (
-                          <><Wrench size={16} /> Interno</>
-                        ) : (
-                          <><AlertOctagon size={16} /> Externo</>
+      <div className="rrm-map">
+        <header className="rrm-map__header">
+          <MapPin size={16} strokeWidth={2} />
+          <h3>Mapa de Ruta</h3>
+          <span className="rrm-map__count">{rutaParaMapa[0]?.paradas?.length || 0} paradas</span>
+        </header>
+        {hasMapData ? (
+          <div className="rrm-map__container">
+            <Suspense fallback={<div className="rrm-map__loading">Cargando mapa…</div>}>
+              <MapLibreComponent
+                key={`map-${report._id}`}
+                camiones={[]}
+                rutas={rutaParaMapa}
+                personnel={[]}
+                lugares={[]}
+                showRealTime={false}
+                gpsTrail={gpsTrailData}
+                showMapboxRoute={false}
+              />
+            </Suspense>
+          </div>
+        ) : (
+          <div className="rrm-map__empty">
+            <MapPin size={28} strokeWidth={1.5} />
+            <p>Sin coordenadas GPS pa' esta ruta</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // ============ PAGE 2: PARADAS ============
+  const renderParadas = () => (
+    <div className="rrm-paradas">
+      {totalParadas === 0 ? (
+        <div className="rrm-empty">
+          <Package size={32} strokeWidth={1.5} />
+          <p>Sin paradas registradas</p>
+        </div>
+      ) : (
+        <ul className="rrm-paradas__list">
+          {(report.paradas_completadas || []).map((parada, idx) => {
+            const paradaIndex = parada.parada_index ?? parada.index ?? idx;
+            const ev = eventsByParadaIndex[paradaIndex] || {};
+            // Fallback: si no hay event timestamps, usar el snapshot
+            const horaLlegada =
+              formatTime(ev.llegada) || formatTime(parada.timestamp_llegada || parada.timestamp);
+            const horaCompletada =
+              formatTime(ev.completada) || formatTime(parada.timestamp_salida);
+            const elapsed = formatElapsed(ev.llegada, ev.completada);
+            const carga = parada.categoria_carga || parada.category;
+            const cargaKey = carga ? String(carga).toLowerCase() : null;
+            return (
+              <li
+                key={idx}
+                className={`rrm-parada ${parada.completada ? 'rrm-parada--done' : 'rrm-parada--skip'}`}
+              >
+                <div className="rrm-parada__num">{parada.orden || idx + 1}</div>
+                <div className="rrm-parada__main">
+                  <div className="rrm-parada__row">
+                    <span className="rrm-parada__addr">
+                      {parada.direccion || parada.parada_nombre || `Parada ${idx + 1}`}
+                    </span>
+                    <span
+                      className={`rrm-parada__badge ${
+                        parada.completada ? 'rrm-parada__badge--ok' : 'rrm-parada__badge--skip'
+                      }`}
+                    >
+                      {parada.completada ? 'Completada' : 'No completada'}
+                    </span>
+                  </div>
+
+                  {parada.completada && (
+                    <>
+                      <div className="rrm-parada__chips">
+                        {cargaKey && (
+                          <span className={`rrm-chip rrm-chip--carga rrm-chip--carga-${cargaKey}`}>
+                            <Package size={11} strokeWidth={2} />
+                            Carga {CARGA_LABEL[cargaKey] || carga}
+                          </span>
                         )}
-                      </div>
-                      <div className={`risk-priority priority-${riskReport.nivel_severidad || riskReport.prioridad}`}>
-                        {(riskReport.nivel_severidad || riskReport.prioridad || '').toUpperCase()}
-                      </div>
-                    </div>
-                    <div className="risk-report-body">
-                      <h4>{riskReport.titulo}</h4>
-                      <p className="risk-category">
-                        <Package size={14} />
-                        {riskReport.tipo_riesgo || riskReport.categoria}
-                      </p>
-                      <p className="risk-description">{riskReport.descripcion}</p>
-                      <div className="risk-meta">
-                        <span className="risk-meta-item">
-                          <Clock size={14} />
-                          {parseLocalDate(riskReport.fecha_reporte || riskReport.fechaCreacion).toLocaleString('es-ES')}
-                        </span>
-                        {riskReport.ubicacion && (
-                          <span className="risk-meta-item">
-                            <MapPin size={14} />
-                            {riskReport.ubicacion}
+                        {parada.bolsas != null && (
+                          <span className="rrm-chip rrm-chip--bolsas">
+                            <Package size={11} strokeWidth={2} />
+                            {parada.bolsas} bolsa{parada.bolsas === 1 ? '' : 's'}
                           </span>
                         )}
                       </div>
+
+                      {(horaLlegada || horaCompletada) && (
+                        <div className="rrm-parada__times">
+                          {horaLlegada && (
+                            <div className="rrm-time">
+                              <span className="rrm-time__label">Llegada</span>
+                              <span className="rrm-time__value">
+                                <Clock size={11} strokeWidth={2} /> {horaLlegada}
+                              </span>
+                            </div>
+                          )}
+                          {horaCompletada && (
+                            <div className="rrm-time">
+                              <span className="rrm-time__label">Completada</span>
+                              <span className="rrm-time__value">
+                                <Clock size={11} strokeWidth={2} /> {horaCompletada}
+                              </span>
+                            </div>
+                          )}
+                          {elapsed && (
+                            <div className="rrm-time rrm-time--elapsed">
+                              <span className="rrm-time__label">Tiempo en parada</span>
+                              <span className="rrm-time__value">{elapsed}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {!parada.completada && parada.motivo_no_completada && (
+                    <div className="rrm-parada__motivo">
+                      <strong>Motivo:</strong> {parada.motivo_no_completada}
                     </div>
-                  </div>
-                ))}
-              </div>
-              {report.terminacion_anticipada && (
-                <div className="terminacion-warning">
-                  <AlertTriangle size={20} />
-                  <div>
-                    <strong>Ruta Terminada Anticipadamente</strong>
-                    <p>Esta ruta fue terminada antes de completar todas las paradas debido a: <strong>{report.motivo_terminacion}</strong></p>
-                  </div>
+                  )}
                 </div>
-              )}
-            </div>
-          )}
-
-          {/* Observaciones */}
-          {report.observaciones && (
-            <div className="observaciones-section">
-              <h3><FileText size={20} /> Observaciones</h3>
-              <div className="observaciones-text">
-                {report.observaciones}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="route-report-footer">
-          <button className="btn btn--secondary" onClick={onClose}>
-            Cerrar
-          </button>
-        </div>
-      </div>
+                {parada.completada && parada.foto_storage_id && (
+                  <div className="rrm-parada__photo">
+                    <StorageImage
+                      storageId={parada.foto_storage_id}
+                      alt={`Foto parada ${parada.orden || idx + 1}`}
+                      className="rrm-parada__photo-img"
+                    />
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
+  );
+
+  // ============ PAGE 3: RIESGOS & OBSERVACIONES ============
+  const renderRiesgos = () => (
+    <div className="rrm-riesgos">
+      {report.terminacion_anticipada && (
+        <div className="rrm-warning">
+          <AlertTriangle size={18} strokeWidth={2} />
+          <div>
+            <strong>Ruta terminada anticipadamente</strong>
+            <p>{report.motivo_terminacion || 'Sin motivo especificado'}</p>
+          </div>
+        </div>
+      )}
+
+      <section className="rrm-section">
+        <header className="rrm-section__header">
+          <AlertTriangle size={16} strokeWidth={2} />
+          <h3>Reportes de riesgo</h3>
+          <span className="rrm-section__count">{associatedRiskReports.length}</span>
+        </header>
+        {associatedRiskReports.length === 0 ? (
+          <p className="rrm-section__empty">Sin reportes de riesgo asociados.</p>
+        ) : (
+          <div className="rrm-risks">
+            {associatedRiskReports.map((r, idx) => (
+              <article
+                key={idx}
+                className={`rrm-risk rrm-risk--${r.nivel_severidad || r.prioridad || 'medio'}`}
+              >
+                <header className="rrm-risk__header">
+                  <span className="rrm-risk__type">
+                    {r.tipo === 'interno' ? (
+                      <><Wrench size={14} strokeWidth={2} /> Interno</>
+                    ) : (
+                      <><AlertOctagon size={14} strokeWidth={2} /> Externo</>
+                    )}
+                  </span>
+                  <span className="rrm-risk__sev">
+                    {(r.nivel_severidad || r.prioridad || '').toUpperCase()}
+                  </span>
+                </header>
+                <h4>{r.titulo}</h4>
+                <p className="rrm-risk__cat">{r.tipo_riesgo || r.categoria}</p>
+                <p className="rrm-risk__desc">{r.descripcion}</p>
+                <footer className="rrm-risk__footer">
+                  <span>
+                    <Clock size={12} strokeWidth={2} />{' '}
+                    {parseLocalDate(r.fecha_reporte || r.fechaCreacion).toLocaleString('es-PA')}
+                  </span>
+                  {r.ubicacion && (
+                    <span>
+                      <MapPin size={12} strokeWidth={2} /> {r.ubicacion}
+                    </span>
+                  )}
+                </footer>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="rrm-section">
+        <header className="rrm-section__header">
+          <FileText size={16} strokeWidth={2} />
+          <h3>Observaciones</h3>
+        </header>
+        {report.observaciones ? (
+          <div className="rrm-obs">{report.observaciones}</div>
+        ) : (
+          <p className="rrm-section__empty">Sin observaciones.</p>
+        )}
+      </section>
+    </div>
+  );
+
+  return (
+    <ReportLayout
+      module="rec"
+      icon={<Truck size={22} strokeWidth={1.75} />}
+      title={report.ruta_nombre || 'Reporte de Ruta'}
+      subtitle="Recolección · ruta completada"
+      statusBadge={{ label: 'Completada', variant: 'success' }}
+      onClose={onClose}
+      pages={[
+        { id: 'resumen', label: 'Resumen', content: renderResumen() },
+        { id: 'paradas', label: `Paradas (${totalParadas})`, content: renderParadas() },
+        { id: 'riesgos', label: 'Riesgos & notas', content: renderRiesgos() },
+      ]}
+    />
   );
 };
 

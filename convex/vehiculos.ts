@@ -59,7 +59,7 @@ export const listMinimal = query({
       return [];
     }
 
-    return vehicles.map((v) => ({
+    return vehicles.map((v: any) => ({
       _id: v._id,
       placa: v.placa,
       nombre: v.nombre,
@@ -157,8 +157,8 @@ export const listWithAssignments = query({
           ruta_id: rp.ruta_id,
           asignacion_id: rp.asignacion_id,
           asignacion_estado: "en_progreso",
-          asignacion_fecha: a?.fecha_asignacion,
-          asignacion_hora_inicio: a?.hora_inicio,
+          asignacion_fecha: (a as any)?.fecha_asignacion,
+          asignacion_hora_inicio: (a as any)?.hora_inicio,
           proyecto_id: rp.proyecto_id,
         });
       }
@@ -328,7 +328,7 @@ export const add = mutation({
       }
     }
 
-    return await ctx.db.insert("vehiculos", {
+    const vehiculoId = await ctx.db.insert("vehiculos", {
       nombre: args.nombre,
       placa: args.placa,
       marca: args.marca,
@@ -349,6 +349,20 @@ export const add = mutation({
       gps_conectado: safetag_device_id ? false : undefined,
       gps_en_linea: false,
     });
+
+    // Fase E — Auto-enrichment async. Sources gratis (Wikidata + NHTSA + similar models).
+    // Sin bloquear creación del vehiculo. Si falla, vehiculo queda con auto-inference defaults.
+    if (args.marca && args.modelo && tipo_vehiculo) {
+      try {
+        await ctx.scheduler.runAfter(0, internal.enrichment.enrichVehicle, {
+          vehiculo_id: vehiculoId,
+        });
+      } catch (err) {
+        console.warn("enrichment schedule failed", err);
+      }
+    }
+
+    return vehiculoId;
   },
 });
 

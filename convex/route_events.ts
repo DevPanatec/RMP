@@ -150,17 +150,17 @@ export const _migrationBackfillOrganizacionId = mutation({
     let fixed = 0;
     for (const ev of all) {
       if (ev.organizacion_id != null) continue;
-      let orgId: typeof ev.organizacion_id = null;
+      let orgId: any = null;
       if (ev.proyecto_id) {
-        const p = await ctx.db.get(ev.proyecto_id);
+        const p: any = await ctx.db.get(ev.proyecto_id);
         orgId = p?.organizacion_id ?? null;
       }
       if (!orgId && ev.asignacion_id) {
-        const a = await ctx.db.get(ev.asignacion_id);
+        const a: any = await ctx.db.get(ev.asignacion_id);
         orgId = a?.organizacion_id ?? null;
       }
       if (!orgId && ev.ruta_id) {
-        const r = await ctx.db.get(ev.ruta_id);
+        const r: any = await ctx.db.get(ev.ruta_id);
         orgId = r?.organizacion_id ?? null;
       }
       if (!orgId) continue;

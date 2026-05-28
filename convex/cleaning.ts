@@ -173,6 +173,45 @@ export const listAssignments = query({
   },
 });
 
+// Devuelve assignment con sala/area + fotos (URLs resueltas) — usado por
+// modales de detalle de Cronograma y otros consumidores que necesitan
+// el shape enriquecido que espera Cleaning/ReportDetailModal.
+export const getAssignmentByIdEnriched = query({
+  args: { id: v.id("cleaning_assignments") },
+  handler: async (ctx, args) => {
+    const assignment = await ctx.db.get(args.id);
+    if (!assignment) return null;
+    const scope = await getAuthScope(ctx);
+    if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
+      if (!scope.organizacionId) return null;
+      if (assignment.organizacion_id !== scope.organizacionId) return null;
+    }
+
+    const sala = assignment.sala_id ? await ctx.db.get(assignment.sala_id) : null;
+    const area = assignment.area_id ? await ctx.db.get(assignment.area_id) : null;
+
+    const photos = await ctx.db
+      .query("cleaning_photos")
+      .withIndex("by_assignment", (q) => q.eq("assignment_id", args.id))
+      .collect();
+    const photosWithUrls = await Promise.all(
+      photos.map(async (p) => ({
+        ...p,
+        url: await ctx.storage.getUrl(p.storage_id),
+      }))
+    );
+
+    return {
+      ...assignment,
+      lugar: sala
+        ? { _id: sala._id, nombre: sala.nombre, latitud: sala.latitud, longitud: sala.longitud }
+        : null,
+      area: area ? { _id: area._id, nombre: area.nombre } : null,
+      fotos: photosWithUrls,
+    };
+  },
+});
+
 export const addAssignment = mutation({
   args: {
     sala_id: v.id("salas"),
@@ -313,7 +352,7 @@ export const listReportsWithPhotos = query({
     const getPhotosWithUrls = async (photoIds: any[]) => {
       return await Promise.all(
         (photoIds || []).map(async (photoId) => {
-          const photo = await ctx.db.get(photoId);
+          const photo: any = await ctx.db.get(photoId);
           if (!photo) return null;
           const url = await ctx.storage.getUrl(photo.storage_id);
           return {

@@ -104,7 +104,7 @@ export const list = query({
     const scope = await getAuthScope(ctx);
     const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
     const allRaw = await ctx.db.query("fumigation_assignments").collect();
-    let assignments;
+    let assignments: any[];
     if (scoped) {
       assignments = allRaw.filter((a) => a.proyecto_id === scoped);
     } else if (scope.isSuperAdmin || scope.isCrossOrgViewer) {
@@ -121,7 +121,7 @@ export const list = query({
         const lugar = await ctx.db.get(assignment.lugar_id);
         return {
           ...assignment,
-          lugar_nombre: lugar?.nombre || "Desconocido",
+          lugar_nombre: (lugar as any)?.nombre || "Desconocido",
         };
       })
     );
@@ -586,7 +586,7 @@ export const getReportById = query({
     const getPhotosWithUrls = async (photoIds: any[]) => {
       return await Promise.all(
         (photoIds || []).map(async (photoId) => {
-          const photo = await ctx.db.get(photoId);
+          const photo: any = await ctx.db.get(photoId);
           if (!photo) return null;
           const url = await ctx.storage.getUrl(photo.storage_id);
           return {
@@ -651,7 +651,7 @@ export const listReportsWithPhotos = query({
     const getPhotosWithUrls = async (photoIds: any[]) => {
       return await Promise.all(
         (photoIds || []).map(async (photoId) => {
-          const photo = await ctx.db.get(photoId);
+          const photo: any = await ctx.db.get(photoId);
           if (!photo) return null;
           const url = await ctx.storage.getUrl(photo.storage_id);
           return {

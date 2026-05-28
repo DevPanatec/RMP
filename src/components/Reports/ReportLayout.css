@@ -1,0 +1,477 @@
+/* ============================================
+   REPORT LAYOUT — shell compartido reportes
+   ============================================ */
+
+:root {
+  --rlay-rec: #0078d4;
+  --rlay-lim: #107c10;
+  --rlay-fum: #d97706;
+  --rlay-mto: #6264a7;
+  --rlay-ease: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.rlayout__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16);
+  animation: rlay-fade 180ms var(--rlay-ease);
+}
+
+@keyframes rlay-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.rlayout {
+  width: 100%;
+  max-width: 1200px;
+  max-height: min(720px, 90vh);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28), 0 8px 16px rgba(15, 23, 42, 0.16);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: rlay-pop 240ms var(--rlay-ease);
+}
+
+@keyframes rlay-pop {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* PRINT-ONLY logo header — hidden on screen, shown when printing */
+.rlayout__print-header {
+  display: none;
+}
+
+/* HEADER */
+.rlayout__header {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: var(--space-12);
+  align-items: center;
+  padding: var(--space-12) var(--space-20);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.rlayout__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+.rlayout__icon--rec { background: var(--rlay-rec); }
+.rlayout__icon--lim { background: var(--rlay-lim); }
+.rlayout__icon--fum { background: var(--rlay-fum); }
+.rlayout__icon--mto { background: var(--rlay-mto); }
+
+.rlayout__title { min-width: 0; }
+.rlayout__title h2 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.rlayout__title p {
+  margin: 2px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rlayout__status {
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid currentColor;
+}
+.rlayout__status--success { background: rgba(16, 124, 16, 0.1); color: #054b05; }
+.rlayout__status--warning { background: rgba(255, 185, 0, 0.12); color: #8a6d00; }
+.rlayout__status--error { background: rgba(209, 52, 56, 0.12); color: #a4262c; }
+.rlayout__status--info { background: rgba(0, 120, 212, 0.1); color: #004578; }
+.rlayout__status--default { background: rgba(99, 99, 99, 0.1); color: var(--color-text-secondary); }
+
+.rlayout__close {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms, border-color 150ms;
+}
+.rlayout__close:hover {
+  background: var(--color-hover-overlay, rgba(0, 0, 0, 0.05));
+  border-color: var(--color-border);
+}
+
+/* PAGES — screen shows only active, print shows all stacked */
+.rlayout__pages {
+  flex: 1;
+  min-height: 0;
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+}
+
+.rlayout__page {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.rlayout__page--active {
+  display: flex;
+  animation: rlay-page-in 200ms var(--rlay-ease);
+}
+
+@keyframes rlay-page-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.rlayout__page-header {
+  display: none;
+  padding: var(--space-12) var(--space-20);
+  border-bottom: 1px solid var(--color-divider, rgba(0, 0, 0, 0.06));
+  background: var(--color-surface-secondary, rgba(0, 0, 0, 0.02));
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rlayout__page-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+}
+
+.rlayout__page-num {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.rlayout__page-body {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-20) var(--space-24);
+}
+
+/* FOOTER */
+.rlayout__footer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-16);
+  align-items: center;
+  padding: var(--space-12) var(--space-20);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-secondary, rgba(0, 0, 0, 0.02));
+  flex-shrink: 0;
+}
+
+.rlayout__paginator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-width: 0;
+}
+
+.rlayout__pagedots {
+  display: flex;
+  gap: var(--space-6);
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+}
+
+.rlayout__pagedot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms, color 150ms;
+  white-space: nowrap;
+}
+.rlayout__pagedot:hover {
+  background: var(--color-hover-overlay, rgba(0, 0, 0, 0.04));
+}
+.rlayout__pagedot-num {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--color-border);
+  font-size: 10px;
+  font-weight: var(--font-weight-semibold);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+.rlayout__pagedot--active {
+  border-color: var(--color-text);
+  color: var(--color-text);
+}
+.rlayout__pagedot--active .rlayout__pagedot-num {
+  background: var(--color-text);
+  color: white;
+}
+
+/* Module-specific active dot color */
+.rlayout--rec .rlayout__pagedot--active { border-color: var(--rlay-rec); color: var(--rlay-rec); }
+.rlayout--rec .rlayout__pagedot--active .rlayout__pagedot-num { background: var(--rlay-rec); }
+.rlayout--lim .rlayout__pagedot--active { border-color: var(--rlay-lim); color: var(--rlay-lim); }
+.rlayout--lim .rlayout__pagedot--active .rlayout__pagedot-num { background: var(--rlay-lim); }
+.rlayout--fum .rlayout__pagedot--active { border-color: var(--rlay-fum); color: var(--rlay-fum); }
+.rlayout--fum .rlayout__pagedot--active .rlayout__pagedot-num { background: var(--rlay-fum); }
+.rlayout--mto .rlayout__pagedot--active { border-color: var(--rlay-mto); color: var(--rlay-mto); }
+.rlayout--mto .rlayout__pagedot--active .rlayout__pagedot-num { background: var(--rlay-mto); }
+
+.rlayout__pagebtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms;
+  flex-shrink: 0;
+}
+.rlayout__pagebtn:hover:not(:disabled) {
+  background: var(--color-hover-overlay, rgba(0, 0, 0, 0.04));
+}
+.rlayout__pagebtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rlayout__actions {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.rlayout__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-base);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background 150ms, transform 120ms var(--rlay-ease), box-shadow 150ms;
+}
+.rlayout__btn:hover:not(:disabled) {
+  background: var(--color-hover-overlay, rgba(0, 0, 0, 0.04));
+}
+.rlayout__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.rlayout__btn--ghost {
+  background: transparent;
+}
+.rlayout__btn--primary {
+  color: white;
+  border-color: transparent;
+}
+.rlayout__btn--primary.rlayout__btn--rec { background: var(--rlay-rec); }
+.rlayout__btn--primary.rlayout__btn--lim { background: var(--rlay-lim); }
+.rlayout__btn--primary.rlayout__btn--fum { background: var(--rlay-fum); }
+.rlayout__btn--primary.rlayout__btn--mto { background: var(--rlay-mto); }
+.rlayout__btn--primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 1024px) {
+  .rlayout {
+    height: 95vh;
+    max-height: none;
+  }
+  .rlayout__pagedot-label {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .rlayout__backdrop { padding: var(--space-4); }
+  .rlayout__header { padding: var(--space-10) var(--space-12); }
+  .rlayout__page-body { padding: var(--space-12) var(--space-14); }
+  .rlayout__footer {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+  .rlayout__actions { justify-content: stretch; }
+  .rlayout__actions .rlayout__btn { flex: 1; justify-content: center; }
+}
+
+/* ============================================
+   PRINT — show ALL pages stacked, hide chrome
+   ============================================ */
+@media print {
+  html, body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Hide all DOM via visibility (preserves layout tree pa' que React no se rompa).
+     Después re-mostramos el subárbol de la modal. body > * { display: none }
+     no funciona porque la modal vive dentro de #root. */
+  body * { visibility: hidden !important; }
+  .rlayout__backdrop,
+  .rlayout__backdrop * { visibility: visible !important; }
+
+  .rlayout__backdrop {
+    position: absolute !important;
+    inset: 0 !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    background: white !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    /* Margen interno reemplaza @page margin (que está en 0 pa' ocultar
+       headers/footers del navegador). Esto empuja URL/fecha/page# fuera
+       del área imprimible. */
+    padding: 12mm !important;
+    display: block !important;
+    z-index: auto !important;
+  }
+
+  .rlayout {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+    animation: none !important;
+  }
+
+  .rlayout__close,
+  .rlayout__footer,
+  .rlayout__header { display: none !important; }
+
+  /* Print logo strip — 3 columnas (SGS · Hombres Blanco · ISSA) arriba de todo */
+  .rlayout__print-header {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr;
+    align-items: center;
+    gap: 8mm;
+    padding: 0 0 4mm !important;
+    border-bottom: 1px solid #ccc !important;
+    background: white !important;
+    page-break-after: avoid;
+  }
+  .rlayout__print-logo {
+    max-height: 14mm;
+    max-width: 100%;
+    object-fit: contain;
+    justify-self: start;
+  }
+  .rlayout__print-logo--center {
+    justify-self: center;
+    max-height: 16mm;
+  }
+  .rlayout__print-header .rlayout__print-logo:last-child {
+    justify-self: end;
+  }
+
+  .rlayout__pages {
+    flex: none !important;
+    display: block !important;
+    background: white !important;
+  }
+
+  .rlayout__page {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: none !important;
+    opacity: 1 !important;
+    animation: none !important;
+    page-break-after: always;
+    break-after: page;
+  }
+  .rlayout__page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .rlayout__page-header {
+    display: flex !important;
+    background: white !important;
+    border-bottom: 1px solid #ccc !important;
+    padding: 4mm 0 !important;
+  }
+  .rlayout__page-body {
+    overflow: visible !important;
+    padding: 4mm 0 !important;
+  }
+
+  /* margin: 0 elimina los headers/footers del navegador (URL, fecha, page#).
+     El margen visual lo da .rlayout__backdrop con padding: 12mm. */
+  @page {
+    size: A4;
+    margin: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rlayout,
+  .rlayout__backdrop,
+  .rlayout__page { animation: none !important; transition: none !important; }
+}

@@ -24,7 +24,7 @@ const formatLongDate = (ms) =>
     year: 'numeric',
   });
 
-const CronogramaDayDetail = ({ dayMs, module, events, loading, onClose }) => {
+const CronogramaDayDetail = ({ dayMs, module, events, loading, onClose, onEventClick }) => {
   useEffect(() => {
     const handler = (e) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', handler);
@@ -121,24 +121,47 @@ const CronogramaDayDetail = ({ dayMs, module, events, loading, onClose }) => {
           )}
           {!loading && events && events.length > 0 && (
             <ul className="cronograma-detail__list">
-              {events.map((e, i) => (
-                <li
-                  key={e.id}
-                  style={{ animationDelay: `${i * 40}ms` }}
-                  className={`cronograma-detail__item cronograma-event--${e.module} cronograma-event--${e.status}`}
-                >
-                  <div className="cronograma-detail__time">{formatTime(e.timestamp) || '--:--'}</div>
-                  <div className="cronograma-detail__main">
-                    <div className="cronograma-detail__label">{e.label}</div>
-                    {e.sublabel && (
-                      <div className="cronograma-detail__sublabel">{e.sublabel}</div>
-                    )}
-                  </div>
-                  <div className={`cronograma-detail__status cronograma-detail__status--${e.status}`}>
-                    {STATUS_LABEL[e.status]}
-                  </div>
-                </li>
-              ))}
+              {events.map((e, i) => {
+                const clickable = !!onEventClick;
+                const handleClick = clickable ? () => onEventClick(e) : undefined;
+                const handleKey = clickable
+                  ? (ev) => {
+                      if (ev.key === 'Enter' || ev.key === ' ') {
+                        ev.preventDefault();
+                        onEventClick(e);
+                      }
+                    }
+                  : undefined;
+                return (
+                  <li
+                    key={e.id}
+                    style={{ animationDelay: `${i * 40}ms` }}
+                    className={`cronograma-detail__item cronograma-event--${e.module} cronograma-event--${e.status} ${clickable ? 'cronograma-detail__item--clickable' : ''}`}
+                    onClick={handleClick}
+                    onKeyDown={handleKey}
+                    role={clickable ? 'button' : undefined}
+                    tabIndex={clickable ? 0 : undefined}
+                    aria-label={
+                      clickable
+                        ? e.status === 'completed'
+                          ? `Ver reporte: ${e.label}`
+                          : `Ver asignación: ${e.label}`
+                        : undefined
+                    }
+                  >
+                    <div className="cronograma-detail__time">{formatTime(e.timestamp) || '--:--'}</div>
+                    <div className="cronograma-detail__main">
+                      <div className="cronograma-detail__label">{e.label}</div>
+                      {e.sublabel && (
+                        <div className="cronograma-detail__sublabel">{e.sublabel}</div>
+                      )}
+                    </div>
+                    <div className={`cronograma-detail__status cronograma-detail__status--${e.status}`}>
+                      {STATUS_LABEL[e.status]}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

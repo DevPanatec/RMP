@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Map, { Marker, Source, Layer, Popup, NavigationControl } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -10,15 +10,9 @@ import {
   X,
   Download,
   Calendar,
-  Gauge,
   Clock,
-  Navigation,
   MapPin,
   Truck,
-  Battery,
-  Signal,
-  Maximize2,
-  Minimize2,
   ChevronUp,
   ChevronDown,
   Sun,
@@ -59,11 +53,8 @@ const GPSPlaybackModal = ({
   const [snappedRoute, setSnappedRoute] = useState(null);
   const [isSnapping, setIsSnapping] = useState(false);
   const [hoverTooltip, setHoverTooltip] = useState(null);
-  const [viewState, setViewState] = useState({
-    longitude: -79.51667,
-    latitude: 8.983333,
-    zoom: 14
-  });
+  // Map uncontrolled — initialViewState al primer punto, fitBounds maneja framing real.
+  const fittedRouteKey = useRef(null);
 
   // Hook de reproducción GPS
   const playback = useRoutePlayback(
@@ -71,6 +62,17 @@ const GPSPlaybackModal = ({
     selectedDate,
     vehiculoId
   );
+
+  // Content signature pa' evitar re-snap en cada reactive update de Convex.
+  // routeData es objeto nuevo cada update aunque contenido sea idéntico.
+  const routeContentKey = useMemo(() => {
+    const locs = playback.routeData?.locations;
+    if (!locs || locs.length === 0) return null;
+    const first = locs[0];
+    const last = locs[locs.length - 1];
+    const ts = (l) => l?.last_updated || l?.timestamp || '';
+    return `${locs.length}|${ts(first)}|${ts(last)}`;
+  }, [playback.routeData]);
 
   /**
    * Ajustar la traza GPS a las calles reales usando Mapbox Map Matching API
@@ -176,7 +178,8 @@ const GPSPlaybackModal = ({
     if (playback.routeData && !playback.loading) {
       snapRouteToRoads();
     }
-  }, [playback.routeData, playback.loading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeContentKey, playback.loading]);
 
   // Cerrar con Escape
   useEffect(() => {
@@ -221,28 +224,12 @@ const GPSPlaybackModal = ({
     }
   }, [showDatePicker]);
 
-  // Center map on route when data loads
+  // Reset fitted key cuando cierra modal (pa' re-fit al reabrir).
   useEffect(() => {
-    if (playback.routeData?.locations && playback.routeData.locations.length > 0) {
-      const validLocations = playback.routeData.locations.filter(loc => {
-        const lat = loc.coords?.lat || loc.status?.coords?.lat;
-        const lon = loc.coords?.lon || loc.status?.coords?.lon;
-        return lat && lon && !isNaN(lat) && !isNaN(lon);
-      });
-
-      if (validLocations.length > 0) {
-        const firstLoc = validLocations[0];
-        const lat = firstLoc.coords?.lat || firstLoc.status?.coords?.lat;
-        const lon = firstLoc.coords?.lon || firstLoc.status?.coords?.lon;
-        setViewState(prev => ({
-          ...prev,
-          latitude: lat,
-          longitude: lon,
-          zoom: 14
-        }));
-      }
+    if (!isOpen) {
+      fittedRouteKey.current = null;
     }
-  }, [playback.routeData]);
+  }, [isOpen]);
 
   // === HOOKS ANTES DE EARLY RETURN ===
   // Coordenadas raw del GPS (siempre disponibles si hay data)
@@ -252,6 +239,87 @@ const GPSPlaybackModal = ({
       loc.coords?.lat || loc.status?.coords?.lat,
     ]).filter(pos => pos[0] && pos[1] && !isNaN(pos[0]) && !isNaN(pos[1])) || []);
   }, [playback.routeData]);
+
+  // Línea VISUAL del trayecto — usa snapped si está disponible, si no raw.
+  // Memoizado: sino MapLibre <Source> recibe nuevo data prop cada tick (50ms) → re-pinta capa.
+  const routeCoordinates = useMemo(
+    () => snappedRoute || rawCoordinates,
+    [snappedRoute, rawCoordinates]
+  );
+
+  const isAtEnd = playback.endTime != null && playback.currentTime != null && playback.currentTime >= playback.endTime;
+
+  // MARKER: en raw GPS interpolado por TIEMPO. Al final, usar el último snapped
+  // point pa' que matchee visualmente con el final de la línea.
+  const currentVehiclePosition = useMemo(() => {
+    if (isAtEnd && routeCoordinates.length > 0) {
+      return routeCoordinates[routeCoordinates.length - 1];
+    }
+    if (playback.currentPoint?.coords) {
+      return [playback.currentPoint.coords.lon, playback.currentPoint.coords.lat];
+    }
+    return null;
+  }, [isAtEnd, routeCoordinates, playback.currentPoint]);
+
+  // Split track: TRAVELED (ya pasó) vs REMAINING (falta).
+  // Cut basado en playback.progress (0-100). Append currentVehiclePosition al cut
+  // pa' que ambos segmentos se toquen exact en el carro. Esto da el feedback visual
+  // tipo Spotify/YouTube: lo recorrido brilla, lo pendiente queda dim.
+  const { traveledGeoJSON, remainingGeoJSON } = useMemo(() => {
+    if (routeCoordinates.length < 2 || !currentVehiclePosition) {
+      return { traveledGeoJSON: null, remainingGeoJSON: null };
+    }
+    if (isAtEnd) {
+      return {
+        traveledGeoJSON: {
+          type: 'Feature',
+          geometry: { type: 'LineString', coordinates: routeCoordinates },
+        },
+        remainingGeoJSON: null,
+      };
+    }
+    const total = routeCoordinates.length;
+    const cutIdx = Math.max(
+      1,
+      Math.min(total - 1, Math.floor((playback.progress / 100) * total)),
+    );
+    const traveled = routeCoordinates.slice(0, cutIdx).concat([currentVehiclePosition]);
+    const remaining = [currentVehiclePosition].concat(routeCoordinates.slice(cutIdx));
+    return {
+      traveledGeoJSON: traveled.length > 1
+        ? { type: 'Feature', geometry: { type: 'LineString', coordinates: traveled } }
+        : null,
+      remainingGeoJSON: remaining.length > 1
+        ? { type: 'Feature', geometry: { type: 'LineString', coordinates: remaining } }
+        : null,
+    };
+  }, [routeCoordinates, currentVehiclePosition, playback.progress, isAtEnd]);
+
+  // fitBounds cuando llega data nueva — encaja ruta completa en viewport.
+  // Solo refit cuando cambia el key (vehiculoId+date), no en cada update reactivo.
+  useEffect(() => {
+    const map = mapRef.current?.getMap?.();
+    if (!map || !routeCoordinates || routeCoordinates.length < 2) return;
+    const key = `${vehiculoId}|${selectedDate || 'recent'}|${routeCoordinates.length}`;
+    if (fittedRouteKey.current === key) return;
+
+    const lons = routeCoordinates.map(c => c[0]);
+    const lats = routeCoordinates.map(c => c[1]);
+    const minLon = Math.min(...lons);
+    const maxLon = Math.max(...lons);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+
+    try {
+      map.fitBounds(
+        [[minLon, minLat], [maxLon, maxLat]],
+        { padding: 80, duration: 600, maxZoom: 16 }
+      );
+      fittedRouteKey.current = key;
+    } catch (err) {
+      console.warn('fitBounds falló:', err);
+    }
+  }, [routeCoordinates, vehiculoId, selectedDate]);
 
   if (!isOpen) return null;
 
@@ -286,6 +354,17 @@ const GPSPlaybackModal = ({
     }
   };
 
+  // Formatear duración en ms a "Xh Ymin" o "Ymin" si <1h.
+  const formatDuration = (ms) => {
+    if (!ms || ms <= 0) return '0min';
+    const totalMin = Math.round(ms / 1000 / 60);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    if (h === 0) return `${m}min`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}min`;
+  };
+
   // Formatear fecha completa
   const formatFullDate = (timestamp) => {
     if (!timestamp) return '--';
@@ -317,35 +396,7 @@ const GPSPlaybackModal = ({
     playback.changeSpeed(nextSpeed);
   };
 
-  // Línea VISUAL del trayecto — usa snapped si está disponible, si no raw.
-  // Una sola línea uniforme. El marker (pulsante cuando reproduce) es la única
-  // indicación de "estoy aquí ahora". Revisitas a la misma calle no confunden
-  // porque la línea no acumula color — siempre es la misma.
-  const routeCoordinates = snappedRoute || rawCoordinates;
-  const isAtEnd = playback.endTime != null && playback.currentTime != null && playback.currentTime >= playback.endTime;
-
-  // MARKER: en raw GPS interpolado por TIEMPO. Al final, usar el último snapped
-  // point pa' que matchee visualmente con el final de la línea.
-  const currentVehiclePosition = (() => {
-    if (isAtEnd && routeCoordinates.length > 0) {
-      return routeCoordinates[routeCoordinates.length - 1];
-    }
-    if (playback.currentPoint?.coords) {
-      return [playback.currentPoint.coords.lon, playback.currentPoint.coords.lat];
-    }
-    return null;
-  })();
-
   const vehicleCourse = playback.currentPoint?.course ?? 0;
-
-  // GeoJSON del trayecto completo del día — una sola línea uniforme.
-  const fullRouteGeoJSON = {
-    type: 'Feature',
-    geometry: {
-      type: 'LineString',
-      coordinates: routeCoordinates,
-    },
-  };
 
   // Estadísticas
   const stats = playback.stats || {};
@@ -511,67 +562,106 @@ const GPSPlaybackModal = ({
             </div>
           )}
 
-          {!playback.loading && !playback.error && playback.hasData && (
+          {!playback.loading && !playback.error && playback.hasData && rawCoordinates.length > 0 && (
             <Map
               ref={mapRef}
-              {...viewState}
-              onMove={evt => setViewState(evt.viewState)}
+              initialViewState={{
+                longitude: rawCoordinates[0][0],
+                latitude: rawCoordinates[0][1],
+                zoom: 14,
+              }}
               mapStyle={MAP_STYLES[mapTheme]}
               style={{ width: '100%', height: '100%' }}
             >
               <NavigationControl position="top-right" />
 
-              {/* Trayecto del día — una sola línea uniforme.
-                  El marker pulsante (encima) es la única indicación de "estoy aquí". */}
-              {routeCoordinates.length > 1 && (
+              {/* Trayecto del día — split traveled vs remaining (estilo Spotify/YouTube).
+                  REMAINING (lo que falta): gris dasheado, opaco bajo, debajo de todo.
+                  TRAVELED (ya pasó): verde sólido + casing oscuro + glow brillante, encima.
+                  Resultado: claro visualmente por dónde pasó vs por dónde va a pasar. */}
+
+              {/* REMAINING — render PRIMERO para que quede debajo del traveled */}
+              {remainingGeoJSON && (
+                <Source id="route-remaining" type="geojson" data={remainingGeoJSON}>
+                  <Layer
+                    id="route-remaining-layer"
+                    type="line"
+                    paint={{
+                      'line-color': mapTheme === 'dark' ? '#9ca3af' : '#6b7280',
+                      'line-width': 4,
+                      'line-opacity': 0.6,
+                      'line-dasharray': [2, 2],
+                    }}
+                    layout={{ 'line-cap': 'butt', 'line-join': 'round' }}
+                  />
+                </Source>
+              )}
+
+              {/* TRAVELED — 3 capas pa' contraste (glow + casing + main) */}
+              {traveledGeoJSON && (
                 <>
-                  <Source id="full-route-glow" type="geojson" data={fullRouteGeoJSON}>
+                  <Source id="route-traveled-glow" type="geojson" data={traveledGeoJSON}>
                     <Layer
-                      id="full-route-glow-layer"
+                      id="route-traveled-glow-layer"
                       type="line"
                       paint={{
-                        'line-color': '#3D5229',
-                        'line-width': 10,
-                        'line-opacity': 0.20,
-                        'line-blur': 2
+                        'line-color': '#22c55e',
+                        'line-width': 14,
+                        'line-opacity': 0.35,
+                        'line-blur': 4,
                       }}
+                      layout={{ 'line-cap': 'round', 'line-join': 'round' }}
                     />
                   </Source>
-                  <Source id="full-route" type="geojson" data={fullRouteGeoJSON}>
+                  <Source id="route-traveled-casing" type="geojson" data={traveledGeoJSON}>
                     <Layer
-                      id="full-route-layer"
+                      id="route-traveled-casing-layer"
                       type="line"
                       paint={{
-                        'line-color': '#3D5229',
-                        'line-width': 5,
-                        'line-opacity': 0.75
+                        'line-color': mapTheme === 'dark' ? '#0a0a0a' : '#ffffff',
+                        'line-width': 8,
+                        'line-opacity': 0.85,
                       }}
+                      layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+                    />
+                  </Source>
+                  <Source id="route-traveled" type="geojson" data={traveledGeoJSON}>
+                    <Layer
+                      id="route-traveled-layer"
+                      type="line"
+                      paint={{
+                        'line-color': '#22c55e',
+                        'line-width': 5,
+                        'line-opacity': 1,
+                      }}
+                      layout={{ 'line-cap': 'round', 'line-join': 'round' }}
                     />
                   </Source>
                 </>
               )}
 
-              {/* Punto de inicio */}
+              {/* Punto de inicio (A) — pin anchor="bottom" sobresale hacia arriba.
+                  Antes era center → quedaba tapado por el vehicle marker (40px center). */}
               {routeCoordinates.length > 0 && (
                 <Marker
                   longitude={routeCoordinates[0][0]}
                   latitude={routeCoordinates[0][1]}
-                  anchor="center"
+                  anchor="bottom"
                 >
-                  <div className="playback-marker playback-marker-start">
+                  <div className="playback-pin playback-pin-start">
                     <span>A</span>
                   </div>
                 </Marker>
               )}
 
-              {/* Punto final */}
+              {/* Punto final (B) — mismo pattern de pin */}
               {routeCoordinates.length > 1 && (
                 <Marker
                   longitude={routeCoordinates[routeCoordinates.length - 1][0]}
                   latitude={routeCoordinates[routeCoordinates.length - 1][1]}
-                  anchor="center"
+                  anchor="bottom"
                 >
-                  <div className="playback-marker playback-marker-end">
+                  <div className="playback-pin playback-pin-end">
                     <span>B</span>
                   </div>
                 </Marker>
@@ -590,6 +680,7 @@ const GPSPlaybackModal = ({
                     anchor="center"
                     rotation={vehicleCourse}
                     onClick={() => setShowPopup(true)}
+                    className="playback-vehicle-marker-wrapper"
                   >
                     <div className={`playback-vehicle-marker ${isMovingMarker ? 'moving' : 'stopped'}`}>
                       <svg viewBox="0 0 28 40" className="playback-vehicle-svg">
@@ -650,10 +741,6 @@ const GPSPlaybackModal = ({
                       <Clock size={12} aria-hidden="true" />
                       <span>{formatTime(playback.currentPoint?.timestamp || playback.currentPoint?.last_updated)}</span>
                     </div>
-                    <div className="vehicle-popup-row">
-                      <Gauge size={12} aria-hidden="true" />
-                      <span>{playback.currentPoint?.speed || 0} km/h</span>
-                    </div>
                     {snappedRoute && (
                       <div className="vehicle-popup-row">
                         <MapPin size={12} aria-hidden="true" />
@@ -677,36 +764,6 @@ const GPSPlaybackModal = ({
             >
               {controlsExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
             </button>
-
-            {/* Barra de información del punto actual */}
-            {playback.currentPoint && controlsExpanded && (
-              <div className="current-point-info">
-                <div className="info-chip">
-                  <Clock size={14} />
-                  <span>{formatTime(playback.currentPoint.timestamp || playback.currentPoint.last_updated)}</span>
-                </div>
-                <div className="info-chip speed-chip">
-                  <Gauge size={14} />
-                  <span>{playback.currentPoint.speed || 0} km/h</span>
-                </div>
-                <div className="info-chip">
-                  <Navigation size={14} />
-                  <span>{playback.currentPoint.course || 0}°</span>
-                </div>
-                {playback.currentPoint.battery !== undefined && (
-                  <div className="info-chip">
-                    <Battery size={14} />
-                    <span>{playback.currentPoint.battery}%</span>
-                  </div>
-                )}
-                <div className="info-chip coords-chip">
-                  <MapPin size={14} />
-                  <span>
-                    {playback.currentPoint.coords?.lat?.toFixed(5)}, {playback.currentPoint.coords?.lon?.toFixed(5)}
-                  </span>
-                </div>
-              </div>
-            )}
 
             {/* Timeline — driven por TIEMPO real */}
             <div className="timeline-section">
@@ -751,18 +808,12 @@ const GPSPlaybackModal = ({
             {/* Controles principales */}
             <div className="main-controls">
               <div className="controls-left">
-                {stats.totalDistance && (
+                {stats.totalDistance ? (
                   <div className="quick-stat">
                     <span className="stat-value">{stats.totalDistance.toFixed(1)}</span>
                     <span className="stat-unit">km</span>
                   </div>
-                )}
-                {stats.avgSpeed && (
-                  <div className="quick-stat">
-                    <span className="stat-value">{stats.avgSpeed.toFixed(0)}</span>
-                    <span className="stat-unit">km/h avg</span>
-                  </div>
-                )}
+                ) : null}
               </div>
 
               <div className="controls-center">
@@ -808,18 +859,12 @@ const GPSPlaybackModal = ({
               </div>
 
               <div className="controls-right">
-                {stats.maxSpeed && (
+                {stats.duration ? (
                   <div className="quick-stat">
-                    <span className="stat-value">{stats.maxSpeed.toFixed(0)}</span>
-                    <span className="stat-unit">km/h max</span>
+                    <span className="stat-value">{formatDuration(stats.duration)}</span>
+                    <span className="stat-unit">duración</span>
                   </div>
-                )}
-                {stats.duration && (
-                  <div className="quick-stat">
-                    <span className="stat-value">{Math.round(stats.duration / 60)}</span>
-                    <span className="stat-unit">min</span>
-                  </div>
-                )}
+                ) : null}
               </div>
             </div>
           </footer>

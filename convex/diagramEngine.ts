@@ -2,7 +2,7 @@ import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthScope } from "./lib/auth";
 
-// Maps tipo_vehiculo → equipment_class
+// Maps tipo_vehiculo → equipment_class (legacy, para resolver templates SVG en BD).
 function getEquipmentClass(tipoVehiculo?: string): string | null {
   const map: Record<string, string> = {
     barredora: "barredora",
@@ -14,6 +14,44 @@ function getEquipmentClass(tipoVehiculo?: string): string | null {
     fumigadora: "fumigadora",
   };
   return tipoVehiculo ? (map[tipoVehiculo] ?? null) : null;
+}
+
+// Fase E — Maps tipo_vehiculo → equipment_class para templates TS code-based.
+// 1:1 mapping ya que existen 7 templates específicos en src/diagrams/templates/.
+function getCodeEquipmentClass(tipoVehiculo?: string): string | null {
+  if (!tipoVehiculo) return null;
+  const valid = ["barredora", "compactador", "fumigadora", "cisterna", "pickup", "bus", "camion_carga"];
+  return valid.includes(tipoVehiculo) ? tipoVehiculo : null;
+}
+
+// Defaults inline mínimos por equipment_class para best-effort inference.
+// Espejo abreviado de TEMPLATE_DEFAULTS en diagramInference.ts.
+function computeInlineDefaults(
+  equipmentClass: string,
+  marca?: string,
+  modelo?: string,
+  anio?: number,
+): any {
+  const defaults: Record<string, any> = {
+    compactador: { view: "top", wheelbase_ratio: 0.55, axle_config: "6x4", cabin_style: "conventional", compactor_size_ratio: 0.13 },
+    barredora: { view: "top", tank_size_ratio: 0.38, side_brushes: true, main_brush_width_ratio: 0.07 },
+    fumigadora: { view: "top", tank_size_ratio: 0.4, nozzle_count: 5, has_compressor: true },
+    cisterna: { view: "top", tank_size_ratio: 0.52, axle_config: "8x4", has_pump_system: true },
+    pickup: { view: "top", has_4x4: false, has_double_cab: anio && anio >= 2015, bed_size_ratio: 0.38 },
+    bus: { view: "top", length_ratio: 0.92, axle_config: "6x4", door_count: 2 },
+    camion_carga: { view: "top", cabin_style: "conventional", axle_config: "6x4", cargo_body_type: "box", cargo_size_ratio: 0.55 },
+  };
+  const base = defaults[equipmentClass] ?? {};
+  // Heuristic cab-over para marcas asiáticas
+  const m = (marca ?? "").toLowerCase();
+  if ((m === "isuzu" || m === "hino" || m === "fuso") && (equipmentClass === "compactador" || equipmentClass === "camion_carga")) {
+    base.cabin_style = "cab_over";
+  }
+  // Heuristic axle config desde modelo
+  const mod = (modelo ?? "").toLowerCase();
+  if (mod.includes("8x4") || mod.includes("tridem")) base.axle_config = "8x4";
+  else if (mod.includes("4x2")) base.axle_config = "4x2";
+  return base;
 }
 
 type ZoneDef = {
@@ -216,9 +254,16 @@ export const resolveForVehicle = query({
 
     const equipClass = getEquipmentClass(vehicle.tipo_vehiculo);
 
-    // Plan v6 — Nivel 1.0: Buscar param_svg_overrides en KB (model_years)
-    // Si existe → devolver params para que cliente use code template TS
+    // Plan v6/E — Selección de versión:
+    //   1. Si vehicle.preferred_template_override_id → usar ese específico
+    //   2. Si no, mayor confidence override disponible
+    //   3. Si no hay override, KB param_svg_overrides en model_year
+    //   4. Fallback: inference best-effort (siempre disponible si equipClass válido)
     let kbParams: any = null;
+    let selectedSource: string | null = null;
+    let selectedVersionId: string | null = null;
+    let selectedConfidence: number | null = null;
+
     if (vehicle.marca && vehicle.modelo) {
       const make = await ctx.db
         .query("makes")
@@ -237,19 +282,52 @@ export const resolveForVehicle = query({
             .query("model_years")
             .withIndex("by_model_year", q => q.eq("model_id", matchModel._id).eq("year", vehicle.anio!))
             .first();
-          if (my?.param_svg_overrides) {
-            kbParams = my.param_svg_overrides;
-          }
-          // Plan v6 — Nivel 1.1: template_overrides cacheado (refinamiento Claude)
-          if (!kbParams) {
-            const override = await ctx.db
+
+          if (my) {
+            const overrides = await ctx.db
               .query("template_overrides")
-              .withIndex("by_model_year", q => q.eq("model_year_id", my!._id))
-              .first();
-            if (override) kbParams = override.param_overrides;
+              .withIndex("by_model_year", q => q.eq("model_year_id", my._id))
+              .collect();
+            // Filter visibility
+            const visible = overrides.filter(o =>
+              o.visibility === "global" || o.organizacion_id === vehicle.organizacion_id
+            );
+
+            // 1. preferred si existe en lista visible
+            if (vehicle.preferred_template_override_id) {
+              const pref = visible.find(o => o._id === vehicle.preferred_template_override_id);
+              if (pref) {
+                kbParams = pref.param_overrides;
+                selectedSource = pref.source;
+                selectedVersionId = pref._id;
+                selectedConfidence = pref.confidence;
+              }
+            }
+            // 2. Mayor confidence
+            if (!kbParams && visible.length > 0) {
+              visible.sort((a, b) => b.confidence - a.confidence);
+              const best = visible[0];
+              kbParams = best.param_overrides;
+              selectedSource = best.source;
+              selectedVersionId = best._id;
+              selectedConfidence = best.confidence;
+            }
+            // 3. param_svg_overrides legacy
+            if (!kbParams && my.param_svg_overrides) {
+              kbParams = my.param_svg_overrides;
+              selectedSource = "kb_model_year_params";
+              selectedConfidence = 0.7;
+            }
           }
         }
       }
+    }
+
+    // 4. Inference best-effort inline (no KB hit). Defaults + heuristicas simples.
+    if (!kbParams && equipClass) {
+      kbParams = computeInlineDefaults(equipClass, vehicle.marca, vehicle.modelo, vehicle.anio);
+      selectedSource = "auto_inference";
+      selectedConfidence = 0.4;
     }
 
     // Level 1: Plantilla verificada específica del modelo (SVG legacy)
@@ -276,7 +354,11 @@ export const resolveForVehicle = query({
           zones,
           fallback_level: 1 as const,
           equipment_class: equipClass,
+          code_equipment_class: getCodeEquipmentClass(vehicle.tipo_vehiculo),
           code_template_params: kbParams,
+          selected_source: selectedSource,
+          selected_version_id: selectedVersionId,
+          selected_confidence: selectedConfidence,
         };
       }
     }
@@ -300,7 +382,11 @@ export const resolveForVehicle = query({
           zones,
           fallback_level: 2 as const,
           equipment_class: equipClass,
+          code_equipment_class: getCodeEquipmentClass(vehicle.tipo_vehiculo),
           code_template_params: kbParams,
+          selected_source: selectedSource,
+          selected_version_id: selectedVersionId,
+          selected_confidence: selectedConfidence,
         };
       }
 
@@ -322,7 +408,11 @@ export const resolveForVehicle = query({
           })),
           fallback_level: 2 as const,
           equipment_class: equipClass,
+          code_equipment_class: getCodeEquipmentClass(vehicle.tipo_vehiculo),
           code_template_params: kbParams,
+          selected_source: selectedSource,
+          selected_version_id: selectedVersionId,
+          selected_confidence: selectedConfidence,
         };
       }
     }
@@ -333,7 +423,11 @@ export const resolveForVehicle = query({
       zones: [],
       fallback_level: 3 as const,
       equipment_class: equipClass,
-      code_template_params: null,
+      code_equipment_class: getCodeEquipmentClass(vehicle.tipo_vehiculo),
+      code_template_params: kbParams,
+      selected_source: selectedSource,
+      selected_version_id: selectedVersionId,
+      selected_confidence: selectedConfidence,
     };
   },
 });

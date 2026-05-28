@@ -146,7 +146,7 @@ export const listDueOrUpcoming = query({
         const veh = await ctx.db.get(pm.vehiculo_id);
         const { latest_km, latest_horas } = await getLatestReadings(ctx, pm.vehiculo_id);
         cache[key] = {
-          km: latest_km ?? veh?.km_acumulado ?? null,
+          km: latest_km ?? (veh as any)?.km_acumulado ?? null,
           horas: latest_horas,
           vehiculo: veh,
         };

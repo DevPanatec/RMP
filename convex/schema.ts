@@ -137,6 +137,9 @@ export default defineSchema({
     proyecto_asignado_id: v.optional(v.id("proyectos")),
     organizacion_id: v.optional(v.id("organizaciones")),
     km_acumulado: v.optional(v.number()), // Km totales acumulados vía GPS (Haversine delta por ping)
+    // Fase E — Multi-version diagrams: usuario elige cual override usar.
+    // null/undefined = auto-best (mayor confidence disponible).
+    preferred_template_override_id: v.optional(v.id("template_overrides")),
   })
     .index("by_estado", ["estado"])
     .index("by_placa", ["placa"])
@@ -303,11 +306,23 @@ export default defineSchema({
     activo: v.boolean(),
     proyecto_id: v.optional(v.id("proyectos")),
     organizacion_id: v.optional(v.id("organizaciones")),
+    // ASI module — PIN para marcacion fallback (Fase 1).
+    pin_hash: v.optional(v.string()),         // bcrypt hash del PIN
+    pin_actualizado: v.optional(v.number()),  // ms epoch
+    pin_intentos_fallidos: v.optional(v.number()),
+    pin_bloqueado_hasta: v.optional(v.number()), // ms epoch — null/0 = no bloqueado
+    puede_marcar: v.optional(v.boolean()),    // default true; false = empleado no marca (ej. licencia larga)
+    // ASI Fase 2 — flag rápido pa' saber si tiene embeddings enrolados
+    tiene_facial: v.optional(v.boolean()),
+    // ASI Fase 2 — rate limit facial (mirrors pin_*)
+    facial_intentos_fallidos: v.optional(v.number()),
+    facial_bloqueado_hasta: v.optional(v.number()), // ms epoch
   })
     .index("by_cedula", ["cedula"])
     .index("by_activo", ["activo"])
     .index("by_organizacion", ["organizacion_id"])
-    .index("by_proyecto", ["proyecto_id"]),
+    .index("by_proyecto", ["proyecto_id"])
+    .index("by_org_cedula", ["organizacion_id", "cedula"]),
 
   // 9. Reportes de Riesgo
   reportes_riesgo: defineTable({
@@ -1100,6 +1115,8 @@ export default defineSchema({
     .index("by_fetched", ["fetched_at"]),
 
   // 39. Template overrides (cache de refinamientos por modelo)
+  // Multi-version: puede haber varios overrides por model_year_id con distintos source/confidence.
+  // El usuario elige cuál via vehiculos.preferred_template_override_id (o auto-best).
   template_overrides: defineTable({
     model_year_id: v.id("model_years"),
     equipment_class: v.string(),
@@ -1107,7 +1124,9 @@ export default defineSchema({
     param_overrides: v.any(),                 // JSON con knobs
     confidence: v.number(),
     source: v.string(),                       // "claude_refinement" | "manual_curator" |
-                                              // "ocr_extracted" | "kb_specs"
+                                              // "ocr_extracted" | "kb_specs" | "auto_inference" |
+                                              // "similar_model" | "wikidata" | "nhtsa" | "doe_afdc"
+    version_label: v.optional(v.string()),    // "v1 — auto" | "v2 — Wikidata" | "v3 — Claude refined"
     approved_by: v.optional(v.id("perfiles_usuarios")),
     approved_at: v.optional(v.number()),
     last_computed: v.number(),
@@ -1116,5 +1135,504 @@ export default defineSchema({
   })
     .index("by_model_year", ["model_year_id"])
     .index("by_organizacion", ["organizacion_id"])
-    .index("by_visibility", ["visibility"]),
+    .index("by_visibility", ["visibility"])
+    .index("by_source", ["source"]),
+
+  // ─── Fase D — Self-healing + Audit + Governance ───────────────────
+
+  // 40. KB Audit log — registra decisiones IA + cambios manuales reversibles
+  kb_audit_log: defineTable({
+    event: v.string(),                        // "model.upsert" | "model_year.upsert" |
+                                              // "template_override.create" | "promote_to_global" |
+                                              // "rollback" | "ingestion.complete"
+    entity_type: v.string(),                  // "model" | "model_year" | "template_override" | "make"
+    entity_id: v.string(),                    // stringified Id<table>
+    before_state: v.optional(v.any()),        // null si create
+    after_state: v.optional(v.any()),         // null si delete
+    user_id: v.optional(v.string()),          // Clerk tokenIdentifier o null si cron/crawler
+    source: v.string(),                       // "user_action" | "crawler" | "claude_ai" | "cron" | "rollback"
+    cost_usd: v.optional(v.number()),
+    confidence: v.optional(v.number()),
+    rolled_back_at: v.optional(v.number()),
+    rolled_back_by: v.optional(v.id("perfiles_usuarios")),
+    timestamp: v.number(),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  })
+    .index("by_timestamp", ["timestamp"])
+    .index("by_entity", ["entity_type", "entity_id"])
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_source", ["source"]),
+
+  // 41. KB Health alerts — detectados por crons de integridad
+  kb_health_alerts: defineTable({
+    tipo: v.string(),                         // "orphan_vehicle" | "stale_source" |
+                                              // "low_confidence_template" | "missing_template" |
+                                              // "ingestion_failed" | "model_unvalidated_high_use"
+    severity: v.string(),                     // "info" | "warn" | "error"
+    entity_type: v.optional(v.string()),
+    entity_id: v.optional(v.string()),
+    mensaje: v.string(),
+    detail: v.optional(v.any()),
+    detected_at: v.number(),
+    resolved_at: v.optional(v.number()),
+    resolved_by: v.optional(v.id("perfiles_usuarios")),
+    organizacion_id: v.optional(v.id("organizaciones")),
+  })
+    .index("by_detected", ["detected_at"])
+    .index("by_tipo", ["tipo"])
+    .index("by_unresolved", ["resolved_at"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 42. KB Coverage snapshots — historico de cobertura para dashboards
+  kb_coverage_snapshots: defineTable({
+    snapshot_at: v.number(),
+    organizacion_id: v.optional(v.id("organizaciones")), // null = global
+    total_vehicles: v.number(),
+    level_1_count: v.number(),                // con template_override
+    level_2_count: v.number(),                // con KB params
+    level_3_count: v.number(),                // genérico de clase
+    coverage_pct: v.number(),                 // (L1+L2)/total
+    top_missing_models: v.optional(v.array(v.object({
+      model_name: v.string(),
+      make_name: v.optional(v.string()),
+      count: v.number(),
+    }))),
+  })
+    .index("by_snapshot", ["snapshot_at"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // ─── Fase F — Sustainability + Auto-Discovery ──────────────────────
+
+  // 43. Persistent crawler queue. Worker procesa tasks ordenadas por priority,
+  // respeta budget, retry con backoff. Permite resume si Convex timeout.
+  kb_crawl_tasks: defineTable({
+    task_type: v.string(),                    // "nhtsa_models" | "wikidata_make_query" |
+                                              // "oem_pdf" | "doe_afdc_make" | "vincario_vin" |
+                                              // "discovery_makes"
+    payload: v.any(),                         // args específicos del task
+    priority: v.number(),                     // 1 (alta) - 10 (baja). Sort asc.
+    estado: v.string(),                       // "queued" | "running" | "done" | "failed" | "skipped_budget"
+    attempts: v.number(),
+    last_attempt_at: v.optional(v.number()),
+    next_retry_at: v.optional(v.number()),
+    cost_usd_estimate: v.optional(v.number()),
+    actual_cost_usd: v.optional(v.number()),
+    provider: v.string(),                     // "nhtsa" | "wikidata" | "vincario" | "doe_afdc" |
+                                              // "claude_sonnet" | "claude_opus" | "claude_haiku" | "oem_http"
+    parent_task_id: v.optional(v.id("kb_crawl_tasks")),
+    result_summary: v.optional(v.any()),
+    enqueued_at: v.number(),
+    completed_at: v.optional(v.number()),
+  })
+    .index("by_estado_priority", ["estado", "priority"])
+    .index("by_provider", ["provider"])
+    .index("by_task_type", ["task_type"])
+    .index("by_next_retry", ["next_retry_at"]),
+
+  // 44. Budget diario — enforcement de caps por provider.
+  // Reset diario 00:00 UTC via cron.
+  kb_budget: defineTable({
+    date_utc: v.string(),                     // "YYYY-MM-DD"
+    total_usd_spent: v.number(),
+    total_calls: v.number(),
+    by_provider: v.any(),                     // { nhtsa: {calls: 100, usd: 0}, claude_sonnet: {...} }
+    daily_cap_usd: v.number(),
+    daily_call_caps: v.any(),                 // { nhtsa: 10000, wikidata: 5000, ... }
+    organizacion_id: v.optional(v.id("organizaciones")), // null = global
+  })
+    .index("by_date", ["date_utc"])
+    .index("by_organizacion_date", ["organizacion_id", "date_utc"]),
+
+  // ─── Módulo ASI (Asistencia) — Fase 1: horarios + zonas + kioscos + marcaciones con PIN ───
+
+  // 45. Plantillas de horario (reutilizables por org)
+  horarios_plantilla: defineTable({
+    nombre: v.string(),                       // "Mañana 8-5", "Rotativo nocturno"
+    dias_laborables: v.array(v.number()),     // [1,2,3,4,5] = lun-vie (0=dom, 6=sab)
+    hora_entrada: v.string(),                 // "08:00"
+    hora_salida: v.string(),                  // "17:00"
+    hora_almuerzo_inicio: v.optional(v.string()), // "12:00"
+    hora_almuerzo_fin: v.optional(v.string()),    // "13:00"
+    tolerancia_entrada_min: v.number(),       // default 10
+    horas_diarias: v.number(),                // 8
+    tipo: v.union(v.literal("fijo"), v.literal("rotativo")),
+    activo: v.boolean(),
+    organizacion_id: v.id("organizaciones"),
+    created_at: v.number(),
+  })
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_org_activo", ["organizacion_id", "activo"]),
+
+  // 46. Historial de asignación de horario por empleado (con vigencia)
+  asignacion_horario_historico: defineTable({
+    empleado_id: v.id("empleados"),
+    horario_plantilla_id: v.id("horarios_plantilla"),
+    vigencia_desde: v.string(),               // ISO YYYY-MM-DD
+    vigencia_hasta: v.optional(v.string()),   // null = vigente actualmente
+    motivo: v.optional(v.string()),
+    organizacion_id: v.id("organizaciones"),
+    created_at: v.number(),
+    created_by: v.optional(v.id("perfiles_usuarios")),
+  })
+    .index("by_empleado", ["empleado_id"])
+    .index("by_empleado_vigencia", ["empleado_id", "vigencia_desde"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 46b. Turnos calendario — override por día específico (rotativos, eventos).
+  // Lookup: turnos_calendario[empleado, fecha] → si existe usa ese horario; si no,
+  // fallback a asignacion_horario_historico vigente. Soporta recolección con turnos
+  // rotativos M/T/N, refuerzos puntuales, off days.
+  turnos_calendario: defineTable({
+    empleado_id: v.id("empleados"),
+    fecha: v.string(),                        // ISO YYYY-MM-DD día específico
+    horario_plantilla_id: v.optional(v.id("horarios_plantilla")), // null/undefined = OFF ese día
+    motivo: v.optional(v.string()),           // "rotación", "evento", "refuerzo"
+    pattern_batch_id: v.optional(v.string()), // agrupa registros del mismo bulk pattern
+    organizacion_id: v.id("organizaciones"),
+    created_at: v.number(),
+    created_by: v.optional(v.id("perfiles_usuarios")),
+  })
+    .index("by_empleado_fecha", ["empleado_id", "fecha"])  // unique-by-convention
+    .index("by_organizacion_fecha", ["organizacion_id", "fecha"])
+    .index("by_pattern_batch", ["pattern_batch_id"]),
+
+  // 47. Zonas físicas de marcación (sitios donde se marca asistencia)
+  attendance_zones: defineTable({
+    nombre: v.string(),                       // "Hospital Santo Tomás - Edif. Central"
+    latitud: v.number(),
+    longitud: v.number(),
+    radio: v.number(),                        // metros, default 100
+    proyecto_id: v.optional(v.id("proyectos")), // null = staff corporativo (no atado a proyecto)
+    direccion: v.optional(v.string()),
+    // Fase 2 facial config
+    liveness_mode: v.optional(v.string()),    // "passive_first" (default) | "always_active"
+    facial_threshold: v.optional(v.number()), // cosine similarity mínimo (default 0.55)
+    auto_confirm_segundos: v.optional(v.number()), // 0 = sin auto-confirm; default 3
+    activo: v.boolean(),
+    organizacion_id: v.id("organizaciones"),
+    created_at: v.number(),
+  })
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_proyecto", ["proyecto_id"])
+    .index("by_org_activo", ["organizacion_id", "activo"]),
+
+  // 48. Historial de asignación de empleado a zona (con vigencia)
+  asignacion_zona_historico: defineTable({
+    empleado_id: v.id("empleados"),
+    attendance_zone_id: v.id("attendance_zones"),
+    vigencia_desde: v.string(),               // ISO YYYY-MM-DD
+    vigencia_hasta: v.optional(v.string()),   // null = vigente
+    organizacion_id: v.id("organizaciones"),
+    created_at: v.number(),
+    created_by: v.optional(v.id("perfiles_usuarios")),
+  })
+    .index("by_empleado", ["empleado_id"])
+    .index("by_empleado_vigencia", ["empleado_id", "vigencia_desde"])
+    .index("by_zone", ["attendance_zone_id"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 49. Kioscos (dispositivos físicos de marcación)
+  kioscos: defineTable({
+    nombre: v.string(),                       // "Kiosko Recepción - Hospital"
+    attendance_zone_id: v.id("attendance_zones"),
+    device_token: v.string(),                 // UUID generado al provisionar, único cross-org
+    ultimo_ping: v.optional(v.number()),      // ms epoch — heartbeat del kiosko
+    activo: v.boolean(),
+    organizacion_id: v.id("organizaciones"),
+    created_at: v.number(),
+    created_by: v.optional(v.id("perfiles_usuarios")),
+  })
+    .index("by_token", ["device_token"])      // unique-by-convention
+    .index("by_zone", ["attendance_zone_id"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 50. Jornadas de asistencia (1 registro por empleado por día)
+  jornadas_asistencia: defineTable({
+    empleado_id: v.id("empleados"),
+    fecha: v.string(),                        // ISO YYYY-MM-DD (timezone local Panamá)
+
+    // Marca 1: ENTRADA
+    entrada_timestamp: v.optional(v.number()),
+    entrada_foto_storage_id: v.optional(v.id("_storage")),
+    entrada_metodo: v.optional(v.string()),   // "facial" | "pin"
+    entrada_score: v.optional(v.number()),    // facial similarity (Fase 2)
+    entrada_kiosko_id: v.optional(v.id("kioscos")),
+    entrada_gps: v.optional(v.object({ lat: v.number(), lng: v.number() })),
+
+    // Marca 2: SALIDA ALMUERZO
+    salida_almuerzo_timestamp: v.optional(v.number()),
+    salida_almuerzo_foto_storage_id: v.optional(v.id("_storage")),
+    salida_almuerzo_metodo: v.optional(v.string()),
+    salida_almuerzo_score: v.optional(v.number()),
+    salida_almuerzo_kiosko_id: v.optional(v.id("kioscos")),
+    salida_almuerzo_gps: v.optional(v.object({ lat: v.number(), lng: v.number() })),
+
+    // Marca 3: REGRESO ALMUERZO
+    regreso_almuerzo_timestamp: v.optional(v.number()),
+    regreso_almuerzo_foto_storage_id: v.optional(v.id("_storage")),
+    regreso_almuerzo_metodo: v.optional(v.string()),
+    regreso_almuerzo_score: v.optional(v.number()),
+    regreso_almuerzo_kiosko_id: v.optional(v.id("kioscos")),
+    regreso_almuerzo_gps: v.optional(v.object({ lat: v.number(), lng: v.number() })),
+
+    // Marca 4: SALIDA
+    salida_timestamp: v.optional(v.number()),
+    salida_foto_storage_id: v.optional(v.id("_storage")),
+    salida_metodo: v.optional(v.string()),
+    salida_score: v.optional(v.number()),
+    salida_kiosko_id: v.optional(v.id("kioscos")),
+    salida_gps: v.optional(v.object({ lat: v.number(), lng: v.number() })),
+
+    // Calculados al cierre del día (Fase 4 cron)
+    minutos_trabajados: v.optional(v.number()),
+    minutos_tarde: v.optional(v.number()),
+    minutos_ausente: v.optional(v.number()),
+    estado: v.string(),                       // "en_curso" | "completa" | "incompleta" | "ausente"
+
+    proyecto_id: v.optional(v.id("proyectos")),
+    organizacion_id: v.id("organizaciones"),
+  })
+    .index("by_empleado_fecha", ["empleado_id", "fecha"])  // unique-by-convention
+    .index("by_organizacion_fecha", ["organizacion_id", "fecha"])
+    .index("by_proyecto_fecha", ["proyecto_id", "fecha"])
+    .index("by_estado", ["estado"]),
+
+  // 51b. Embeddings faciales del empleado (PRIVADO — solo lectura interna)
+  // Almacenamos N embeddings raw + 1 promedio normalizado pa' match O(1) cliente-side.
+  // Cada embedding = Float32Array de 1024 dims (human library face description model).
+  // 1024 floats × 4 bytes ≈ 4 KB raw; en Convex via v.array(v.number()) crece ~10 KB JSON.
+  // Total por empleado: 7 raw + 1 promedio ≈ 80 KB. 100 empleados ≈ 8 MB org-wide.
+  empleado_facial_data: defineTable({
+    empleado_id: v.id("empleados"),
+    embeddings: v.array(v.array(v.number())), // N embeddings 1024D raw (5-7 fotos)
+    embedding_promedio: v.array(v.number()),  // promedio L2-normalizado pa' cosine similarity
+    embedding_dim: v.number(),                // 1024 (para sanity check al cargar)
+    foto_storage_ids: v.array(v.id("_storage")), // fotos originales (auditoría + re-train futuro)
+    quality_scores: v.optional(v.array(v.number())), // score quality de human library por foto
+    enrolled_at: v.number(),
+    enrolled_by: v.optional(v.id("perfiles_usuarios")),
+    organizacion_id: v.id("organizaciones"),
+  })
+    .index("by_empleado", ["empleado_id"])      // unique-by-convention (1 set por empleado)
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // ─── Fase 6: Nómina (módulo NOM — requiere PER+ASI+RRHH) ────────
+
+  // 53.1 Períodos de nómina (quincenal/mensual)
+  nomina_periodos: defineTable({
+    nombre: v.string(),                        // "Quincena Mar 1-15, 2026"
+    tipo: v.string(),                          // "quincenal" | "mensual"
+    fecha_desde: v.string(),                   // ISO YYYY-MM-DD
+    fecha_hasta: v.string(),
+    estado: v.string(),                        // "abierto" | "calculado" | "cerrado"
+    dias_laborables_mes: v.optional(v.number()), // default 22 — pa' calc salario_dia
+    organizacion_id: v.id("organizaciones"),
+    calculado_en: v.optional(v.number()),
+    cerrado_por: v.optional(v.id("perfiles_usuarios")),
+    cerrado_en: v.optional(v.number()),
+    created_at: v.number(),
+    created_by: v.optional(v.id("perfiles_usuarios")),
+  })
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_estado", ["estado"])
+    .index("by_fechas", ["fecha_desde", "fecha_hasta"])
+    .index("by_org_estado", ["organizacion_id", "estado"]),
+
+  // 53.2 Líneas de nómina (1 por empleado por período)
+  nomina_lineas: defineTable({
+    periodo_id: v.id("nomina_periodos"),
+    empleado_id: v.id("empleados"),
+    // Snapshot empleado al momento del cálculo
+    empleado_nombre: v.string(),
+    empleado_cedula: v.string(),
+    cargo: v.optional(v.string()),
+    // Salario base proporcional al período
+    salario_mensual: v.number(),               // referencia (vigente en fecha_desde del período)
+    salario_dia: v.number(),                   // mensual / dias_laborables_mes
+    salario_base_periodo: v.number(),          // proporcional al período
+    // Trabajo
+    minutos_trabajados: v.number(),
+    dias_completos: v.number(),
+    // Ausencias injustificadas
+    minutos_ausente: v.number(),
+    monto_ausencias: v.number(),               // deducción
+    // Horas extras aprobadas (× multiplicador)
+    minutos_extra_diurna: v.number(),
+    minutos_extra_nocturna: v.number(),
+    minutos_extra_feriado: v.number(),
+    minutos_extra_domingo: v.number(),
+    monto_extras: v.number(),                  // suma con multiplicadores
+    // Permisos en el período (informativo, no descuenta)
+    dias_permiso: v.number(),
+    // Total bruto = base + extras - ausencias
+    bruto_total: v.number(),
+    detalle: v.optional(v.any()),              // breakdown JSONB pa' auditoría
+    organizacion_id: v.id("organizaciones"),
+    calculado_en: v.number(),
+  })
+    .index("by_periodo", ["periodo_id"])
+    .index("by_empleado", ["empleado_id"])
+    .index("by_periodo_empleado", ["periodo_id", "empleado_id"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // ─── Fase 5: RRHH (módulo RRHH — independiente de ASI) ───────────
+
+  // 53a. Contratos laborales — fuente de verdad del bono legal
+  contratos: defineTable({
+    empleado_id: v.id("empleados"),
+    numero: v.string(),                        // ej "CONT-2026-001"
+    tipo: v.string(),                          // "indefinido" | "definido" | "obra"
+    fecha_inicio: v.string(),                  // ISO YYYY-MM-DD
+    fecha_fin: v.optional(v.string()),         // null si indefinido
+    salario_base: v.number(),                  // mensual bruto en USD/PA
+    cargo: v.string(),
+    estado: v.string(),                        // "vigente" | "vencido" | "rescindido"
+    proyecto_id: v.optional(v.id("proyectos")),
+    archivo_storage_id: v.optional(v.id("_storage")), // PDF firmado
+    motivo_rescision: v.optional(v.string()),
+    fecha_rescision: v.optional(v.string()),
+    organizacion_id: v.id("organizaciones"),
+    created_at: v.number(),
+    created_by: v.optional(v.id("perfiles_usuarios")),
+  })
+    .index("by_empleado", ["empleado_id"])
+    .index("by_estado", ["estado"])
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_empleado_estado", ["empleado_id", "estado"]),
+
+  // 53b. Adendas al contrato — cambios sin perder el original
+  contrato_adendas: defineTable({
+    contrato_id: v.id("contratos"),
+    empleado_id: v.id("empleados"),            // denorm pa' query rápida
+    numero: v.string(),                        // ej "ADD-001"
+    fecha_efectiva: v.string(),                // ISO YYYY-MM-DD desde cuándo aplica
+    motivo: v.string(),                        // "aumento salario", "cambio cargo", etc
+    cambios: v.any(),                          // JSONB: { salario_base?: number, cargo?: string, fecha_fin?: string }
+    archivo_storage_id: v.optional(v.id("_storage")),
+    organizacion_id: v.id("organizaciones"),
+    created_at: v.number(),
+    created_by: v.optional(v.id("perfiles_usuarios")),
+  })
+    .index("by_contrato", ["contrato_id"])
+    .index("by_empleado", ["empleado_id"])
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_empleado_fecha", ["empleado_id", "fecha_efectiva"]),
+
+  // 53c. Salario histórico (auditoría completa — auto-generado por contratos + adendas)
+  salario_historico: defineTable({
+    empleado_id: v.id("empleados"),
+    contrato_id: v.id("contratos"),
+    adenda_id: v.optional(v.id("contrato_adendas")), // null si viene del contrato base
+    salario_base: v.number(),
+    vigencia_desde: v.string(),                // ISO YYYY-MM-DD
+    vigencia_hasta: v.optional(v.string()),    // null = vigente
+    organizacion_id: v.id("organizaciones"),
+    created_at: v.number(),
+  })
+    .index("by_empleado", ["empleado_id"])
+    .index("by_empleado_vigencia", ["empleado_id", "vigencia_desde"])
+    .index("by_contrato", ["contrato_id"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // ─── Fase 3: Permisos / Horas extras / Cambios de turno ──────────
+
+  // 53. Permisos (vacaciones, médico, maternidad, etc) — workflow aprobación admin
+  permisos: defineTable({
+    empleado_id: v.id("empleados"),
+    tipo: v.string(),                          // "personal" | "medico" | "vacaciones" | "maternidad" | "duelo" | "otro"
+    fecha_desde: v.string(),                   // ISO YYYY-MM-DD
+    fecha_hasta: v.string(),
+    motivo: v.string(),
+    archivo_storage_id: v.optional(v.id("_storage")), // justificante PDF/imagen
+    estado: v.string(),                        // "pendiente" | "aprobado" | "rechazado"
+    aprobado_por: v.optional(v.id("perfiles_usuarios")),
+    aprobado_en: v.optional(v.number()),
+    notas_aprobacion: v.optional(v.string()),
+    organizacion_id: v.id("organizaciones"),
+    created_at: v.number(),
+    created_by: v.optional(v.id("perfiles_usuarios")),
+  })
+    .index("by_empleado", ["empleado_id"])
+    .index("by_estado", ["estado"])
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_empleado_fecha", ["empleado_id", "fecha_desde"])
+    .index("by_org_estado", ["organizacion_id", "estado"]),
+
+  // 54. Horas extras — workflow aprobación + tipo (afecta multiplicador en nómina Fase 6)
+  horas_extras: defineTable({
+    empleado_id: v.id("empleados"),
+    jornada_id: v.optional(v.id("jornadas_asistencia")),
+    fecha: v.string(),                         // ISO YYYY-MM-DD
+    minutos: v.number(),
+    tipo: v.string(),                          // "diurna" | "nocturna" | "feriado" | "domingo"
+    motivo: v.string(),
+    estado: v.string(),                        // "pendiente" | "aprobado" | "rechazado"
+    aprobado_por: v.optional(v.id("perfiles_usuarios")),
+    aprobado_en: v.optional(v.number()),
+    notas_aprobacion: v.optional(v.string()),
+    organizacion_id: v.id("organizaciones"),
+    created_at: v.number(),
+    created_by: v.optional(v.id("perfiles_usuarios")),
+  })
+    .index("by_empleado", ["empleado_id"])
+    .index("by_empleado_fecha", ["empleado_id", "fecha"])
+    .index("by_estado", ["estado"])
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_org_estado", ["organizacion_id", "estado"]),
+
+  // 55. Cambios de turno — swap entre 2 empleados de la misma org en una fecha
+  cambios_turno: defineTable({
+    empleado_a_id: v.id("empleados"),
+    empleado_b_id: v.id("empleados"),
+    fecha: v.string(),                         // ISO YYYY-MM-DD — día que aplica el swap
+    motivo: v.string(),
+    estado: v.string(),                        // "pendiente" | "aprobado" | "rechazado"
+    aprobado_por: v.optional(v.id("perfiles_usuarios")),
+    aprobado_en: v.optional(v.number()),
+    notas_aprobacion: v.optional(v.string()),
+    organizacion_id: v.id("organizaciones"),
+    created_at: v.number(),
+    created_by: v.optional(v.id("perfiles_usuarios")),
+  })
+    .index("by_fecha", ["fecha"])
+    .index("by_empleado_a", ["empleado_a_id"])
+    .index("by_empleado_b", ["empleado_b_id"])
+    .index("by_estado", ["estado"])
+    .index("by_organizacion", ["organizacion_id"]),
+
+  // 56. Log de intentos de marcación (éxito + fracaso — desincentivo + auditoría)
+  marcacion_intentos: defineTable({
+    empleado_id: v.optional(v.id("empleados")), // null si no se identificó (cedula inexistente)
+    cedula_intentada: v.optional(v.string()),   // pa' trackear intentos con cédula falsa
+    kiosko_id: v.id("kioscos"),
+    timestamp: v.number(),
+    resultado: v.string(),                      // "ok" | "pin_fail" | "pin_locked" | "geofence_fail" | "empleado_inactivo" | "empleado_no_zone" | "tipo_marca_invalido" | "kiosko_inactivo" | "facial_low_score" | "liveness_fail" | "facial_no_enrolled" | "facial_invalid_norm" | "facial_locked" | "session_invalid"
+    tipo_marca_intentada: v.optional(v.string()), // "entrada" | "salida_almuerzo" | etc
+    metodo: v.optional(v.string()),             // "pin" | "facial"
+    score: v.optional(v.number()),              // similarity score 0-1 (facial)
+    liveness_score: v.optional(v.number()),     // 0-1 (facial)
+    foto_storage_id: v.optional(v.id("_storage")),
+    detalle: v.optional(v.string()),
+    organizacion_id: v.id("organizaciones"),
+  })
+    .index("by_kiosko_timestamp", ["kiosko_id", "timestamp"])
+    .index("by_empleado_timestamp", ["empleado_id", "timestamp"])
+    .index("by_resultado", ["resultado"])
+    .index("by_organizacion", ["organizacion_id"])
+    .index("by_org_timestamp", ["organizacion_id", "timestamp"])
+    .index("by_timestamp", ["timestamp"]), // cron retention purge
+
+  // 57. Sesiones de marcación facial — nonce single-use anti-replay (Fase 2 hardening).
+  // Cliente pide sesión → server emite nonce + expira_en. Marcación facial debe traer
+  // el nonce y se consume al usar (consumido_en != null). TTL 60s.
+  facial_sessions: defineTable({
+    nonce: v.string(),                          // random 32-byte hex
+    kiosko_id: v.id("kioscos"),
+    organizacion_id: v.id("organizaciones"),
+    creado_en: v.number(),                      // ms epoch
+    expira_en: v.number(),                      // ms epoch (creado_en + 60s)
+    consumido_en: v.optional(v.number()),       // ms epoch — null = sin usar
+  })
+    .index("by_nonce", ["nonce"])
+    .index("by_expira", ["expira_en"]),         // cron purge expired
 });

@@ -40,11 +40,10 @@ const MODULOS_PRODUCCION = [
   { code: 'MTO', name: 'Mantenimiento general', price: 400 },
   { code: 'INV', name: 'Inventario', price: 300 },
   { code: 'BI', name: 'Reportes avanzados', price: 600 },
-];
-const MODULOS_ROADMAP = [
   { code: 'ASI', name: 'Asistencia', price: 300 },
   { code: 'RRHH', name: 'RRHH completo', price: 500 },
 ];
+const MODULOS_ROADMAP = [];
 
 const BYTES_PER_GB = 1024 ** 3;
 
@@ -692,51 +691,55 @@ function OrgDetailDrawer({ orgId, onClose, onEditInfo }) {
                 })}
               </div>
 
-              <h3 className="drawer__h-spaced">Roadmap (no construidos)</h3>
-              <p className="hint hint--roadmap-warning">
-                <AlertTriangle size={14} aria-hidden="true" />
-                <span>
-                  Módulos roadmap se facturan pero <strong>no tienen UI construida</strong>.
-                  Solo activar con contrato firmado (descuento ≥30% o setup waived) y notas con justificación comercial.
-                  El usuario final no verá nuevas funcionalidades hasta que se implemente.
-                </span>
-              </p>
-              {(modulos_effective || []).some((c) => MODULOS_ROADMAP.find((m) => m.code === c)) && (
-                <div className="drawer__feedback drawer__feedback--error" style={{ marginBottom: 'var(--space-12)' }}>
-                  <AlertTriangle size={16} />
-                  <span>
-                    <strong>Esta org tiene {(modulos_effective || []).filter((c) => MODULOS_ROADMAP.find((m) => m.code === c)).length} módulo(s) roadmap activo(s):</strong>{' '}
-                    {(modulos_effective || []).filter((c) => MODULOS_ROADMAP.find((m) => m.code === c)).join(', ')} —
-                    están facturando sin entregar valor UI. Verificar que el cliente esté al tanto.
-                  </span>
-                </div>
-              )}
-              <div className="modulos-list">
-                {MODULOS_ROADMAP.map((m) => {
-                  const active = (modulos_effective || []).includes(m.code);
-                  return (
-                    <div key={m.code} className="modulo-row modulo-row--roadmap">
-                      <div className="modulo-row__info">
-                        <span className="modulo-row__code">{m.code}</span>
-                        <span className="modulo-row__name">{m.name}</span>
-                        <span className="modulo-row__price">+{fmtUsd(m.price)}/mes</span>
-                        <span className="badge badge-warning">Roadmap</span>
-                      </div>
-                      <button
-                        className={`toggle ${active ? 'toggle--on' : ''}`}
-                        disabled={busy}
-                        role="switch"
-                        aria-checked={active}
-                        aria-label={`${m.name} (roadmap) ${active ? 'activado' : 'desactivado'} — requiere descuento ≥30% o setup waived`}
-                        title="Roadmap — activar solo con descuento ≥30% o setup waived + notas obligatorias"
-                        onClick={() => handleModuloToggle(m, true)}
-                      >
-                        <span className="toggle__knob" />
-                      </button>
+              {MODULOS_ROADMAP.length > 0 && (
+                <>
+                  <h3 className="drawer__h-spaced">Roadmap (no construidos)</h3>
+                  <p className="hint hint--roadmap-warning">
+                    <AlertTriangle size={14} aria-hidden="true" />
+                    <span>
+                      Módulos roadmap se facturan pero <strong>no tienen UI construida</strong>.
+                      Solo activar con contrato firmado (descuento ≥30% o setup waived) y notas con justificación comercial.
+                      El usuario final no verá nuevas funcionalidades hasta que se implemente.
+                    </span>
+                  </p>
+                  {(modulos_effective || []).some((c) => MODULOS_ROADMAP.find((m) => m.code === c)) && (
+                    <div className="drawer__feedback drawer__feedback--error" style={{ marginBottom: 'var(--space-12)' }}>
+                      <AlertTriangle size={16} />
+                      <span>
+                        <strong>Esta org tiene {(modulos_effective || []).filter((c) => MODULOS_ROADMAP.find((m) => m.code === c)).length} módulo(s) roadmap activo(s):</strong>{' '}
+                        {(modulos_effective || []).filter((c) => MODULOS_ROADMAP.find((m) => m.code === c)).join(', ')} —
+                        están facturando sin entregar valor UI. Verificar que el cliente esté al tanto.
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
+                  )}
+                  <div className="modulos-list">
+                    {MODULOS_ROADMAP.map((m) => {
+                      const active = (modulos_effective || []).includes(m.code);
+                      return (
+                        <div key={m.code} className="modulo-row modulo-row--roadmap">
+                          <div className="modulo-row__info">
+                            <span className="modulo-row__code">{m.code}</span>
+                            <span className="modulo-row__name">{m.name}</span>
+                            <span className="modulo-row__price">+{fmtUsd(m.price)}/mes</span>
+                            <span className="badge badge-warning">Roadmap</span>
+                          </div>
+                          <button
+                            className={`toggle ${active ? 'toggle--on' : ''}`}
+                            disabled={busy}
+                            role="switch"
+                            aria-checked={active}
+                            aria-label={`${m.name} (roadmap) ${active ? 'activado' : 'desactivado'} — requiere descuento ≥30% o setup waived`}
+                            title="Roadmap — activar solo con descuento ≥30% o setup waived + notas obligatorias"
+                            onClick={() => handleModuloToggle(m, true)}
+                          >
+                            <span className="toggle__knob" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           )}
 

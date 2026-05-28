@@ -8,7 +8,7 @@ import { useReports } from '../../context/ReportsContext';
 import { useRoutes } from '../../context/RoutesContext';
 import { useAuth } from '../../context/AuthContext';
 import { useOrganization } from '../../context/OrganizationContext';
-import { BarChart3, Truck, Bug, Sparkles, Wrench, MapPin, Download, Calendar, User, DollarSign } from '../Icons';
+import { BarChart3, Truck, Bug, Sparkles, Wrench, MapPin, Download, Calendar, User, DollarSign, AlertTriangle } from '../Icons';
 import { EmptyState } from '../UI';
 import ReportsDashboard from './ReportsDashboard';
 import LocationReportsModal from './LocationReportsModal';
@@ -16,6 +16,7 @@ import RouteReportsListModal from './RouteReportsListModal';
 import RouteReportDetailModal from './RouteReportDetailModal';
 import MaintenanceReportDetailModal from './MaintenanceReportDetailModal';
 import FumigationReportsPage from './FumigationReportsPage';
+import RiskReportsPage from './RiskReportsPage';
 import { DEMO_LUGARES, DEMO_CLEANING_ASSIGNMENTS, mergeDemoData } from '../../utils/demoData';
 import { useDemoMode } from '../../hooks/useDemoMode';
 import { buildGmapsEmbedUrl } from '../../utils/gmaps';
@@ -153,6 +154,7 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
       { id: 'fumigacion', label: 'Fumigación', icon: Bug, modulo: 'FUM' },
       { id: 'limpieza', label: 'Limpieza', icon: Sparkles, modulo: 'LIM' },
       { id: 'mantenimiento', label: 'Mantenimiento', icon: Wrench, modulo: 'MTO' },
+      { id: 'riesgos', label: 'Riesgos', icon: AlertTriangle, modulo: null },
     ];
     return all.filter((c) => c.modulo === null || hasModulo(c.modulo));
   }, [hasModulo]);
@@ -897,6 +899,8 @@ const ReportsComponent = ({ preSelectedLocationId = null, onClearSelection = nul
         return renderLimpieza();
       case 'mantenimiento':
         return renderMantenimiento();
+      case 'riesgos':
+        return <RiskReportsPage />;
       default:
         return <ReportsDashboard onNavigate={setActiveCategory} categoriesNav={renderCategoriesNav()} />;
     }

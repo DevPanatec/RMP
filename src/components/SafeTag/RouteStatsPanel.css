@@ -200,13 +200,3 @@
   }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .stat-card {
-    background: var(--color-background-elevated);
-  }
-
-  .current-point-info {
-    background: var(--color-surface-secondary);
-  }
-}

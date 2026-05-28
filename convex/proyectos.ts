@@ -67,7 +67,7 @@ export const listActive = query({
     if (!scope.organizacionId) return [];
     const all = await ctx.db
       .query("proyectos")
-      .withIndex("by_organizacion", (q) => q.eq("organizacion_id", scope.organizacionId))
+      .withIndex("by_organizacion", (q) => q.eq("organizacion_id", scope.organizacionId!))
       .collect();
     return all.filter((p) => p.activo);
   },

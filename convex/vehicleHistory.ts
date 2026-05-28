@@ -16,10 +16,19 @@ export const getVehicleHistory = query({
   handler: async (ctx, args) => {
     const { vehiculoId, startDate, endDate } = args;
 
-    // Obtener datos del vehículo
+    // Vehículo puede haber sido borrado; reportes históricos siguen apuntando
+    // al id viejo. Devolvemos resultado vacío en vez de lanzar para que el
+    // detalle del reporte se pueda abrir aunque el vehículo ya no exista.
     const vehicle = await ctx.db.get(vehiculoId);
     if (!vehicle) {
-      throw new Error(`Vehicle not found: ${vehiculoId}`);
+      return {
+        vehiculoId,
+        placa: null,
+        locations: [],
+        totalPoints: 0,
+        startDate: startDate ?? null,
+        endDate: endDate ?? null,
+      };
     }
 
     // Validar acceso a este vehículo
@@ -34,7 +43,7 @@ export const getVehicleHistory = query({
     const locations = await ctx.db
       .query("vehicle_location_history")
       .withIndex("by_vehiculo_timestamp", (q) => {
-        let r = q.eq("vehiculo_id", vehiculoId);
+        let r: any = q.eq("vehiculo_id", vehiculoId);
         if (startDate !== undefined) r = r.gte("timestamp", startDate);
         if (endDate !== undefined) r = r.lte("timestamp", endDate);
         return r;
@@ -43,7 +52,7 @@ export const getVehicleHistory = query({
 
     return {
       vehiculoId,
-      placa: vehicle.placa,
+      placa: (vehicle as any).placa,
       locations,
       totalPoints: locations.length,
       startDate: startDate || (locations.length > 0 ? locations[0].timestamp : null),
@@ -74,7 +83,7 @@ export const getVehicleHistoryInternal = internalQuery({
     const locations = await ctx.db
       .query("vehicle_location_history")
       .withIndex("by_vehiculo_timestamp", (q) => {
-        let r = q.eq("vehiculo_id", vehiculoId);
+        let r: any = q.eq("vehiculo_id", vehiculoId);
         if (startDate !== undefined) r = r.gte("timestamp", startDate);
         if (endDate !== undefined) r = r.lte("timestamp", endDate);
         return r;
@@ -83,7 +92,7 @@ export const getVehicleHistoryInternal = internalQuery({
 
     return {
       vehiculoId,
-      placa: vehicle.placa,
+      placa: (vehicle as any).placa,
       locations,
       totalPoints: locations.length,
       startDate: startDate || (locations.length > 0 ? locations[0].timestamp : null),
@@ -100,11 +109,11 @@ export const getVehicleHistoryByDay = query({
     vehiculoId: v.id("vehiculos"),
     date: v.string(), // Fecha en formato ISO "YYYY-MM-DD"
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     const { vehiculoId, date } = args;
 
     // Validar acceso a este vehículo
-    const vehicle = await ctx.db.get(vehiculoId);
+    const vehicle: any = await ctx.db.get(vehiculoId);
     if (!vehicle) throw new Error(`Vehicle not found: ${vehiculoId}`);
     const scope = await getAuthScope(ctx);
     if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
@@ -137,7 +146,7 @@ export const getRecentHistory = query({
     vehiculoId: v.id("vehiculos"),
     hours: v.number(), // Número de horas hacia atrás
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     const { vehiculoId, hours } = args;
 
     // Validar acceso a este vehículo
@@ -342,7 +351,7 @@ export const createFromWebhook = internalMutation({
       success: true,
       vehiculoId: vehicle._id,
       historyId,
-      placa: vehicle.placa,
+      placa: (vehicle as any).placa,
     };
   },
 });

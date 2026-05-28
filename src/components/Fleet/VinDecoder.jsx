@@ -3,14 +3,16 @@ import { useAction } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Satellite, Loader, Check, X } from '../Icons';
 
-// Decodifica VIN via NHTSA vPIC (gratis, US Class 4-8 + buses + trailers).
-// Si decode exitoso, llama onDecoded(data) con {make, model, year, ...}
+// Decodifica VIN cascade: NHTSA vPIC (gratis US Class 4-8) → Vincario (€0.22 global).
+// Vincario solo se invoca si NHTSA no devuelve make/model (probablemente no-US-spec).
 export default function VinDecoder({ onDecoded, disabled }) {
   const [vin, setVin] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [decoded, setDecoded] = useState(null);
-  const decode = useAction(api["integrations/nhtsaVpic"].decodeVin);
+  const [source, setSource] = useState(null);
+  const decodeNhtsa = useAction(api["integrations/nhtsaVpic"].decodeVin);
+  const decodeVincario = useAction(api["integrations/vincario"].decodeVin);
 
   const handleDecode = async () => {
     if (!vin || vin.length < 11) {
@@ -19,15 +21,30 @@ export default function VinDecoder({ onDecoded, disabled }) {
     }
     setLoading(true);
     setError(null);
+    setSource(null);
     try {
-      const result = await decode({ vin });
-      if (!result.ok) {
-        setError(result.error);
-        setDecoded(null);
-      } else {
-        setDecoded(result.data);
-        onDecoded?.(result.data);
+      // Tier 1: NHTSA gratis
+      const nhtsaResult = await decodeNhtsa({ vin });
+      if (nhtsaResult.ok && nhtsaResult.data.make) {
+        setDecoded(nhtsaResult.data);
+        setSource('NHTSA vPIC (gratis)');
+        onDecoded?.(nhtsaResult.data);
+        return;
       }
+      // Tier 2: Vincario fallback global (paga, free tier 3/mes)
+      if (vin.length === 17) {
+        const vincarioResult = await decodeVincario({ vin });
+        if (vincarioResult.ok && vincarioResult.data.make) {
+          setDecoded(vincarioResult.data);
+          setSource(`Vincario (global${vincarioResult.data.balance_remaining != null ? ` · ${vincarioResult.data.balance_remaining} restantes` : ''})`);
+          onDecoded?.(vincarioResult.data);
+          return;
+        }
+        setError(`NHTSA: ${nhtsaResult.error ?? 'no match'}. Vincario: ${vincarioResult.error ?? 'no match'}`);
+      } else {
+        setError(nhtsaResult.error ?? 'NHTSA no match. VIN debe tener 17 chars para Vincario fallback.');
+      }
+      setDecoded(null);
     } catch (err) {
       setError(`Error: ${err.message ?? err}`);
     } finally {
@@ -67,10 +84,11 @@ export default function VinDecoder({ onDecoded, disabled }) {
         <div className="vin-decoder__success">
           <Check size={12} /> {decoded.make} {decoded.model} {decoded.year}
           {decoded.engineModel && ` · ${decoded.engineModel}`}
+          {source && <small style={{ marginLeft: 6, opacity: 0.7 }}>· {source}</small>}
         </div>
       )}
       <small className="vin-decoder__hint">
-        Fuente: NHTSA vPIC (gratis). Cobertura: vehículos US Class 4-8, buses, trailers.
+        Cascade: NHTSA vPIC (gratis, US) → Vincario (€0.22, global) si no match.
       </small>
     </div>
   );

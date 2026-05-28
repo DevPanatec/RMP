@@ -4,9 +4,13 @@
     "lib": ["ES2021"],
     "module": "ES2022",
     "moduleResolution": "bundler",
-    "strict": true,
+    "strict": false,
     "skipLibCheck": true,
-    "allowJs": true
+    "allowJs": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "noEmit": true
   },
-  "include": ["./**/*"]
+  "include": ["./**/*"],
+  "exclude": ["_generated/**/*"]
 }

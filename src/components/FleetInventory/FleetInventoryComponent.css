@@ -206,6 +206,43 @@
   background: var(--color-surface);
 }
 
+.diagram-versions-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-6, 6px) var(--space-12);
+  background: var(--color-surface-secondary, #F8F9FA);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.diagram-versions-bar label {
+  font-weight: var(--font-weight-medium, 500);
+  white-space: nowrap;
+}
+
+.diagram-versions-select {
+  flex: 1;
+  max-width: 320px;
+  padding: 4px 8px;
+  font-size: var(--font-size-xs);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-base);
+}
+
+.diagram-versions-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.diagram-versions-active {
+  font-size: 10px;
+  color: var(--color-text-tertiary, var(--color-text-secondary));
+  font-style: italic;
+}
+
 .diagram-generic-badge {
   padding: var(--space-4) var(--space-12);
   font-size: var(--font-size-xs);
@@ -822,4 +859,31 @@
   .fi-btn--primary:hover {
     transform: none;
   }
+}
+
+/* Photo refinement result */
+.photo-refine-result {
+  margin-top: var(--space-8);
+  padding: var(--space-8);
+  background: var(--color-success-light);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-xs);
+  color: var(--color-success);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.photo-refine-error {
+  margin-top: var(--space-8);
+  padding: var(--space-8);
+  background: var(--color-error-light);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-base);
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }

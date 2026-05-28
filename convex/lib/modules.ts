@@ -6,7 +6,7 @@ import { getAuthScope, type Ctx } from "./auth";
 export type ModuloCodigo =
   | "REC" | "FUM" | "LIM" | "MTO" | "INV"
   | "BI"
-  | "ASI" | "RRHH"
+  | "ASI" | "RRHH" | "NOM"
   // Legacy: PER se conserva en el tipo para backward-compat con orgs antiguas;
   // ya no es un módulo comprable. El acceso a Personal se deriva de REC|FUM|LIM|MTO.
   | "PER" | "PER-full";
@@ -81,15 +81,22 @@ export const MODULO_CATALOG: Record<ModuloCodigo, ModuloSpec> = {
   ASI: {
     codigo: "ASI",
     nombre: "Asistencia",
-    descripcion: "Control de asistencia y jornadas — marcaje digital, geofence clock-in/out, reportes de presencia",
+    descripcion: "Marcación de jornadas con reconocimiento facial + PIN, geofencing por sitio, horarios con vigencia, permisos, horas extras, cambios de turno",
     precio_usd: 300,
-    estado: "roadmap",
+    estado: "produccion",
   },
   RRHH: {
     codigo: "RRHH",
-    nombre: "RRHH completo",
-    descripcion: "Payroll Panamá, vacaciones, asistencia, documentos legales, contratos",
+    nombre: "RRHH",
+    descripcion: "Contratos con vigencia, adendas, historial de salarios, documentos legales firmados. Standalone — no incluye asistencia ni nómina.",
     precio_usd: 500,
+    estado: "produccion",
+  },
+  NOM: {
+    codigo: "NOM",
+    nombre: "Nómina bruta",
+    descripcion: "Cálculo bruto Panamá: salario base proporcional + horas extras con multiplicadores (25/50/100%) - ausencias. Sin CSS/ISR/décimo (contador externo). Requiere ASI + RRHH activos.",
+    precio_usd: 400,
     estado: "roadmap",
   },
   // Legacy alias — kept for backward-compat with orgs that already have PER-full in modulos_activos

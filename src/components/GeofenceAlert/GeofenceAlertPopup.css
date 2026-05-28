@@ -322,59 +322,6 @@
   }
 }
 
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .geofence-alert-card {
-    background: var(--color-text);
-    border: 1px solid var(--alpha-highlight-light);
-  }
-
-  .alert-title {
-    color: var(--color-surface-secondary);
-  }
-
-  .alert-enter .alert-title {
-    color: var(--color-success);
-  }
-
-  .alert-exit .alert-title {
-    color: var(--color-warning);
-  }
-
-  .alert-zone-name {
-    color: var(--color-border);
-  }
-
-  .alert-close-btn {
-    background: var(--alpha-highlight-light);
-    color: var(--color-text-muted);
-  }
-
-  .alert-close-btn:hover {
-    background: var(--alpha-highlight-medium);
-    color: var(--color-border-strong);
-  }
-
-  .vehicle-badge {
-    background: var(--color-primary-subtle);
-    color: #a3c95a;
-  }
-
-  .vehicle-details,
-  .meta-item {
-    color: var(--color-text-muted);
-  }
-
-  .alert-progress-bar {
-    background: var(--alpha-highlight-light);
-  }
-
-  .geofence-alert-popup {
-    background: var(--color-text);
-    color: white;
-  }
-}
-
 /* Animaciones */
 @keyframes fadeIn {
   from { opacity: 0; }

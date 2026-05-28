@@ -208,28 +208,6 @@
   border-color: var(--color-error);
 }
 
-.app-bar__theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background: transparent;
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-base);
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-out);
-  flex-shrink: 0;
-}
-
-.app-bar__theme-toggle:hover {
-  background: var(--color-hover-overlay);
-  color: var(--color-text);
-  border-color: var(--color-border-strong);
-}
-
 /* ============================================
    TOP NAVIGATION - Fluent Tabs
    ============================================ */

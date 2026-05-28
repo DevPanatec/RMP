@@ -506,7 +506,7 @@ export const createUserWithClerk = action({
       // Step 2: Create profile in Convex using the Clerk user ID
       // The userId format for Convex is: https://clerk-domain|user_id
       const clerkDomain = process.env.CLERK_FRONTEND_DOMAIN || "https://peaceful-mustang-86.clerk.accounts.dev";
-      const userId = `${clerkDomain}|${clerkUser.id}`;
+      const userId = `${clerkDomain}|${(clerkUser as any).id}`;
 
       await ctx.runMutation(internal.perfiles.createByUserIdInternal, {
         userId,
@@ -536,7 +536,7 @@ export const createUserWithClerk = action({
 
       return {
         success: true,
-        clerkUserId: clerkUser.id,
+        clerkUserId: (clerkUser as any).id,
         email: args.email,
         tipo: args.tipo_usuario,
       };

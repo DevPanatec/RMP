@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { useAuth } from './AuthContext';
@@ -13,9 +13,22 @@ export const OrganizationProvider = ({ children }) => {
   const availableOrgs = useQuery(api.organizaciones.listAccessible) ?? [];
 
   // currentOrgId:
-  // - super_admin: seleccionable (default null = "Todas")
+  // - super_admin: seleccionable, persistida en localStorage. Auto-elige primera
+  //   org SOLO al primer login (evita "Sin organización"). Después respeta elección
+  //   explícita del super_admin, incluyendo null = vista "Todas las orgs".
   // - Otros: fijo a user.organizacion_id
-  const [currentOrgId, setCurrentOrgIdState] = useState(null);
+  const STORAGE_KEY = 'rmp_current_org_id';
+  const HAS_PICKED_KEY = 'rmp_org_user_picked'; // flag pa' saber que super_admin ya tocó el switcher
+
+  const [currentOrgId, setCurrentOrgIdState] = useState(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEY) || null;
+    } catch {
+      return null;
+    }
+  });
+  // Auto-select corre 1 vez por sesión, solo si super_admin nunca eligió antes
+  const didAutoSelectRef = useRef(false);
 
   // Sincronizar para non-super_admin: fija a su organizacion_id
   useEffect(() => {
@@ -25,6 +38,34 @@ export const OrganizationProvider = ({ children }) => {
     }
   }, [user, isSuperAdmin]);
 
+  // Auto-select pa' super_admin: corre 1 sola vez por sesión. Solo si:
+  //   (a) super_admin NUNCA tocó el switcher en sesiones anteriores (HAS_PICKED_KEY ausente)
+  //   (b) y no hay org guardada
+  // Si super_admin ya eligió "Todas" (null) explícitamente, NO re-elegimos.
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    if (didAutoSelectRef.current) return;
+    if (availableOrgs.length === 0) return;
+    let hasPicked = false;
+    try { hasPicked = localStorage.getItem(HAS_PICKED_KEY) === '1'; } catch { /* ignore */ }
+    if (hasPicked) {
+      didAutoSelectRef.current = true;
+      return; // Respetar elección previa (incluso si fue null = Todas)
+    }
+    const stored = currentOrgId && availableOrgs.find((o) => o._id === currentOrgId);
+    if (!stored) {
+      const match = (o) => {
+        const n = (o.nombre ?? '').toLowerCase();
+        const s = (o.slug ?? '').toLowerCase();
+        return n.includes('rmp') || s.includes('rmp') || n.includes('default') || s.includes('default');
+      };
+      const preferred = availableOrgs.find(match) ?? availableOrgs[0];
+      setCurrentOrgIdState(preferred._id);
+      try { localStorage.setItem(STORAGE_KEY, preferred._id); } catch { /* ignore */ }
+    }
+    didAutoSelectRef.current = true;
+  }, [isSuperAdmin, availableOrgs, currentOrgId]);
+
   const currentOrg = useMemo(() => {
     if (!currentOrgId) return null;
     return availableOrgs.find((o) => o._id === currentOrgId) ?? null;
@@ -33,6 +74,11 @@ export const OrganizationProvider = ({ children }) => {
   const setCurrentOrg = (orgId) => {
     if (!isSuperAdmin) return; // Otros no pueden cambiar
     setCurrentOrgIdState(orgId);
+    try {
+      localStorage.setItem(HAS_PICKED_KEY, '1'); // marca: super_admin ya eligió manualmente
+      if (orgId) localStorage.setItem(STORAGE_KEY, orgId);
+      else localStorage.removeItem(STORAGE_KEY);
+    } catch { /* ignore */ }
   };
 
   // Módulos activos de la org actual.

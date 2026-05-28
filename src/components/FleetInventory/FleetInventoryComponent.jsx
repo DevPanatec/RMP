@@ -1,13 +1,73 @@
 import { useState, useMemo } from 'react';
-import { useQuery, useMutation } from 'convex/react';
+import { useQuery, useMutation, useAction } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { useFleet } from '../../context/FleetContext';
 import {
   Truck, Package, Plus, ChevronRight, RefreshCw, Trash2, Edit,
-  AlertTriangle, History, X, Layers
+  AlertTriangle, History, X, Layers, Sparkles, Loader, Check
 } from '../Icons';
 import { renderDiagram, implementedTemplates } from '../../diagrams/factory';
+import ManualUploadModal from '../Fleet/ManualUploadModal';
+import { FileText } from '../Icons';
 import './FleetInventoryComponent.css';
+
+// Botón "Mejorar con fotos" — invoca Claude Opus 4.7 vision con vehicle_photos.
+// Costo ~$0.30 una vez por vehículo, cacheado en template_override Tier-3.
+function PhotoRefineButton({ vehicle, canWrite }) {
+  const refineAction = useAction(api.photoRefinement.refineWithPhotos);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  if (!canWrite) return null;
+
+  const handleClick = async () => {
+    if (!confirm("Refinar diagrama analizando fotos del vehículo con Claude Opus 4.7? Costo ~$0.30 una vez.")) return;
+    setBusy(true);
+    setError(null);
+    setResult(null);
+    try {
+      const r = await refineAction({ vehiculo_id: vehicle._id });
+      if (!r.ok) {
+        setError(r.error);
+      } else {
+        setResult(r);
+      }
+    } catch (err) {
+      setError(err.message ?? String(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        className="fi-icon-btn"
+        onClick={handleClick}
+        disabled={busy}
+        title="Mejorar diagrama con fotos del vehículo (Claude Opus 4.7)"
+      >
+        {busy ? <Loader size={15} className="spin" /> : <Sparkles size={15} />}
+      </button>
+      {result && (
+        <div className="photo-refine-result">
+          <Check size={14} /> Refinado · conf {Math.round((result.confidence ?? 0) * 100)}% · ${result.cost_usd?.toFixed(4)} · {result.photos_used} fotos
+          {Array.isArray(result.observations) && result.observations.length > 0 && (
+            <ul style={{ margin: '4px 0 0 16px', fontSize: '11px' }}>
+              {result.observations.map((o, i) => <li key={i}>{o}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+      {error && (
+        <div className="photo-refine-error">
+          <AlertTriangle size={14} /> {error}
+        </div>
+      )}
+    </>
+  );
+}
 
 // ─────────────────────────────────────────────────────────
 // Lifecycle helpers
@@ -64,13 +124,19 @@ function matchesZone(componentTipo, zonePatterns) {
 
 function DiagramEngine({ vehicle, components, kmAcumulado, onZoneFilter, activeZone, setActiveZone }) {
   const resolution = useQuery(api.diagramEngine.resolveForVehicle, { vehiculo_id: vehicle._id });
+  const versionsResp = useQuery(api.diagramVersions.listVersionsForVehicle, { vehiculo_id: vehicle._id });
+  const setPreferred = useMutation(api.diagramVersions.setPreferredVersion);
   const [hoveredZone, setHoveredZone] = useState(null);
 
   if (resolution === undefined) {
     return <div className="diagram-loading">Cargando diagrama…</div>;
   }
 
-  if (!resolution || resolution.fallback_level === 3) {
+  // Fase E — Si tipo_vehiculo válido pero fallback_level=3, igual renderizar code template con defaults.
+  const codeClass = resolution?.code_equipment_class ?? resolution?.equipment_class;
+  const useCodeTemplate = codeClass && implementedTemplates.includes(codeClass);
+
+  if (!useCodeTemplate && (!resolution || resolution.fallback_level === 3)) {
     return (
       <div className="diagram-fallback">
         <Layers size={20} />
@@ -79,13 +145,27 @@ function DiagramEngine({ vehicle, components, kmAcumulado, onZoneFilter, activeZ
     );
   }
 
-  const { template, zones, fallback_level, equipment_class, code_template_params } = resolution;
+  const { template, zones: rawZones, fallback_level, code_template_params, selected_source, selected_version_id, selected_confidence } = resolution;
+  const zones = rawZones ?? [];
 
-  // Plan v6 — Si el equipment_class tiene code template TS implementado, usarlo
-  const useCodeTemplate = equipment_class && implementedTemplates.includes(equipment_class);
   const codeRender = useCodeTemplate
-    ? renderDiagram(equipment_class, code_template_params ?? {})
+    ? renderDiagram(codeClass, code_template_params ?? {})
     : null;
+
+  const versions = versionsResp?.versions ?? [];
+  const preferredId = versionsResp?.preferred_id ?? null;
+
+  const handleVersionChange = async (e) => {
+    const val = e.target.value;
+    try {
+      await setPreferred({
+        vehiculo_id: vehicle._id,
+        override_id: val === "auto" || val === "inferred" ? null : val,
+      });
+    } catch (err) {
+      console.error("setPreferredVersion failed", err);
+    }
+  };
 
   // Peor estado por zona (para coloreado)
   const zoneHealth = {};
@@ -117,8 +197,37 @@ function DiagramEngine({ vehicle, components, kmAcumulado, onZoneFilter, activeZ
 
   return (
     <div className="diagram-engine">
-      {fallback_level === 2 && (
+      {versions.length > 1 && (
+        <div className="diagram-versions-bar">
+          <label htmlFor={`ver-${vehicle._id}`}>Versión:</label>
+          <select
+            id={`ver-${vehicle._id}`}
+            value={preferredId ?? "auto"}
+            onChange={handleVersionChange}
+            className="diagram-versions-select"
+          >
+            <option value="auto">Auto — mejor confianza</option>
+            {versions.map(v => (
+              <option key={v.id} value={v.id}>
+                {v.version_label} ({Math.round(v.confidence * 100)}%)
+              </option>
+            ))}
+          </select>
+          {selected_source && (
+            <span className="diagram-versions-active">
+              Activo: {selected_source}
+              {selected_confidence != null && ` · ${Math.round(selected_confidence * 100)}%`}
+            </span>
+          )}
+        </div>
+      )}
+      {fallback_level === 2 && template && (
         <div className="diagram-generic-badge">Vista genérica — {template.label}</div>
+      )}
+      {!template && fallback_level === 3 && codeRender && (
+        <div className="diagram-generic-badge">
+          Vista inferida — {codeRender.template_name} (best effort)
+        </div>
       )}
       <div className="diagram-canvas">
         {codeRender ? (
@@ -671,6 +780,7 @@ function VehicleDetailPanel({ vehicle, canWrite }) {
   const [showHistory, setShowHistory] = useState(false);
   const [filteredComponents, setFilteredComponents] = useState(null);
   const [activeZone, setActiveZone] = useState(null);
+  const [showUpload, setShowUpload] = useState(false);
 
   const kmAcumulado = vehicle.km_acumulado ?? 0;
   const displayComponents = filteredComponents ?? components;
@@ -731,6 +841,12 @@ function VehicleDetailPanel({ vehicle, canWrite }) {
           <button className="fi-icon-btn" onClick={() => setShowHistory(h => !h)} title="Historial">
             <History size={15} />
           </button>
+          {canWrite && (
+            <button className="fi-icon-btn" onClick={() => setShowUpload(true)} title="Subir manual OEM">
+              <FileText size={15} />
+            </button>
+          )}
+          <PhotoRefineButton vehicle={vehicle} canWrite={canWrite} />
           {canWrite && (
             <button className="fi-btn fi-btn--sm fi-btn--primary" onClick={() => setShowAdd(true)}>
               <Plus size={14} /> Agregar
@@ -807,6 +923,14 @@ function VehicleDetailPanel({ vehicle, canWrite }) {
           isAsset={false}
           onClose={() => setReplaceComp(null)}
           onSaved={() => setReplaceComp(null)}
+        />
+      )}
+      {showUpload && (
+        <ManualUploadModal
+          vehicle={vehicle}
+          modelYearId={undefined}
+          onClose={() => setShowUpload(false)}
+          onUploaded={() => setShowUpload(false)}
         />
       )}
     </div>

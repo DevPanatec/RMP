@@ -15,7 +15,7 @@ async function requireAuth(ctx: any) {
 }
 
 // Returns organizacion_id for insert (undefined for super_admin intentional).
-async function getOrgId(ctx: any): Promise<typeof import("../_generated/dataModel").Id<"organizaciones"> | undefined> {
+async function getOrgId(ctx: any): Promise<any> {
   const scope = await getAuthScope(ctx);
   return scope.organizacionId ?? undefined;
 }

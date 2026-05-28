@@ -99,7 +99,7 @@ export const bootstrap = action({
         const err = await res.text();
         throw new Error(`Clerk create ${role} failed: ${err}`);
       }
-      const data = await res.json();
+      const data: any = await res.json();
       clerkUsers[role] = { clerkId: data.id, email, password };
     }
 
@@ -374,7 +374,7 @@ export const _resetRouteState = internalMutation({
     // reportes_riesgo — by empleado_reporta_id (perfil) or vehiculo_id
     const riesgos = await ctx.db.query("reportes_riesgo").collect();
     for (const r of riesgos) {
-      const matchPerfil = r.empleado_reporta_id && perfilIds.includes(r.empleado_reporta_id);
+      const matchPerfil = r.empleado_reporta_id && perfilIds.includes(r.empleado_reporta_id as any);
       const matchVeh = r.vehiculo_id && vehIds.includes(r.vehiculo_id);
       if (matchPerfil || matchVeh) {
         await ctx.db.delete(r._id);

@@ -108,6 +108,7 @@ export const useRoutePlayback = (deviceId, selectedDate = null, vehiculoId = nul
   const [error, setError] = useState(null);
 
   const timerRef = useRef(null);
+  const lastResetKey = useRef(null);
 
   // Convex actions (fallback SafeTag API)
   const fetchHistory = useAction(api.safetag.fetchLocationHistory);
@@ -154,10 +155,24 @@ export const useRoutePlayback = (deviceId, selectedDate = null, vehiculoId = nul
     return withTimestamps;
   }, []);
 
-  // Auto-sync cuando localHistoryQuery cambia
+  // Auto-sync cuando localHistoryQuery cambia.
+  // `loading=true` mientras query === undefined (evita flash "Sin datos GPS").
+  // currentTime/isPlaying SOLO se resetean cuando cambia el key (vehiculoId+selectedDate),
+  // no en cada reactive update — sino el playback se reiniciaba con cada ping nuevo.
   useEffect(() => {
     if (!vehiculoId) return;
-    if (localHistoryQuery === undefined) return;
+
+    const resetKey = `${vehiculoId}|${selectedDate || 'recent'}`;
+    const isNewKey = lastResetKey.current !== resetKey;
+
+    if (localHistoryQuery === undefined) {
+      // Query aún cargando — mostrar spinner, no empty state
+      if (isNewKey) {
+        setLoading(true);
+        setError(null);
+      }
+      return;
+    }
 
     if (localHistoryQuery && localHistoryQuery.locations && localHistoryQuery.locations.length > 0) {
       const locations = localHistoryQuery.locations.map((loc) => ({
@@ -179,8 +194,11 @@ export const useRoutePlayback = (deviceId, selectedDate = null, vehiculoId = nul
           source: 'convex-local',
         });
         setProcessedLocations(processed);
-        setCurrentTime(processed[0]._timestamp);
-        setIsPlaying(false);
+        if (isNewKey) {
+          setCurrentTime(processed[0]._timestamp);
+          setIsPlaying(false);
+          lastResetKey.current = resetKey;
+        }
         setLoading(false);
         setError(null);
         lastLoadedSource.current = 'convex-local';
@@ -189,7 +207,11 @@ export const useRoutePlayback = (deviceId, selectedDate = null, vehiculoId = nul
     } else if (localHistoryQuery && (!localHistoryQuery.locations || localHistoryQuery.locations.length === 0)) {
       setRouteData(null);
       setProcessedLocations([]);
-      setCurrentTime(null);
+      if (isNewKey) {
+        setCurrentTime(null);
+        setIsPlaying(false);
+        lastResetKey.current = resetKey;
+      }
       setLoading(false);
       lastLoadedSource.current = 'convex-local-empty';
       initialLoadDone.current = true;

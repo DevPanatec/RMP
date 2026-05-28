@@ -1,13 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useInventory } from '../../context/InventoryContext';
 import useInputDebounce from '../../hooks/useInputDebounce';
-import { Package, FileText, AlertTriangle, X, Loader, CheckCircle, Search, Filter, LayoutGrid, List, Eye, Edit, Trash2, TrendingUp, TrendingDown, Plus, Truck, DollarSign } from '../Icons';
+import { Package, FileText, AlertTriangle, X, Loader, CheckCircle, Search, Filter, LayoutGrid, List, Eye, Edit, Trash2, TrendingUp, TrendingDown, Plus, Truck, DollarSign, Wrench } from '../Icons';
 import ItemDetailModal from './ItemDetailModal';
 import { ConfirmDialog, SkeletonGrid, SortableHeader } from '../UI';
 import useSortableData from '../../hooks/useSortableData';
 import { handleMutationError } from '../../utils/mutationError';
 import FleetInventoryComponent from '../FleetInventory/FleetInventoryComponent';
 import CostosComponent from '../Costos/CostosComponent';
+import MaintenanceComponent from '../Maintenance/MaintenanceComponent';
+import { useOrganization } from '../../context/OrganizationContext';
 import './InventoryComponent.css';
 
 const InventoryMaterials = ({ userType = 'admin' }) => {
@@ -1023,6 +1025,8 @@ const InventoryMaterials = ({ userType = 'admin' }) => {
 const InventoryComponent = ({ userType = 'admin' }) => {
   const [invTab, setInvTab] = useState('materiales');
   const canSeeCostos = userType === 'admin' || userType === 'super_admin';
+  const { hasModulo } = useOrganization();
+  const canSeeMantenimiento = hasModulo('MTO');
   return (
     <div className="inv-group">
       <div className="app-subtabs" role="tablist" aria-label="Secciones Inventario">
@@ -1046,6 +1050,19 @@ const InventoryComponent = ({ userType = 'admin' }) => {
           <Truck strokeWidth={1.75} size={14} />
           <span>Inventario de Flota</span>
         </button>
+        {canSeeMantenimiento && (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={invTab === 'mantenimiento'}
+            className={`app-subtab${invTab === 'mantenimiento' ? ' app-subtab--active' : ''}`}
+            onClick={() => setInvTab('mantenimiento')}
+            title="Mantenimiento preventivo y correctivo de vehículos"
+          >
+            <Wrench strokeWidth={1.75} size={14} />
+            <span>Mantenimiento de Flota</span>
+          </button>
+        )}
         {canSeeCostos && (
           <button
             type="button"
@@ -1062,6 +1079,9 @@ const InventoryComponent = ({ userType = 'admin' }) => {
       </div>
       {invTab === 'materiales' && <InventoryMaterials userType={userType} />}
       {invTab === 'flota' && <FleetInventoryComponent userRole={userType} />}
+      {invTab === 'mantenimiento' && canSeeMantenimiento && (
+        <MaintenanceComponent userRole={userType} mode="fleet" />
+      )}
       {invTab === 'costos' && canSeeCostos && <CostosComponent />}
     </div>
   );

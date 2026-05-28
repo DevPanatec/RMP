@@ -30,7 +30,8 @@ const crons = cronJobs();
 crons.interval(
   "sync-safetag-devices",
   { seconds: 11 },
-  api.safetag.syncAllVehicles
+  // @ts-ignore — deep type instantiation, ok at runtime
+  api.safetag.syncAllVehicles,
 );
 
 /**
@@ -47,7 +48,8 @@ crons.interval(
 crons.daily(
   "clean-old-gps-history",
   { hourUTC: 3, minuteUTC: 0 },
-  internal.vehicleHistory.cleanOldHistory
+  (internal as any).vehicleHistory.cleanOldHistory,
+  {}
 );
 
 /**
@@ -76,6 +78,146 @@ crons.daily(
   "recompute-org-storage",
   { hourUTC: 4, minuteUTC: 0 },
   internal.organizaciones.recomputeStorageDaily
+);
+
+/**
+ * Cron Job: Multi-aggregator crawler diario (Plan v6 Fase C)
+ *
+ * Sincroniza KB de marcas/modelos desde fuentes públicas:
+ * - NHTSA vPIC makes
+ * - Wikidata (lazy, solo cuando hay modelos sin specs)
+ * - OEM brochures (futuro)
+ *
+ * Horario: 2:00 AM UTC (después del backup, antes del rush operacional).
+ */
+crons.daily(
+  "kb-crawler-daily",
+  { hourUTC: 7, minuteUTC: 0 }, // 2am Panama time (UTC-5)
+  internal.crawler.runDailyCrawl
+);
+
+/**
+ * Fase D — Integrity checks.
+ * Crons defensivos: detectan huecos en KB, marcan alerts, calculan coverage.
+ */
+crons.daily(
+  "kb-integrity-orphan-vehicles",
+  { hourUTC: 8, minuteUTC: 0 }, // 3am Panama
+  internal.kbIntegrity.detectOrphanVehicles
+);
+
+crons.weekly(
+  "kb-integrity-stale-sources",
+  { dayOfWeek: "sunday", hourUTC: 9, minuteUTC: 0 }, // 4am Panama sundays
+  internal.kbIntegrity.detectStaleSources,
+  {}
+);
+
+crons.daily(
+  "kb-integrity-low-confidence-templates",
+  { hourUTC: 9, minuteUTC: 0 }, // 4am Panama
+  internal.kbIntegrity.flagLowConfidenceTemplates,
+  {}
+);
+
+crons.interval(
+  "kb-coverage-snapshot",
+  { hours: 6 },
+  internal.kbIntegrity.computeCoverageStats
+);
+
+/**
+ * Fase F — OEM brochures weekly full batch.
+ * Daily corre 5 brochures (round-robin). Weekly procesa lote completo (todo OEM_SEEDS).
+ * Sundays 5am Panama (UTC-5) = 10am UTC.
+ */
+crons.weekly(
+  "kb-oem-brochures-weekly",
+  { dayOfWeek: "sunday", hourUTC: 10, minuteUTC: 0 },
+  internal.integrations.oemBrochures.crawlOemBatch,
+  { limit: 100 }
+);
+
+/**
+ * Fase F — Queue worker nocturnal.
+ * Cada 30min UTC 4-11 = 11pm-6am Panama (UTC-5). Procesa BATCH_SIZE tasks por iter.
+ * Respeta budget caps. Self-reschedule via scheduler.runAfter cuando hay más.
+ */
+crons.cron(
+  "kb-queue-nocturnal-1",
+  "0 4-11 * * *", // 11pm, 12am, 1am, 2am, 3am, 4am, 5am, 6am Panama
+  internal.kbCrawlQueue.processNextBatch,
+  {}
+);
+crons.cron(
+  "kb-queue-nocturnal-2",
+  "30 4-11 * * *", // medias hora pa' doble frecuencia
+  internal.kbCrawlQueue.processNextBatch,
+  {}
+);
+
+/**
+ * Fase F — Discovery weekly. Encola tareas auto-discovery (OEM seeds + NHTSA top makes + Wikidata orphans).
+ * Sundays 8am UTC = 3am Panama.
+ */
+crons.weekly(
+  "kb-discovery-weekly",
+  { dayOfWeek: "sunday", hourUTC: 8, minuteUTC: 0 },
+  internal.kbDiscovery.runDiscovery
+);
+
+/**
+ * Fase F — Conflict detection cross-source. Daily 5am Panama.
+ */
+crons.daily(
+  "kb-conflict-detection",
+  { hourUTC: 10, minuteUTC: 0 },
+  internal.kbConflicts.detectConflicts
+);
+
+/**
+ * Fase F+ — Stale URL detection. Weekly Monday 6am Panama.
+ * HEAD request a kb_sources oem_brochure. 4xx → kb_health_alert "stale_url".
+ */
+crons.weekly(
+  "kb-stale-urls-weekly",
+  { dayOfWeek: "monday", hourUTC: 11, minuteUTC: 0 },
+  internal.kbStaleDetection.checkStaleUrls,
+  { limit: 30 }
+);
+
+/**
+ * ASI Fase 4 — Cierre diario de jornadas.
+ *
+ * Cierra el día previo: calcula minutos_trabajados/tarde/ausente por empleado activo
+ * con horario asignado vigente. Aplica permisos aprobados (skip ausente) y cambios
+ * de turno aprobados (usa horario del otro empleado).
+ *
+ * Horario: 05:00 UTC = 00:00 Panamá (UTC-5) → cierra el día que acaba de terminar.
+ * Procesa chunks de 50 empleados, se reagenda si quedan más.
+ */
+crons.daily(
+  "asi-cerrar-jornadas-diario",
+  { hourUTC: 5, minuteUTC: 0 },
+  internal.asistencia.jornadasCron.cerrarJornadasDelDia,
+  {}
+);
+
+/**
+ * ASI Fase 2 — Retention crons (data hygiene).
+ *  - marcacion_intentos > 90 días → purge (incl. foto storage).
+ *  - facial_sessions expirados > 1h → purge.
+ */
+crons.daily(
+  "asi-purge-intentos-90d",
+  { hourUTC: 6, minuteUTC: 0 }, // 1am Panamá
+  internal.asistencia.retention.purgeOldIntentos,
+  {}
+);
+crons.interval(
+  "asi-purge-facial-sessions",
+  { minutes: 15 },
+  internal.asistencia.retention.purgeExpiredFacialSessions
 );
 
 export default crons;

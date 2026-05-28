@@ -1,7 +1,8 @@
 "use node";
 
-import { action } from "../_generated/server";
+import { action, internalAction } from "../_generated/server";
 import { v } from "convex/values";
+import { internal } from "../_generated/api";
 
 // NHTSA vPIC API - gratis, sin auth.
 // Docs: https://vpic.nhtsa.dot.gov/api/
@@ -52,7 +53,7 @@ export const decodeVin = action({
       return { ok: false as const, error: `HTTP ${resp.status}` };
     }
 
-    const data: VpicResponse = await resp.json();
+    const data = await resp.json() as VpicResponse;
     const r = data.Results;
 
     const make = pick(r, "Make");
@@ -108,7 +109,7 @@ export const listAllMakes = action({
       headers: { Accept: "application/json", "User-Agent": "RMP-CMMS/1.0" },
     });
     if (!resp.ok) return { ok: false as const, error: `HTTP ${resp.status}` };
-    const data: VpicResponse & { Results: { Make_ID: number; Make_Name: string }[] } = await resp.json();
+    const data = await resp.json() as VpicResponse & { Results: { Make_ID: number; Make_Name: string }[] };
     return { ok: true as const, makes: data.Results };
   },
 });
@@ -122,7 +123,35 @@ export const getModelsForMakeYear = action({
       headers: { Accept: "application/json", "User-Agent": "RMP-CMMS/1.0" },
     });
     if (!resp.ok) return { ok: false as const, error: `HTTP ${resp.status}` };
-    const data: VpicResponse & { Results: { Model_Name: string }[] } = await resp.json();
-    return { ok: true as const, models: data.Results.map(r => r.Model_Name) };
+    const data = await resp.json() as VpicResponse & { Results: { Model_Name: string }[] };
+    return { ok: true as const, models: data.Results.map((r: any) => r.Model_Name) };
+  },
+});
+
+// Bulk sync: trae todas las marcas commercial truck (vehicleType filter)
+// y upsert en tabla makes. Idempotente.
+export const bulkSyncMakes = internalAction({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, { limit }): Promise<{ ok: true; synced: number } | { ok: false; error: string }> => {
+    const url = `${VPIC_BASE}/GetAllMakes?format=json`;
+    const resp = await fetch(url, {
+      headers: { Accept: "application/json", "User-Agent": "RMP-CMMS/1.0" },
+    });
+    if (!resp.ok) return { ok: false as const, error: `HTTP ${resp.status}` };
+    const data = await resp.json() as VpicResponse & { Results: { Make_ID: number; Make_Name: string }[] };
+    const makes = data.Results.slice(0, limit ?? 200);
+
+    let synced = 0;
+    for (const m of makes as any[]) {
+      try {
+        await ctx.runMutation(internal.makes.upsertFromCrawler, {
+          nombre: m.Make_Name,
+        });
+        synced++;
+      } catch {
+        // silently skip duplicates / errors
+      }
+    }
+    return { ok: true as const, synced };
   },
 });

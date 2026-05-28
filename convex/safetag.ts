@@ -69,11 +69,12 @@ export const fetchDevices = internalAction({
     if (Array.isArray(data)) {
       devices = data;
     } else if (data && typeof data === "object") {
-      if (data._id) {
-        devices = [data];
+      const d: any = data;
+      if (d._id) {
+        devices = [d];
       } else {
-        devices = Object.values(data).filter(
-          (v): v is SafeTagDevice => !!v && typeof v === "object" && "_id" in v
+        devices = Object.values(d).filter(
+          (v): v is SafeTagDevice => !!v && typeof v === "object" && "_id" in (v as any)
         );
       }
     }
@@ -204,15 +205,15 @@ export const updateVehicleFromSafeTag = internalMutation({
  */
 export const syncAllVehicles = action({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<any> => {
     try {
       // 1. Obtener devices desde SafeTag API
-      const devices = await ctx.runAction(internal.safetag.fetchDevices);
+      const devices: any = await ctx.runAction(internal.safetag.fetchDevices);
 
       // 2. Obtener vehículos con SafeTag configurado.
       // Usar internalQuery porque el cron corre sin identity y el query público
       // gateado por org devolvía [] (scope.organizacionId === null) → cron no-op.
-      const vehiculos = await ctx.runQuery(internal.safetag._getAllVehiclesWithSafeTagInternal);
+      const vehiculos: any = await ctx.runQuery(internal.safetag._getAllVehiclesWithSafeTagInternal);
 
       if (vehiculos.length === 0) {
         return [];
@@ -221,11 +222,11 @@ export const syncAllVehicles = action({
       const results = [];
 
       // 3. Actualizar cada vehículo
-      for (const vehiculo of vehiculos) {
+      for (const vehiculo of vehiculos as any[]) {
         try {
           // Buscar device correspondiente
           const device = devices.find(
-            (d) => d._id === vehiculo.safetag_device_id
+            (d: any) => d._id === vehiculo.safetag_device_id
           );
 
           if (!device) {
@@ -456,7 +457,7 @@ export const fetchTodayHistory = action({
   args: {
     deviceId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<any> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("No autenticado");
     // Obtener inicio y fin del día actual (UTC)

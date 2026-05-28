@@ -158,4 +158,69 @@ http.route({
   }),
 });
 
+// ─── Crawler-worker ingest endpoint (Plan v6 Fase C) ────────────────────────
+// Worker externo (VPS) puede postear batches a este endpoint para alimentar el KB.
+// Auth: Bearer token via CRAWLER_WORKER_SECRET env var en Convex deploy.
+http.route({
+  path: "/crawler/ingest",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    const secret = process.env.CRAWLER_WORKER_SECRET;
+    if (!secret) {
+      return new Response(JSON.stringify({ error: "Endpoint not configured" }), {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    const auth = request.headers.get("authorization") ?? "";
+    const provided = auth.replace(/^Bearer\s+/i, "");
+    if (provided !== secret) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    let payload: any;
+    try {
+      payload = await request.json();
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Expected payload shape:
+    // {
+    //   items: [
+    //     {
+    //       source_url, source_type, content_hash, parsed_data, confidence,
+    //       license, attribution, last_modified, etag,
+    //       make_name?, model_name?, model_year?, equipment_class?
+    //     }, ...
+    //   ]
+    // }
+    if (!Array.isArray(payload?.items)) {
+      return new Response(JSON.stringify({ error: "items must be array" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const results: any[] = [];
+    for (const item of payload.items) {
+      try {
+        const result = await ctx.runMutation(internal.crawlerIngest.ingestItem, item);
+        results.push({ ok: true, source_id: result });
+      } catch (err: any) {
+        results.push({ ok: false, error: err.message ?? String(err) });
+      }
+    }
+    return new Response(JSON.stringify({ ok: true, count: results.length, results }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  }),
+});
+
 export default http;

@@ -130,21 +130,21 @@ export const listWithDetails = query({
 
         // Solo hacer JOIN si no hay datos desnormalizados
         if (!reporte.conductor_nombre && reporte.empleado_reporta_id) {
-          const empleado = await ctx.db.get(reporte.empleado_reporta_id);
+          const empleado: any = await ctx.db.get(reporte.empleado_reporta_id);
           if (empleado) {
             conductor = `${empleado.nombre} ${empleado.apellido}`;
           }
         }
 
         if (!reporte.vehiculo_placa && reporte.vehiculo_id) {
-          const vehiculo = await ctx.db.get(reporte.vehiculo_id);
+          const vehiculo: any = await ctx.db.get(reporte.vehiculo_id);
           if (vehiculo) {
             camion = vehiculo.placa || "N/A";
           }
         }
 
         if (reporte.ruta_id) {
-          const ruta = await ctx.db.get(reporte.ruta_id);
+          const ruta: any = await ctx.db.get(reporte.ruta_id);
           if (ruta) {
             rutaNombre = ruta.nombre || "N/A";
           }

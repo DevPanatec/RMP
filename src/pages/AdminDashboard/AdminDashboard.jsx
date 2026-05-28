@@ -13,11 +13,12 @@ import RiskComponent from '../../components/Risk/RiskComponent';
 import ReportsComponent from '../../components/Reports/ReportsComponent';
 import RRHHComponent from '../../components/RRHH/RRHHComponent';
 import AsistenciaComponent from '../../components/Asistencia/AsistenciaComponent';
+import NominaComponent from '../../components/Nomina/NominaComponent';
 import GeofenceAlertPopup from '../../components/GeofenceAlert/GeofenceAlertPopup';
 import { ProjectSwitcher } from '../../components/Project';
 import { OrganizationSwitcher } from '../../components/Organization';
 import ProyectosComponent from '../../components/Proyectos';
-import { PlataformaGroup } from '../../components/SuperAdmin';
+import { PlataformaGroup, KbHealthGroup } from '../../components/SuperAdmin';
 import { useOrganization } from '../../context/OrganizationContext';
 
 import { usePersonnel } from '../../context/PersonnelContext';
@@ -37,10 +38,9 @@ import {
   BarChart3, Users, Map, LogOut, TrendingUp, CheckCircle,
   MapPin, Radio, Activity, Zap, Bell, Wrench, Leaf, Navigation, Clock, Save, Calendar,
   Satellite, Briefcase, Sparkles, Plus, X, Maximize2, Minimize2, DollarSign,
-  UserPlus, Shield, Lock, Mail, Phone, Target, Layers, Sun, Moon
+  UserPlus, Shield, Lock, Mail, Phone, Target, Layers
 } from '../../components/Icons';
 import { Badge, ProgressBar, ConfirmDialog } from '../../components/UI';
-import { useTheme } from '../../context/ThemeContext';
 import { useSafeTabNav } from '../../hooks/useModuleAccess';
 import { AlertCard, PersonnelTable, HeroStats, RealtimeActivity, RiskAlerts, UpcomingRoutes } from '../../components/Dashboard';
 import './AdminDashboard.css';
@@ -164,7 +164,6 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
   } = usePersonnel();
 
   const { signOut, user: currentUser } = useAuth();
-  const { effectiveTheme, toggleTheme } = useTheme();
 
   // Convex action to create users via Clerk Backend API
   const createUserAction = useAction(api.perfiles.createUserWithClerk);
@@ -624,7 +623,19 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             />
             <div className="core-group__content">
               {activeSubTab === 'riesgos' && <RiskComponent userType={user.tipo} />}
-              {activeSubTab === 'cronograma' && <CronogramaComponent />}
+              {activeSubTab === 'cronograma' && (
+                <CronogramaComponent
+                  onNavigateToModule={(mod) => {
+                    if (mod === 'mto') {
+                      setActiveTab('mantenimiento');
+                      setActiveSubTab(null);
+                    } else {
+                      setActiveTab('operaciones');
+                      setActiveSubTab('programacion');
+                    }
+                  }}
+                />
+              )}
               {activeSubTab === 'calendario' && <CalendarComponent />}
               {(!activeSubTab || activeSubTab === 'monitoreo') && (
           <div className="monitoring-layout">
@@ -850,12 +861,17 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
         return <AsistenciaComponent />;
       case 'rrhh':
         return <RRHHComponent />;
+      case 'nomina':
+        return <NominaComponent />;
       // admin (no super): Proyectos standalone
       case 'proyectos':
         return !isSuperAdmin ? <ProyectosComponent /> : null;
       // super_admin: PlataformaGroup agrupa Organizaciones + Proyectos
       case 'plataforma':
         return isSuperAdmin ? <PlataformaGroup /> : null;
+      // super_admin: KbHealthGroup (Fase D — Governance/Coverage/Cost)
+      case 'kb_health':
+        return isSuperAdmin ? <KbHealthGroup /> : null;
       default:
         return null;
     }
@@ -883,14 +899,6 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
               <Activity size={16} />
               <span>Sistema en Tiempo Real</span>
             </div>
-            <button
-              className="app-bar__theme-toggle"
-              onClick={toggleTheme}
-              aria-label={effectiveTheme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-              title={effectiveTheme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-            >
-              {effectiveTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
             <button className="app-bar__logout" onClick={onLogout} aria-label="Cerrar sesión">
               <LogOut size={18} />
               <span>Cerrar Sesión</span>
@@ -927,10 +935,10 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
               className={`top-nav__tab ${activeTab === 'inventario' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
               onClick={() => handleTabChange('inventario')}
               disabled={isViewer}
-              title={isViewer ? 'Sección bloqueada para tu cuenta' : 'Inventario — materiales, flota y costos'}
+              title={isViewer ? 'Sección bloqueada para tu cuenta' : 'Inventario y Flota — materiales, flota, mantenimiento vehicular y costos'}
             >
               <Package strokeWidth={1.5} size={18} />
-              <span>Inventario</span>
+              <span>Inventario y Flota</span>
               {isViewer && <Lock strokeWidth={2} size={12} />}
             </button>
           )}
@@ -941,10 +949,10 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
               className={`top-nav__tab ${activeTab === 'mantenimiento' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
               onClick={() => handleTabChange('mantenimiento')}
               disabled={isViewer}
-              title={isViewer ? 'Sección bloqueada para tu cuenta' : 'Mantenimiento — tareas técnicas de vehículos y equipos'}
+              title={isViewer ? 'Sección bloqueada para tu cuenta' : 'Mantenimiento de Sitios — tareas técnicas en lugares cliente y sus componentes'}
             >
               <Wrench strokeWidth={1.5} size={18} />
-              <span>Mantenimiento</span>
+              <span>Mantenimiento de Sitios</span>
               {isViewer && <Lock strokeWidth={2} size={12} />}
             </button>
           )}
@@ -991,6 +999,20 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             </button>
           )}
 
+          {/* Nómina: requiere NOM + ASI + RRHH (validación final en NominaComponent) */}
+          {hasModulo('NOM') && (
+            <button
+              className={`top-nav__tab ${activeTab === 'nomina' ? 'active' : ''} ${isViewer ? 'tab-locked' : ''}`}
+              onClick={() => handleTabChange('nomina')}
+              disabled={isViewer}
+              title={isViewer ? 'Sección bloqueada para tu cuenta' : 'Nómina bruta Panamá'}
+            >
+              <DollarSign strokeWidth={1.5} size={18} />
+              <span>Nómina</span>
+              {isViewer && <Lock strokeWidth={2} size={12} />}
+            </button>
+          )}
+
           {/* Proyectos: solo para admin (no super_admin — super ve Plataforma que lo incluye) */}
           {!isSuperAdmin && (userRole === 'admin') && (
             <button
@@ -1011,6 +1033,18 @@ const AdminDashboard = ({ user, onLogout, userRole = 'admin' }) => {
             >
               <Shield strokeWidth={1.5} size={18} />
               <span>Plataforma</span>
+            </button>
+          )}
+
+          {/* KB Health: Governance + Coverage + Costs (super_admin, Fase D) */}
+          {isSuperAdmin && (
+            <button
+              className={`top-nav__tab ${activeTab === 'kb_health' ? 'active' : ''}`}
+              onClick={() => handleTabChange('kb_health')}
+              title="KB Health — Governance, Coverage, Costs (super_admin)"
+            >
+              <TrendingUp strokeWidth={1.5} size={18} />
+              <span>KB Health</span>
             </button>
           )}
         </nav>

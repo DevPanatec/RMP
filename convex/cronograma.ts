@@ -135,6 +135,7 @@ async function buildEvents(
           ? `${r.conductor_nombre}${r.vehiculo_placa ? ` · ${r.vehiculo_placa}` : ""}`
           : r.vehiculo_placa,
         metadata: {
+          source: "report",
           tipo_ruta: r.tipo_ruta,
           paradas: Array.isArray(r.paradas_completadas) ? r.paradas_completadas.length : 0,
           tiempo_total_segundos: r.tiempo_total_segundos,
@@ -189,6 +190,7 @@ async function buildEvents(
           ? `${a.conductor_nombre}${vehiculo?.placa ? ` · ${vehiculo.placa}` : ""}`
           : vehiculo?.placa,
         metadata: {
+          source: "assignment",
           asignacion_id: a._id,
           hora_inicio: a.hora_inicio,
           hora_fin: a.hora_fin,
@@ -241,6 +243,7 @@ async function buildEvents(
         label,
         sublabel: r.usuario_completo,
         metadata: {
+          source: "report",
           duracion_minutos: r.duracion_minutos,
           assignment_id: r.assignment_id,
         },
@@ -275,6 +278,7 @@ async function buildEvents(
         label: sala?.nombre || "Limpieza",
         sublabel: a.hora,
         metadata: {
+          source: "assignment",
           assignment_id: a._id,
           estado: a.estado,
         },
@@ -304,6 +308,7 @@ async function buildEvents(
         label: r.lugar_nombre,
         sublabel: `${r.tipo_fumigacion} · ${r.usuario_completo}`,
         metadata: {
+          source: "report",
           tipo_fumigacion: r.tipo_fumigacion,
           duracion_minutos: r.duracion_minutos,
           assignment_id: r.assignment_id,
@@ -338,6 +343,7 @@ async function buildEvents(
         label: lugar?.nombre || "Fumigación",
         sublabel: `${a.tipo_fumigacion} · ${a.horario_inicio}`,
         metadata: {
+          source: "assignment",
           assignment_id: a._id,
           tipo_fumigacion: a.tipo_fumigacion,
           estado: a.estado,
@@ -369,6 +375,7 @@ async function buildEvents(
           ? `${r.tipo} · ${r.vehiculo_placa}`
           : r.tipo,
         metadata: {
+          source: "report",
           tipo: r.tipo,
           prioridad: r.prioridad,
           costo: r.costo,
@@ -413,6 +420,7 @@ async function buildEvents(
         label: t.titulo,
         sublabel: veh?.placa ? `${t.tipo} · ${veh.placa}` : t.tipo,
         metadata: {
+          source: "assignment",
           task_id: t._id,
           tipo: t.tipo,
           prioridad: t.prioridad,
@@ -422,8 +430,15 @@ async function buildEvents(
     }
   }
 
-  events.sort((a, b) => a.timestamp - b.timestamp);
-  return events;
+  // LIM/FUM/MTO se registran post-facto (no se programan ahead-of-time como REC).
+  // Cronograma solo muestra eventos completados para esos 3 módulos; scheduled/
+  // in_progress/overdue quedaba como ruido de asignaciones huérfanas.
+  const cleaned = events.filter(
+    (e) => e.module === "rec" || e.status === "completed"
+  );
+
+  cleaned.sort((a, b) => a.timestamp - b.timestamp);
+  return cleaned;
 }
 
 // ============================================================

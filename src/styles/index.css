@@ -327,125 +327,6 @@
   --enterprise-icon-size-lg: 24px;             /* Large icons (maximum) */
 }
 
-/* ============================================
-   DARK MODE TOKENS — manual via [data-theme="dark"]
-   ============================================ */
-:root[data-theme="dark"] {
-  /* Surfaces */
-  --color-background: #0a0a0f;
-  --color-surface: #18181b;
-  --color-surface-secondary: #27272a;
-  --color-surface-elevated: #1f1f23;
-  --color-surface-acrylic: rgba(24, 24, 27, 0.85);
-
-  /* Text */
-  --color-text: #f4f4f5;
-  --color-text-secondary: #a1a1aa;
-  --color-text-tertiary: #71717a;
-  --color-text-muted: #52525b;
-
-  /* Borders */
-  --color-border: rgba(255, 255, 255, 0.10);
-  --color-border-strong: rgba(255, 255, 255, 0.18);
-  --color-divider: rgba(255, 255, 255, 0.06);
-  --color-hover-overlay: rgba(255, 255, 255, 0.05);
-  --color-active-overlay: rgba(255, 255, 255, 0.10);
-
-  /* Primary — invert for visibility on dark bg (used as TEXT color only) */
-  --color-primary: #e2e8f0;
-  --color-primary-hover: #cbd5e1;
-  --color-primary-active: #f8fafc;
-  --color-primary-dark: #94a3b8;
-  --color-primary-light: #cbd5e1;
-  --color-primary-subtle: rgba(226, 232, 240, 0.10);
-  --color-text-on-primary: #0f172a;   /* Dark text on light-primary bg */
-
-  /* ACTION TOKENS dark mode — mismo emerald que light mode (--color-success
-     no se invierte). Mantiene consistencia visual con badges de Monitoreo. */
-  --color-action-bg: #10b981;            /* Emerald 500 - matches success */
-  --color-action-bg-hover: #34d399;      /* Emerald 400 - hover lighter en dark pa' feedback */
-  --color-action-bg-active: #059669;     /* Emerald 600 - pressed */
-  --color-action-bg-disabled: #52525b;   /* Zinc 600 disabled */
-  --color-on-action: #ffffff;            /* White SIEMPRE — alto contraste */
-  --color-accent: #10b981;
-  --color-accent-light: rgba(16, 185, 129, 0.18);
-  --color-accent-border: rgba(16, 185, 129, 0.40);
-
-  /* System colors — slightly softer for dark mode */
-  --color-error-light: rgba(239, 68, 68, 0.18);
-  --color-success-light: rgba(16, 185, 129, 0.18);
-  --color-warning-light: rgba(245, 158, 11, 0.18);
-  --color-info-light: rgba(59, 130, 246, 0.18);
-
-  /* Shadows — invertir intensidad pa' dark */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.30);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.40), 0 1px 2px rgba(0, 0, 0, 0.30);
-  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.40), 0 8px 16px rgba(0, 0, 0, 0.30);
-  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.50), 0 16px 32px rgba(0, 0, 0, 0.40);
-
-  /* White-alpha tokens — invertir a dark-alpha pa' borders/highlights sutiles */
-  --color-white-alpha-15: rgba(255, 255, 255, 0.06);
-  --color-white-alpha-25: rgba(255, 255, 255, 0.10);
-
-  /* Alpha highlight (originalmente blanco con opacity) — invertir en dark mode */
-  --alpha-highlight-faint: rgba(255, 255, 255, 0.03);
-  --alpha-highlight-soft: rgba(255, 255, 255, 0.05);
-  --alpha-highlight-base: rgba(255, 255, 255, 0.06);
-  --alpha-highlight-light: rgba(255, 255, 255, 0.08);
-  --alpha-highlight-medium: rgba(255, 255, 255, 0.12);
-  --alpha-highlight-strong: rgba(255, 255, 255, 0.16);
-  --alpha-highlight-heavy: rgba(255, 255, 255, 0.22);
-}
-
-/* Auto-honor system preference si no hay data-theme explícito */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) {
-    --color-background: #0a0a0f;
-    --color-surface: #18181b;
-    --color-surface-secondary: #27272a;
-    --color-surface-elevated: #1f1f23;
-    --color-surface-acrylic: rgba(24, 24, 27, 0.85);
-    --color-text: #f4f4f5;
-    --color-text-secondary: #a1a1aa;
-    --color-text-tertiary: #71717a;
-    --color-text-muted: #52525b;
-    --color-border: rgba(255, 255, 255, 0.10);
-    --color-border-strong: rgba(255, 255, 255, 0.18);
-    --color-divider: rgba(255, 255, 255, 0.06);
-    --color-hover-overlay: rgba(255, 255, 255, 0.05);
-    --color-active-overlay: rgba(255, 255, 255, 0.10);
-    --color-primary: #e2e8f0;
-    --color-primary-hover: #cbd5e1;
-    --color-primary-active: #f8fafc;
-    --color-primary-dark: #94a3b8;
-    --color-primary-light: #cbd5e1;
-    --color-primary-subtle: rgba(226, 232, 240, 0.10);
-    --color-text-on-primary: #0f172a;
-    --color-action-bg: #10b981;
-    --color-action-bg-hover: #34d399;
-    --color-action-bg-active: #059669;
-    --color-action-bg-disabled: #52525b;
-    --color-on-action: #ffffff;
-    --color-accent: #10b981;
-    --color-accent-light: rgba(16, 185, 129, 0.18);
-    --color-accent-border: rgba(16, 185, 129, 0.40);
-    --color-error-light: rgba(239, 68, 68, 0.18);
-    --color-success-light: rgba(16, 185, 129, 0.18);
-    --color-warning-light: rgba(245, 158, 11, 0.18);
-    --color-info-light: rgba(59, 130, 246, 0.18);
-    --color-white-alpha-15: rgba(255, 255, 255, 0.06);
-    --color-white-alpha-25: rgba(255, 255, 255, 0.10);
-    --alpha-highlight-faint: rgba(255, 255, 255, 0.03);
-    --alpha-highlight-soft: rgba(255, 255, 255, 0.05);
-    --alpha-highlight-base: rgba(255, 255, 255, 0.06);
-    --alpha-highlight-light: rgba(255, 255, 255, 0.08);
-    --alpha-highlight-medium: rgba(255, 255, 255, 0.12);
-    --alpha-highlight-strong: rgba(255, 255, 255, 0.16);
-    --alpha-highlight-heavy: rgba(255, 255, 255, 0.22);
-  }
-}
-
-
 /* Base styles */
 html {
   font-size: 16px;
@@ -453,18 +334,10 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  color-scheme: light dark;
+  color-scheme: light;
   font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
   scroll-behavior: smooth;
   background: var(--color-background);
-}
-
-:root[data-theme="dark"] {
-  color-scheme: dark;
-}
-
-:root[data-theme="light"] {
-  color-scheme: light;
 }
 
 body {

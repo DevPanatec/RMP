@@ -43,7 +43,7 @@ export const search = query({
     let qb = ctx.db
       .query("models")
       .withSearchIndex("search_nombre", q => {
-        if (args.make_id) return q.search("nombre", args.query).eq("make_id", args.make_id);
+        if (args.make_id) return (q.search("nombre", args.query) as any).eq("make_id", args.make_id);
         return q.search("nombre", args.query);
       });
     const results = await qb.take(args.limit ?? 15);
@@ -132,11 +132,155 @@ export const promoteToGlobal = mutation({
   handler: async (ctx, { id }) => {
     const scope = await requireAdminWrite(ctx);
     if (!scope.isSuperAdmin) throw new Error("Solo super_admin");
+
+    const before = await ctx.db.get(id);
+    if (!before) throw new Error("Model no existe");
+
     await ctx.db.patch(id, {
       visibility: "global",
       organizacion_id: undefined,
       validated: true,
     });
+
+    // Audit log
+    await ctx.db.insert("kb_audit_log", {
+      event: "promote_to_global",
+      entity_type: "model",
+      entity_id: id as unknown as string,
+      before_state: {
+        visibility: before.visibility,
+        organizacion_id: before.organizacion_id,
+        validated: before.validated,
+      },
+      after_state: { visibility: "global", organizacion_id: undefined, validated: true },
+      user_id: scope.perfil!.userId,
+      source: "user_action",
+      timestamp: Date.now(),
+      organizacion_id: before.organizacion_id,
+    });
+  },
+});
+
+// Busca modelos similares a un vehiculo dado. Usa fuzzy contains + año más cercano.
+// Retorna candidatos ordenados por similarity score (0-1).
+export const findSimilar = query({
+  args: {
+    marca: v.string(),
+    modelo: v.string(),
+    anio: v.optional(v.number()),
+    equipment_class: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    if (!scope.perfil) return [];
+
+    // Resolver make
+    const slug = args.marca.toLowerCase().trim().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    const make = await ctx.db
+      .query("makes")
+      .withIndex("by_slug", q => q.eq("slug", slug))
+      .first();
+    if (!make) return [];
+
+    const allModels = await ctx.db
+      .query("models")
+      .withIndex("by_make", q => q.eq("make_id", make._id))
+      .collect();
+
+    const target = args.modelo.toLowerCase().trim();
+    const candidates: any[] = [];
+    for (const m of allModels) {
+      // Scope filter
+      if (m.visibility === "private_org" && m.organizacion_id !== scope.organizacionId && !scope.isSuperAdmin) {
+        continue;
+      }
+      if (args.equipment_class && m.equipment_class !== args.equipment_class) continue;
+
+      const mName = m.nombre.toLowerCase().trim();
+      let score = 0;
+      if (mName === target) score = 1.0;
+      else if (mName.includes(target) || target.includes(mName)) score = 0.7;
+      else {
+        // Levenshtein-lite: primer palabra match
+        const targetFirst = target.split(" ")[0];
+        const mFirst = mName.split(" ")[0];
+        if (targetFirst === mFirst) score = 0.5;
+      }
+      if (score === 0) continue;
+
+      // Buscar años disponibles
+      const years = await ctx.db
+        .query("model_years")
+        .withIndex("by_model", q => q.eq("model_id", m._id))
+        .collect();
+      let bestYear = null;
+      let yearDelta = Infinity;
+      if (args.anio && years.length > 0) {
+        for (const y of years) {
+          const d = Math.abs(y.year - args.anio);
+          if (d < yearDelta) {
+            yearDelta = d;
+            bestYear = y;
+          }
+        }
+      } else if (years.length > 0) {
+        bestYear = years[0];
+      }
+
+      // Adjustar score por proximidad de año
+      if (args.anio && yearDelta !== Infinity) {
+        if (yearDelta === 0) score += 0.0;
+        else if (yearDelta <= 2) score -= 0.05;
+        else if (yearDelta <= 5) score -= 0.15;
+        else score -= 0.25;
+      }
+
+      candidates.push({
+        model: m,
+        make_nombre: make.nombre,
+        best_year: bestYear,
+        year_delta: yearDelta === Infinity ? null : yearDelta,
+        similarity_score: Math.max(0, score),
+      });
+    }
+    candidates.sort((a, b) => b.similarity_score - a.similarity_score);
+    return candidates.slice(0, args.limit ?? 5);
+  },
+});
+
+// Lista modelos elegibles para promotion a global (solo super_admin).
+// Criterio: validated=true + visibility=private_org + tienen >=1 vehiculo asociado.
+export const listPendingPromotion = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const scope = await getAuthScope(ctx);
+    if (!scope.perfil || !scope.isSuperAdmin) return [];
+    const candidates = await ctx.db
+      .query("models")
+      .withIndex("by_visibility", q => q.eq("visibility", "private_org"))
+      .collect();
+
+    // Enriquecer con make + count de vehiculos
+    const result: any[] = [];
+    for (const m of candidates) {
+      if (!m.validated) continue;
+      const make = await ctx.db.get(m.make_id);
+      // Contar vehiculos que usan este modelo (across all orgs)
+      const allVeh = await ctx.db.query("vehiculos").collect();
+      const vehCount = allVeh.filter(v =>
+        v.modelo?.toLowerCase().trim() === m.nombre.toLowerCase().trim() &&
+        v.marca?.toLowerCase().trim() === make?.nombre.toLowerCase().trim()
+      ).length;
+      if (vehCount === 0) continue;
+      result.push({
+        ...m,
+        make_nombre: make?.nombre ?? "?",
+        vehicle_count: vehCount,
+      });
+    }
+    result.sort((a, b) => b.vehicle_count - a.vehicle_count);
+    return result.slice(0, args.limit ?? 50);
   },
 });
 

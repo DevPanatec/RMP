@@ -238,7 +238,7 @@ export const getStats = query({
   args: { proyecto_id: v.optional(v.id("proyectos")) },
   handler: async (ctx, args) => {
     const scoped = await getScopedProjectId(ctx, args.proyecto_id ?? null);
-    let rutas;
+    let rutas: any[];
     if (scoped) {
       rutas = await ctx.db.query("rutas").withIndex("by_proyecto", (q) => q.eq("proyecto_id", scoped)).collect();
     } else {

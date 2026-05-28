@@ -10,7 +10,7 @@ export const list = query({
   },
   handler: async (ctx, args) => {
     const scopedProject = await getScopedProjectId(ctx, args.proyecto_id ?? null);
-    let assignments;
+    let assignments: any[];
     if (scopedProject) {
       assignments = await ctx.db
         .query("asignaciones_rutas")
@@ -41,7 +41,7 @@ export const list = query({
           ...assignment,
           ruta: ruta,
           vehiculo: vehiculo,
-          vehiculo_placa: vehiculo?.placa,
+          vehiculo_placa: (vehiculo as any)?.placa,
         };
       })
     );

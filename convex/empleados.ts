@@ -26,14 +26,21 @@ function stripPII(rows: any[], scope: { isSuperAdmin: boolean; isAdmin: boolean 
       activo: e.activo,
       organizacion_id: e.organizacion_id,
       proyecto_id: e.proyecto_id,
+      // ASI flags — no son PII, útiles pa' UI
+      tiene_facial: e.tiene_facial ?? false,
+      puede_marcar: e.puede_marcar ?? true,
     };
     if (scope.isSuperAdmin || scope.isAdmin) {
       base.cedula = e.cedula;
       base.telefono = e.telefono;
       base.fecha_nacimiento = e.fecha_nacimiento;
       base.direccion = e.direccion;
+      // Solo admins ven si el empleado tiene PIN configurado
+      base.tiene_pin = !!e.pin_hash;
     }
-    if (scope.isSuperAdmin) {
+    // Salario visible a super_admin Y admin de la org (necesario pa' módulo RRHH).
+    // Enterprise/viewer/conductor NO ven monto.
+    if (scope.isSuperAdmin || scope.isAdmin) {
       base.salario = e.salario;
     }
     return base;

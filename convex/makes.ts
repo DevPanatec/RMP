@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { internalMutation, internalQuery, query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthScope, requireAdminWrite } from "./lib/auth";
 
@@ -108,5 +108,42 @@ export const validate = mutation({
       throw new Error("Solo super_admin puede validar marcas globales");
     }
     await ctx.db.patch(id, { validated: true });
+  },
+});
+
+// Internal getter (sin auth) — usado por actions del crawler/enrichment.
+export const getInternal = internalQuery({
+  args: { id: v.id("makes") },
+  handler: async (ctx, { id }) => {
+    return await ctx.db.get(id);
+  },
+});
+
+// Internal: usada por crawler. Upsert sin auth check (caller debe estar autenticado upstream).
+export const upsertFromCrawler = internalMutation({
+  args: {
+    nombre: v.string(),
+    oem_website: v.optional(v.string()),
+    paises_disponibles: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, args) => {
+    const slug = slugify(args.nombre);
+    const existing = await ctx.db
+      .query("makes")
+      .withIndex("by_slug", q => q.eq("slug", slug))
+      .first();
+    if (existing) {
+      if (args.oem_website && !existing.oem_website) {
+        await ctx.db.patch(existing._id, { oem_website: args.oem_website });
+      }
+      return existing._id;
+    }
+    return await ctx.db.insert("makes", {
+      nombre: args.nombre,
+      slug,
+      oem_website: args.oem_website,
+      paises_disponibles: args.paises_disponibles,
+      validated: false, // crawler-sourced no es validated por default
+    });
   },
 });

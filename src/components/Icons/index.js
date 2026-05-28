@@ -44,6 +44,7 @@ export {
   TrendingUp,
   TrendingDown,
   Download,
+  Printer,
   Activity,
   Zap,
   Fuel,

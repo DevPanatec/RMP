@@ -1,3 +1,9 @@
 export { default as PlataformaPanel } from './PlataformaPanel';
 export { default as OrgDetailDrawer } from './OrgDetailDrawer';
 export { default as PlataformaGroup } from './PlataformaGroup';
+export { default as KbHealthGroup } from './KbHealthGroup';
+export { default as KbGovernance } from './KbGovernance';
+export { default as CoverageDashboard } from './CoverageDashboard';
+export { default as CostAnalytics } from './CostAnalytics';
+export { default as IngestionCurator } from './IngestionCurator';
+export { default as QueueStatus } from './QueueStatus';

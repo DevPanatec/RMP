@@ -463,7 +463,7 @@ export const getReportById = query({
     const getPhotosWithUrls = async (photoIds: any[]) => {
       return await Promise.all(
         (photoIds || []).map(async (photoId) => {
-          const photo = await ctx.db.get(photoId);
+          const photo: any = await ctx.db.get(photoId);
           if (!photo) return null;
           const url = await ctx.storage.getUrl(photo.storage_id);
           return {
@@ -494,7 +494,7 @@ export const getReportsByVehiculo = query({
     if (!scope.isSuperAdmin && !scope.isCrossOrgViewer) {
       const vehiculo = await ctx.db.get(args.vehiculo_id);
       if (!vehiculo) return [];
-      if (!scope.organizacionId || scope.organizacionId !== vehiculo.organizacion_id) throw new Error("Acceso denegado");
+      if (!scope.organizacionId || scope.organizacionId !== (vehiculo as any).organizacion_id) throw new Error("Acceso denegado");
     }
     return await ctx.db
       .query("maintenance_reports")
@@ -541,7 +541,7 @@ export const listReportsWithPhotos = query({
     const getPhotosWithUrls = async (photoIds: any[]) => {
       return await Promise.all(
         (photoIds || []).map(async (photoId) => {
-          const photo = await ctx.db.get(photoId);
+          const photo: any = await ctx.db.get(photoId);
           if (!photo) return null;
           const url = await ctx.storage.getUrl(photo.storage_id);
           return {

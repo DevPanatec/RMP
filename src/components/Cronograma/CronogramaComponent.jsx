@@ -9,8 +9,13 @@ import CronogramaGrid from './CronogramaGrid';
 import CronogramaHeatmap from './CronogramaHeatmap';
 import CronogramaYearHeatmap from './CronogramaYearHeatmap';
 import CronogramaDayDetail from './CronogramaDayDetail';
+import CronogramaAssignmentDetail from './CronogramaAssignmentDetail';
 import CronogramaLegend from './CronogramaLegend';
 import CronogramaSkeleton from './CronogramaSkeleton';
+import RouteReportDetailModal from '../Reports/RouteReportDetailModal';
+import MaintenanceReportDetailModal from '../Reports/MaintenanceReportDetailModal';
+import CleaningReportDetailModal from '../Cleaning/ReportDetailModal';
+import FumigationReportDetailModal from '../Fumigation/FumigationReportDetailModal';
 import { Clock, Sparkles } from '../Icons';
 import './Cronograma.css';
 
@@ -63,13 +68,15 @@ const addYears = (ms, n) => {
 
 const DEFAULT_FILTERS = { rec: true, lim: true, fum: true, mto: true };
 
-const CronogramaComponent = () => {
+const CronogramaComponent = ({ onNavigateToModule }) => {
   const { currentOrgId } = useOrganization();
   const { currentProjectId } = useProject();
   const [viewMode, setViewMode] = useState('month');
   const [anchorMs, setAnchorMs] = useState(() => Date.now());
   const [moduleFilters, setModuleFilters] = useState(DEFAULT_FILTERS);
   const [detailCell, setDetailCell] = useState(null);
+  // selectedEvent: null | { event: CronogramaEvent } — drives modal routing
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   const { rangeStart, rangeEnd } = useMemo(() => {
     if (viewMode === 'week') {
@@ -121,6 +128,57 @@ const CronogramaComponent = () => {
         }
       : 'skip'
   );
+
+  // ============ Modal routing for completed events ============
+  // Status alone isn't enough: an assignment with estado=completada also gets
+  // status='completed' but its event.id is synthetic (not a real report _id).
+  // Use metadata.source to discriminate: 'report' → open report modal;
+  // 'assignment' (including those with status=completed) → open compact modal.
+  const isReportEvent =
+    selectedEvent?.event.status === 'completed' &&
+    selectedEvent.event.metadata?.source === 'report';
+  const selMod = selectedEvent?.event.module;
+
+  const selectedRouteReport = useQuery(
+    api.route_reports.getById,
+    isReportEvent && selMod === 'rec'
+      ? { id: selectedEvent.event.id }
+      : 'skip'
+  );
+
+  const selectedCleaningAssignment = useQuery(
+    api.cleaning.getAssignmentByIdEnriched,
+    isReportEvent && selMod === 'lim' && selectedEvent.event.metadata?.assignment_id
+      ? { id: selectedEvent.event.metadata.assignment_id }
+      : 'skip'
+  );
+
+  const selectedFumigationAssignment = useQuery(
+    api.fumigaciones.getById,
+    isReportEvent && selMod === 'fum' && selectedEvent.event.metadata?.assignment_id
+      ? { id: selectedEvent.event.metadata.assignment_id }
+      : 'skip'
+  );
+
+  // Maintenance modal does its own fetch using initialReport._id
+  const closeEventModal = () => setSelectedEvent(null);
+
+  const handleEventClick = (event) => {
+    setSelectedEvent({ event });
+  };
+
+  // Cleaning modal expects a transformed shape with rawAssignment + lugar + area as strings
+  const cleaningReportShape = useMemo(() => {
+    if (!selectedCleaningAssignment) return null;
+    return {
+      id: selectedCleaningAssignment._id,
+      fecha: selectedCleaningAssignment.fecha,
+      hora: selectedCleaningAssignment.hora,
+      sala: selectedCleaningAssignment.lugar?.nombre || '',
+      area: selectedCleaningAssignment.area?.nombre || '',
+      rawAssignment: selectedCleaningAssignment,
+    };
+  }, [selectedCleaningAssignment]);
 
   const handlePrev = () =>
     setAnchorMs((ms) => {
@@ -241,6 +299,54 @@ const CronogramaComponent = () => {
           events={detailQuery?.mode === 'detail' ? detailQuery.events : null}
           loading={detailQuery === undefined}
           onClose={() => setDetailCell(null)}
+          onEventClick={handleEventClick}
+        />
+      )}
+
+      {/* Assignment-sourced events (incl. those with estado=completada) → compact modal */}
+      {selectedEvent && !isReportEvent && (
+        <CronogramaAssignmentDetail
+          event={selectedEvent.event}
+          onClose={closeEventModal}
+          onNavigateToModule={onNavigateToModule}
+        />
+      )}
+
+      {/* Report-sourced events → reuse per-module detail modals */}
+      {selectedEvent && isReportEvent && selMod === 'rec' && selectedRouteReport && (
+        <RouteReportDetailModal
+          report={selectedRouteReport}
+          onClose={closeEventModal}
+        />
+      )}
+
+      {selectedEvent && isReportEvent && selMod === 'mto' && (
+        <MaintenanceReportDetailModal
+          report={{ _id: selectedEvent.event.id }}
+          onClose={closeEventModal}
+        />
+      )}
+
+      {selectedEvent && isReportEvent && selMod === 'lim' && cleaningReportShape && (
+        <CleaningReportDetailModal
+          isOpen
+          report={cleaningReportShape}
+          location={selectedCleaningAssignment?.lugar}
+          onClose={closeEventModal}
+        />
+      )}
+
+      {selectedEvent && isReportEvent && selMod === 'fum' && selectedFumigationAssignment && (
+        <FumigationReportDetailModal
+          isOpen
+          assignment={selectedFumigationAssignment}
+          location={{
+            _id: selectedFumigationAssignment.lugar_id,
+            nombre: selectedFumigationAssignment.lugar_nombre,
+            latitud: selectedFumigationAssignment.latitud,
+            longitud: selectedFumigationAssignment.longitud,
+          }}
+          onClose={closeEventModal}
         />
       )}
     </div>

@@ -208,8 +208,8 @@ export const getUnviewedAlerts = query({
 
     return await Promise.all(
       limited.map(async (alert) => {
-        const vehicle = await ctx.db.get(alert.vehiculo_id);
-        const geofence = alert.geofence_id ? await ctx.db.get(alert.geofence_id) : null;
+        const vehicle: any = await ctx.db.get(alert.vehiculo_id);
+        const geofence: any = alert.geofence_id ? await ctx.db.get(alert.geofence_id) : null;
         return {
           ...alert,
           vehiculo_placa: vehicle?.placa || "Desconocido",
@@ -242,8 +242,8 @@ export const getRecentAlerts = query({
 
     return await Promise.all(
       limited.map(async (alert) => {
-        const vehicle = await ctx.db.get(alert.vehiculo_id);
-        const geofence = alert.geofence_id ? await ctx.db.get(alert.geofence_id) : null;
+        const vehicle: any = await ctx.db.get(alert.vehiculo_id);
+        const geofence: any = alert.geofence_id ? await ctx.db.get(alert.geofence_id) : null;
         return {
           ...alert,
           vehiculo_placa: vehicle?.placa || "Desconocido",

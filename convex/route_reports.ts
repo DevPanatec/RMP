@@ -27,6 +27,19 @@ export const list = query({
   },
 });
 
+export const getById = query({
+  args: { id: v.id("route_reports") },
+  handler: async (ctx, args) => {
+    const report = await ctx.db.get(args.id);
+    if (!report) return null;
+    const scope = await getAuthScope(ctx);
+    if (scope.isSuperAdmin || scope.isCrossOrgViewer) return report;
+    if (!scope.organizacionId) return null;
+    if (report.organizacion_id !== scope.organizacionId) return null;
+    return report;
+  },
+});
+
 export const add = mutation({
   args: {
     ruta_id: v.optional(v.id("rutas")),
