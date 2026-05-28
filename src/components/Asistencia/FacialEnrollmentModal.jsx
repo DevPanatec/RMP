@@ -39,6 +39,7 @@ const FacialEnrollmentModal = ({ empleado, onClose, onComplete }) => {
   const [captured, setCaptured] = useState([]); // [{ pose, embedding, blob, quality }]
   const [liveScore, setLiveScore] = useState(null); // live detection feedback
   const [enrolling, setEnrolling] = useState(false);
+  const [streamReady, setStreamReady] = useState(false); // trigger pa' attach effect
 
   const enrollMut = useMutation(api.asistencia.facial.enrollEmpleado);
   const uploadUrlMut = useMutation(api.asistencia.facial.generateEnrollmentUploadUrl);
@@ -46,16 +47,29 @@ const FacialEnrollmentModal = ({ empleado, onClose, onComplete }) => {
 
   const [retryNonce, setRetryNonce] = useState(0); // pa' re-disparar init en reintento
 
-  // Init: cargar Human (dynamic import) + cámara
+  // Init: cargar Human (dynamic import) + pedir cámara.
+  // NO attacha al video element acá — el <video> aún no existe en DOM (phase=init).
+  // El attach lo hace un useEffect separado cuando phase=ready (DOM listo) Y streamRef existe.
   useEffect(() => {
     let canceled = false;
     (async () => {
       try {
         setPhase('init');
         setErrorMsg('');
+        setStreamReady(false);
+
+        // Pre-check: getUserMedia requiere secure context (https o localhost)
+        if (typeof window !== 'undefined' && !window.isSecureContext) {
+          throw new Error('La cámara requiere HTTPS (o localhost). Esta página no es secure context.');
+        }
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error('Cámara no soportada por este navegador.');
+        }
+
         const lib = await loadFacialLib();
         humanRef.current = await lib.initHuman();
         if (canceled) return;
+
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
           audio: false,
@@ -65,15 +79,23 @@ const FacialEnrollmentModal = ({ empleado, onClose, onComplete }) => {
           return;
         }
         streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          // play() puede fallar sin user-gesture en iOS Safari — capturar y mostrar retry
-          await videoRef.current.play();
-        }
-        setPhase('ready');
+        setPhase('ready');           // ahora React renderiza el <video>
+        setStreamReady(true);        // dispara attach effect
       } catch (e) {
         if (canceled) return;
-        setErrorMsg(e.message || 'No se pudo iniciar la cámara');
+        // Mensajes específicos pa' los errores comunes de getUserMedia
+        const name = e?.name ?? '';
+        let msg = e.message || 'No se pudo iniciar la cámara';
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+          msg = 'Permiso de cámara denegado. Habilítalo desde la barra del navegador y reintenta.';
+        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+          msg = 'No se encontró cámara en este dispositivo.';
+        } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+          msg = 'La cámara está siendo usada por otra app. Cerrá Zoom/Teams/etc y reintenta.';
+        } else if (name === 'OverconstrainedError') {
+          msg = 'La cámara no soporta la resolución pedida.';
+        }
+        setErrorMsg(msg);
         setPhase('error');
       }
     })();
@@ -84,6 +106,19 @@ const FacialEnrollmentModal = ({ empleado, onClose, onComplete }) => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retryNonce]);
+
+  // Attach stream al <video> cuando ambos existen (video element y stream).
+  // Este es el fix clave: antes intentábamos attach antes que el <video> existiera en DOM.
+  useEffect(() => {
+    if (!streamReady || !videoRef.current || !streamRef.current) return;
+    videoRef.current.srcObject = streamRef.current;
+    // play() requiere user-gesture en iOS Safari. Si falla, modal queda en ready
+    // pero usuario verá overlay "Tap para activar cámara" (capturado en el catch).
+    videoRef.current.play().catch((err) => {
+      console.warn('[facial] video.play() falló (iOS sin gesture?):', err);
+      setErrorMsg('Toca el botón para activar la cámara.');
+    });
+  }, [streamReady, phase]);
 
   // Live detection loop — solo pa' UX feedback (quality bar, cara detectada)
   useEffect(() => {
