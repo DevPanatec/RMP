@@ -468,7 +468,10 @@ const KioskoApp = () => {
         {state === 'matched' && matched && (
           <MatchedCard
             matched={matched}
-            jornada={stateCtx?.jornadasHoy?.[matched.empleado._id]}
+            // En test mode, ignoramos jornada real → siempre se muestran los 4 tipos
+            // pa' que el usuario pueda probar todos sin filtros.
+            jornada={testMode ? undefined : stateCtx?.jornadasHoy?.[matched.empleado._id]}
+            allTiposVisible={testMode}
             autoConfirmSecs={empleadosCtx.zona.auto_confirm_segundos ?? 5}
             onConfirm={handleConfirm}
             onCancel={handleCancel}
@@ -514,9 +517,13 @@ const KioskoApp = () => {
 
 // ─── Sub-componentes ────────────────────────────────────────────────
 
-const MatchedCard = ({ matched, jornada, autoConfirmSecs, onConfirm, onCancel }) => {
+const MatchedCard = ({ matched, jornada, allTiposVisible = false, autoConfirmSecs, onConfirm, onCancel }) => {
   // Filtra los tipos según estado de jornada — el primero es el sugerido.
-  const tiposValidos = useMemo(() => getTiposValidos(jornada), [jornada]);
+  // allTiposVisible (test mode) bypassa el filtro → siempre los 4 tipos.
+  const tiposValidos = useMemo(
+    () => (allTiposVisible ? TIPO_MARCA_ORDER : getTiposValidos(jornada)),
+    [jornada, allTiposVisible],
+  );
   const sugerido = tiposValidos[0] ?? null;
   const dayComplete = tiposValidos.length === 0;
 
