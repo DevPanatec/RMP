@@ -375,8 +375,13 @@ const VehicleMarker = memo(({ vehicle, isSelected, onClick, onHover }) => {
         {/* Status indicator */}
         <div className={`status-indicator status-${movementStatus}`} />
 
-        {/* Plate label */}
-        <div className="plate-label">{vehicle.placa || vehicle.id}</div>
+        {/* Plate label — contra-rota pa' quedar siempre horizontal sin importar curso del vehículo */}
+        <div
+          className="plate-label"
+          style={{ transform: `translateX(-50%) rotate(${-rotation}deg)` }}
+        >
+          {vehicle.placa || vehicle.id}
+        </div>
       </div>
     </Marker>
   );

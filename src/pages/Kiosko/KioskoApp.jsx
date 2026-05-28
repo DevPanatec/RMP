@@ -28,9 +28,14 @@ const MIN_LIVENESS_PASSIVE = 0.6;
 // matchea contra TODOS los empleados de la zone. Nueva mutation pa' eso.
 
 const KioskoApp = () => {
-  const token = useMemo(() => {
+  const { token, testMode } = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('token') ?? '';
+    return {
+      token: params.get('token') ?? '',
+      // ?test=1 → modo prueba: facial recognition real pero NO marca,
+      // no consume nonce, no toca jornadas. Pa' training/demo infinito.
+      testMode: params.get('test') === '1',
+    };
   }, []);
 
   // Split queries: estática (empleados) + dinámica (jornadas/horarios)
@@ -301,21 +306,40 @@ const KioskoApp = () => {
       if (confirmInFlightRef.current) return;
       confirmInFlightRef.current = true;
       clearTimeout(autoConfirmTimerRef.current);
-      // Lee del ref pa' agarrar último matched (timer puede tener closure stale)
       const m = matchedRef.current;
-      if (!m || !gps || !videoRef.current) {
+      if (!m || !videoRef.current) {
+        confirmInFlightRef.current = false;
+        return;
+      }
+
+      // ─── MODO PRUEBA ─── no llama backend, simula success
+      if (testMode) {
+        setState('confirming');
+        await new Promise((r) => setTimeout(r, 400)); // pequeño delay pa' feel realista
+        setResult({
+          ok: true,
+          tipo_marca: tipoMarca,
+          empleado_nombre: `${m.empleado.nombre} ${m.empleado.apellido}`,
+          timestamp: Date.now(),
+          score: m.score,
+          _test: true, // flag pa' UI
+        });
+        setState('result');
+        confirmInFlightRef.current = false;
+        return;
+      }
+
+      // ─── PRODUCCIÓN ─── flow real
+      if (!gps) {
         confirmInFlightRef.current = false;
         return;
       }
       setState('confirming');
       try {
-        // 1. Pedir session nonce (single-use, 60s TTL)
         const session = await startSessionMut({ device_token: token });
-        // 2. Capturar foto + subir
         const blob = await captureFrame(videoRef.current);
         const uploadUrl = await uploadUrlMut({ device_token: token });
         const storageId = await uploadBlobToConvex(uploadUrl, blob);
-        // 3. Marcar
         const res = await marcarFacialMut({
           device_token: token,
           session_nonce: session.nonce,
@@ -337,7 +361,7 @@ const KioskoApp = () => {
         confirmInFlightRef.current = false;
       }
     },
-    [gps, marcarFacialMut, uploadUrlMut, startSessionMut, token],
+    [gps, marcarFacialMut, uploadUrlMut, startSessionMut, token, testMode],
   );
 
   const handleCancel = useCallback(() => {
@@ -369,7 +393,12 @@ const KioskoApp = () => {
   }
 
   return (
-    <div className="kiosko">
+    <div className={`kiosko ${testMode ? 'kiosko--test' : ''}`}>
+      {testMode && (
+        <div className="kiosko__test-banner">
+          🧪 MODO PRUEBA — sin guardar marcaciones. Loop infinito pa' training.
+        </div>
+      )}
       <header className="kiosko__header">
         <div className="kiosko__logo">RMP</div>
         <div className="kiosko__zone">
@@ -380,7 +409,7 @@ const KioskoApp = () => {
           <div className="kiosko__clock-mini">
             {clock.toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}
           </div>
-          <GpsIndicator gps={gps} gpsError={gpsError} zona={empleadosCtx.zona} />
+          {!testMode && <GpsIndicator gps={gps} gpsError={gpsError} zona={empleadosCtx.zona} />}
         </div>
       </header>
 
@@ -396,17 +425,20 @@ const KioskoApp = () => {
           )}
         </div>
 
-        {gpsError && (
+        {gpsError && !testMode && (
           <div className="kiosko__status-card kiosko__status-card--warn">
             <h2>GPS requerido</h2>
             <p>{gpsError}. Activa ubicación pa' marcar.</p>
           </div>
         )}
 
-        {state === 'scanning' && !gpsError && (
+        {state === 'scanning' && (!gpsError || testMode) && (
           <div className="kiosko__status-card">
-            <h2>Mira a la cámara</h2>
-            <p>{empleadosCtx.empleados.filter((e) => e.tiene_facial).length} empleados con rostro registrado</p>
+            <h2>{testMode ? 'Mira a la cámara (prueba)' : 'Mira a la cámara'}</h2>
+            <p>
+              {empleadosCtx.empleados.filter((e) => e.tiene_facial).length} empleados con rostro registrado
+              {testMode && ' · cualquiera puede probar'}
+            </p>
           </div>
         )}
 
@@ -443,7 +475,13 @@ const KioskoApp = () => {
         />
       )}
 
-      {result && state === 'result' && <ResultOverlay result={result} onDismiss={handleResultDismiss} />}
+      {result && state === 'result' && (
+        <ResultOverlay
+          result={result}
+          onDismiss={handleResultDismiss}
+          autoDismissMs={testMode ? 1500 : 3500}
+        />
+      )}
     </div>
   );
 };
@@ -633,17 +671,20 @@ const ERROR_MESSAGES = {
   client_error: 'Error del cliente',
 };
 
-const ResultOverlay = ({ result, onDismiss }) => {
+const ResultOverlay = ({ result, onDismiss, autoDismissMs = 3500 }) => {
   useEffect(() => {
-    const id = setTimeout(onDismiss, 3500);
+    const id = setTimeout(onDismiss, autoDismissMs);
     return () => clearTimeout(id);
-  }, [onDismiss]);
+  }, [onDismiss, autoDismissMs]);
 
   if (result.ok) {
     return (
-      <div className="kiosko-result kiosko-result--ok" onClick={onDismiss}>
-        <div className="kiosko-result__icon">✓</div>
-        <h2>{TIPO_MARCA_LABELS[result.tipo_marca]} registrada</h2>
+      <div className={`kiosko-result kiosko-result--ok ${result._test ? 'kiosko-result--test' : ''}`} onClick={onDismiss}>
+        <div className="kiosko-result__icon">{result._test ? '🧪' : '✓'}</div>
+        <h2>
+          {result._test && <span className="kiosko-result__test-badge">PRUEBA</span>}
+          {TIPO_MARCA_LABELS[result.tipo_marca]} {result._test ? '(simulada)' : 'registrada'}
+        </h2>
         <p>{result.empleado_nombre}</p>
         <p className="kiosko-result__time">
           {new Date(result.timestamp).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
