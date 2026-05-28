@@ -115,13 +115,24 @@ const FacialEnrollmentModal = ({ empleado, onClose, onComplete }) => {
   // Este es el fix clave: antes intentábamos attach antes que el <video> existiera en DOM.
   useEffect(() => {
     if (!streamReady || !videoRef.current || !streamRef.current) return;
-    videoRef.current.srcObject = streamRef.current;
+    const v = videoRef.current;
+    v.srcObject = streamRef.current;
     // play() requiere user-gesture en iOS Safari. Si falla, modal queda en ready
     // pero usuario verá overlay "Tap para activar cámara" (capturado en el catch).
-    videoRef.current.play().catch((err) => {
+    v.play().catch((err) => {
       console.warn('[facial] video.play() falló (iOS sin gesture?):', err);
       setErrorMsg('Toca el botón para activar la cámara.');
     });
+    // Esperar metadata antes de habilitar captures (videoWidth/Height > 0).
+    // Safari + algunos Android tardan ~200ms post-attach.
+    (async () => {
+      try {
+        const lib = await loadFacialLib();
+        await lib.waitForVideoReady(v, 3000);
+      } catch (e) {
+        console.warn('[facial] video metadata timeout:', e?.message);
+      }
+    })();
   }, [streamReady, phase]);
 
   // Live detection loop — UX feedback (quality bar) + guarda última detección válida

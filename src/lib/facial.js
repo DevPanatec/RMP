@@ -161,13 +161,43 @@ function l2Normalize(vec) {
  * Captura frame del video element como JPEG blob comprimido pa' upload.
  * Default: 480p, quality 0.7, ~30-60 KB típico.
  */
-export function captureFrame(videoEl, maxWidth = 640, quality = 0.7) {
+/**
+ * Espera a que el video tenga metadata (videoWidth/Height > 0).
+ * Resuelve inmediato si ya está; si no, escucha `loadedmetadata` con timeout.
+ */
+export function waitForVideoReady(videoEl, timeoutMs = 2000) {
   return new Promise((resolve, reject) => {
-    // Guard: video metadata aún no listo (camera attached pero sin frame) → NaN canvas
-    if (!videoEl || !videoEl.videoWidth || !videoEl.videoHeight) {
-      reject(new Error('Cámara no lista pa\' capturar (sin metadata)'));
-      return;
-    }
+    if (!videoEl) return reject(new Error('Video element no existe'));
+    if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) return resolve();
+    let done = false;
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      videoEl.removeEventListener('loadedmetadata', onMeta);
+      videoEl.removeEventListener('loadeddata', onMeta);
+      if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) resolve();
+      else reject(new Error('Timeout esperando metadata del video'));
+    }, timeoutMs);
+    const onMeta = () => {
+      if (done) return;
+      if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
+        done = true;
+        clearTimeout(timer);
+        videoEl.removeEventListener('loadedmetadata', onMeta);
+        videoEl.removeEventListener('loadeddata', onMeta);
+        resolve();
+      }
+    };
+    videoEl.addEventListener('loadedmetadata', onMeta);
+    videoEl.addEventListener('loadeddata', onMeta);
+  });
+}
+
+export async function captureFrame(videoEl, maxWidth = 640, quality = 0.7) {
+  // Asegurar metadata antes de medir (Safari/algunos Android reportan videoWidth=0
+  // por ~200ms post-attach aunque srcObject ya esté seteado).
+  await waitForVideoReady(videoEl, 2000);
+  return new Promise((resolve, reject) => {
     const w = Math.min(videoEl.videoWidth, maxWidth);
     const h = (videoEl.videoHeight / videoEl.videoWidth) * w;
     const canvas = document.createElement('canvas');
