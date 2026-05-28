@@ -905,9 +905,11 @@ const KioscosTab = () => {
 const MarcacionesTab = () => {
   const today = new Date().toISOString().slice(0, 10);
   const [fecha, setFecha] = useState(today);
+  const [editJornada, setEditJornada] = useState(null);
   const jornadas = useQuery(api.asistencia.jornadas.list, { fecha_desde: fecha, fecha_hasta: fecha });
   const intentos = useQuery(api.asistencia.jornadas.listIntentos, { limit: 50 });
   const { employees } = usePersonnel();
+  const { eliminarJornada } = useAsistencia();
 
   const empName = (id) => {
     const e = employees?.find((x) => x._id === id);
@@ -916,6 +918,13 @@ const MarcacionesTab = () => {
   const fmtTime = (ts) => ts
     ? new Date(ts).toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })
     : '—';
+
+  const handleDelete = async (j) => {
+    if (!confirm(`¿Eliminar la jornada de ${empName(j.empleado_id)} del ${j.fecha}? Esta acción no se puede deshacer.`)) return;
+    const r = await eliminarJornada({ jornada_id: j._id });
+    if (r.success) toast.success('Jornada eliminada');
+    else toast.error(r.error || 'Error');
+  };
 
   return (
     <div>
@@ -939,6 +948,7 @@ const MarcacionesTab = () => {
             <th>Regreso almuerzo</th>
             <th>Salida</th>
             <th>Estado</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -950,13 +960,29 @@ const MarcacionesTab = () => {
               <td>{fmtTime(j.regreso_almuerzo_timestamp)}</td>
               <td>{fmtTime(j.salida_timestamp)}</td>
               <td><span className={`asi-badge asi-badge--${j.estado}`}>{j.estado}</span></td>
+              <td>
+                <button className="asi-btn asi-btn--icon" title="Editar marcaciones" onClick={() => setEditJornada(j)}>
+                  <Clock size={14} />
+                </button>
+                <button className="asi-btn asi-btn--icon" title="Eliminar jornada" onClick={() => handleDelete(j)}>
+                  <Trash2 size={14} />
+                </button>
+              </td>
             </tr>
           ))}
           {jornadas && jornadas.length === 0 && (
-            <tr><td colSpan={6} className="asi-table__empty">Sin marcaciones para esta fecha.</td></tr>
+            <tr><td colSpan={7} className="asi-table__empty">Sin marcaciones para esta fecha.</td></tr>
           )}
         </tbody>
       </table>
+
+      {editJornada && (
+        <EditarJornadaModal
+          jornada={editJornada}
+          empName={empName(editJornada.empleado_id)}
+          onClose={() => setEditJornada(null)}
+        />
+      )}
 
       <h4 className="asi-subsection-title">Intentos recientes (incluye fallidos)</h4>
       <table className="asi-table asi-table--compact">
@@ -984,6 +1010,87 @@ const MarcacionesTab = () => {
           )}
         </tbody>
       </table>
+    </div>
+  );
+};
+
+// ─── Modal edición de jornada (corrección manual admin) ────────────
+
+const MARCAS_EDIT = [
+  { key: 'entrada', label: 'Entrada' },
+  { key: 'salida_almuerzo', label: 'Salida almuerzo' },
+  { key: 'regreso_almuerzo', label: 'Regreso almuerzo' },
+  { key: 'salida', label: 'Salida' },
+];
+
+// ms epoch → "HH:MM" en TZ Panamá (pa' pre-llenar inputs time)
+const tsToTime = (ts) => {
+  if (!ts) return '';
+  return new Date(ts).toLocaleTimeString('en-GB', {
+    timeZone: 'America/Panama', hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+};
+
+// "HH:MM" + fecha YYYY-MM-DD → ms epoch (TZ Panamá UTC-5, sin DST)
+const timeToTs = (fecha, time) => {
+  if (!time) return null;
+  const iso = `${fecha}T${time}:00-05:00`;
+  const ms = new Date(iso).getTime();
+  return Number.isNaN(ms) ? null : ms;
+};
+
+const EditarJornadaModal = ({ jornada, empName, onClose }) => {
+  const { editarJornada } = useAsistencia();
+  const [times, setTimes] = useState(() =>
+    Object.fromEntries(MARCAS_EDIT.map((m) => [m.key, tsToTime(jornada[`${m.key}_timestamp`])])),
+  );
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const args = { jornada_id: jornada._id };
+    for (const m of MARCAS_EDIT) {
+      args[`${m.key}_timestamp`] = timeToTs(jornada.fecha, times[m.key]); // null si vacío = borrar
+    }
+    const r = await editarJornada(args);
+    setSaving(false);
+    if (r.success) {
+      toast.success('Marcaciones actualizadas');
+      onClose();
+    } else {
+      toast.error(r.error || 'Error');
+    }
+  };
+
+  return (
+    <div className="asi-modal" onClick={onClose}>
+      <div className="asi-modal__panel" onClick={(e) => e.stopPropagation()}>
+        <h3>Editar marcaciones</h3>
+        <p className="asi-emp-detail__meta">{empName} · {jornada.fecha}</p>
+        <p className="asi-hint">
+          Vacío = borra esa marca. Las correcciones se registran como
+          <strong> manual_admin</strong> en el log de auditoría.
+        </p>
+        <div className="asi-form-grid">
+          {MARCAS_EDIT.map((m) => (
+            <label key={m.key}>
+              {m.label}
+              <input
+                type="time"
+                className="asi-input"
+                value={times[m.key]}
+                onChange={(e) => setTimes((t) => ({ ...t, [m.key]: e.target.value }))}
+              />
+            </label>
+          ))}
+        </div>
+        <div className="asi-form-actions">
+          <button className="asi-btn" onClick={onClose} disabled={saving}>Cancelar</button>
+          <button className="asi-btn asi-btn--primary" onClick={handleSave} disabled={saving}>
+            {saving ? 'Guardando…' : 'Guardar cambios'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -31,6 +31,9 @@ export const AsistenciaProvider = ({ children }) => {
 
   const clearFacialMut = useMutation(api.asistencia.facial.clearFacial);
 
+  const editarJornadaMut = useMutation(api.asistencia.jornadas.editarJornada);
+  const eliminarJornadaMut = useMutation(api.asistencia.jornadas.eliminarJornada);
+
   // Fase 3 — Permisos
   const createPermisoMut = useMutation(api.asistencia.permisos.create);
   const aprobarPermisoMut = useMutation(api.asistencia.permisos.aprobar);
@@ -106,6 +109,9 @@ export const AsistenciaProvider = ({ children }) => {
       clearLockout: wrap(clearLockoutMut),
       // Facial
       clearFacial: wrap(clearFacialMut),
+      // Marcaciones (edición admin)
+      editarJornada: wrap(editarJornadaMut),
+      eliminarJornada: wrap(eliminarJornadaMut),
       // Permisos
       createPermiso: wrap(createPermisoMut),
       aprobarPermiso: wrap(aprobarPermisoMut),

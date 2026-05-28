@@ -1,9 +1,10 @@
 // Asistencia — Queries de jornadas y log de intentos (admin views).
 // Módulo: ASI
 
-import { query } from "../_generated/server";
+import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
-import { getAuthScope, requireOrgAccess } from "../lib/auth";
+import { getAuthScope, requireOrgAccess, requireAdminWrite } from "../lib/auth";
+import { requireModulo } from "../lib/modules";
 import { getPanamaFecha } from "../lib/geo";
 
 // Lista jornadas filtradas por fecha + opcional empleado/proyecto.
@@ -165,5 +166,116 @@ export const getStats = query({
       en_curso,
       ausentes,
     };
+  },
+});
+
+// ─── Edición admin de marcaciones (corrección manual) ──────────────
+//
+// Admin puede editar timestamps de una jornada (corregir errores) o borrarla.
+// Cada cambio loguea metodo="manual_admin" + corrige el estado derivado.
+
+const TIPOS = ["entrada", "salida_almuerzo", "regreso_almuerzo", "salida"] as const;
+
+// Recalcula estado según qué marcas existen.
+function deriveEstado(j: any): string {
+  if (j.salida_timestamp) return "completa";
+  if (j.entrada_timestamp) return "en_curso";
+  return "incompleta";
+}
+
+/**
+ * Editar timestamps de una jornada. Recibe objeto con los 4 tipos opcionales
+ * (ms epoch o null para borrar esa marca). Marca metodo="manual_admin".
+ */
+export const editarJornada = mutation({
+  args: {
+    jornada_id: v.id("jornadas_asistencia"),
+    entrada_timestamp: v.optional(v.union(v.number(), v.null())),
+    salida_almuerzo_timestamp: v.optional(v.union(v.number(), v.null())),
+    regreso_almuerzo_timestamp: v.optional(v.union(v.number(), v.null())),
+    salida_timestamp: v.optional(v.union(v.number(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    await requireAdminWrite(ctx);
+    await requireModulo(ctx, "ASI");
+    const jornada = await ctx.db.get(args.jornada_id);
+    if (!jornada) throw new Error("Jornada no encontrada");
+    await requireOrgAccess(ctx, jornada.organizacion_id);
+
+    const scope = await getAuthScope(ctx);
+    const patch: any = {};
+    for (const tipo of TIPOS) {
+      const key = `${tipo}_timestamp`;
+      const val = (args as any)[key];
+      if (val === undefined) continue; // no tocar
+      if (val === null) {
+        // Borrar esta marca + sus metadatos asociados
+        patch[key] = undefined;
+        patch[`${tipo}_metodo`] = undefined;
+        patch[`${tipo}_score`] = undefined;
+        patch[`${tipo}_kiosko_id`] = undefined;
+        patch[`${tipo}_gps`] = undefined;
+        patch[`${tipo}_foto_storage_id`] = undefined;
+      } else {
+        patch[key] = val;
+        patch[`${tipo}_metodo`] = "manual_admin";
+      }
+    }
+
+    const merged = { ...jornada, ...patch };
+    patch.estado = deriveEstado(merged);
+    // Resetear minutos calculados — el cron los recomputará
+    patch.minutos_trabajados = undefined;
+    patch.minutos_tarde = undefined;
+    patch.minutos_ausente = undefined;
+
+    await ctx.db.patch(args.jornada_id, patch);
+
+    // Log auditoría
+    await ctx.db.insert("marcacion_intentos", {
+      empleado_id: jornada.empleado_id,
+      kiosko_id: jornada.entrada_kiosko_id ?? jornada.salida_kiosko_id,
+      timestamp: Date.now(),
+      resultado: "edicion_admin",
+      metodo: "manual_admin",
+      detalle: `Editado por ${scope.perfil?.nombre_completo ?? scope.perfil?.email ?? "admin"}`,
+      organizacion_id: jornada.organizacion_id,
+    } as any);
+
+    return { ok: true, estado: patch.estado };
+  },
+});
+
+/** Borrar una jornada completa (corrección de duplicado / error). */
+export const eliminarJornada = mutation({
+  args: { jornada_id: v.id("jornadas_asistencia") },
+  handler: async (ctx, args) => {
+    await requireAdminWrite(ctx);
+    await requireModulo(ctx, "ASI");
+    const jornada = await ctx.db.get(args.jornada_id);
+    if (!jornada) throw new Error("Jornada no encontrada");
+    await requireOrgAccess(ctx, jornada.organizacion_id);
+
+    const scope = await getAuthScope(ctx);
+    // Borrar fotos asociadas (best-effort)
+    for (const tipo of TIPOS) {
+      const sid = (jornada as any)[`${tipo}_foto_storage_id`];
+      if (sid) {
+        try { await ctx.storage.delete(sid); } catch { /* ignore */ }
+      }
+    }
+
+    await ctx.db.insert("marcacion_intentos", {
+      empleado_id: jornada.empleado_id,
+      kiosko_id: jornada.entrada_kiosko_id ?? jornada.salida_kiosko_id,
+      timestamp: Date.now(),
+      resultado: "eliminacion_admin",
+      metodo: "manual_admin",
+      detalle: `Jornada ${jornada.fecha} eliminada por ${scope.perfil?.nombre_completo ?? scope.perfil?.email ?? "admin"}`,
+      organizacion_id: jornada.organizacion_id,
+    } as any);
+
+    await ctx.db.delete(args.jornada_id);
+    return { ok: true };
   },
 });

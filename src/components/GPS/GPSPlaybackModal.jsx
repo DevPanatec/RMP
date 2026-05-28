@@ -23,8 +23,6 @@ import { useRoutePlayback } from '../../hooks/useRoutePlayback';
 import { exportToGPX } from '../../utils/routeExport';
 import './GPSPlaybackModal.css';
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-
 // OpenFreeMap — mismo provider que MapLibreComponent (monitoreo) pa' look consistente
 const MAP_STYLES = {
   light: 'https://tiles.openfreemap.org/styles/positron',
@@ -47,11 +45,8 @@ const GPSPlaybackModal = ({
   const [mapTheme, setMapTheme] = useState(() => localStorage.getItem('mapTheme') || 'dark');
   const [controlsExpanded, setControlsExpanded] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
-  const dateInputRef = useRef(null);
   const dateDropdownRef = useRef(null);
   const mapRef = useRef(null);
-  const [snappedRoute, setSnappedRoute] = useState(null);
-  const [isSnapping, setIsSnapping] = useState(false);
   const [hoverTooltip, setHoverTooltip] = useState(null);
   // Map uncontrolled — initialViewState al primer punto, fitBounds maneja framing real.
   const fittedRouteKey = useRef(null);
@@ -62,124 +57,6 @@ const GPSPlaybackModal = ({
     selectedDate,
     vehiculoId
   );
-
-  // Content signature pa' evitar re-snap en cada reactive update de Convex.
-  // routeData es objeto nuevo cada update aunque contenido sea idéntico.
-  const routeContentKey = useMemo(() => {
-    const locs = playback.routeData?.locations;
-    if (!locs || locs.length === 0) return null;
-    const first = locs[0];
-    const last = locs[locs.length - 1];
-    const ts = (l) => l?.last_updated || l?.timestamp || '';
-    return `${locs.length}|${ts(first)}|${ts(last)}`;
-  }, [playback.routeData]);
-
-  /**
-   * Ajustar la traza GPS a las calles reales usando Mapbox Map Matching API
-   */
-  useEffect(() => {
-    const snapRouteToRoads = async () => {
-      if (!playback.routeData?.locations || playback.routeData.locations.length < 2) {
-        setSnappedRoute(null);
-        return;
-      }
-
-      setIsSnapping(true);
-
-      try {
-        const locations = playback.routeData.locations;
-
-        let sampledLocations = locations;
-        const MAX_COORDS = 100;
-
-        if (locations.length > MAX_COORDS) {
-          console.log(`Submuestreando ${locations.length} puntos a ${MAX_COORDS} para Map Matching`);
-          const step = Math.ceil(locations.length / MAX_COORDS);
-          sampledLocations = locations.filter((_, index) => index % step === 0);
-          if (sampledLocations[sampledLocations.length - 1] !== locations[locations.length - 1]) {
-            sampledLocations.push(locations[locations.length - 1]);
-          }
-        }
-
-        const coordinatesArray = sampledLocations
-          .map(loc => {
-            const lat = loc.coords?.lat || loc.status?.coords?.lat;
-            const lon = loc.coords?.lon || loc.status?.coords?.lon;
-            if (!lat || !lon || isNaN(lat) || isNaN(lon)) return null;
-            return `${lon},${lat}`;
-          })
-          .filter(Boolean);
-
-        const uniqueCoordinates = coordinatesArray.filter((coord, index, arr) => {
-          if (index === 0) return true;
-          return coord !== arr[index - 1];
-        });
-
-        console.log(`Filtrado de duplicados: ${coordinatesArray.length} → ${uniqueCoordinates.length} puntos únicos`);
-
-        const coordinates = uniqueCoordinates.join(';');
-
-        if (!coordinates || uniqueCoordinates.length < 2) {
-          console.warn('No hay suficientes coordenadas únicas para Map Matching');
-          setSnappedRoute(null);
-          setIsSnapping(false);
-          return;
-        }
-
-        console.log(`Ajustando ${uniqueCoordinates.length} puntos GPS únicos a calles con Map Matching...`);
-
-        const params = new URLSearchParams({
-          geometries: 'geojson',
-          overview: 'full',
-          steps: 'false',
-          tidy: 'true',
-          radiuses: uniqueCoordinates.map(() => '25').join(';'),
-        });
-
-        const url = `https://api.mapbox.com/matching/v5/mapbox/driving/${coordinates}?${params.toString()}&access_token=${MAPBOX_TOKEN}`;
-
-        const response = await fetch(url);
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.warn(`Map Matching HTTP ${response.status}:`, errorData.message || response.statusText);
-
-          if (response.status === 422) {
-            console.log('Usando puntos GPS originales (sin ajustar a calles)');
-          }
-
-          setSnappedRoute(null);
-          setIsSnapping(false);
-          return;
-        }
-
-        const data = await response.json();
-
-        if (data.code === 'Ok' && data.matchings && data.matchings.length > 0) {
-          // MapLibre expects [lng, lat]
-          const matchedCoords = data.matchings[0].geometry.coordinates;
-
-          console.log(`Ruta ajustada a calles: ${matchedCoords.length} puntos`);
-          console.log(`Confianza del matching: ${(data.matchings[0].confidence * 100).toFixed(1)}%`);
-
-          setSnappedRoute(matchedCoords);
-        } else {
-          console.warn(`Map Matching code: ${data.code}, usando puntos GPS originales`);
-          setSnappedRoute(null);
-        }
-      } catch (error) {
-        console.warn('Map Matching no disponible:', error.message);
-        setSnappedRoute(null);
-      } finally {
-        setIsSnapping(false);
-      }
-    };
-
-    if (playback.routeData && !playback.loading) {
-      snapRouteToRoads();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [routeContentKey, playback.loading]);
 
   // Cerrar con Escape
   useEffect(() => {
@@ -240,17 +117,15 @@ const GPSPlaybackModal = ({
     ]).filter(pos => pos[0] && pos[1] && !isNaN(pos[0]) && !isNaN(pos[1])) || []);
   }, [playback.routeData]);
 
-  // Línea VISUAL del trayecto — usa snapped si está disponible, si no raw.
-  // Memoizado: sino MapLibre <Source> recibe nuevo data prop cada tick (50ms) → re-pinta capa.
-  const routeCoordinates = useMemo(
-    () => snappedRoute || rawCoordinates,
-    [snappedRoute, rawCoordinates]
-  );
+  // Línea VISUAL del trayecto = raw GPS directo. No Map Matching:
+  //   - Token Mapbox era público (riesgo seguridad + cost)
+  //   - Submuestreo a 100 pts perdía 96% data en rutas largas
+  //   - Con pings sparse, snapping retornaba línea recta mintiendo "Ruta optimizada"
+  //   - Para forense gubernamental, raw > inferido
+  const routeCoordinates = rawCoordinates;
 
   const isAtEnd = playback.endTime != null && playback.currentTime != null && playback.currentTime >= playback.endTime;
 
-  // MARKER: en raw GPS interpolado por TIEMPO. Al final, usar el último snapped
-  // point pa' que matchee visualmente con el final de la línea.
   const currentVehiclePosition = useMemo(() => {
     if (isAtEnd && routeCoordinates.length > 0) {
       return routeCoordinates[routeCoordinates.length - 1];
@@ -260,6 +135,17 @@ const GPSPlaybackModal = ({
     }
     return null;
   }, [isAtEnd, routeCoordinates, playback.currentPoint]);
+
+  // Calidad GPS: detecta data sparse pa' warning honesto al usuario.
+  // Gap promedio > 60s o <20 puntos en >1h = "datos escasos".
+  const gpsQuality = useMemo(() => {
+    const locs = playback.routeData?.locations;
+    if (!locs || locs.length < 2 || !playback.startTime || !playback.endTime) return null;
+    const totalMin = (playback.endTime - playback.startTime) / 60000;
+    const avgGapSec = (totalMin * 60) / (locs.length - 1);
+    const isSparse = avgGapSec > 60 || (totalMin > 60 && locs.length < 20);
+    return { isSparse, avgGapSec: Math.round(avgGapSec), totalPoints: locs.length };
+  }, [playback.routeData, playback.startTime, playback.endTime]);
 
   // Split track: TRAVELED (ya pasó) vs REMAINING (falta).
   // Cut basado en playback.progress (0-100). Append currentVehiclePosition al cut
@@ -416,8 +302,7 @@ const GPSPlaybackModal = ({
               <span className="header-subtitle">
                 {vehicleData?.deviceName || vehicleData?.deviceId || 'GPS'}
                 {selectedDate && ` • ${formatFullDate(selectedDate)}`}
-                {isSnapping && ' • Ajustando a calles...'}
-                {snappedRoute && !isSnapping && ' • Ruta optimizada'}
+                {gpsQuality?.isSparse && ` • Datos GPS escasos (${gpsQuality.totalPoints} pts, ~${gpsQuality.avgGapSec}s entre pings)`}
               </span>
             </div>
           </div>
@@ -491,7 +376,6 @@ const GPSPlaybackModal = ({
                   </div>
 
                   <input
-                    ref={dateInputRef}
                     type="date"
                     className="gps-date-input"
                     value={selectedDate || new Date().toISOString().split('T')[0]}
@@ -741,12 +625,6 @@ const GPSPlaybackModal = ({
                       <Clock size={12} aria-hidden="true" />
                       <span>{formatTime(playback.currentPoint?.timestamp || playback.currentPoint?.last_updated)}</span>
                     </div>
-                    {snappedRoute && (
-                      <div className="vehicle-popup-row">
-                        <MapPin size={12} aria-hidden="true" />
-                        <span>Posición ajustada a calle</span>
-                      </div>
-                    )}
                   </div>
                 </Popup>
               )}

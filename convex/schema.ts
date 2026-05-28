@@ -1604,9 +1604,9 @@ export default defineSchema({
   marcacion_intentos: defineTable({
     empleado_id: v.optional(v.id("empleados")), // null si no se identificó (cedula inexistente)
     cedula_intentada: v.optional(v.string()),   // pa' trackear intentos con cédula falsa
-    kiosko_id: v.id("kioscos"),
+    kiosko_id: v.optional(v.id("kioscos")),     // optional: edicion_admin/eliminacion_admin no tienen kiosko
     timestamp: v.number(),
-    resultado: v.string(),                      // "ok" | "pin_fail" | "pin_locked" | "geofence_fail" | "empleado_inactivo" | "empleado_no_zone" | "tipo_marca_invalido" | "kiosko_inactivo" | "facial_low_score" | "liveness_fail" | "facial_no_enrolled" | "facial_invalid_norm" | "facial_locked" | "session_invalid"
+    resultado: v.string(),                      // "ok" | "pin_fail" | "pin_locked" | "geofence_fail" | "empleado_inactivo" | "empleado_no_zone" | "tipo_marca_invalido" | "kiosko_inactivo" | "facial_low_score" | "liveness_fail" | "facial_no_enrolled" | "facial_invalid_norm" | "facial_locked" | "session_invalid" | "edicion_admin" | "eliminacion_admin"
     tipo_marca_intentada: v.optional(v.string()), // "entrada" | "salida_almuerzo" | etc
     metodo: v.optional(v.string()),             // "pin" | "facial"
     score: v.optional(v.number()),              // similarity score 0-1 (facial)
