@@ -32,12 +32,16 @@ const FacialEnrollmentModal = ({ empleado, onClose, onComplete }) => {
   const streamRef = useRef(null);
   const humanRef = useRef(null);
   const rafRef = useRef(null);
+  // Última detección válida del live loop (incluye embedding) — pa' que handleCapture
+  // no tenga que re-detectar (riesgo de blink/motion blur en frame distinto).
+  const lastGoodDetectionRef = useRef(null);
 
   const [phase, setPhase] = useState('init'); // init | ready | capturing | uploading | done | error
   const [errorMsg, setErrorMsg] = useState('');
   const [currentPoseIdx, setCurrentPoseIdx] = useState(0);
   const [captured, setCaptured] = useState([]); // [{ pose, embedding, blob, quality }]
   const [liveScore, setLiveScore] = useState(null); // live detection feedback
+  const [captureMsg, setCaptureMsg] = useState(''); // mensaje inline visible en modal
   const [enrolling, setEnrolling] = useState(false);
   const [streamReady, setStreamReady] = useState(false); // trigger pa' attach effect
 
@@ -120,7 +124,8 @@ const FacialEnrollmentModal = ({ empleado, onClose, onComplete }) => {
     });
   }, [streamReady, phase]);
 
-  // Live detection loop — solo pa' UX feedback (quality bar, cara detectada)
+  // Live detection loop — UX feedback (quality bar) + guarda última detección válida
+  // pa' que handleCapture la use sin re-detectar.
   useEffect(() => {
     if (phase !== 'ready' && phase !== 'capturing') return;
     let lastDetection = 0;
@@ -139,6 +144,21 @@ const FacialEnrollmentModal = ({ empleado, onClose, onComplete }) => {
             hasFace: !!det.face,
             multipleFaces: det.faceCount > 1,
           });
+          // Cachear si es válida — handleCapture la usa pa' evitar re-detect en frame distinto
+          if (
+            det.face &&
+            det.embedding &&
+            det.faceCount === 1 &&
+            det.quality >= MIN_QUALITY &&
+            (det.antispoof <= 0 || det.antispoof >= MIN_ANTISPOOF)
+          ) {
+            lastGoodDetectionRef.current = {
+              embedding: det.embedding,
+              quality: det.quality,
+              antispoof: det.antispoof,
+              ts,
+            };
+          }
         } catch {
           // ignore — siguiente frame
         }
@@ -159,29 +179,52 @@ const FacialEnrollmentModal = ({ empleado, onClose, onComplete }) => {
   const handleCapture = async () => {
     if (!humanRef.current || !videoRef.current) return;
     setPhase('capturing');
+    setCaptureMsg('');
     try {
       const lib = await loadFacialLib();
-      const det = await lib.detectFace(humanRef.current, videoRef.current);
-      if (det.faceCount > 1) {
-        toast.error('Varias caras detectadas. Solo una persona.');
+
+      // Estrategia: 1) usar última detección válida del live loop si es reciente (<500ms).
+      //             2) si no hay, reintentar fresh detect hasta 5 veces (cubre blinks).
+      let det = null;
+      const cached = lastGoodDetectionRef.current;
+      const now = performance.now();
+      if (cached && now - cached.ts < 500) {
+        det = { face: true, embedding: cached.embedding, quality: cached.quality, antispoof: cached.antispoof, faceCount: 1 };
+      } else {
+        for (let i = 0; i < 5; i++) {
+          const fresh = await lib.detectFace(humanRef.current, videoRef.current);
+          if (
+            fresh.face &&
+            fresh.embedding &&
+            fresh.faceCount === 1 &&
+            fresh.quality >= MIN_QUALITY &&
+            (fresh.antispoof <= 0 || fresh.antispoof >= MIN_ANTISPOOF)
+          ) {
+            det = fresh;
+            break;
+          }
+          // 100ms entre reintentos
+          await new Promise((r) => setTimeout(r, 100));
+        }
+      }
+
+      if (!det) {
+        // Hard fail con razón concreta del último liveScore visible
+        const ls = liveScore;
+        let msg = 'No detecté tu cara. Intenta de nuevo.';
+        if (ls?.multipleFaces) msg = 'Varias caras detectadas. Solo una persona.';
+        else if (!ls?.hasFace) msg = 'No detecto cara. Acércate y mira al frente.';
+        else if ((ls?.quality ?? 0) < MIN_QUALITY) {
+          msg = `Calidad baja (${((ls?.quality ?? 0) * 100).toFixed(0)}%). Mejora luz o acércate.`;
+        } else if ((ls?.antispoof ?? 1) > 0 && (ls?.antispoof ?? 1) < MIN_ANTISPOOF) {
+          msg = 'No se detecta cara real. Sin pantallas / fotos impresas.';
+        }
+        setCaptureMsg(msg);
+        toast.error(msg);
         setPhase('ready');
         return;
       }
-      if (!det.face || !det.embedding) {
-        toast.error('No detecté tu cara. Intenta de nuevo.');
-        setPhase('ready');
-        return;
-      }
-      if (det.quality < MIN_QUALITY) {
-        toast.error(`Calidad baja (${(det.quality * 100).toFixed(0)}%). Acércate o mejora la luz.`);
-        setPhase('ready');
-        return;
-      }
-      if (det.antispoof > 0 && det.antispoof < MIN_ANTISPOOF) {
-        toast.error('No se detecta cara real. Sin pantallas o fotos impresas.');
-        setPhase('ready');
-        return;
-      }
+
       const blob = await lib.captureFrame(videoRef.current);
       const newCapture = {
         pose: POSES[currentPoseIdx].id,
@@ -191,15 +234,20 @@ const FacialEnrollmentModal = ({ empleado, onClose, onComplete }) => {
       };
       const nextCaptured = [...captured, newCapture];
       setCaptured(nextCaptured);
+      // Invalidar cache pa' que la próxima foto requiera detección fresca
+      lastGoodDetectionRef.current = null;
       if (currentPoseIdx + 1 < POSES.length) {
         setCurrentPoseIdx(currentPoseIdx + 1);
         setPhase('ready');
+        setCaptureMsg(`✓ Foto ${captured.length + 1}/${POSES.length} capturada`);
       } else {
-        // Completo todas las poses → upload + enroll
         await finishEnrollment(nextCaptured);
       }
     } catch (e) {
-      toast.error(e.message || 'Error al capturar');
+      console.error('[facial] capture error:', e);
+      const msg = e.message || 'Error al capturar';
+      setCaptureMsg(msg);
+      toast.error(msg);
       setPhase('ready');
     }
   };
@@ -328,6 +376,11 @@ const FacialEnrollmentModal = ({ empleado, onClose, onComplete }) => {
             <div className="facial-modal__pose">
               <h3>{currentPose.label}</h3>
               <p>{currentPose.instruction}</p>
+              {captureMsg && (
+                <p className={`facial-capture-msg ${captureMsg.startsWith('✓') ? 'is-ok' : 'is-fail'}`}>
+                  {captureMsg}
+                </p>
+              )}
             </div>
 
             <footer className="facial-modal__actions">
@@ -339,11 +392,13 @@ const FacialEnrollmentModal = ({ empleado, onClose, onComplete }) => {
               <button
                 className="facial-btn facial-btn--primary"
                 onClick={handleCapture}
-                disabled={
-                  phase === 'capturing' ||
-                  phase === 'uploading' ||
-                  !liveScore?.hasFace ||
-                  (liveScore?.quality ?? 0) < MIN_QUALITY
+                disabled={phase === 'capturing' || phase === 'uploading'}
+                title={
+                  !liveScore?.hasFace
+                    ? 'Sin cara detectada — el botón intentará igual'
+                    : (liveScore?.quality ?? 0) < MIN_QUALITY
+                      ? 'Calidad baja — acércate o mejora luz'
+                      : ''
                 }
               >
                 <Camera size={18} />

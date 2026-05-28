@@ -304,3 +304,24 @@
     /* TODO: reorganizar layout en landscape; por ahora min-width pa' controles */
   }
 }
+
+.facial-capture-msg {
+  margin: var(--space-8) 0 0;
+  padding: var(--space-8) var(--space-12);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius-base);
+  display: inline-block;
+}
+
+.facial-capture-msg.is-ok {
+  background: rgba(16, 124, 16, 0.12);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+.facial-capture-msg.is-fail {
+  background: rgba(209, 52, 56, 0.12);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
